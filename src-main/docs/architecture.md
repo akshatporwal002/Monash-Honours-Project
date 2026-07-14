@@ -23,3 +23,17 @@ future migration may add foreign keys after the canonical shared tables and dele
 
 Learning events contain only pseudonymous user references and allow-listed metadata. They must not
 store raw submitted answers, direct identities, prompts, credentials, provider keys, or tokens.
+
+## Feedback service boundary
+
+The feedback pipeline is an async in-process application service. It depends on protocols for
+submission lookup, context collection, feedback generation, feedback judging, and persistence.
+This keeps external LLM, retrieval, simulation, and shared-domain implementations replaceable.
+
+Block 2 stores a terminal workflow, its first feedback attempt, and its judge evaluation in one
+transaction. Context or provider failures leave no partial workflow. Duplicate requests first
+return the existing aggregate, while database uniqueness protects against concurrent duplicate
+saves. Rejected feedback is retained but is not returned as validated student feedback.
+
+The pipeline is not registered as an HTTP route and does not perform background work. Processing
+status endpoints and background execution remain part of the later API integration block.

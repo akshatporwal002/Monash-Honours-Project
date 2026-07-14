@@ -57,8 +57,11 @@ npm run build
 
 ## Current scope
 
-The application provides a React scaffold, a FastAPI health endpoint and the initial persistence
-foundation for feedback workflows, judge evaluations, learning events and research comparisons.
+The application provides a React scaffold, a FastAPI health endpoint, the initial persistence
+foundation, and a provider-independent mocked feedback pipeline. The pipeline can collect context,
+generate deterministic feedback, judge it, store the final aggregate atomically, and replay stored
+results idempotently. It is currently a backend service only and is not exposed through an API.
+
 Database schema changes are managed through Alembic. Shared course, task, submission and user
 entities remain owned by their respective feature teams and are represented by external references
 in the Person 4 tables until their canonical models are available.
