@@ -1,9 +1,11 @@
 """API request and response schemas."""
 
 from app.schemas.feedback import (
+    FeedbackAgentOutput,
     FeedbackContext,
     FeedbackPipelineResult,
     FeedbackPipelineStatus,
+    FeedbackResponseClassification,
     GeneratedFeedback,
     JudgeResult,
     RetrievalContext,
@@ -28,11 +30,13 @@ from app.schemas.persistence import (
 
 __all__ = [
     "ALLOWED_LEARNING_EVENT_METADATA_KEYS",
+    "FeedbackAgentOutput",
     "FeedbackContext",
     "FeedbackPipelineResult",
     "FeedbackPipelineStatus",
     "FeedbackRecordCreate",
     "FeedbackRecordRead",
+    "FeedbackResponseClassification",
     "GeneratedFeedback",
     "JudgeEvaluationCreate",
     "JudgeEvaluationRead",

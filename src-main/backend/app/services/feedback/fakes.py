@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from copy import deepcopy
 
 from app.schemas.feedback import (
     FeedbackContext,
@@ -9,6 +10,35 @@ from app.schemas.feedback import (
     SubmissionContext,
     TaskContext,
 )
+from app.services.feedback.contracts import StructuredLlmRequest, StructuredLlmResponse
+
+
+class RecordingStructuredLlmClient:
+    def __init__(
+        self,
+        response: StructuredLlmResponse,
+        error: Exception | None = None,
+    ) -> None:
+        self._response = response
+        self._error = error
+        self.call_count = 0
+        self.requests: list[StructuredLlmRequest] = []
+
+    async def generate_structured(
+        self,
+        request: StructuredLlmRequest,
+    ) -> StructuredLlmResponse:
+        self.call_count += 1
+        self.requests.append(request)
+        if self._error is not None:
+            raise self._error
+        return StructuredLlmResponse(
+            output=deepcopy(self._response.output),
+            provider=self._response.provider,
+            model=self._response.model,
+            token_usage=self._response.token_usage.model_copy(deep=True),
+            estimated_cost=self._response.estimated_cost,
+        )
 
 
 class InMemorySubmissionProvider:

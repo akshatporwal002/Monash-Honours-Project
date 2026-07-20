@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from decimal import Decimal
+from typing import Any, Protocol
 
 from app.schemas.feedback import (
     FeedbackContext,
@@ -11,7 +12,34 @@ from app.schemas.feedback import (
     SimulationContext,
     SubmissionContext,
     TaskContext,
+    TokenUsage,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class StructuredLlmRequest:
+    system_prompt: str
+    user_prompt: str
+    response_schema: dict[str, Any]
+    schema_name: str
+    prompt_version: str
+    temperature: float = 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class StructuredLlmResponse:
+    output: dict[str, Any]
+    provider: str
+    model: str
+    token_usage: TokenUsage
+    estimated_cost: Decimal = Decimal("0")
+
+
+class StructuredLlmClient(Protocol):
+    async def generate_structured(
+        self,
+        request: StructuredLlmRequest,
+    ) -> StructuredLlmResponse: ...
 
 
 class SubmissionProvider(Protocol):

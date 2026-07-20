@@ -58,9 +58,11 @@ npm run build
 ## Current scope
 
 The application provides a React scaffold, a FastAPI health endpoint, the initial persistence
-foundation, and a provider-independent mocked feedback pipeline. The pipeline can collect context,
-generate deterministic feedback, judge it, store the final aggregate atomically, and replay stored
-results idempotently. It is currently a backend service only and is not exposed through an API.
+foundation, and a provider-independent feedback pipeline. The pipeline can collect context, build
+a privacy-conscious structured feedback prompt, validate model output through a replaceable LLM
+client, judge it through the existing test boundary, store the final aggregate atomically, and
+replay stored results idempotently. It is currently a backend service only and is not exposed
+through an API. No production LLM adapter is configured yet.
 
 Database schema changes are managed through Alembic. Shared course, task, submission and user
 entities remain owned by their respective feature teams and are represented by external references

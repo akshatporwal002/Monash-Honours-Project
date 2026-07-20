@@ -45,8 +45,15 @@ def create_feedback(
         feedback_content={"summary": "Review the measurement result."},
         status=FeedbackStatus.PENDING_JUDGEMENT,
         generation_attempt=attempt,
+        provider="fake-provider",
         model="test-model",
+        prompt_version="feedback-v1",
         source_references=["source-1"],
+        simulation_references=["simulation-1"],
+        input_tokens=10,
+        output_tokens=20,
+        total_tokens=30,
+        estimated_cost=Decimal("0.001000"),
     )
     db_session.add(feedback)
     db_session.commit()
@@ -111,6 +118,7 @@ def test_create_serialize_and_retrieve_all_records(db_session: Session) -> None:
     assert db_session.get(WorkflowRun, workflow.id) is workflow
     assert WorkflowRunRead.model_validate(workflow).submission_id == "submission-1"
     assert FeedbackRecordRead.model_validate(feedback).source_references == ["source-1"]
+    assert FeedbackRecordRead.model_validate(feedback).total_tokens == 30
     assert JudgeEvaluationRead.model_validate(judge).decision is JudgeDecision.PASS
     event_dump = LearningEventRead.model_validate(learning_event).model_dump(by_alias=True)
     assert event_dump["metadata"] == {"attempt_number": 1}
@@ -124,7 +132,9 @@ def test_sqlite_foreign_keys_are_enforced(db_session: Session) -> None:
         feedback_content={"summary": "Not persisted"},
         status=FeedbackStatus.PENDING_JUDGEMENT,
         generation_attempt=1,
+        provider="fake-provider",
         model="test-model",
+        prompt_version="feedback-v1",
         source_references=[],
     )
     db_session.add(feedback)
@@ -149,7 +159,9 @@ def test_unique_submission_and_attempt_constraints(db_session: Session) -> None:
         feedback_content={"summary": "Duplicate"},
         status=FeedbackStatus.REJECTED,
         generation_attempt=1,
+        provider="fake-provider",
         model="test-model",
+        prompt_version="feedback-v1",
         source_references=[],
     )
     db_session.add(duplicate_attempt)
@@ -283,6 +295,7 @@ def test_feedback_shape_and_independent_json_defaults(db_session: Session) -> No
     db_session.add(fallback)
     db_session.commit()
     assert fallback.source_references == []
+    assert fallback.simulation_references == []
 
     invalid_generated = FeedbackRecord(
         submission_id=workflow.submission_id,
@@ -308,6 +321,25 @@ def test_feedback_shape_and_independent_json_defaults(db_session: Session) -> No
     db_session.commit()
     fallback.source_references.append("source-local")
     assert second_fallback.source_references == []
+
+    third_workflow = create_workflow(db_session, "submission-3")
+    invalid_usage = FeedbackRecord(
+        submission_id=third_workflow.submission_id,
+        workflow_run_id=third_workflow.id,
+        feedback_content={"summary": "Invalid token accounting"},
+        status=FeedbackStatus.ACCEPTED,
+        generation_attempt=1,
+        provider="fake-provider",
+        model="test-model",
+        prompt_version="feedback-v1",
+        input_tokens=10,
+        output_tokens=5,
+        total_tokens=14,
+    )
+    db_session.add(invalid_usage)
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
 
 
 def test_restrictive_foreign_keys_preserve_evidence(db_session: Session) -> None:

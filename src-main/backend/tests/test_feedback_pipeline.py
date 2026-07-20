@@ -83,7 +83,9 @@ def generated_feedback() -> GeneratedFeedback:
             "summary": "The response correctly identifies superposition.",
             "recommended_next_step": "Explain how measurement changes the state.",
         },
+        provider="fake-provider",
         model="fake-feedback-model",
+        prompt_version="feedback-v1",
         source_references=["source-1"],
         simulation_references=["simulation-1"],
         token_usage=TokenUsage(input_tokens=20, output_tokens=10, total_tokens=30),
@@ -205,6 +207,11 @@ def test_successful_pipeline_persists_and_returns_validated_feedback(db_session:
     assert feedback.workflow_run_id == result.workflow_run_id
     assert feedback.status is FeedbackStatus.ACCEPTED
     assert feedback.generation_attempt == 1
+    assert feedback.provider == "fake-provider"
+    assert feedback.prompt_version == "feedback-v1"
+    assert feedback.simulation_references == ["simulation-1"]
+    assert feedback.total_tokens == 30
+    assert feedback.estimated_cost == Decimal("0.001500")
     assert feedback.judge_evaluation is not None
     assert feedback.judge_evaluation.decision is JudgeDecision.PASS
 
@@ -219,6 +226,10 @@ def test_duplicate_request_returns_stored_result_without_provider_calls(
     assert second.workflow_run_id == first.workflow_run_id
     assert second.feedback_id == first.feedback_id
     assert second.idempotent_replay is True
+    assert second.validated_feedback == first.validated_feedback
+    assert second.token_usage == first.token_usage
+    assert second.estimated_cost == first.estimated_cost
+    assert second.source_references == first.source_references
     assert submission_provider.call_count == 1
     assert task_provider.call_count == 1
     assert generator.call_count == 1
