@@ -7,11 +7,17 @@ from sqlalchemy import create_engine, inspect
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_TABLES = {
+    "achievements",
     "alembic_version",
     "feedback_records",
     "judge_evaluations",
     "learning_events",
+    "learning_tasks",
     "research_evaluations",
+    "student_achievements",
+    "student_notifications",
+    "student_profiles",
+    "student_submissions",
     "workflow_runs",
 }
 

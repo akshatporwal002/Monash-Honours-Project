@@ -7,6 +7,9 @@ from app.models.enums import (
     ResearchStatus,
     WorkflowOutcome,
     WorkflowStage,
+    NotificationKind,
+    SubmissionStatus,
+    TaskType,
 )
 from app.models.persistence import (
     FeedbackRecord,
@@ -14,6 +17,12 @@ from app.models.persistence import (
     LearningEvent,
     ResearchEvaluation,
     WorkflowRun,
+    Achievement,
+    LearningTask,
+    StudentAchievement,
+    StudentNotification,
+    StudentProfile,
+    StudentSubmission,
 )
 
 __all__ = [
@@ -30,4 +39,13 @@ __all__ = [
     "WorkflowOutcome",
     "WorkflowRun",
     "WorkflowStage",
+    "Achievement",
+    "LearningTask",
+    "NotificationKind",
+    "StudentAchievement",
+    "StudentNotification",
+    "StudentProfile",
+    "StudentSubmission",
+    "SubmissionStatus",
+    "TaskType",
 ]

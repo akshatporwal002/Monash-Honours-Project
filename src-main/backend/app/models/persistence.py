@@ -17,6 +17,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    Boolean,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,6 +31,9 @@ from app.models.enums import (
     ResearchStatus,
     WorkflowOutcome,
     WorkflowStage,
+    NotificationKind,
+    SubmissionStatus,
+    TaskType,
 )
 
 
@@ -322,3 +326,100 @@ class ResearchEvaluation(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     workflow_run: Mapped[WorkflowRun | None] = relationship(back_populates="research_evaluations")
+
+
+class StudentProfile(Base):
+    __tablename__ = "student_profiles"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    display_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    streak_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+    submissions: Mapped[list[StudentSubmission]] = relationship(back_populates="student")
+    notifications: Mapped[list[StudentNotification]] = relationship(back_populates="student")
+    achievements: Mapped[list[StudentAchievement]] = relationship(back_populates="student")
+
+
+class LearningTask(Base):
+    __tablename__ = "learning_tasks"
+    __table_args__ = (UniqueConstraint("slug", name="uq_learning_tasks_slug"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    slug: Mapped[str] = mapped_column(String(100), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    module: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    instructions: Mapped[str] = mapped_column(Text, nullable=False)
+    task_type: Mapped[TaskType] = mapped_column(enum_column(TaskType, "task_type"), nullable=False)
+    difficulty: Mapped[str] = mapped_column(String(30), nullable=False)
+    points: Mapped[int] = mapped_column(Integer, nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    starter_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    expected_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    submissions: Mapped[list[StudentSubmission]] = relationship(back_populates="task")
+
+
+class StudentSubmission(Base):
+    __tablename__ = "student_submissions"
+    __table_args__ = (
+        UniqueConstraint("student_id", "task_id", name="uq_student_submissions_student_task"),
+        CheckConstraint("score BETWEEN 0 AND 100", name="student_submission_score"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    student_id: Mapped[str] = mapped_column(ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("learning_tasks.id", ondelete="CASCADE"), nullable=False)
+    answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    circuit: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    status: Mapped[SubmissionStatus] = mapped_column(enum_column(SubmissionStatus, "submission_status"), nullable=False)
+    score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+
+    student: Mapped[StudentProfile] = relationship(back_populates="submissions")
+    task: Mapped[LearningTask] = relationship(back_populates="submissions")
+
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+    __table_args__ = (UniqueConstraint("code", name="uq_achievements_code"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    code: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(String(255), nullable=False)
+    icon: Mapped[str] = mapped_column(String(20), nullable=False)
+
+
+class StudentAchievement(Base):
+    __tablename__ = "student_achievements"
+    __table_args__ = (UniqueConstraint("student_id", "achievement_id", name="uq_student_achievement"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    student_id: Mapped[str] = mapped_column(ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
+    achievement_id: Mapped[str] = mapped_column(ForeignKey("achievements.id", ondelete="CASCADE"), nullable=False)
+    earned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+    student: Mapped[StudentProfile] = relationship(back_populates="achievements")
+    achievement: Mapped[Achievement] = relationship()
+
+
+class StudentNotification(Base):
+    __tablename__ = "student_notifications"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    student_id: Mapped[str] = mapped_column(ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
+    kind: Mapped[NotificationKind] = mapped_column(enum_column(NotificationKind, "notification_kind"), nullable=False)
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+    student: Mapped[StudentProfile] = relationship(back_populates="notifications")

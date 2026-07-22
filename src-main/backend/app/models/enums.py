@@ -53,3 +53,21 @@ class ResearchStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class TaskType(str, Enum):
+    QUIZ = "quiz"
+    CODE = "code"
+    CIRCUIT = "circuit"
+
+
+class SubmissionStatus(str, Enum):
+    DRAFT = "draft"
+    SUBMITTED = "submitted"
+    COMPLETED = "completed"
+
+
+class NotificationKind(str, Enum):
+    REMINDER = "reminder"
+    ACHIEVEMENT = "achievement"
+    FEEDBACK = "feedback"
