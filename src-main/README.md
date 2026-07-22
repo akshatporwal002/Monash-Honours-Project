@@ -57,10 +57,18 @@ npm run build
 
 ## Current scope
 
-The application provides a React scaffold, a FastAPI health endpoint, the initial persistence
-foundation, and a provider-independent mocked feedback pipeline. The pipeline can collect context,
-generate deterministic feedback, judge it, store the final aggregate atomically, and replay stored
-results idempotently. It is currently a backend service only and is not exposed through an API.
+The application now includes a responsive student learning experience connected to the FastAPI
+backend. The demo student can open quiz, code, and circuit activities; save or submit work; run
+quantum-circuit simulations; review feedback and progress; follow personalised recommendations;
+and earn points and achievements. Notifications and an educator progress summary are also exposed
+through the API.
+
+Open `GET /api/v1/students/demo` in the API documentation to seed and inspect the demo experience.
+The React client uses `http://localhost:8000/api/v1` by default; set `VITE_API_URL` to override it.
+
+The provider-independent mocked feedback pipeline can collect context, generate deterministic
+feedback, judge it, store the final aggregate atomically, and replay stored results idempotently.
+It remains a backend service and is not yet exposed through an API.
 
 Database schema changes are managed through Alembic. Shared course, task, submission and user
 entities remain owned by their respective feature teams and are represented by external references
