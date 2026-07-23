@@ -1,1 +1,10 @@
-quantumlearn_codex_context.md
+person4_codex_implementation_brief.md
+src-main/docs/person4-implementation-map.md
+.venv/
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.db
+*.tsbuildinfo
