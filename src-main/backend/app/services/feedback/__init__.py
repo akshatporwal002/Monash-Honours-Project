@@ -1,3 +1,4 @@
+from app.services.feedback.agent import AI_GENERATED_NOTICE, LlmFeedbackGenerator
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.contracts import (
     FeedbackContextCollector,
@@ -7,14 +8,20 @@ from app.services.feedback.contracts import (
     PipelinePersistenceRequest,
     RetrievalProvider,
     SimulationProvider,
+    StructuredLlmClient,
+    StructuredLlmRequest,
+    StructuredLlmResponse,
     SubmissionProvider,
     TaskProvider,
 )
 from app.services.feedback.errors import (
     ContextCollectionError,
+    FeedbackAgentError,
+    FeedbackClientError,
     FeedbackGenerationError,
     FeedbackJudgementError,
     FeedbackPipelineError,
+    InvalidFeedbackOutputError,
     PipelinePersistenceError,
     SubmissionNotFoundError,
     TaskNotFoundError,
@@ -24,17 +31,23 @@ from app.services.feedback.fakes import (
     FakeFeedbackJudge,
     InMemorySubmissionProvider,
     InMemoryTaskProvider,
+    RecordingStructuredLlmClient,
     StaticRetrievalProvider,
     StaticSimulationProvider,
 )
 from app.services.feedback.pipeline import FeedbackPipeline
+from app.services.feedback.prompt import FEEDBACK_PROMPT_VERSION, FeedbackPromptBuilder
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 
 __all__ = [
+    "AI_GENERATED_NOTICE",
     "ContextCollectionError",
     "DefaultFeedbackContextCollector",
     "FakeFeedbackGenerator",
     "FakeFeedbackJudge",
+    "FEEDBACK_PROMPT_VERSION",
+    "FeedbackAgentError",
+    "FeedbackClientError",
     "FeedbackContextCollector",
     "FeedbackGenerationError",
     "FeedbackGenerator",
@@ -42,16 +55,23 @@ __all__ = [
     "FeedbackJudgementError",
     "FeedbackPipeline",
     "FeedbackPipelineError",
+    "FeedbackPromptBuilder",
     "FeedbackWorkflowRepository",
     "InMemorySubmissionProvider",
     "InMemoryTaskProvider",
+    "InvalidFeedbackOutputError",
+    "LlmFeedbackGenerator",
     "PipelinePersistenceError",
     "PipelinePersistenceRequest",
+    "RecordingStructuredLlmClient",
     "RetrievalProvider",
     "SimulationProvider",
     "SqlAlchemyFeedbackWorkflowRepository",
     "StaticRetrievalProvider",
     "StaticSimulationProvider",
+    "StructuredLlmClient",
+    "StructuredLlmRequest",
+    "StructuredLlmResponse",
     "SubmissionNotFoundError",
     "SubmissionProvider",
     "TaskNotFoundError",

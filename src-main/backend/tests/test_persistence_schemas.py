@@ -57,9 +57,26 @@ def test_feedback_schema_enforces_generated_and_fallback_shapes() -> None:
         feedback_content={"summary": "Good start."},
         status=FeedbackStatus.PENDING_JUDGEMENT,
         generation_attempt=1,
+        provider="fake-provider",
         model="test-model",
+        prompt_version="feedback-v1",
     )
     assert generated.generation_attempt == 1
+
+    with pytest.raises(ValidationError):
+        FeedbackRecordCreate(
+            submission_id="submission-external",
+            workflow_run_id=uuid_string(),
+            feedback_content={"summary": "Invalid usage."},
+            status=FeedbackStatus.ACCEPTED,
+            generation_attempt=1,
+            provider="fake-provider",
+            model="test-model",
+            prompt_version="feedback-v1",
+            input_tokens=10,
+            output_tokens=5,
+            total_tokens=14,
+        )
 
     fallback = FeedbackRecordCreate(
         submission_id="submission-external",

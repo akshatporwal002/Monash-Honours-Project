@@ -2,6 +2,20 @@ class FeedbackPipelineError(Exception):
     """Base class for controlled feedback-pipeline failures."""
 
 
+class FeedbackAgentError(Exception):
+    """Base class for sanitized failures inside a feedback generator."""
+
+
+class FeedbackClientError(FeedbackAgentError):
+    def __init__(self) -> None:
+        super().__init__("The feedback model client could not complete the request")
+
+
+class InvalidFeedbackOutputError(FeedbackAgentError):
+    def __init__(self) -> None:
+        super().__init__("The feedback model returned invalid structured output")
+
+
 class SubmissionNotFoundError(FeedbackPipelineError):
     def __init__(self, submission_id: str) -> None:
         self.submission_id = submission_id

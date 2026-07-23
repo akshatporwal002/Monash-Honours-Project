@@ -64,7 +64,9 @@ def test_token_usage_and_feedback_content_are_validated() -> None:
     with pytest.raises(ValidationError):
         GeneratedFeedback(
             feedback_content={},
+            provider="fake-provider",
             model="fake-model",
+            prompt_version="feedback-v1",
             token_usage=TokenUsage(),
             estimated_cost=Decimal("0"),
         )
@@ -73,7 +75,9 @@ def test_token_usage_and_feedback_content_are_validated() -> None:
 def test_rejected_pipeline_result_cannot_release_feedback() -> None:
     generated = GeneratedFeedback(
         feedback_content={"summary": "Structured feedback"},
+        provider="fake-provider",
         model="fake-model",
+        prompt_version="feedback-v1",
         token_usage=TokenUsage(),
         estimated_cost=Decimal("0"),
     )

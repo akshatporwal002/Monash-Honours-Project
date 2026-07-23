@@ -37,3 +37,19 @@ saves. Rejected feedback is retained but is not returned as validated student fe
 
 The pipeline is not registered as an HTTP route and does not perform background work. Processing
 status endpoints and background execution remain part of the later API integration block.
+
+## Feedback agent
+
+The Block 3 feedback agent builds a versioned `feedback-v1` request and depends on a structured LLM
+client protocol rather than a provider SDK. Model output is validated against a strict schema before
+it can enter the feedback pipeline. Incorrect feedback must identify the error and include an
+improvement action, while citations are limited to retrieved source IDs and the supplied simulation
+ID. The application injects the AI-generated notice; the model cannot author or replace it.
+
+Prompts omit direct student, submission, course, workflow, retrieval-request, document, and chunk
+identifiers. Student answers and retrieved text are explicitly treated as untrusted data. Client and
+validation failures are converted to sanitized errors without logging prompt or output content.
+
+Feedback records preserve provider, model, prompt version, simulation references, token usage, and
+estimated cost. This keeps initial results and idempotent replays consistent and prepares the data
+boundary needed by later research work. A concrete network-backed client remains a future adapter.

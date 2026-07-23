@@ -37,6 +37,36 @@ class FeedbackContract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
 
+class FeedbackResponseClassification(str, Enum):
+    CORRECT = "correct"
+    PARTIALLY_CORRECT = "partially_correct"
+    INCORRECT = "incorrect"
+
+
+class FeedbackAgentOutput(FeedbackContract):
+    # Structured model output arrives as ordinary JSON, so wire-format enum
+    # strings must be accepted before the rest of the fields are validated.
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=False)
+
+    response_classification: FeedbackResponseClassification
+    summary: NonEmptyText
+    identified_error: NonEmptyText | None
+    explanation: NonEmptyText
+    improvement_actions: list[NonEmptyText]
+    recommended_next_step: NonEmptyText
+    source_references: list[ExternalId]
+    simulation_references: list[ExternalId]
+
+    @model_validator(mode="after")
+    def validate_incorrect_feedback(self) -> "FeedbackAgentOutput":
+        if self.response_classification is FeedbackResponseClassification.INCORRECT:
+            if self.identified_error is None:
+                raise ValueError("incorrect feedback requires identified_error")
+            if not self.improvement_actions:
+                raise ValueError("incorrect feedback requires at least one improvement action")
+        return self
+
+
 class TaskContext(FeedbackContract):
     task_id: ExternalId
     course_id: ExternalId
@@ -114,7 +144,9 @@ class TokenUsage(FeedbackContract):
 
 class GeneratedFeedback(FeedbackContract):
     feedback_content: dict[str, JsonValue]
+    provider: ExternalId
     model: ExternalId
+    prompt_version: ExternalId
     source_references: list[ExternalId] = Field(default_factory=list)
     simulation_references: list[ExternalId] = Field(default_factory=list)
     token_usage: TokenUsage = Field(default_factory=TokenUsage)

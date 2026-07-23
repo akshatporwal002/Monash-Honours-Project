@@ -111,11 +111,20 @@ class FeedbackRecord(Base):
             name="uq_feedback_records_workflow_attempt",
         ),
         CheckConstraint(
-            "(status = 'safe_fallback' AND generation_attempt IS NULL AND model IS NULL) OR "
+            "(status = 'safe_fallback' AND generation_attempt IS NULL AND model IS NULL "
+            "AND provider IS NULL AND prompt_version IS NULL) OR "
             "(status <> 'safe_fallback' AND generation_attempt BETWEEN 1 AND 2 "
-            "AND model IS NOT NULL)",
+            "AND model IS NOT NULL AND provider IS NOT NULL AND prompt_version IS NOT NULL)",
             name="feedback_generation_details",
         ),
+        CheckConstraint("input_tokens >= 0", name="feedback_input_tokens"),
+        CheckConstraint("output_tokens >= 0", name="feedback_output_tokens"),
+        CheckConstraint("total_tokens >= 0", name="feedback_total_tokens"),
+        CheckConstraint(
+            "total_tokens = input_tokens + output_tokens",
+            name="feedback_token_total",
+        ),
+        CheckConstraint("estimated_cost >= 0", name="feedback_cost"),
         Index("ix_feedback_records_submission_id", "submission_id"),
     )
 
@@ -132,8 +141,19 @@ class FeedbackRecord(Base):
         default=FeedbackStatus.PENDING_JUDGEMENT,
     )
     generation_attempt: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    provider: Mapped[str | None] = mapped_column(String(100), nullable=True)
     model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
     source_references: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    simulation_references: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    estimated_cost: Mapped[Decimal] = mapped_column(
+        Numeric(12, 6),
+        nullable=False,
+        default=Decimal("0"),
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -77,18 +76,28 @@ class SqlAlchemyFeedbackWorkflowRepository:
             unsupported_claims=judge.unsupported_claims,
             regeneration_instructions=judge.regeneration_instructions,
         )
-        token_usage = TokenUsage()
+        token_usage = TokenUsage(
+            input_tokens=feedback.input_tokens,
+            output_tokens=feedback.output_tokens,
+            total_tokens=feedback.total_tokens,
+        )
         generated_feedback = None
         if feedback.status is FeedbackStatus.ACCEPTED:
-            if feedback.model is None:
+            if (
+                feedback.provider is None
+                or feedback.model is None
+                or feedback.prompt_version is None
+            ):
                 raise PipelinePersistenceError(submission_id)
             generated_feedback = GeneratedFeedback(
                 feedback_content=feedback.feedback_content,
+                provider=feedback.provider,
                 model=feedback.model,
+                prompt_version=feedback.prompt_version,
                 source_references=feedback.source_references,
-                simulation_references=[],
+                simulation_references=feedback.simulation_references,
                 token_usage=token_usage,
-                estimated_cost=Decimal("0"),
+                estimated_cost=feedback.estimated_cost,
             )
             pipeline_status = FeedbackPipelineStatus.VALIDATED
         elif feedback.status is FeedbackStatus.REJECTED:
@@ -108,7 +117,7 @@ class SqlAlchemyFeedbackWorkflowRepository:
             fallback_used=False,
             latency_ms=max(0, int(latency.total_seconds() * 1000)),
             token_usage=token_usage,
-            estimated_cost=Decimal("0"),
+            estimated_cost=feedback.estimated_cost,
             source_references=feedback.source_references,
             idempotent_replay=True,
         )
@@ -134,8 +143,15 @@ class SqlAlchemyFeedbackWorkflowRepository:
             feedback_content=request.generated_feedback.feedback_content,
             status=FeedbackStatus.ACCEPTED if accepted else FeedbackStatus.REJECTED,
             generation_attempt=1,
+            provider=request.generated_feedback.provider,
             model=request.generated_feedback.model,
+            prompt_version=request.generated_feedback.prompt_version,
             source_references=request.generated_feedback.source_references,
+            simulation_references=request.generated_feedback.simulation_references,
+            input_tokens=request.generated_feedback.token_usage.input_tokens,
+            output_tokens=request.generated_feedback.token_usage.output_tokens,
+            total_tokens=request.generated_feedback.token_usage.total_tokens,
+            estimated_cost=request.generated_feedback.estimated_cost,
         )
         judge_result = result.judge_result
         judge = JudgeEvaluation(

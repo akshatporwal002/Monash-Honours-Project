@@ -114,8 +114,15 @@ class FeedbackRecordCreate(PersistenceSchema):
     feedback_content: dict[str, JsonValue]
     status: FeedbackStatus = FeedbackStatus.PENDING_JUDGEMENT
     generation_attempt: Annotated[int, Field(ge=1, le=2)] | None = None
+    provider: ShortLabel | None = None
     model: ExternalId | None = None
+    prompt_version: ShortLabel | None = None
     source_references: list[ExternalId] = Field(default_factory=list)
+    simulation_references: list[ExternalId] = Field(default_factory=list)
+    input_tokens: NonNegativeInt = 0
+    output_tokens: NonNegativeInt = 0
+    total_tokens: NonNegativeInt = 0
+    estimated_cost: NonNegativeDecimal = Decimal("0")
 
     @field_validator("feedback_content")
     @classmethod
@@ -127,10 +134,18 @@ class FeedbackRecordCreate(PersistenceSchema):
     @model_validator(mode="after")
     def validate_generation_details(self) -> "FeedbackRecordCreate":
         fallback = self.status is FeedbackStatus.SAFE_FALLBACK
-        if fallback and (self.generation_attempt is not None or self.model is not None):
+        generation_details = (
+            self.generation_attempt,
+            self.provider,
+            self.model,
+            self.prompt_version,
+        )
+        if fallback and any(value is not None for value in generation_details):
             raise ValueError("safe fallback feedback cannot have generation or model details")
-        if not fallback and (self.generation_attempt is None or self.model is None):
-            raise ValueError("generated feedback requires generation_attempt and model")
+        if not fallback and any(value is None for value in generation_details):
+            raise ValueError("generated feedback requires generation and provider details")
+        if self.total_tokens != self.input_tokens + self.output_tokens:
+            raise ValueError("total_tokens must equal input_tokens plus output_tokens")
         return self
 
 

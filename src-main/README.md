@@ -66,9 +66,10 @@ through the API.
 Open `GET /api/v1/students/demo` in the API documentation to seed and inspect the demo experience.
 The React client uses `http://localhost:8000/api/v1` by default; set `VITE_API_URL` to override it.
 
-The provider-independent mocked feedback pipeline can collect context, generate deterministic
-feedback, judge it, store the final aggregate atomically, and replay stored results idempotently.
-It remains a backend service and is not yet exposed through an API.
+The provider-independent feedback pipeline can collect context, build a privacy-conscious
+structured feedback prompt, validate model output through a replaceable LLM client, judge it,
+store the final aggregate atomically, and replay stored results idempotently. It remains a backend
+service and is not yet exposed through an API. No production LLM adapter is configured yet.
 
 Database schema changes are managed through Alembic. Shared course, task, submission and user
 entities remain owned by their respective feature teams and are represented by external references
