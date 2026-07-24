@@ -1,1 +1,24 @@
 quantumlearn_codex_context.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Application data and secrets
+*.db
+*.sqlite
+*.sqlite3
+.env
+
+# Frontend
+node_modules/
+dist/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
