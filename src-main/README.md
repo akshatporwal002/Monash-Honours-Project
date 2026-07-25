@@ -24,6 +24,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 Copy-Item .env.example .env
+# Replace SESSION_SECRET_KEY in .env before starting the API
 uvicorn app.main:app --reload
 ```
 

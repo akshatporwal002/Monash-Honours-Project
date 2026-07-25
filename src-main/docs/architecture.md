@@ -19,5 +19,11 @@ rules live in `app.services.authentication`, separately from the future HTTP rou
 Authentication returns the same failure result for unknown users, incorrect passwords,
 and inactive accounts so callers do not expose account state.
 
+Successful login creates a signed, time-limited session token stored in an HTTP-only,
+SameSite cookie. The `/auth/me` endpoint restores the current user from that cookie and
+the `/auth/logout` endpoint removes it. Protected routes reuse the current-user dependency
+rather than decoding session tokens themselves. Production deployments must provide a
+strong `SESSION_SECRET_KEY` and enable `SESSION_COOKIE_SECURE`.
+
 Feature-specific folders will be added only when those features are implemented. Secrets
 must be supplied through environment variables and must not be committed.
