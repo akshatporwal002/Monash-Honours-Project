@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import io
 from collections.abc import Generator
 from typing import Annotated
 
@@ -13,11 +14,16 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.models import LearningMaterial, MaterialIndexStatus
-from app.schemas.content import LearningMaterialRead, MaterialProcessingRead
+from app.schemas.content import (
+    LearningMaterialLinkCreate,
+    LearningMaterialRead,
+    MaterialProcessingRead,
+)
 from app.services.rag.contracts import CourseAccessPolicy
 from app.services.rag.embeddings import SentenceTransformerEmbeddingProvider
 from app.services.rag.errors import CourseAccessDeniedError, DuplicateMaterialError, RagError
 from app.services.rag.extraction.docx import DocxDocumentExtractor
+from app.services.rag.extraction.html import HtmlDocumentExtractor
 from app.services.rag.extraction.pdf import PdfDocumentExtractor
 from app.services.rag.extraction.pptx import PptxDocumentExtractor
 from app.services.rag.fakes import AllowAllCourseAccessPolicy, DenyAllCourseAccessPolicy
@@ -25,6 +31,7 @@ from app.services.rag.ingestion import MaterialProcessor
 from app.services.rag.repositories import MaterialRepository
 from app.services.rag.storage import FileStorage, LocalFileStorage
 from app.services.rag.vector_store import ChromaVectorStore
+from app.services.rag.web import SafeHttpsFetcher
 
 router = APIRouter(prefix="/courses/{course_id}/materials")
 
@@ -50,6 +57,7 @@ def get_material_processor(
             "application/pdf": PdfDocumentExtractor(),
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document": DocxDocumentExtractor(),
             "application/vnd.openxmlformats-officedocument.presentationml.presentation": PptxDocumentExtractor(),
+            "text/html": HtmlDocumentExtractor(),
         },
         embedding,
         ChromaVectorStore(embedding.model_id, embedding.dimension),
@@ -58,6 +66,10 @@ def get_material_processor(
 
 def get_actor_id(x_actor_id: Annotated[str | None, Header()] = None) -> str:
     return x_actor_id or "development-actor"
+
+
+def get_https_fetcher() -> SafeHttpsFetcher:
+    return SafeHttpsFetcher()
 
 
 def _http_error(error: RagError) -> HTTPException:
@@ -122,6 +134,43 @@ def upload_material(
     except IntegrityError as error:
         db.rollback()
         raise _http_error(DuplicateMaterialError("unknown")) from error
+
+
+@router.post("/links", response_model=LearningMaterialRead, status_code=status.HTTP_201_CREATED)
+def register_linked_material(
+    course_id: str,
+    payload: LearningMaterialLinkCreate,
+    actor_id: str = Depends(get_actor_id),
+    policy: CourseAccessPolicy = Depends(get_course_access_policy),
+    storage: FileStorage = Depends(get_material_storage),
+    fetcher: SafeHttpsFetcher = Depends(get_https_fetcher),
+    db: Session = Depends(get_db_session),
+) -> LearningMaterial:
+    _require_manage(policy, actor_id, course_id)
+    try:
+        downloaded = fetcher.fetch(str(payload.source_url))
+        staged = storage.stage_upload(downloaded.filename, io.BytesIO(downloaded.content))
+        repository = MaterialRepository(db)
+        duplicate = repository.find_by_course_hash(course_id, staged.content_hash)
+        if duplicate is not None:
+            staged.temporary_path.unlink(missing_ok=True)
+            raise _http_error(DuplicateMaterialError(duplicate.id))
+        material = LearningMaterial(
+            course_id=course_id, module_id=payload.module_id, source_url=downloaded.url,
+            mime_type=staged.mime_type, content_hash=staged.content_hash,
+            indexing_status=MaterialIndexStatus.PENDING, file_size_bytes=staged.file_size_bytes,
+        )
+        db.add(material)
+        db.flush()
+        material.storage_key = storage.commit(staged, material.id)
+        db.commit()
+        db.refresh(material)
+        return material
+    except HTTPException:
+        raise
+    except RagError as error:
+        db.rollback()
+        raise _http_error(error) from error
 
 
 @router.get("", response_model=list[LearningMaterialRead])

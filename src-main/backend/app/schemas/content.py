@@ -12,7 +12,7 @@ from pydantic import (
     model_validator,
 )
 
-from app.models.enums import MaterialIndexStatus
+from app.models.enums import MaterialIndexStatus, TaskType
 
 ExternalId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
 NonEmptyText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -108,6 +108,40 @@ class RetrievalResultRead(ContentSchema):
     message: str | None = None
     latency_ms: Annotated[int, Field(ge=0)]
     embedding_model: ExternalId
+
+
+class LearningMaterialLinkCreate(ContentSchema):
+    source_url: AnyUrl
+    module_id: ExternalId | None = None
+
+    @field_validator("source_url")
+    @classmethod
+    def require_https_link(cls, value: AnyUrl) -> AnyUrl:
+        if value.scheme != "https":
+            raise ValueError("source_url must use HTTPS")
+        return value
+
+
+class GenerateTasksRequest(ContentSchema):
+    model_config = ConfigDict(extra="forbid", from_attributes=True, strict=False)
+    module_id: ExternalId | None = None
+    learning_outcome_id: ExternalId
+    learning_outcome_text: NonEmptyText
+    task_count: Annotated[int, Field(ge=1, le=10)] = 3
+    allowed_task_types: list[TaskType]
+    difficulty_levels: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]]
+
+
+class GeneratedTaskRead(ContentSchema):
+    model_config = ConfigDict(extra="forbid", from_attributes=True, strict=False)
+    id: str
+    title: NonEmptyText
+    prompt: NonEmptyText
+    instructions: NonEmptyText
+    task_type: TaskType
+    difficulty: NonEmptyText
+    learning_outcome_id: ExternalId
+    source_references: list[ExternalId]
 
 
 class TaskGenerationMetadata(ContentSchema):
