@@ -43,6 +43,7 @@ from app.models.persistence import (
     WorkflowRun,
 )
 from app.models.terminal_integration import TerminalIntegrationOutbox
+from app.models.user import User, UserRole
 from app.models.worker import WorkerHeartbeat
 
 __all__ = [
@@ -82,6 +83,8 @@ __all__ = [
     "TerminalIntegrationOutbox",
     "TerminalIntegrationState",
     "TerminalIntegrationType",
+    "User",
+    "UserRole",
     "WorkflowOutcome",
     "WorkflowRun",
     "WorkflowStage",

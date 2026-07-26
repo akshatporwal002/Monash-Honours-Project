@@ -116,6 +116,7 @@ def test_production_configuration_requires_a_32_byte_pseudonym_secret() -> None:
         _env_file=None,
         app_env="production",
         learning_event_pseudonym_secret="x" * 32,
+        session_secret_key="y" * 32,
     )
     assert configured.learning_event_pseudonym_secret is not None
 

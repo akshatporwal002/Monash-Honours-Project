@@ -20,6 +20,7 @@ class SqlAlchemySubmissionProvider:
         return SubmissionContext(
             submission_id=submission.id,
             task_id=submission.task_id,
+            course_id=submission.task.course_id,
             student_id=submission.student_id,
             attempt_number=max(1, submission.attempts),
             submitted_answer=submission.answer,

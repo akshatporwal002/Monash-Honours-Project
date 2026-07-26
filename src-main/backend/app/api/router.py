@@ -2,18 +2,20 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     analytics,
+    authentication,
     feedback,
     health,
     learning_events,
     materials,
-    retrieval,
     research_exports,
+    retrieval,
     students,
     task_generation,
 )
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["health"])
+api_router.include_router(authentication.router, tags=["authentication"])
 api_router.include_router(students.router, tags=["student learning"])
 api_router.include_router(materials.router, tags=["learning materials"])
 api_router.include_router(retrieval.router, tags=["retrieval"])

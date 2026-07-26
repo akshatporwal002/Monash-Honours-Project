@@ -1,0 +1,9 @@
+Database migrations for QuantumLearn.
+
+Create a migration after changing models:
+
+    alembic revision --autogenerate -m "describe the schema change"
+
+Apply all migrations:
+
+    alembic upgrade head

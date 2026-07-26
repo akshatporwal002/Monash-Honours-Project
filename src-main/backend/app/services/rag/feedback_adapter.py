@@ -33,6 +33,8 @@ class RagFeedbackRetrievalProvider:
         return [
             RetrievalContext(
                 retrieval_request_id=result.request_id,
+                task_id=task.task_id,
+                course_id=task.course_id,
                 source_id=hit.material_id,
                 document_id=hit.material_id,
                 chunk_id=hit.chunk_id,

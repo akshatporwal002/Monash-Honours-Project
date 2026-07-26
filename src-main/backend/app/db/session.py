@@ -39,3 +39,7 @@ SessionLocal = create_session_factory(engine)
 def get_db_session() -> Generator[Session, None, None]:
     with SessionLocal() as session:
         yield session
+
+
+# Compatibility alias used by the authentication dependencies.
+get_db = get_db_session

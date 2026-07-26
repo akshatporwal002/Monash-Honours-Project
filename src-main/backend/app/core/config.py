@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     worker_adapter_factory: str = ""
     research_enabled: bool = False
     production_adapters_ready: bool = False
+    session_secret_key: SecretStr = SecretStr(
+        "development-only-session-secret-change-me"
+    )
+    session_ttl_minutes: int = Field(default=60, gt=0, le=1440)
+    session_cookie_name: str = "quantumlearn_session"
+    session_cookie_secure: bool = False
 
     rag_data_dir: str = "./data/rag"
     rag_upload_dir: str = "./data/rag/uploads"
@@ -89,6 +95,11 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "production requires a learning-event pseudonym secret of at least 32 bytes"
                 )
+            if (
+                self.session_secret_key.get_secret_value()
+                == "development-only-session-secret-change-me"
+            ):
+                raise ValueError("production requires a unique session secret")
         return self
 
     @property

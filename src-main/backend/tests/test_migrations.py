@@ -26,6 +26,7 @@ EXPECTED_TABLES = {
     "student_profiles",
     "student_submissions",
     "terminal_integration_outbox",
+    "users",
     "worker_heartbeats",
     "workflow_runs",
 }
