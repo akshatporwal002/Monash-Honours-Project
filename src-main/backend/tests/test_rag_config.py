@@ -1,0 +1,26 @@
+import pytest
+from pydantic import ValidationError
+
+from app.core.config import Settings
+
+
+def test_rag_settings_have_safe_defaults() -> None:
+    settings = Settings()
+
+    assert settings.rag_embedding_model == "sentence-transformers/all-MiniLM-L6-v2"
+    assert settings.rag_max_file_bytes == 20 * 1024 * 1024
+    assert settings.rag_chunk_target_tokens <= settings.rag_chunk_max_tokens
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"rag_chunk_target_tokens": 241, "rag_chunk_max_tokens": 240},
+        {"rag_chunk_overlap_tokens": 200},
+        {"rag_default_top_k": 11, "rag_max_top_k": 10},
+        {"rag_candidate_count": 9, "rag_max_top_k": 10},
+    ],
+)
+def test_rag_settings_reject_inconsistent_limits(overrides: dict[str, int]) -> None:
+    with pytest.raises(ValidationError):
+        Settings(**overrides)
