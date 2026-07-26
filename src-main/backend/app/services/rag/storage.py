@@ -20,6 +20,7 @@ SUPPORTED_UPLOAD_TYPES = {
     ".pdf": "application/pdf",
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".html": "text/html",
 }
 _CHUNK_SIZE = 64 * 1024
 _MAX_ZIP_ENTRIES = 10_000
@@ -113,6 +114,8 @@ class LocalFileStorage:
     def _validate_signature(path: Path, extension: str) -> None:
         with path.open("rb") as source:
             prefix = source.read(8)
+        if extension == ".html":
+            return
         if extension == ".pdf":
             if not prefix.startswith(b"%PDF-"):
                 raise InvalidDocumentError()
