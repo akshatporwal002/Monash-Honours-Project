@@ -1,11 +1,40 @@
 person4_codex_implementation_brief.md
 src-main/docs/person4-implementation-map.md
-.venv/
-node_modules/
-dist/
+
+# Python
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.pytest-tmp*/
+.ruff_cache/
+.uv-cache/
+.venv/
 *.egg-info/
+.coverage
+htmlcov/
+
+# Local databases and environment files
 *.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+!.env.example
+
+# Frontend
+node_modules/
+dist/
+coverage/
+.npm-cache/
 *.tsbuildinfo
+playwright-report/
+test-results/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local RAG data
 /data/

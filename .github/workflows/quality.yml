@@ -1,0 +1,180 @@
+name: Quality and release gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: src-main
+
+jobs:
+  backend:
+    name: Backend / Python 3.11
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: src-main/.python-version
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.12"
+          enable-cache: true
+          cache-dependency-glob: src-main/backend/uv.lock
+
+      - name: Verify and install locked dependencies
+        working-directory: src-main/backend
+        run: |
+          uv lock --check
+          uv sync --frozen --extra dev
+
+      - name: Ruff check
+        working-directory: src-main/backend
+        run: uv run --frozen ruff check .
+
+      - name: Ruff format check
+        working-directory: src-main/backend
+        run: uv run --frozen ruff format --check .
+
+      - name: Backend tests
+        working-directory: src-main/backend
+        env:
+          APP_ENV: test
+          DATABASE_URL: sqlite:///./ci-tests.db
+          LEARNING_EVENT_PSEUDONYM_SECRET: ci-only-pseudonym-secret-32-bytes-minimum
+        run: uv run --frozen pytest
+
+      - name: Alembic clean, legacy, and round-trip checks
+        working-directory: src-main/backend
+        env:
+          APP_ENV: test
+          LEARNING_EVENT_PSEUDONYM_SECRET: ci-only-pseudonym-secret-32-bytes-minimum
+        run: uv run --frozen pytest tests/test_migrations.py
+
+      - name: OpenAPI contract drift
+        working-directory: src-main/backend
+        env:
+          APP_ENV: test
+          LEARNING_EVENT_PSEUDONYM_SECRET: ci-only-pseudonym-secret-32-bytes-minimum
+        run: |
+          uv run --frozen python scripts/export_openapi.py --check
+          uv run --frozen python scripts/generate_frontend_contracts.py --check
+
+  frontend:
+    name: Frontend / Node 22
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: src-main/.python-version
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.12"
+          enable-cache: true
+          cache-dependency-glob: src-main/backend/uv.lock
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: src-main/.nvmrc
+          cache: npm
+          cache-dependency-path: src-main/frontend/package-lock.json
+
+      - name: Install locked browser E2E backend
+        working-directory: src-main/backend
+        run: |
+          uv lock --check
+          uv sync --frozen --extra dev
+
+      - name: Install locked dependencies
+        working-directory: src-main/frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: src-main/frontend
+        run: npm run lint
+
+      - name: Unit and accessibility tests
+        working-directory: src-main/frontend
+        run: npm test
+
+      - name: Production build
+        working-directory: src-main/frontend
+        run: npm run build
+
+      - name: Install Playwright browser
+        working-directory: src-main/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser E2E
+        working-directory: src-main/frontend
+        run: npm run test:e2e
+
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: src-main/.python-version
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: src-main/.nvmrc
+          cache: npm
+          cache-dependency-path: src-main/frontend/package-lock.json
+
+      - name: Verify Python lock
+        working-directory: src-main/backend
+        run: |
+          uv lock --check
+          uv sync --frozen --extra dev
+
+      - name: Audit Python dependency environment
+        working-directory: src-main/backend
+        run: uv run --frozen --with pip-audit==2.9.0 pip-audit --skip-editable
+
+      - name: Audit npm full and production dependency trees
+        working-directory: src-main/frontend
+        run: |
+          npm ci
+          npm audit --audit-level=high
+          npm audit --omit=dev --audit-level=high
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -21,12 +21,17 @@ from app.schemas import (
     LearningEventCreate,
     LearningEventRead,
     ResearchEvaluationCreate,
+    ResearchEvaluationRead,
     WorkflowRunCreate,
 )
 
 
 def uuid_string() -> str:
     return str(uuid4())
+
+
+def pseudonym(character: str) -> str:
+    return f"v1_{character * 64}"
 
 
 def test_workflow_terminal_timestamp_validation() -> None:
@@ -60,8 +65,10 @@ def test_feedback_schema_enforces_generated_and_fallback_shapes() -> None:
         provider="fake-provider",
         model="test-model",
         prompt_version="feedback-v1",
+        usage_complete=True,
     )
     assert generated.generation_attempt == 1
+    assert generated.usage_complete is True
 
     with pytest.raises(ValidationError):
         FeedbackRecordCreate(
@@ -99,6 +106,7 @@ def test_judge_schema_accepts_valid_and_controlled_failure_results() -> None:
     valid = JudgeEvaluationCreate(
         feedback_id=uuid_string(),
         evaluation_status=JudgeEvaluationStatus.VALID,
+        reported_decision=JudgeDecision.PASS,
         decision=JudgeDecision.PASS,
         correctness_score=90,
         relevance_score=90,
@@ -106,8 +114,13 @@ def test_judge_schema_accepts_valid_and_controlled_failure_results() -> None:
         actionability_score=90,
         safety_score=100,
         reason="Grounded response",
+        provider="fake-provider",
+        model="fake-judge-model",
+        prompt_version="quality-judge-v1",
+        usage_complete=True,
     )
     assert valid.decision is JudgeDecision.PASS
+    assert valid.usage_complete is True
 
     malformed = JudgeEvaluationCreate(
         feedback_id=uuid_string(),
@@ -121,6 +134,7 @@ def test_judge_schema_accepts_valid_and_controlled_failure_results() -> None:
         JudgeEvaluationCreate(
             feedback_id=uuid_string(),
             evaluation_status=JudgeEvaluationStatus.VALID,
+            reported_decision=JudgeDecision.FAIL,
             decision=JudgeDecision.FAIL,
             correctness_score=101,
             relevance_score=90,
@@ -128,7 +142,25 @@ def test_judge_schema_accepts_valid_and_controlled_failure_results() -> None:
             actionability_score=90,
             safety_score=100,
             reason="Invalid score",
+            provider="fake-provider",
+            model="fake-judge-model",
+            prompt_version="quality-judge-v1",
         )
+
+    for invalid_policy in (
+        {"reported_decision": JudgeDecision.FAIL},
+        {"correctness_score": 79},
+        {"safety_score": 99},
+        {"unsupported_claims": ["Unsupported."]},
+        {"quality_policy_version": "quality-policy-v0"},
+    ):
+        with pytest.raises(ValidationError):
+            JudgeEvaluationCreate.model_validate(
+                {
+                    **valid.model_dump(mode="python"),
+                    **invalid_policy,
+                }
+            )
 
 
 def test_learning_event_metadata_is_allow_listed_and_private() -> None:
@@ -165,12 +197,16 @@ def test_learning_event_metadata_is_allow_listed_and_private() -> None:
 
 def test_research_schema_validates_measurements_and_completion() -> None:
     completed_at = datetime.now(timezone.utc)
+    workflow_id = uuid_string()
     schema = ResearchEvaluationCreate(
-        case_id=uuid_string(),
-        pseudonymous_user_id="student-pseudonym",
+        case_id=workflow_id,
+        workflow_run_id=workflow_id,
+        correlation_id=uuid_string(),
+        pseudonymous_user_id=pseudonym("a"),
         course_id="course-external",
         task_id="task-external",
-        submission_reference="submission-external",
+        task_type="short_answer",
+        submission_reference=pseudonym("b"),
         experimental_condition=ExperimentalCondition.AGENTIC_RAG,
         prompt_version="feedback-v1",
         provider="fake-provider",
@@ -181,18 +217,28 @@ def test_research_schema_validates_measurements_and_completion() -> None:
         output_tokens=20,
         total_tokens=30,
         estimated_cost=Decimal("0.001"),
+        fallback_used=False,
+        comparable=True,
+        usage_complete=True,
+        retrieval_request_count=1,
+        retrieval_hit_count=1,
         status=ResearchStatus.COMPLETED,
         completed_at=completed_at,
     )
     assert schema.total_tokens == 30
+    assert schema.workflow_run_id == schema.case_id
+    assert schema.usage_complete is True
 
     with pytest.raises(ValidationError):
         ResearchEvaluationCreate(
-            case_id=uuid_string(),
-            pseudonymous_user_id="student-pseudonym",
+            case_id=workflow_id,
+            workflow_run_id=workflow_id,
+            correlation_id=uuid_string(),
+            pseudonymous_user_id=pseudonym("a"),
             course_id="course-external",
             task_id="task-external",
-            submission_reference="submission-external",
+            task_type="short_answer",
+            submission_reference=pseudonym("b"),
             experimental_condition=ExperimentalCondition.AGENTIC_RAG,
             prompt_version="feedback-v1",
             provider="fake-provider",
@@ -202,6 +248,127 @@ def test_research_schema_validates_measurements_and_completion() -> None:
             total_tokens=29,
             status=ResearchStatus.PENDING,
         )
+
+
+def test_research_schema_enforces_shared_id_cost_claim_and_baseline_contracts() -> None:
+    workflow_id = uuid_string()
+    values: dict[str, object] = {
+        "case_id": workflow_id,
+        "workflow_run_id": workflow_id,
+        "correlation_id": uuid_string(),
+        "pseudonymous_user_id": pseudonym("a"),
+        "course_id": "course-external",
+        "task_id": "task-external",
+        "task_type": "short_answer",
+        "submission_reference": pseudonym("b"),
+        "experimental_condition": ExperimentalCondition.SINGLE_STEP_BASELINE,
+        "prompt_version": "baseline-v1",
+        "provider": "fake-provider",
+        "model": "test-model",
+    }
+
+    pending = ResearchEvaluationCreate.model_validate(values)
+    assert pending.status is ResearchStatus.PENDING
+
+    with pytest.raises(ValidationError):
+        ResearchEvaluationCreate.model_validate(
+            {
+                **values,
+                "workflow_run_id": uuid_string(),
+            }
+        )
+    with pytest.raises(ValidationError):
+        ResearchEvaluationCreate.model_validate(
+            {
+                **values,
+                "measurement_schema_version": "legacy-v1",
+            }
+        )
+    with pytest.raises(ValidationError):
+        ResearchEvaluationCreate.model_validate(
+            {
+                **values,
+                "estimated_cost": Decimal("0.0000001"),
+            }
+        )
+    with pytest.raises(ValidationError):
+        ResearchEvaluationCreate.model_validate(
+            {
+                **values,
+                "input_references": ["source-1"],
+            }
+        )
+    with pytest.raises(ValidationError):
+        ResearchEvaluationCreate.model_validate(
+            {
+                **values,
+                "status": ResearchStatus.RUNNING,
+                "processing_attempts": 1,
+            }
+        )
+
+    running = ResearchEvaluationCreate.model_validate(
+        {
+            **values,
+            "status": ResearchStatus.RUNNING,
+            "execution_token": uuid_string(),
+            "lease_expires_at": datetime.now(timezone.utc),
+            "processing_attempts": 1,
+        }
+    )
+    assert running.execution_token is not None
+
+
+def test_research_read_preserves_explicitly_incomplete_legacy_measurements() -> None:
+    legacy = ResearchEvaluationRead(
+        id=uuid_string(),
+        created_at=datetime.now(timezone.utc),
+        case_id=uuid_string(),
+        workflow_run_id=None,
+        correlation_id=None,
+        pseudonymous_user_id="legacy-direct-actor",
+        course_id="course-external",
+        task_id="task-external",
+        task_type="unknown",
+        submission_reference="legacy-direct-submission",
+        experimental_condition=ExperimentalCondition.AGENTIC_RAG,
+        prompt_version="feedback-v0",
+        provider="legacy-provider",
+        model="legacy-model",
+        retrieved_sources=[{"source_id": "legacy-source"}],
+        measurement_schema_version="legacy-v1",
+        status=ResearchStatus.PENDING,
+    )
+
+    assert legacy.measurement_schema_version == "legacy-v1"
+    assert legacy.workflow_run_id is None
+    assert legacy.comparable is False
+    assert legacy.usage_complete is False
+
+    legacy_baseline = ResearchEvaluationRead(
+        id=uuid_string(),
+        created_at=datetime.now(timezone.utc),
+        case_id=uuid_string(),
+        workflow_run_id=None,
+        correlation_id=None,
+        pseudonymous_user_id="legacy-direct-actor",
+        course_id="course-external",
+        task_id="task-external",
+        task_type="unknown",
+        submission_reference="legacy-direct-submission",
+        experimental_condition=ExperimentalCondition.SINGLE_STEP_BASELINE,
+        prompt_version="legacy-baseline",
+        provider="legacy-provider",
+        model="legacy-model",
+        input_references=["legacy-source"],
+        retrieved_sources=[{"source_id": "legacy-source"}],
+        simulation_reference="legacy-simulation",
+        simulation_status="completed",
+        measurement_schema_version="legacy-v1",
+        status=ResearchStatus.PENDING,
+    )
+    assert legacy_baseline.retrieved_sources == [{"source_id": "legacy-source"}]
+    assert legacy_baseline.simulation_reference == "legacy-simulation"
 
 
 def test_external_identifiers_are_required_but_not_foreign_models() -> None:

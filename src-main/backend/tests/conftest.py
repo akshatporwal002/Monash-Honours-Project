@@ -4,9 +4,9 @@ from pathlib import Path
 import pytest
 from sqlalchemy.orm import Session
 
+from app import models  # noqa: F401
 from app.db.base import Base
 from app.db.session import create_db_engine, create_session_factory
-from app import models  # noqa: F401
 
 
 @pytest.fixture

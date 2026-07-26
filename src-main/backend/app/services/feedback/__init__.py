@@ -1,10 +1,20 @@
 from app.services.feedback.agent import AI_GENERATED_NOTICE, LlmFeedbackGenerator
 from app.services.feedback.composition import build_grounded_feedback_context_collector
+from app.services.feedback.application import (
+    FeedbackAccessPolicy,
+    FeedbackBackgroundExecutor,
+    FeedbackWorkflowApplication,
+    InProcessFeedbackExecutor,
+    workflow_response,
+)
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.contracts import (
+    FeedbackAttemptPersistence,
     FeedbackContextCollector,
     FeedbackGenerator,
     FeedbackJudge,
+    FeedbackReportWrite,
+    FeedbackReportWriteResult,
     FeedbackWorkflowRepository,
     PipelinePersistenceRequest,
     RetrievalProvider,
@@ -14,15 +24,20 @@ from app.services.feedback.contracts import (
     StructuredLlmResponse,
     SubmissionProvider,
     TaskProvider,
+    WorkflowClaim,
+    WorkflowProgressRecorder,
 )
 from app.services.feedback.errors import (
     ContextCollectionError,
+    ContextIntegrityError,
     FeedbackAgentError,
     FeedbackClientError,
     FeedbackGenerationError,
     FeedbackJudgementError,
     FeedbackPipelineError,
+    FeedbackReportConflictError,
     InvalidFeedbackOutputError,
+    LostWorkflowLeaseError,
     PipelinePersistenceError,
     SubmissionNotFoundError,
     TaskNotFoundError,
@@ -36,16 +51,28 @@ from app.services.feedback.fakes import (
     StaticRetrievalProvider,
     StaticSimulationProvider,
 )
+from app.services.feedback.fallback import SAFE_FALLBACK_CONTENT, safe_fallback_feedback
+from app.services.feedback.judge import (
+    QUALITY_JUDGE_PROMPT_VERSION,
+    QUALITY_POLICY_VERSION,
+    LlmFeedbackJudge,
+    QualityJudgePromptBuilder,
+)
 from app.services.feedback.pipeline import FeedbackPipeline
 from app.services.feedback.prompt import FEEDBACK_PROMPT_VERSION, FeedbackPromptBuilder
 from app.services.feedback.providers import SqlAlchemySubmissionProvider, SqlAlchemyTaskProvider
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
+from app.services.feedback.worker import FeedbackRecoveryWorker
 
 __all__ = [
     "AI_GENERATED_NOTICE",
     "FEEDBACK_PROMPT_VERSION",
     "ContextCollectionError",
+    "ContextIntegrityError",
     "DefaultFeedbackContextCollector",
+    "FeedbackAttemptPersistence",
+    "FeedbackAccessPolicy",
+    "FeedbackBackgroundExecutor",
     "FakeFeedbackGenerator",
     "FakeFeedbackJudge",
     "FeedbackAgentError",
@@ -55,16 +82,27 @@ __all__ = [
     "FeedbackGenerator",
     "FeedbackJudge",
     "FeedbackJudgementError",
+    "FeedbackReportConflictError",
+    "FeedbackReportWrite",
+    "FeedbackReportWriteResult",
     "FeedbackPipeline",
     "FeedbackPipelineError",
     "FeedbackPromptBuilder",
+    "FeedbackRecoveryWorker",
     "FeedbackWorkflowRepository",
+    "FeedbackWorkflowApplication",
     "InMemorySubmissionProvider",
     "InMemoryTaskProvider",
+    "InProcessFeedbackExecutor",
     "InvalidFeedbackOutputError",
+    "LostWorkflowLeaseError",
     "LlmFeedbackGenerator",
+    "LlmFeedbackJudge",
     "PipelinePersistenceError",
     "PipelinePersistenceRequest",
+    "QUALITY_JUDGE_PROMPT_VERSION",
+    "QUALITY_POLICY_VERSION",
+    "QualityJudgePromptBuilder",
     "RecordingStructuredLlmClient",
     "RetrievalProvider",
     "SimulationProvider",
@@ -73,6 +111,7 @@ __all__ = [
     "SqlAlchemyTaskProvider",
     "StaticRetrievalProvider",
     "StaticSimulationProvider",
+    "SAFE_FALLBACK_CONTENT",
     "StructuredLlmClient",
     "StructuredLlmRequest",
     "StructuredLlmResponse",
@@ -80,5 +119,9 @@ __all__ = [
     "SubmissionProvider",
     "TaskNotFoundError",
     "TaskProvider",
+    "WorkflowClaim",
+    "WorkflowProgressRecorder",
+    "safe_fallback_feedback",
+    "workflow_response",
     "build_grounded_feedback_context_collector",
 ]

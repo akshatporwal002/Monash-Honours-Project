@@ -9,11 +9,19 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import FeedbackRecord, JudgeDecision, WorkflowRun
+from app.models import (
+    FeedbackRecord,
+    JudgeDecision,
+    JudgeEvaluationStatus,
+    WorkflowRun,
+)
 from app.schemas.feedback import (
     FeedbackAgentOutput,
     FeedbackContext,
+    FeedbackRegenerationContext,
     FeedbackResponseClassification,
+    GeneratedFeedback,
+    JudgeEvaluationOutcome,
     JudgeResult,
     RetrievalContext,
     SimulationContext,
@@ -26,7 +34,6 @@ from app.services.feedback import (
     DefaultFeedbackContextCollector,
     FakeFeedbackJudge,
     FeedbackClientError,
-    FeedbackGenerationError,
     FeedbackPipeline,
     FeedbackPromptBuilder,
     InMemorySubmissionProvider,
@@ -37,7 +44,7 @@ from app.services.feedback import (
     SqlAlchemyFeedbackWorkflowRepository,
     StructuredLlmResponse,
 )
-
+from app.services.feedback.prompt import TECHNICAL_REGENERATION_GUIDANCE
 
 NOW = datetime(2026, 7, 20, tzinfo=timezone.utc)
 
@@ -51,6 +58,7 @@ def feedback_context(
     submission = SubmissionContext(
         submission_id="submission-private",
         task_id="task-1",
+        course_id="course-private",
         student_id="student-private",
         attempt_number=2,
         submitted_answer="A qubit is always either zero or one.",
@@ -71,6 +79,8 @@ def feedback_context(
         [
             RetrievalContext(
                 retrieval_request_id="retrieval-private",
+                task_id="task-1",
+                course_id="course-private",
                 source_id="source-1",
                 document_id="document-private",
                 chunk_id="chunk-private",
@@ -82,6 +92,10 @@ def feedback_context(
         if include_retrieval
         else []
     )
+    if simulation is not None:
+        simulation = simulation.model_copy(
+            update={"task_id": "task-1", "course_id": "course-private"}
+        )
     return FeedbackContext(
         correlation_id=str(uuid4()),
         task=task,
@@ -104,13 +118,18 @@ def valid_output() -> dict[str, object]:
     }
 
 
-def response(output: dict[str, object] | None = None) -> StructuredLlmResponse:
+def response(
+    output: dict[str, object] | None = None,
+    *,
+    usage_complete: bool = True,
+) -> StructuredLlmResponse:
     return StructuredLlmResponse(
         output=output or valid_output(),
         provider="fake-provider",
         model="fake-model",
         token_usage=TokenUsage(input_tokens=30, output_tokens=20, total_tokens=50),
         estimated_cost=Decimal("0.002500"),
+        usage_complete=usage_complete,
     )
 
 
@@ -162,7 +181,7 @@ def test_prompt_contains_only_required_available_context() -> None:
     request = FeedbackPromptBuilder().build(context)
     payload = json.loads(request.user_prompt)
 
-    assert request.prompt_version == "feedback-v1"
+    assert request.prompt_version == "feedback-v2"
     assert request.temperature == 0.0
     assert request.schema_name == "feedback_agent_output"
     assert "response_classification" in request.response_schema["properties"]
@@ -200,6 +219,34 @@ def test_prompt_omits_missing_context_and_preserves_simulation_failure() -> None
     }
 
 
+def test_technical_judge_failure_uses_sanitized_regeneration_guidance() -> None:
+    private_raw_output = "raw malformed output containing a private answer"
+    prior_feedback = GeneratedFeedback(
+        feedback_content={"summary": "Previous feedback."},
+        provider="fake-provider",
+        model="fake-model",
+        prompt_version="feedback-v2",
+    )
+    evaluation = JudgeEvaluationOutcome(
+        evaluation_status=JudgeEvaluationStatus.MALFORMED,
+        reason="The quality judge returned invalid structured output.",
+        error_category="invalid_structured_output",
+    )
+    request = FeedbackPromptBuilder().build(
+        feedback_context(),
+        FeedbackRegenerationContext(
+            previous_feedback=prior_feedback,
+            judge_evaluation=evaluation,
+        ),
+    )
+    payload = json.loads(request.user_prompt)
+
+    assert payload["regeneration"]["judge_guidance"]["regeneration_instructions"] == [
+        TECHNICAL_REGENERATION_GUIDANCE
+    ]
+    assert private_raw_output not in request.user_prompt
+
+
 def test_generator_validates_output_injects_notice_and_reports_metadata() -> None:
     client = RecordingStructuredLlmClient(response())
     generator = LlmFeedbackGenerator(client)
@@ -208,12 +255,26 @@ def test_generator_validates_output_injects_notice_and_reports_metadata() -> Non
 
     assert generated.feedback_content["ai_generated_notice"] == AI_GENERATED_NOTICE
     assert generated.source_references == ["source-1"]
+    assert [item.model_dump() for item in generated.source_attributions] == [
+        {"source_id": "source-1", "label": "Course notes"}
+    ]
     assert generated.provider == "fake-provider"
     assert generated.model == "fake-model"
-    assert generated.prompt_version == "feedback-v1"
+    assert generated.prompt_version == "feedback-v2"
     assert generated.token_usage.total_tokens == 50
     assert generated.estimated_cost == Decimal("0.002500")
+    assert generated.usage_complete is True
     assert client.call_count == 1
+
+
+def test_generator_preserves_missing_usage_measurement() -> None:
+    generated = run(
+        LlmFeedbackGenerator(RecordingStructuredLlmClient(response(usage_complete=False))).generate(
+            feedback_context()
+        )
+    )
+
+    assert generated.usage_complete is False
 
 
 def test_generator_rejects_a_model_authored_ai_notice() -> None:
@@ -272,7 +333,7 @@ def test_generator_sanitizes_invalid_output_and_client_errors() -> None:
     assert unavailable.value.__cause__ is None
 
 
-def test_client_failure_is_controlled_and_persists_nothing(db_session: Session) -> None:
+def test_client_failure_releases_and_persists_safe_fallback(db_session: Session) -> None:
     context = feedback_context()
     submission_provider = InMemorySubmissionProvider(
         {context.submission.submission_id: context.submission}
@@ -302,9 +363,10 @@ def test_client_failure_is_controlled_and_persists_nothing(db_session: Session) 
         SqlAlchemyFeedbackWorkflowRepository(db_session),
     )
 
-    with pytest.raises(FeedbackGenerationError):
-        run(pipeline.run(context.submission.submission_id))
+    result = run(pipeline.run(context.submission.submission_id))
 
-    assert db_session.scalar(select(func.count()).select_from(WorkflowRun)) == 0
-    assert db_session.scalar(select(func.count()).select_from(FeedbackRecord)) == 0
+    assert result.fallback_used is True
+    assert result.safe_fallback is not None
+    assert db_session.scalar(select(func.count()).select_from(WorkflowRun)) == 1
+    assert db_session.scalar(select(func.count()).select_from(FeedbackRecord)) == 1
     assert judge.call_count == 0
