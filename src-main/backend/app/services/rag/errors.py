@@ -46,6 +46,16 @@ class InvalidDocumentError(RagError):
         super().__init__("invalid_document", "The uploaded file does not match its supported document type.", 422)
 
 
+class EncryptedDocumentError(RagError):
+    def __init__(self) -> None:
+        super().__init__("encrypted_document", "Encrypted documents are not supported.", 422)
+
+
+class NoExtractableTextError(RagError):
+    def __init__(self) -> None:
+        super().__init__("no_extractable_text", "No extractable text was found in this document.", 422)
+
+
 class EmbeddingProviderUnavailableError(RagError):
     def __init__(self) -> None:
         super().__init__("embedding_provider_unavailable", "The embedding provider is unavailable.", 503)
