@@ -17,7 +17,9 @@ def test_expired_session_token_is_rejected() -> None:
 
 def test_tampered_and_malformed_session_tokens_are_rejected() -> None:
     token = create_session_token(42)
-    tampered_token = f"{token[:-1]}{'a' if token[-1] != 'a' else 'b'}"
+    header, payload, signature = token.split(".")
+    tampered_signature = f"{'a' if signature[0] != 'a' else 'b'}{signature[1:]}"
+    tampered_token = ".".join((header, payload, tampered_signature))
 
     assert decode_session_token(tampered_token) is None
     assert decode_session_token("not-a-token") is None

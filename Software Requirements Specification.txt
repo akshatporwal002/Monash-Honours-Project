@@ -1,0 +1,678 @@
+﻿________________
+
+
+Software Requirements Specification - QuantumLearn
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. Introduction        1
+1.1 Purpose        1
+1.2 System Description        1
+1.3 Problem Statement        1
+1.4 Scope        1
+1.5 Stakeholders        2
+2. System Overview        2
+2.1 Goals        2
+2.2 Main Features        2
+2.3 User Roles        2
+2.4 External Systems        3
+2.5 Workflow        3
+2.6 Domain Model        3
+3. User Classes        4
+3.1 Student        4
+3.1.1 Permissions        5
+3.1.2 Goals        5
+3.2 Educator        5
+3.2.1 Permissions        5
+3.2.2 Goals        5
+3.3 Administrator        6
+3.3.1 Permissions        6
+3.3.2 Goals        6
+4. Functional Requirements        6
+5. Non Functional Requirements        9
+6. Implementation Details        11
+6.1 Frontend Implementation        12
+6.2 Backend Implementation        12
+6.3 Agentic Workflow Implementation        12
+6.4 Quantum Simulation Implementation        13
+6.5 Retrieval and AI Integration        13
+6.6 Data Storage        13
+6.7 Security, Privacy and Reliability        13
+7. Use Cases        14
+8. User Stories        16
+8.1 Student        16
+8.2 Educator        17
+8.3 Administrator        17
+9. Assumptions        17
+10. Constraints        18
+11. Acceptance Criteria        18
+12. Research        22
+12.1 Research Evaluation Plan        22
+12.2 Research Areas        22
+12.3 Baseline Condition: Single Step LLM Feedback        23
+12.4 Measurement Areas        23
+12.4.1 Factual Correctness        23
+12.4.2 Grounding and Relevance        24
+12.4.3 Pipeline Overhead        24
+12.5 Key Metrics        24
+12.5.1 Hallucination Rate        24
+12.5.2 Quality Judge Pass Rate        24
+12.5.3 Relevance Score        24
+12.5.4 Retrieval Hit Rate        24
+12.5.5 Response Latency        25
+12.5.6 Token Cost per Response        25
+12.6 Gains Expected from RAG        25
+
+
+
+
+1. Introduction
+1.1 Purpose
+This document defines the software requirements for an agentic AI-based learning management system (LMS) for introductory quantum computing education. It specifies the system scope, functional and non-functional requirements, assumptions, constraints, and acceptance criteria. 
+1.2 System Description
+The system is a web-based LMS in which a set of coordinated AI agents guide a student through a complete quantum computing learning loop, from selecting a topic to delivering checked feedback and recommending what to learn next. The detailed agent workflow, user roles, and main features are described in the System Overview section.
+1.3 Problem Statement
+Quantum computing has a high barrier to entry because of the highly technical theory involved. Qiskit is the dominant framework for teaching introductory quantum algorithms but quantum programming errors often run without raising an exception and produce incorrect probability distributions. 
+
+
+These errors are difficult for students to self-diagnose and existing automated feedback tools are built almost entirely for classical programming languages. Single-step LLMs can attempt this feedback but tend to hallucinate in quantum computing, a low-resource domain with limited training examples and a fast-changing API. 
+
+
+The system addresses these gaps by combining agent-driven instruction with feedback that is grounded in simulation output and retrieved documentation.
+1.4 Scope
+The system focuses on introductory quantum algorithms such as quantum random number generation, quantum teleportation, the Deutsch-Jozsa algorithm, Bernstein-Vazirani, and Grover's algorithm. It delivers the core learning loop of educator configuration, task generation, student task completion, feedback generation, and progress tracking, supported by retrieval, LLM-based judging, gamification, and basic analytics.The system also tests the research question on whether an agentic pipeline produces better-grounded feedback than a single-step LLM.
+
+
+1.5 Stakeholders 
+The key stakeholders are students learning quantum computing, educators designing and managing course content, and university researchers evaluating the agentic feedback pipeline. System administrators maintain the platform and manage user access while academic supervisors oversee the project's research outcomes. Broader stakeholders include the wider quantum computing education community.
+
+
+
+
+2. System Overview
+
+
+The system is a web-based learning management system for introductory quantum computing. It is built as a set of cooperating AI agents. Each agent handles one stage of the learning process. Together they act as an assistant that teaches quantum computing concepts.
+2.1 Goals
+* Teach introductory quantum algorithms through small scaffolded tasks.
+* Give students feedback grounded in simulation output and retrieved documentation.
+* Reduce hallucinated or misleading feedback using a judge agent.
+* Track student progress and recommend what to learn next.
+* Provide a reusable LMS framework that can extend to other technical subjects.
+
+
+2.2 Main Features
+* Educator course configuration and material upload.
+* Automated task generation from learning materials and outcomes.
+* Multiple task types, including multiple choice, short answer, code, and circuit tasks.
+* Scaffolded task sequencing from basic to advanced concepts.
+* Automated feedback on student responses.
+* LLM-based judging to check feedback quality.
+* Progress tracking and basic learning analytics.
+* Gamification such as points, levels, and achievements.
+
+
+2.3 User Roles
+* Students complete assigned tasks, interact with circuit examples, and view their progress.
+* Educators configure courses, upload materials, define learning outcomes, and monitor student progress.
+* Administrators manage users, courses, and system-level settings.
+
+
+2.4 External Systems
+* LLM APIs for reasoning, task generation, feedback, and judging.
+* Qiskit and Qiskit Aer for building and simulating quantum circuits.
+* A retrieval layer using RAG and a vector database to ground outputs.
+
+
+2.5 Workflow
+The system runs as an agent-driven learning loop:
+
+
+1. Student logs in.
+2. Student chooses a learning goal.
+3. Learning Path Agent selects the next topic.
+4. Tutor Agent explains the concept.
+5. Circuit Agent creates an example circuit.
+6. Simulation Agent runs the circuit through Qiskit.
+7. Quiz Agent poses a problem.
+8. Student submits an answer.
+9. Feedback Agent returns a response.
+10. Quality Judge checks the feedback.
+11. Progress is saved.
+12. The next topic is recommended.
+
+
+2.6 Domain Model
+
+
+  
+
+Figure 2.6.1: System Domain Model
+
+
+Link: https://lucid.app/lucidchart/0f2d5547-c2d2-4d7f-8ae3-3e89a582bceb/edit?viewport_loc=-487%2C-160%2C4086%2C2053%2Cpage1&invitationId=inv_2dbb81ff-ae49-45f1-8fe3-a7b6d2355461 
+
+
+3. User Classes
+
+
+The system supports three primary user classes, student, educator, and administrator. Each class has distinct responsibilities, and access permissions. The system's AI agents are not user classes themselves, but act on behalf of users within the workflow.
+
+
+3.1 Student
+The primary end users of the system. Students engage with the learning content, complete tasks, and track their own progress through quantum computing topics.
+
+
+3.1.1 Permissions
+* Log in and access assigned learning activities.
+* Complete tasks of multiple types (multiple-choice, multiple-answer, short-answer, code explanation, code completion, and quantum circuit simulation tasks)
+* Interact with quantum circuit examples via Qiskit based simulation.
+* Receive AI generated validated feedback on submitted work.
+* View their own progress, scores, and engagement history.
+* Receive personalised recommendations and reminders.
+* View gamified elements such as points, levels, and achievements.
+* Access is restricted to their own data (i.e. students cannot view other students' data)
+
+
+3.1.2 Goals
+* Build understanding of introductory quantum algorithms through small, scaffolded steps.
+* Receive feedback that is accurate, clear, and actionable rather than generic or hallucinated.
+* Understand their own progress and know what to study next.
+* Stay motivated through visible progression and achievement indicators.
+
+
+3.2 Educator
+Instructors who design and oversee the learning experience for a course or module. Educators configure the inputs the system uses to generate tasks and feedback, and monitor how students are progressing.
+
+
+3.2.1 Permissions
+* Log in and access an educator dashboard.
+* Create and configure a quantum computing course or module.
+* Upload or link learning materials (e.g. slides, assessment details)
+* Define weekly or topic-based learning outcomes.
+* View student progress across their courses and identify students who may be falling behind.
+* Access is scoped to their own courses and the students enrolled in them. Therefore, educators do not have system-wide administrative access (e.g., managing other educators' data).
+3.2.2 Goals
+* Configure courses and materials with minimal manual effort.
+* Trust that AI generated tasks and feedback are grounded in the materials they provided, rather than hallucinated.
+* Maintain oversight of student progress without needing to manually review every submission.
+* Be able to intervene early when students are struggling.
+
+
+3.3 Administrator
+Users responsible for system level oversight, including managing accounts, courses, and configuration that spans multiple educators and student cohorts.
+
+
+3.3.1 Permissions
+* Manage users, courses, and system-level settings.
+* The highest level of access in the system (administrators can view and manage data across all educators and students, this contrasts the course scoped access given to educators)
+* Responsible for ensuring the system meets security, privacy, and data integrity expectations.
+3.3.2 Goals
+* Keep the platform running reliably and securely for all users.
+* Onboard and manage educator and student accounts with minimal friction.
+* Ensure the system remains compliant with institutional privacy and data-handling expectations.
+4. Functional Requirements
+FR1: User Role Management
+The system shall provide three roles: student, educator and administrator. All role-based authorisation tests for protected pages and API endpoints must pass.
+
+
+FR2: Educator Account Access
+The system shall authenticate educators with valid credentials, display the educator dashboard and reject invalid or unauthorised access attempts.
+
+
+FR3: Student Account Access
+The system shall authenticate students and display only activities assigned to them. Students must be prevented from accessing another student’s activities or records.
+
+
+FR4: Course Configuration
+Educators shall be able to create, view, edit, publish and archive courses containing a title, description, modules and enrolment status. Saved changes must remain available after logging out and back in.
+
+
+
+
+
+
+FR5: Learning Material Upload
+Educators shall be able to upload PDF, DOCX and PPTX files up to 20 MB or add valid HTTPS links. Accepted resources must remain accessible from the relevant course.
+
+
+FR6: Learning Outcome Input
+Educators shall be able to create, edit and delete weekly or topic-based learning outcomes. Every saved outcome must be associated with a course module.
+
+
+FR7: Content Retrieval
+For each retrieval request, the system shall return at least one source-labelled passage from authorised course materials or state that no relevant passage was found.
+
+
+FR8: Task Generation
+The system shall generate tasks containing a prompt, task type, difficulty level, answer or marking criteria, learning-outcome reference and source reference.
+
+
+FR9: Multiple Task Types
+The system shall create, display, accept and mark at least one multiple-choice, multiple-answer, short-answer, code-explanation, code-completion and quantum-circuit task.
+
+
+FR10: Scaffolded Learning Pathway
+The system shall allow a complex topic to be divided into at least three ordered tasks with defined difficulty levels and prerequisites.
+
+
+FR11: Task Sequencing
+The system shall present tasks in prerequisite order and prevent students from attempting locked tasks until the required prerequisites are completed.
+
+
+FR12: Student Task Completion
+Students shall be able to open, save a draft for, submit and, where permitted, resubmit assigned tasks. The current task status and latest submission must be displayed.
+
+
+FR13: Code-Based Learning Support
+The system shall support tasks requiring students to identify quantum gates, explain code behaviour and modify code. Code formatting must be retained when displayed and stored.
+
+
+FR14: Quantum Simulation Support
+The system shall execute valid introductory quantum circuits through Qiskit Aer and display the circuit and measurement results. Invalid code must produce a controlled error without ending the user session.
+
+
+FR15: Automated Feedback Generation
+The system shall generate and store feedback for every submitted supported task type. Feedback must be linked to the relevant student, task and submission.
+
+
+
+
+
+
+
+
+FR16: Actionable Feedback
+Feedback for an incorrect response shall identify the error, explain the weakness and provide at least one specific improvement action. Correct responses shall receive confirmation and a recommended next step.
+
+
+FR17: LLM-Based Response Evaluation
+The judging component shall evaluate every feedback item for correctness, relevance and grounding and return a recorded pass or fail decision with a reason.
+
+
+FR18: Feedback Validation
+Feedback shall only be displayed after receiving a judge pass. A failed result shall be regenerated once; a second failure shall display a safe fallback message and record both failures.
+
+
+FR19: Progress Tracking
+Every attempt shall record the student, task, attempt number, status, score, timestamps and feedback reference without overwriting previous attempts.
+
+
+FR20: Learning Analytics Data Collection
+The system shall record task views, draft saves, submissions, feedback views and completions with a pseudonymous user identifier, course, task, event type and timestamp.
+
+
+FR21: Student Performance Overview
+Students shall be able to view their completion percentage, task statuses, scores and attempt history, while being prevented from viewing another student’s information.
+
+
+FR22: Educator Progress Monitoring
+Educators shall be able to view students enrolled in their courses and identify students with overdue work or results below a configurable performance threshold.
+
+
+FR23: Personalised Learning Recommendations
+Following a progress update, the system shall recommend at least one task or topic based on unmet prerequisites or the student’s lowest-performing learning outcome and display the reason.
+
+
+FR24: Notifications and Reminders
+The system shall create an in-app reminder when a task is at least 24 hours overdue and shall create no more than one reminder for the same task within 24 hours.
+
+
+FR25: Gamification Features
+The system shall award configured points for qualifying task completions, recalculate the student’s level and display points, level and achievement status.
+
+
+FR26: Data Storage
+The system shall persist and retrieve accounts, courses, materials, outcomes, tasks, submissions, feedback, progress, recommendations, reminders and audit events using unique identifiers.
+
+
+FR27: Administrative Management
+Administrators shall be able to create, edit, deactivate and reactivate accounts, archive courses and update documented settings. Non-administrators must be denied these operations.
+
+
+FR28: MVP Learning Loop
+The system shall complete an uninterrupted workflow covering course configuration, material upload, outcome creation, task generation, student submission, validated feedback, progress storage and next-task recommendation.
+
+
+5. Non Functional Requirements
+NFR1: Usability
+The average system usability score must be at least 7 out of 10, after review from educators/students.
+NFR2: Educator Configuration Efficiency
+Across at least five trials, the time required for a first-time educator to create a course, upload a resource, define an outcome and generate a task shall not exceed 20 minutes.
+NFR3: Learnability
+At least 80% of first-time student testers shall log in, open a task, submit it and locate their feedback without assistance within 15 minutes.
+NFR4: Accessibility
+All critical workflows shall be keyboard-operable and contain no critical accessibility violations.
+NFR5: Reliability
+Across all scripted transactions, the system shall lose or duplicate zero accepted records and shall recover to a usable state following a forced application restart.
+NFR6: Availability
+The service shall achieve at least 99.5% availability each calendar month, excluding announced maintenance.
+NFR7: Performance
+With 50 concurrent users, the 95th-percentile response time shall not exceed two seconds for ordinary requests, three seconds for progress pages and ten seconds for AI feedback. The error rate must remain below 1%.
+NFR8: Scalability
+When load increases from 5 to 100 concurrent users, the error rate shall remain below 1%, and the 95th-percentile response time for ordinary requests shall increase by no more than 25%.
+NFR9: Modularity
+Retrieval, task generation, feedback, judging, gamification and analytics shall have documented interfaces and independently executable tests. 
+NFR10: Maintainability
+The codebase shall pass all configured formatting, linting and static checks with only minimal or insignificant errors, achieve at least 80% backend service statement coverage.
+NFR11: Extensibility
+A developer shall be able to add one demonstration task type through the documented extension interface without changing existing task-type implementations.
+NFR12: Accuracy
+Across at least 100 educator-approved quantum-computing cases, at least 80% of generated tasks, feedback and evaluations shall be factually correct, with a hallucination rate no higher than 5%.
+NFR13: Feedback Quality
+Educator reviewers shall give feedback an average score of at least 4 out of 5 for clarity, relevance and constructiveness. At least 80% of incorrect-response feedback must contain an actionable next step.
+NFR14: AI Output Validation
+The judging mechanism shall reject at least 80% of deliberately flawed feedback and incorrectly reject no more than 20% of correct feedback within the approved validation dataset.
+NFR15: Security
+All protected-endpoint authorisation tests shall pass, credentials shall be hashed, network traffic shall be encrypted and no unresolved critical or high-severity security findings shall remain before release.
+NFR16: Privacy
+Logs shall contain no direct student identifiers or submitted answer text, and research exports shall use pseudonymous identifiers and approved fields only.
+NFR17: Data Integrity
+Database constraints shall prevent invalid relationships, concurrent submissions shall produce a consistent attempt sequence and backup restoration shall reproduce 100% of records in the verification dataset.
+NFR18: Compatibility
+All critical workflows shall pass on the latest versions available at testing time of Chrome, Edge, Firefox and Safari.
+NFR19: Portability
+The documented deployment package shall operate in a local environment and one hosted environment using configuration changes only. The same tests must pass in both environments.
+NFR20: Auditability
+All tested logins, course changes, task generations, submissions, feedback decisions and progress updates shall create an audit record containing the actor, action, timestamp, outcome and correlation identifier.
+NFR21: Ethical Use
+Every AI-generated feedback page shall identify the content as AI generated, display available sources and provide a reporting option. No approved safety-test case shall produce abusive, discriminatory or harmful feedback.
+NFR22: Cost Efficiency
+The average external LLM cost shall not exceed AUD 0.10 per completed learning loop. An authorised administrator must be able to change the configured provider or model without modifying source code.
+NFR23: Robustness
+All defined invalid-input, missing-material, incomplete-response, timeout and external-service-failure tests shall complete without an unhandled exception, system crash or loss of accepted data.
+NFR24: Reusability
+A developer shall configure a demonstration module for a second technical subject within a few days.
+NFR25: Research Support
+Every evaluated response shall be exportable in CSV or JSON format with a case ID, experimental condition, inputs, sources, outputs, judge results, latency, token usage and cost. All required fields must be present in 100% of sampled records.
+
+
+
+
+Figma Design:
+https://www.figma.com/make/o9kNLkPT914yxUXaadhYFO/Learning-Management-System-Design?t=TkgmRfdcgSMvi7LG-1
+
+
+6. Implementation Details
+
+
+The system will be implemented as a web-based learning management system with a React frontend, Qiskit based quantum simulator, external LLM services and a retrieval-augmented generation (RAG) generation layer. The implementation will follow object oriented and modular software engineering principles, allowing major components (such as task generation, feedback generation, simulation, judging, analytics and gamification) to be developed and tested independently. 
+6.1 Frontend Implementation
+The frontend will be developed using React. It will feature separate interfaces for: students, educators and administrators. The design should follow the Figma mockup with the role specific dashboards. 
+
+
+Students will use the interface to view their learning pathway, complete tasks, interact with simple quantum circuit activities, receive feedback and monitor their progress. Educators will use the interface to configure courses, upload or link learning materials, define learning outcomes and monitor student progress. Administrators will use the interface to manage users, courses and system-level settings.
+
+
+The frontend will communicate with the backend through API requests. Input validation and clear error messages will be included to support usability and prevent incomplete or invalid submissions.
+6.2 Backend Implementation
+The backend will be implemented using FastAPI. It will manage authentication, role-based access, course configuration, task generation, student submissions, feedback generation, progress tracking and administrative functions.
+The backend will be organised into separate modules or services, including:
+
+
+6.3 Agentic Workflow Implementation
+The main learning loop will be implemented as an agent-based workflow. Each agent will handle a specific stage of the learning process rather than relying on a single LLM response.
+The workflow will operate as follows:
+1. A student selects a learning goal or continues their current pathway.
+2. The Learning Path Agent selects the next appropriate topic.
+3. The Tutor Agent explains the topic using retrieved course material.
+4. The Circuit Agent creates or selects a simple quantum circuit example.
+5. The Simulation Agent runs the circuit using Qiskit Aer.
+6. The Quiz Agent presents a task to the student.
+7. The student submits an answer.
+8. The Feedback Agent generates feedback using the answer, retrieved material and simulation output.
+9. The Quality Judge checks the feedback for accuracy and relevance.
+10. The system records progress and recommends the next topic.
+If the Quality Judge identifies unsupported or inaccurate feedback, the system will attempt to regenerate the feedback using additional retrieved context before showing it to the student. This supports the project goal of reducing hallucinated or misleading AI feedback.
+6.4 Quantum Simulation Implementation
+Quantum circuit activities will be supported through Qiskit and Qiskit Aer. The system will use small introductory circuits suitable for topics such as quantum random number generation, quantum teleportation, Deutsch-Jozsa, Bernstein-Vazirani and Grover’s algorithm.
+Simulation results, such as output counts or probability distributions, will be used to ground student feedback. For example, if a student misinterprets the result of a Hadamard gate or measurement operation, the system can compare the student’s answer with the actual simulation output and provide a more specific explanation.
+To keep the system safe and reliable, circuit execution will be limited to small circuits, controlled shot counts and appropriate execution time limits.
+6.5 Retrieval and AI Integration
+The system will use retrieval-augmented generation to reduce hallucination and improve the relevance of AI-generated content. Uploaded or linked learning materials will be processed, split into smaller sections and stored in a searchable retrieval system. When generating tasks or feedback, the backend will retrieve relevant material and pass it to the appropriate AI agent.
+External LLM APIs will be used for explanation generation, task generation, feedback generation and feedback judging. The system will be designed so that different models can be substituted where required, supporting cost efficiency and future experimentation.
+6.6 Data Storage
+SQLite will be used for the main structured data storage in the MVP. It will store user accounts, courses, learning outcomes, uploaded material metadata, generated tasks, student submissions, feedback records, progress records and gamification data.
+JSON will be used for intermediate agent outputs, evaluation records, simulation outputs and research comparison data. This supports the project’s research aim of comparing agentic feedback with single-step LLM feedback.
+6.7 Security, Privacy and Reliability
+The system will implement secure authentication and role-based access control (RBAC) using FastAPI to ensure students can only access their own learning records, educators can only access courses and students assigned to them and administrators have access to system wide management and privileges. User passwords will be securely hashed before being stored into the database, API keys and other sensitive configuration values will be stored as environment variables. All communication between the frontend and backend will be over HTTPS connections, encrypted to ensure data is protected during transit. 
+Input validation will be applied to any API requests to reduce the risk of invalid or malicious inputs, which uploaded learning materials will be validated to ensure that only the supported file formats are accepted. The system will use SQLite as the primary database for the MVP to enforce relational integrity through primary keys, foreign keys and transactional consistency to maintain data integrity. As the database is stored as the single local file on the application server, regular backups will be created and uploaded to a provider to allow for data recovery during a server crash.
+To improve reliability, the backend will include extensive error handling for invalid inputs, missing materials, incomplete student answers, quantum simulation failures and external LLM API failures. Failed AI responses will trigger controlled regeneration or safe fallback behaviour without interrupting user workflows. Important actions such as authentication attempts, course modifications, task generation, submissions, feedback generation and progress updates will be recorded in audit logs to support debugging, accountability and research reproducibility, without exposing sensitive student information. 
+7. Use Cases
+
+
+Use Case 1: Complete a scaffolded learning task and receive feedback
+* Actor: Student
+* Goal: Learn a quantum computing concept and receive grounded, accurate feedback on a submitted answer.
+* Preconditions: The student is logged in, and the educator has configured a course with materials and learning outcomes (at least one task sequence has been generated).
+* Main Flow:
+1. Student selects a learning goal or continues their current pathway.
+2. The Learning Path Agent selects the next topic based on the student's progress.
+3. The Tutor Agent explains the concept.
+4. The Circuit Agent generates an example circuit, and the Simulation Agent runs it through Qiskit to produce grounded output.
+5. The Quiz Agent poses a task
+6. Student submits an answer..
+7. The Feedback Agent generates feedback based on the simulation output and retrieved documentation.
+8. The Quality Judge checks the feedback for accuracy and relevance before it is shown to the student.
+9. The system saves the student's progress and displays the feedback.
+10. The system recommends the next topic.
+* Alternative Flow:
+   * If the Quality Judge rejects the generated feedback as inaccurate or unsupported, the Feedback Agent regenerates feedback using additional retrieved context before it is shown to the student.
+   * If the quantum simulation fails to run, the system displays an error message and allows the student to retry without losing their submitted answer.
+* Postconditions: The student's submission, score, and engagement data are recorded. Validated feedback has been delivered. The next recommended topic is available to the student.
+
+
+Use Case 2: Configure a new course and define learning outcomes
+* Actor: Educator
+* Goal: Setup a new quantum computing course or module so that tasks can be generated for students
+* Preconditions: The educator is logged in and has access to the educator dashboard
+* Main Flow:
+1. Educator creates a new course or module.
+2. Educator uploads or links learning materials (slides, handbook entries, assessment details, resources).
+3. Educator defines weekly or topic-based learning outcomes.
+4. The system retrieves and indexes the relevant content to support later task generation.
+5. Educator reviews the configuration and confirms the course is ready for students.
+* Alternative Flow:
+   * If uploaded materials are missing, incomplete, or in an unsupported format, the system flags the issue and asks the educator to provide or correct the materials before the course can be activated.
+* Postconditions: The course is configured and stored, with materials and learning outcomes available for automated task generation.
+
+
+Use Case 3: Monitor student progress and Identify students who need additional support
+* Actor: Educator
+* Goal: Track how students in a course are progressing and identify those who may need additional support.
+* Preconditions: The educator's course has students enrolled with at least some submitted activity.
+* Main Flow:
+1. Educator opens the progress monitoring view on the dashboard.
+2. The system displays aggregated progress, scores, and engagement data per student.
+3. Educator reviews flagged students who are falling behind, based on system generated indicators.
+4. Educator decides whether to follow up directly or rely on system-generated reminders sent to the student.
+* Alternative Flow:
+   * If no progress data exists yet for a student (e.g., they have not started any tasks), the system shows the student as "not started" rather than as at-risk.
+* Postconditions: The educator has an up-to-date view of student progress and can take action to support students who are falling behind.
+
+
+Use Case 4: Manage user accounts and system settings
+* Actor: Administrator
+* Goal: Maintain accurate user accounts and system-level configuration.
+* Preconditions: The administrator is logged in with administrative privileges.
+* Main Flow:
+1. Administrator opens the admin panel.
+2. Administrator creates, edits, or deactivates user accounts (students, educators).
+3. Administrator reviews or updates system level settings.
+4. The system logs the administrative action for auditability.
+* Alternative Flow:
+   * If an administrator attempts to remove or modify an account that has dependent data (e.g., an educator with active courses), the system warns the administrator before the action is confirmed.
+* Postconditions: User accounts and system settings reflect the changes made, and an audit log entry exists for the action.
+
+
+Use Case 5: View personal learning progress and recommendations
+* Actor: Student
+* Goal: Understand current progress and what to focus on next.
+* Preconditions: The student has completed at least one learning task.
+* Main Flow:
+1. Student navigates to their progress view.
+2. The system displays completed and attempted tasks, scores, and gamification status..
+3. The system displays a personalised recommendation for what to learn next, based on progress and task performance.
+* Alternative Flow:
+   * If the student has not yet attempted any tasks, the system displays an empty-state message with a prompt to start the first recommended topic instead of an analytics view.
+* Postconditions: The student has a clear view of their own progress and a concrete next step.
+
+
+8. User Stories
+8.1 Student
+* As a student, I want to complete small scaffolded tasks, so that I can learn quantum computing concepts gradually rather than all at once.
+* As a student, I want feedback that explains what I got wrong and what to do next, so that I can actually fix my misunderstanding instead of just seeing a score.
+* As a student, I want to interact with real quantum circuit examples, so that I can connect the theory to how the code actually behaves.
+* As a student, I want to see my own progress and achievements, so that I stay motivated and know what topic to tackle next.
+* As a student, I want to receive reminders if I fall behind, so that I don't lose track of my learning schedule.
+8.2 Educator
+* As an educator, I want to upload my course materials and learning outcomes once, so that the system can generate relevant tasks without me writing them by hand.
+* As an educator, I want the system to generate tasks automatically from my materials, so that I save time while still controlling what content is covered.
+* As an educator, I want to see which students are falling behind, so that I can intervene before they disengage.
+* As an educator, I want confidence that the AI generated feedback is checked for accuracy, so that I don't have to manually review every piece of feedback the system produces.
+* As an educator, I want the configuration process to be simple, so that setting up a course doesn't take more effort than writing the materials themselves.
+8.3 Administrator
+* As an administrator, I want to manage user accounts across the platform, so that access stays current as students and educators join or leave.
+* As an administrator, I want a log of significant system actions, so that I can audit what happened if something goes wrong.
+* As an administrator, I want to manage system level settings centrally, so that I don't need to configure them separately for every course.
+9. Assumptions
+
+
+* Users are assumed to have access to an internet-connected device capable of running a modern web browser.
+* Educators, students, and administrators are assumed to have valid user credentials to access their respective system features.
+* Educators are assumed to possess sufficient knowledge of the course content to modify courses, upload learning materials, and define learning outcomes.
+* Students are assumed to have basic digital literacy and the ability to navigate a web-based learning management system.
+* Students are assumed to have varying levels of prior knowledge in quantum computing, as the system is intended to support students with different levels of experience through scaffolded activities.
+* Uploaded learning materials are assumed to be accurate, complete, and aligned with the intended learning outcomes.
+* External services and technologies, including LLM APIs, Qiskit, Qiskit Aer, and retrieval components, are assumed to be available and operational during system use.
+* The system is assumed to operate primarily within a university or educational environment where educators oversee student learning activities.
+* AI-generated feedback is assumed to provide learning support rather than authoritative assessment and may require educator oversight in certain situations.
+* Users are assumed to understand that the system provides educational guidance and recommendations rather than definitive grading decisions.
+* Appropriate storage infrastructure is assumed to be available for user accounts, learning materials, generated tasks, student submissions, feedback records, and user progress data. 
+
+
+10. Constraints
+* The system must be developed using object-oriented principles and other relevant software engineering principles.
+* The backend implementation must utilise FastAPI to support integration with AI services and quantum computing frameworks.
+* The frontend implementation must utilise React to provide an interactive web-based user interface.
+* The system must integrate with Qiskit and Qiskit Aer to support quantum circuit execution and simulation.
+* The system must support integration with external LLM services to enable task generation, feedback generation, and evaluation activities.
+* The system must utilise retrieval mechanisms and supporting technologies, such as RAG and vector databases, to improve the quality and grounding of generated outputs.
+* SQLite and JSON must be used to support the storage of evaluation data, user records, and intermediate processing results.
+* The system must be compatible with common modern web browsers.
+* The project must be completed within the allocated project timeframe and submitted by the required assessment deadlines.
+* The scope of the project must primarily focus on introductory quantum computing algorithms and may not extend to advanced algorithms within the available timeframe.
+* The system must comply with institutional privacy expectations by restricting access to authorised users only.
+* Student submissions, feedback records, and progress data must be protected against unauthorised access or modification.
+* The design must consider the operational costs associated with external LLM APIs and support the substitution of alternative models where required.
+
+11. Acceptance Criteria
+
+
+Acceptance Criteria
+	Description
+	Mapped Requirements
+	AC1 - Secure User Authentication and Role-Based Access Control
+	The system shall provide secure authentication and role-based authorisation for students, educators and administrators. Users shall only be able to access features and information permitted by their assigned role. Invalid login attempts and unauthorised access requests shall be denied without exposing protected information. Authentication, authorisation and administrative actions shall be securely recorded for auditing purposes while protecting user privacy.
+	FR1–FR3, FR27, NFR15, NFR16 and NFR20
+	AC2 – Course Configuration and Learning Content Management
+	The system shall enable educators to efficiently create, configure, modify, publish and archive courses by uploading learning materials, defining learning outcomes and organising course content. All course information and uploaded resources shall be validated, stored persistently and remain accessible across user sessions while maintaining data integrity and reliability.
+	FR4–FR6, FR26, NFR2, NFR5 and NFR17
+	AC3 – AI-Assisted Learning Content Generation
+	The system shall generate educational tasks from authorised learning materials using retrieval-augmented AI techniques. Generated tasks shall support multiple assessment formats, include appropriate learning outcome and source references, support scaffolded learning pathways and prerequisite sequencing, and provide quantum-computing learning activities including code-based exercises and circuit simulation. The architecture shall support future extension through modular and reusable components.
+	FR7–FR14, NFR9, NFR11, NFR12 and NFR24
+	AC4 – Validated AI Feedback Generation
+	The system shall automatically generate personalised formative feedback for student submissions and validate the generated feedback before presenting it to students. Feedback shall be accurate, relevant, grounded in retrieved learning materials and provide actionable guidance for improvement. Invalid or unsafe AI-generated feedback shall be regenerated or replaced with a safe fallback response, ensuring ethical and trustworthy AI assistance.
+	FR15–FR18, NFR12, NFR13, NFR14 and NFR21
+	AC5 – Student Learning Experience and Personalised Support
+	The system shall provide students with a complete learning experience by allowing them to complete learning activities, save and submit work, monitor their progress and receive personalised recommendations based on their performance. Students shall receive reminders for overdue work and be encouraged through gamification features including points, levels and achievements. The learning workflow shall be intuitive, accessible and easy for first-time users to learn.
+	FR12, FR19–FR25, NFR1, NFR3 and NFR4
+	AC6 – Learning Analytics and Progress Monitoring
+	The system shall record learning activities, task attempts and performance information to support student progress tracking, educator monitoring and educational research. Students shall only be able to access their own learning data, while educators shall be able to monitor the progress of students enrolled in their courses. Collected analytics shall preserve user privacy and support research data export.
+	FR19–FR23, FR26, NFR16, NFR20 and NFR25
+	AC7 – Administrative Management
+	The system shall enable authorised administrators to manage user accounts, courses and configurable system settings while preventing unauthorised users from performing administrative operations. All administrative actions shall be recorded to support accountability, auditing and system governance.
+	FR27, NFR15 and NFR20
+	AC8 – End-to-End Learning Workflow
+	The system shall successfully demonstrate the complete learning workflow from educator course creation through to student learning. This workflow shall include course configuration, learning material upload, learning outcome definition, AI task generation, student submission, validated feedback generation, progress recording, personalised recommendations and persistent storage of all relevant information. The workflow shall execute reliably without interruption, data loss or unhandled failures.
+	FR28 (supported by FR4–FR26), NFR5, NFR7 and NFR23
+	AC9 – System Quality, Performance and Operational Efficiency
+	The completed system shall satisfy the specified quality attributes relating to usability, accessibility, reliability, availability, performance, scalability, maintainability, modularity, extensibility, compatibility, portability, robustness and operational cost efficiency. The system shall maintain acceptable response times under expected workloads, recover gracefully from failures, support deployment across multiple environments, operate within the specified AI service cost constraints and allow AI providers or models to be reconfigured without modifying source code.
+	NFR1–NFR11 and NFR17–NFR24
+	AC10 – Research and Experimental Evaluation Support
+	The system shall support educational AI research by exporting complete evaluation records for generated tasks, feedback and AI validation results. Exported datasets shall contain all required metadata, including experimental inputs, retrieved sources, AI outputs, validation results, latency, token usage and operational cost, enabling reproducible evaluation and analysis.
+	FR20 and NFR25
+	
+
+12. Research 
+12.1 Research Evaluation Plan
+
+
+This project addresses a core research question: 
+Does an agentic, RAG feedback pipeline produce more accurate and relevant feedback on quantum computing tasks than a single-step large language model? 
+
+
+To evaluate this, the system collects structured comparison data during normal operation and applies a set of defined metrics to measure feedback quality, retrieval benefit, and pipeline performance against a baseline condition. The evaluation plan is designed to be reproducible, measurable, and tied directly to the acceptance criteria defined in Section 11.
+12.2 Research Areas
+
+
+The evaluation covers three research areas.
+
+
+The first is feedback quality in quantum computing, a low-resource domain where single-step LLMs are known to hallucinate due to limited training examples and changing APIs. The research examines whether grounding feedback in simulation output and retrieved documentation reduces the rate of factually incorrect or misleading responses.
+
+
+The second is the contribution of retrieval-augmented generation (RAG). The system stores intermediate outputs from both the agentic pipeline and a single-step LLM condition so that the benefit of retrieval can be isolated. This allows direct comparison of responses generated with and without retrieved context from the uploaded course materials.
+
+
+The third is pipeline reliability and efficiency. This covers whether the agentic workflow adds latency or token overhead that would make it impractical for real educational use and whether the quality gains justify the extra cost.
+12.3 Baseline Condition: Single Step LLM Feedback
+
+
+The baseline condition represents how most existing AI learning tools currently operate. Usually, In a single step LLM approach, the student's answer and the original question are packaged into a single prompt and then sent directly to a LLM. The model then generates feedback based entirely on its training data. This means, it does not access the educator’s uploaded course materials, use simulation output from Qiskit, or perform any multi step validation before showing the response to the student.
+In most cases, this is a reasonable approach, however, the field of quantum computing does not contain many resources. There are a limited number of high quality training examples compared to classical programming. The Qiskit API also changes frequently, and additionally, quantum errors often produce no exception. This means an incorrect circuit can run silently and produce a wrong probability distribution. A single step LLM has no way to detect this since it is not running the circuit. In most cases, it is just pattern matching against its training data, which may reflect outdated API versions or fill gaps with explanations that may sound plausible, but are incorrect (i.e. hallucinations). This is the problem the agentic pipeline is designed to address.
+For every student submission processed by the agentic pipeline, the system will also generate a single step LLM response to the same question using the same base model, without retrieval or simulation context. Both responses will then be stored alongside the student's answer so they can be evaluated and compared using the metrics defined in Section 12.5.
+12.4 Measurement Areas 
+12.4.1 Factual Correctness
+This measures whether the feedback contains accurate statements about quantum computing concepts (as well as, gate behaviour, circuit structure, and Qiskit usage). Incorrect or misleading statements are counted as factual errors, regardless of how confidently they are expressed. This is the primary area where single step LLMs are expected to underperform in a low resource domain.
+12.4.2 Grounding and Relevance
+This measures whether the feedback is specific to what the student actually submitted and whether it draws on the course materials the educator provided. Generic feedback that could apply to any student, or feedback that references concepts not covered in the course, would score low on relevance even if it is technically correct.
+12.4.3 Pipeline Overhead
+This measures the practical cost of the agentic approach in terms of latency added per request and additional token usage compared to a single step call. A quality gain that comes with a tenfold increase in response time or API cost would not be practical for real educational use, so this ensures that the comparison is honest about trade offs and not just focused about quality.
+12.5 Key Metrics
+12.5.1 Hallucination Rate
+The proportion of feedback responses that contain at least one factually incorrect or unsupported claim. This is assessed by comparing feedback statements against the simulation output, retrieved course materials, and verified quantum computing reference material.
+12.5.2 Quality Judge Pass Rate
+The proportion of agentic feedback responses that pass the Quality Judge without requiring regeneration. A low pass rate would indicate the pipeline is producing poor first pass feedback. The rate of successful regeneration on a second attempt is also recorded separately to measure how effectively the regeneration mechanism recovers. 
+12.5.3 Relevance Score
+Measures how closely the feedback addresses the specific error or gap in the student's submitted answer. Responses will be evaluated on a defined scale from generic to highly specific. This would assess whether the feedback would actually help the student understand and correct their mistake. 
+12.5.4 Retrieval Hit Rate
+Measures how often the RAG layer successfully retrieves a document chunk that is relevant to the student's question and submission. A low hit rate suggests the retrieval layer is not contributing meaningfully to the response, whilst a high hit rate would confirm the grounding benefit of uploaded course materials. 
+12.5.5 Response Latency
+The time from student submission to feedback display, measured in seconds. This will be compared between the agentic pipeline and the single-step baseline to measure the overhead produced by the multi step workflow. 
+12.5.6 Token Cost per Response
+The total number of tokens consumed across all agent calls for a single student submission, compared against the token count for an equivalent single step response. This supports the cost efficiency non-functional requirement and allows the quality-to-cost ratio to be assessed honestly. 
+12.6 Gains Expected from RAG 
+The RAG layer is expected to improve the system in two main ways. First, it retrieves relevant sections from the educator’s uploaded materials and uses them to guide the feedback. This helps ensure that responses are based on content the educator has approved, rather than relying only on general training data. As a result, the system should reduce hallucinations and provide feedback that is more relevant to the course.
+Second, the system combines the retrieved documentation with the actual simulation output from Qiskit. This allows the feedback to refer to what the circuit actually produced, rather than making assumptions about the expected result. This grounding is difficult to reproduce in a single-step approach and is likely to be the main difference between the two conditions, especially for tasks involving gate behaviour and measurement results.

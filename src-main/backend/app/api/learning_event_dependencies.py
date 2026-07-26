@@ -1,8 +1,12 @@
 from typing import NoReturn
 
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
 from app.api.feedback_dependencies import FeedbackApiException
 from app.core.config import settings
-from app.db.session import SessionLocal
+from app.db.session import SessionLocal, get_db_session
+from app.services.access import SqlAlchemyLearningEventAccessPolicy
 from app.services.learning_events import (
     BestEffortFeedbackViewTracker,
     BestEffortLearningEventSink,
@@ -16,11 +20,10 @@ from app.services.learning_events import (
 )
 
 
-def get_learning_event_access_policy() -> LearningEventAccessPolicy:
-    _unavailable(
-        "learning_event_authorization_unavailable",
-        "Learning-event authorization is not configured.",
-    )
+def get_learning_event_access_policy(
+    session: Session = Depends(get_db_session),
+) -> LearningEventAccessPolicy:
+    return SqlAlchemyLearningEventAccessPolicy(session)
 
 
 def get_learning_event_recorder() -> LearningEventRecorder:

@@ -95,6 +95,19 @@ category. Do not clear `progress_recorded`: it is the restart-safe idempotency c
 will remain unavailable until the restarted worker writes a fresh durable heartbeat.
 Checking readiness for a missing SQLite path must not create an empty database file.
 
-SQLite should reside on durable storage with backups appropriate to the deployment. Back up only
-after checkpointing active writes, and validate migration and restore procedures outside
-production.
+SQLite should reside on durable storage with backups appropriate to the deployment. Never copy
+the live database file directly. During a maintenance window, stop the API and worker, then run:
+
+```powershell
+cd src-main/backend
+.venv\Scripts\python.exe scripts/verify_sqlite_backup.py `
+  --database quantumlearn.db `
+  --output-dir backups
+```
+
+The command uses SQLite's backup API to create a uniquely named backup, restores that backup to an
+isolated temporary database, runs `integrity_check` and `foreign_key_check`, and compares the row
+count and SHA-256 content digest for every application table. It exits non-zero on any mismatch and
+keeps a data-free verification manifest beside the backup. Retain both files according to the
+deployment's encrypted retention policy. Test disaster recovery against a copy in a non-production
+environment; never overwrite the active database as part of a restore test.

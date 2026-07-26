@@ -28,7 +28,9 @@ def _session(tmp_path: Path) -> Session:
     return Session(engine)
 
 
-def _stored_material(session: Session, storage: LocalFileStorage, course_id: str) -> LearningMaterial:
+def _stored_material(
+    session: Session, storage: LocalFileStorage, course_id: str
+) -> LearningMaterial:
     staged = storage.stage_upload("notes.pdf", io.BytesIO(b"%PDF-1.4\nplaceholder"))
     material = LearningMaterial(
         course_id=course_id,
@@ -50,12 +52,22 @@ def test_processor_persists_normalised_chunks_and_indexes_them(tmp_path: Path) -
     storage = LocalFileStorage(tmp_path / "uploads", 1024 * 1024)
     material = _stored_material(session, storage, "course-1")
     document = ExtractedDocument(
-        (ExtractedBlock(0, "Hadamard\r\n gate creates a superposition state.", "Gates", "Page 1", "paragraph"),),
+        (
+            ExtractedBlock(
+                0,
+                "Hadamard\r\n gate creates a superposition state.",
+                "Gates",
+                "Page 1",
+                "paragraph",
+            ),
+        ),
         "Notes",
         50,
     )
     embedding, vectors = DeterministicEmbeddingProvider(), InMemoryVectorStore()
-    processor = MaterialProcessor(session, storage, {"application/pdf": StaticDocumentExtractor(document)}, embedding, vectors)
+    processor = MaterialProcessor(
+        session, storage, {"application/pdf": StaticDocumentExtractor(document)}, embedding, vectors
+    )
 
     chunk_count, indexed_chunk_count = processor.process(material)
     session.refresh(material)
@@ -70,9 +82,20 @@ def test_processor_persists_normalised_chunks_and_indexes_them(tmp_path: Path) -
 def test_retrieval_revalidates_course_scope_and_writes_privacy_safe_audit(tmp_path: Path) -> None:
     session = _session(tmp_path)
     storage = LocalFileStorage(tmp_path / "uploads", 1024 * 1024)
-    first, second = _stored_material(session, storage, "course-1"), _stored_material(session, storage, "course-2")
+    first, second = (
+        _stored_material(session, storage, "course-1"),
+        _stored_material(session, storage, "course-2"),
+    )
     document = ExtractedDocument(
-        (ExtractedBlock(0, "Hadamard gate creates a quantum superposition state.", "Gates", "Page 1", "paragraph"),),
+        (
+            ExtractedBlock(
+                0,
+                "Hadamard gate creates a quantum superposition state.",
+                "Gates",
+                "Page 1",
+                "paragraph",
+            ),
+        ),
         None,
         50,
     )
@@ -83,7 +106,9 @@ def test_retrieval_revalidates_course_scope_and_writes_privacy_safe_audit(tmp_pa
     processor.process(second)
     service = RetrievalService(session, embedding, vectors)
 
-    result = service.search(RetrievalQuery("course-1", "Hadamard superposition", RetrievalPurpose.SEARCH))
+    result = service.search(
+        RetrievalQuery("course-1", "Hadamard superposition", RetrievalPurpose.SEARCH)
+    )
 
     assert result.found
     assert {hit.course_id for hit in result.hits} == {"course-1"}
@@ -91,6 +116,10 @@ def test_retrieval_revalidates_course_scope_and_writes_privacy_safe_audit(tmp_pa
     assert audit.query_hash != "Hadamard superposition"
     assert not hasattr(audit, "query")
 
-    no_result = service.search(RetrievalQuery("course-1", "unrelated classical weather", RetrievalPurpose.SEARCH, min_relevance=1.0))
+    no_result = service.search(
+        RetrievalQuery(
+            "course-1", "unrelated classical weather", RetrievalPurpose.SEARCH, min_relevance=1.0
+        )
+    )
     assert not no_result.found
     assert no_result.message == NO_RESULT_MESSAGE

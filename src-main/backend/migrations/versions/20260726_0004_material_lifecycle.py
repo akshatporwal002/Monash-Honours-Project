@@ -34,9 +34,15 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("file_size_bytes", sa.Integer(), nullable=True))
         batch_op.add_column(sa.Column("failure_stage", sa.String(100), nullable=True))
         batch_op.add_column(sa.Column("error_code", sa.String(100), nullable=True))
-        batch_op.add_column(sa.Column("processing_revision", sa.Integer(), nullable=False, server_default="0"))
-        batch_op.create_check_constraint("learning_material_file_size", "file_size_bytes IS NULL OR file_size_bytes >= 0")
-        batch_op.create_check_constraint("learning_material_processing_revision", "processing_revision >= 0")
+        batch_op.add_column(
+            sa.Column("processing_revision", sa.Integer(), nullable=False, server_default="0")
+        )
+        batch_op.create_check_constraint(
+            "learning_material_file_size", "file_size_bytes IS NULL OR file_size_bytes >= 0"
+        )
+        batch_op.create_check_constraint(
+            "learning_material_processing_revision", "processing_revision >= 0"
+        )
 
     with op.batch_alter_table("learning_materials") as batch_op:
         batch_op.drop_constraint("material_index_status", type_="check")

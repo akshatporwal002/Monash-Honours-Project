@@ -208,8 +208,8 @@ def test_task_scope_authorization_fails_closed_without_resource_leak(
     }
 
 
-def test_unconfigured_endpoint_fails_closed() -> None:
+def test_unauthenticated_endpoint_fails_closed() -> None:
     response = TestClient(app).post("/api/v1/learning-events", json=event_body())
 
-    assert response.status_code == 503
-    assert response.json()["error"]["code"] == "authentication_unavailable"
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Authentication required"

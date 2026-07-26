@@ -6,7 +6,10 @@ def to_feedback_task_context(task: LearningTask) -> TaskContext:
     """Convert a fully-grounded generated task into the feedback contract."""
     if not task.course_id or not task.learning_outcome_id:
         raise ValueError("task requires course_id and learning_outcome_id for feedback")
-    if not task.source_references or any(not isinstance(reference, str) or not reference.strip() for reference in task.source_references):
+    if not task.source_references or any(
+        not isinstance(reference, str) or not reference.strip()
+        for reference in task.source_references
+    ):
         raise ValueError("task requires non-empty source references for feedback")
     if task.expected_answer is None and task.marking_criteria is None:
         raise ValueError("task requires expected_answer or marking_criteria for feedback")

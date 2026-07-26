@@ -11,6 +11,7 @@ from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models.lms import PlatformAuditEvent
 from app.models.user import User, UserRole
 
 
@@ -53,7 +54,7 @@ def add_user(session: Session, *, is_active: bool = True) -> User:
     return user
 
 
-def test_login_sets_http_only_session_cookie(
+def test_login_sets_session_and_csrf_cookies(
     client: TestClient,
     session: Session,
 ) -> None:
@@ -72,8 +73,14 @@ def test_login_sets_http_only_session_cookie(
         "role": "student",
     }
     assert client.cookies.get(settings.session_cookie_name) is not None
+    assert client.cookies.get(settings.csrf_cookie_name) is not None
     assert "HttpOnly" in response.headers["set-cookie"]
     assert "SameSite=lax" in response.headers["set-cookie"]
+    audit = session.query(PlatformAuditEvent).one()
+    assert audit.actor_id == user.id
+    assert audit.action == "authentication.login"
+    assert audit.outcome == "success"
+    assert len(audit.correlation_id) == 36
 
 
 def test_current_user_restores_authenticated_session(
@@ -103,7 +110,12 @@ def test_logout_clears_session_cookie(client: TestClient, session: Session) -> N
 
     assert response.status_code == 204
     assert client.cookies.get(settings.session_cookie_name) is None
+    assert client.cookies.get(settings.csrf_cookie_name) is None
     assert client.get("/api/v1/auth/me").status_code == 401
+    assert {event.action for event in session.query(PlatformAuditEvent).all()} == {
+        "authentication.login",
+        "authentication.logout",
+    }
 
 
 @pytest.mark.parametrize(
@@ -129,6 +141,10 @@ def test_login_rejects_invalid_credentials(
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid email or password"}
     assert client.cookies.get(settings.session_cookie_name) is None
+    audit = session.query(PlatformAuditEvent).one()
+    assert audit.actor_id is None
+    assert audit.outcome == "failure"
+    assert "student@example.edu" not in audit.resource_id
 
 
 def test_login_rejects_inactive_account(client: TestClient, session: Session) -> None:

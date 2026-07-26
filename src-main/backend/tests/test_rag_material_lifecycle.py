@@ -7,21 +7,30 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.api.routes.materials import get_material_storage
+from app.api.routes.materials import (
+    get_actor_id,
+    get_course_access_policy,
+    get_material_storage,
+)
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_db_session
 from app.main import app
 from app.models import LearningMaterial, MaterialIndexStatus
 from app.services.rag.errors import InvalidDocumentError, MaterialTooLargeError
+from app.services.rag.fakes import AllowAllCourseAccessPolicy
 from app.services.rag.storage import LocalFileStorage
 
 
 def _docx_bytes() -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr("[Content_Types].xml", "<Types />")
-        archive.writestr("word/document.xml", "<document />")
+        for name, content in (
+            ("[Content_Types].xml", "<Types />"),
+            ("word/document.xml", "<document />"),
+        ):
+            entry = zipfile.ZipInfo(name, date_time=(2024, 1, 1, 0, 0, 0))
+            archive.writestr(entry, content)
     return buffer.getvalue()
 
 
@@ -52,13 +61,17 @@ def test_storage_enforces_size_and_keeps_committed_file_inside_root(tmp_path: Pa
 @pytest.fixture
 def material_client(tmp_path: Path):
     database_path = tmp_path / "materials.db"
-    engine = create_engine(f"sqlite:///{database_path.as_posix()}", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        f"sqlite:///{database_path.as_posix()}", connect_args={"check_same_thread": False}
+    )
     Base.metadata.create_all(engine)
     session = Session(engine)
     storage = LocalFileStorage(tmp_path / "uploads", max_file_bytes=1024 * 1024)
 
     app.dependency_overrides[get_db_session] = lambda: session
     app.dependency_overrides[get_material_storage] = lambda: storage
+    app.dependency_overrides[get_actor_id] = lambda: "test-educator"
+    app.dependency_overrides[get_course_access_policy] = AllowAllCourseAccessPolicy
     try:
         with TestClient(app) as client:
             yield client, session, storage
@@ -68,11 +81,19 @@ def material_client(tmp_path: Path):
         engine.dispose()
 
 
-def test_upload_list_read_duplicate_and_delete_are_course_scoped(material_client: tuple[TestClient, Session, LocalFileStorage]) -> None:
+def test_upload_list_read_duplicate_and_delete_are_course_scoped(
+    material_client: tuple[TestClient, Session, LocalFileStorage],
+) -> None:
     client, session, storage = material_client
     response = client.post(
         "/api/v1/courses/course-1/materials/uploads?module_id=week-1",
-        files={"file": ("lecture.docx", _docx_bytes(), "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+        files={
+            "file": (
+                "lecture.docx",
+                _docx_bytes(),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        },
     )
 
     assert response.status_code == 201
@@ -97,7 +118,9 @@ def test_upload_list_read_duplicate_and_delete_are_course_scoped(material_client
     assert not (storage.upload_dir / material["storage_key"]).exists()
 
 
-def test_processing_status_and_new_material_fields_are_persisted(material_client: tuple[TestClient, Session, LocalFileStorage]) -> None:
+def test_processing_status_and_new_material_fields_are_persisted(
+    material_client: tuple[TestClient, Session, LocalFileStorage],
+) -> None:
     _, session, _ = material_client
     material = LearningMaterial(
         course_id="course-1",
@@ -112,5 +135,7 @@ def test_processing_status_and_new_material_fields_are_persisted(material_client
     session.add(material)
     session.commit()
 
-    assert session.get(LearningMaterial, material.id).indexing_status is MaterialIndexStatus.PROCESSING
+    assert (
+        session.get(LearningMaterial, material.id).indexing_status is MaterialIndexStatus.PROCESSING
+    )
     assert settings.rag_max_file_bytes > 0

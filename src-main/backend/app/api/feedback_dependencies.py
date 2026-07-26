@@ -10,20 +10,26 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.audit_dependencies import get_feedback_audit_events
+from app.api.dependencies.authentication import get_current_user
 from app.core.config import settings
-from app.db.session import get_db_session
+from app.db.session import SessionLocal, get_db_session
+from app.models import LearningTask
+from app.models.lms import Course, SubmissionAttempt
+from app.models.user import User, UserRole
 from app.schemas.feedback_api import AuthenticatedActor, FeedbackApiErrorResponse
 from app.services.audit_events import FeedbackAuditEvents
 from app.services.feedback.application import (
     FeedbackAccessPolicy,
     FeedbackBackgroundExecutor,
     FeedbackWorkflowApplication,
+    InProcessFeedbackExecutor,
 )
 from app.services.feedback.errors import FeedbackPipelineError
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
+from app.services.feedback.runtime import build_feedback_pipeline_for_repository
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass
 class FeedbackApiException(Exception):
     status_code: int
     code: str
@@ -106,16 +112,59 @@ async def feedback_request_validation_handler(
     return await request_validation_exception_handler(request, error)
 
 
-async def get_authenticated_actor() -> AuthenticatedActor | None:
-    _unavailable("authentication_unavailable", "Authentication is not configured.")
+async def get_authenticated_actor(
+    user: User = Depends(get_current_user),
+) -> AuthenticatedActor:
+    return AuthenticatedActor(
+        actor_reference=str(user.id),
+        role=user.role.value,
+    )
 
 
-def get_feedback_access_policy() -> FeedbackAccessPolicy:
-    _unavailable("authorization_unavailable", "Authorization is not configured.")
+class DatabaseFeedbackAccessPolicy:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    async def can_access_submission(
+        self,
+        actor: AuthenticatedActor,
+        submission_id: str,
+    ) -> bool:
+        attempt = self._session.get(SubmissionAttempt, submission_id)
+        if attempt is None:
+            return False
+        try:
+            actor_id = int(actor.actor_reference)
+            role = UserRole(actor.role)
+        except (TypeError, ValueError):
+            return False
+        if role is UserRole.ADMINISTRATOR:
+            return True
+        if role is UserRole.STUDENT:
+            return attempt.student_id == actor_id
+        if role is not UserRole.EDUCATOR:
+            return False
+        task = self._session.get(LearningTask, attempt.task_id)
+        if task is None or task.course_id is None:
+            return False
+        course = self._session.get(Course, task.course_id)
+        return course is not None and course.educator_id == actor_id
 
 
-def get_feedback_executor() -> FeedbackBackgroundExecutor:
-    _unavailable("feedback_executor_unavailable", "Feedback processing is not configured.")
+def get_feedback_access_policy(
+    session: Session = Depends(get_db_session),
+) -> FeedbackAccessPolicy:
+    return DatabaseFeedbackAccessPolicy(session)
+
+
+def get_feedback_executor(
+    audit_events: FeedbackAuditEvents = Depends(get_feedback_audit_events),
+) -> FeedbackBackgroundExecutor:
+    return InProcessFeedbackExecutor(
+        SessionLocal,
+        build_feedback_pipeline_for_repository,
+        audit_events=audit_events,
+    )
 
 
 def get_feedback_application(

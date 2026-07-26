@@ -37,13 +37,17 @@ class MaterialTooLargeError(RagError):
 
 class DuplicateMaterialError(RagError):
     def __init__(self, material_id: str) -> None:
-        super().__init__("duplicate_material", "An identical material already exists in this course.", 409)
+        super().__init__(
+            "duplicate_material", "An identical material already exists in this course.", 409
+        )
         self.material_id = material_id
 
 
 class InvalidDocumentError(RagError):
     def __init__(self) -> None:
-        super().__init__("invalid_document", "The uploaded file does not match its supported document type.", 422)
+        super().__init__(
+            "invalid_document", "The uploaded file does not match its supported document type.", 422
+        )
 
 
 class EncryptedDocumentError(RagError):
@@ -53,7 +57,9 @@ class EncryptedDocumentError(RagError):
 
 class NoExtractableTextError(RagError):
     def __init__(self) -> None:
-        super().__init__("no_extractable_text", "No extractable text was found in this document.", 422)
+        super().__init__(
+            "no_extractable_text", "No extractable text was found in this document.", 422
+        )
 
 
 class MaterialAlreadyProcessingError(RagError):
@@ -63,22 +69,30 @@ class MaterialAlreadyProcessingError(RagError):
 
 class InvalidMaterialStateError(RagError):
     def __init__(self) -> None:
-        super().__init__("invalid_material_state", "This material cannot be processed in its current state.", 409)
+        super().__init__(
+            "invalid_material_state", "This material cannot be processed in its current state.", 409
+        )
 
 
 class ExtractedContentTooLargeError(RagError):
     def __init__(self) -> None:
-        super().__init__("extracted_content_too_large", "The extracted content exceeds the allowed size.", 422)
+        super().__init__(
+            "extracted_content_too_large", "The extracted content exceeds the allowed size.", 422
+        )
 
 
 class IndexConfigurationError(RagError):
     def __init__(self) -> None:
-        super().__init__("index_configuration_mismatch", "The vector index configuration does not match.", 503)
+        super().__init__(
+            "index_configuration_mismatch", "The vector index configuration does not match.", 503
+        )
 
 
 class EmbeddingProviderUnavailableError(RagError):
     def __init__(self) -> None:
-        super().__init__("embedding_provider_unavailable", "The embedding provider is unavailable.", 503)
+        super().__init__(
+            "embedding_provider_unavailable", "The embedding provider is unavailable.", 503
+        )
 
 
 class VectorStoreUnavailableError(RagError):

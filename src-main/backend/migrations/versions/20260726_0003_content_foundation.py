@@ -25,19 +25,41 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("module_id", sa.String(255), nullable=True))
         batch_op.add_column(sa.Column("learning_outcome_id", sa.String(255), nullable=True))
         batch_op.add_column(sa.Column("marking_criteria", sa.JSON(), nullable=True))
-        batch_op.add_column(sa.Column("source_references", sa.JSON(), nullable=False, server_default="[]"))
-        batch_op.add_column(sa.Column("prerequisite_task_ids", sa.JSON(), nullable=False, server_default="[]"))
+        batch_op.add_column(
+            sa.Column("source_references", sa.JSON(), nullable=False, server_default="[]")
+        )
+        batch_op.add_column(
+            sa.Column("prerequisite_task_ids", sa.JSON(), nullable=False, server_default="[]")
+        )
         batch_op.add_column(sa.Column("generation_provider", sa.String(100), nullable=True))
         batch_op.add_column(sa.Column("generation_model", sa.String(255), nullable=True))
         batch_op.add_column(sa.Column("generation_prompt_version", sa.String(100), nullable=True))
-        batch_op.add_column(sa.Column("generation_input_tokens", sa.Integer(), nullable=False, server_default="0"))
-        batch_op.add_column(sa.Column("generation_output_tokens", sa.Integer(), nullable=False, server_default="0"))
-        batch_op.add_column(sa.Column("generation_total_tokens", sa.Integer(), nullable=False, server_default="0"))
-        batch_op.add_column(sa.Column("generation_estimated_cost", sa.Numeric(12, 6), nullable=False, server_default="0"))
-        batch_op.create_check_constraint("learning_task_generation_input_tokens", "generation_input_tokens >= 0")
-        batch_op.create_check_constraint("learning_task_generation_output_tokens", "generation_output_tokens >= 0")
-        batch_op.create_check_constraint("learning_task_generation_total_tokens", "generation_total_tokens >= 0")
-        batch_op.create_check_constraint("learning_task_generation_cost", "generation_estimated_cost >= 0")
+        batch_op.add_column(
+            sa.Column("generation_input_tokens", sa.Integer(), nullable=False, server_default="0")
+        )
+        batch_op.add_column(
+            sa.Column("generation_output_tokens", sa.Integer(), nullable=False, server_default="0")
+        )
+        batch_op.add_column(
+            sa.Column("generation_total_tokens", sa.Integer(), nullable=False, server_default="0")
+        )
+        batch_op.add_column(
+            sa.Column(
+                "generation_estimated_cost", sa.Numeric(12, 6), nullable=False, server_default="0"
+            )
+        )
+        batch_op.create_check_constraint(
+            "learning_task_generation_input_tokens", "generation_input_tokens >= 0"
+        )
+        batch_op.create_check_constraint(
+            "learning_task_generation_output_tokens", "generation_output_tokens >= 0"
+        )
+        batch_op.create_check_constraint(
+            "learning_task_generation_total_tokens", "generation_total_tokens >= 0"
+        )
+        batch_op.create_check_constraint(
+            "learning_task_generation_cost", "generation_estimated_cost >= 0"
+        )
         batch_op.create_check_constraint(
             "learning_task_generation_metadata",
             "(generation_provider IS NULL AND generation_model IS NULL "
@@ -58,13 +80,28 @@ def upgrade() -> None:
         sa.Column("source_url", sa.String(2048), nullable=True),
         sa.Column("mime_type", sa.String(100), nullable=False),
         sa.Column("content_hash", sa.String(128), nullable=False),
-        sa.Column("indexing_status", _enum("pending", "extracted", "indexed", "failed", name="material_index_status"), nullable=False),
+        sa.Column(
+            "indexing_status",
+            _enum("pending", "extracted", "indexed", "failed", name="material_index_status"),
+            nullable=False,
+        ),
         sa.Column("extraction_error", sa.Text(), nullable=True),
         sa.Column("extracted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("indexed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
-        sa.CheckConstraint("(original_filename IS NOT NULL AND source_url IS NULL) OR (original_filename IS NULL AND source_url IS NOT NULL)", name="ck_learning_materials_learning_material_source_identity"),
-        sa.CheckConstraint("source_url IS NULL OR source_url LIKE 'https://%'", name="ck_learning_materials_learning_material_https_source"),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
+        sa.CheckConstraint(
+            "(original_filename IS NOT NULL AND source_url IS NULL) OR (original_filename IS NULL AND source_url IS NOT NULL)",
+            name="ck_learning_materials_learning_material_source_identity",
+        ),
+        sa.CheckConstraint(
+            "source_url IS NULL OR source_url LIKE 'https://%'",
+            name="ck_learning_materials_learning_material_https_source",
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_learning_materials"),
         sa.UniqueConstraint("course_id", "content_hash", name="uq_learning_materials_course_hash"),
     )
@@ -80,14 +117,28 @@ def upgrade() -> None:
         sa.Column("token_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("embedding_model", sa.String(255), nullable=True),
         sa.Column("embedding_version", sa.String(100), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
         sa.CheckConstraint("chunk_index >= 0", name="ck_material_chunks_material_chunk_index"),
-        sa.CheckConstraint("token_count >= 0", name="ck_material_chunks_material_chunk_token_count"),
-        sa.ForeignKeyConstraint(["material_id"], ["learning_materials.id"], ondelete="CASCADE", name="fk_material_chunks_material_id_learning_materials"),
+        sa.CheckConstraint(
+            "token_count >= 0", name="ck_material_chunks_material_chunk_token_count"
+        ),
+        sa.ForeignKeyConstraint(
+            ["material_id"],
+            ["learning_materials.id"],
+            ondelete="CASCADE",
+            name="fk_material_chunks_material_id_learning_materials",
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_material_chunks"),
         sa.UniqueConstraint("material_id", "chunk_index", name="uq_material_chunks_material_index"),
     )
-    op.create_index("ix_material_chunks_material_order", "material_chunks", ["material_id", "chunk_index"])
+    op.create_index(
+        "ix_material_chunks_material_order", "material_chunks", ["material_id", "chunk_index"]
+    )
 
 
 def downgrade() -> None:

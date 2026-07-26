@@ -16,13 +16,33 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    contextOptions: { reducedMotion: 'reduce' },
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'chrome-stable',
       use: {
         ...devices['Desktop Chrome'],
-        contextOptions: { reducedMotion: 'reduce' },
+        channel: 'chrome',
+      },
+    },
+    {
+      name: 'edge-stable',
+      use: {
+        ...devices['Desktop Edge'],
+        channel: 'msedge',
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
       },
     },
   ],

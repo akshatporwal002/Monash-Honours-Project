@@ -55,6 +55,7 @@ class RequestSecurityGuard:
 def get_request_security_guard() -> RequestSecurityGuard:
     csrf = DoubleSubmitCsrfPolicy(
         set(settings.allowed_cors_origins),
+        cookie_name=settings.csrf_cookie_name,
         header_name=settings.csrf_header_name,
     )
     limiter = InMemoryRateLimiter(

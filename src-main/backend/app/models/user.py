@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from sqlalchemy import Boolean, DateTime, Enum, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -38,4 +38,9 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+    student_profile: Mapped["StudentProfile | None"] = relationship(  # noqa: F821
+        back_populates="user",
+        uselist=False,
     )

@@ -11,12 +11,12 @@ from sqlalchemy import Engine, delete, or_, text, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.core.config import Settings
+from app.core.config import BUILTIN_OFFLINE_WORKER_ADAPTER_FACTORY, Settings
 from app.db.session import engine as application_engine
 from app.models.worker import WORKER_HEARTBEAT_SLOT, WorkerHeartbeat
 from app.schemas.health import ReadinessResponse
 
-MIGRATION_HEAD = "20260726_0011"
+MIGRATION_HEAD = "20260726_0014"
 
 
 class WorkerHeartbeatRepository(Protocol):
@@ -284,12 +284,10 @@ class ReadinessProbe:
             ),
             "pseudonym_secret": self._secret_ready(),
             "production_adapters": (
-                self._settings.production_adapters_ready if self._settings.production else True
+                self._production_adapters_ready() if self._settings.production else True
             ),
             "llm_credentials": (
-                bool(self._settings.llm_api_key and self._settings.llm_api_key.get_secret_value())
-                if self._settings.production
-                else True
+                self._llm_credentials_ready() if self._settings.production else True
             ),
         }
         return ReadinessResponse(
@@ -321,6 +319,18 @@ class ReadinessProbe:
     def _secret_ready(self) -> bool:
         secret = self._settings.learning_event_pseudonym_secret
         return secret is not None and len(secret.get_secret_value().encode("utf-8")) >= 32
+
+    def _production_adapters_ready(self) -> bool:
+        return self._settings.production_adapters_ready or (
+            not self._settings.research_enabled
+            and self._settings.worker_adapter_factory == BUILTIN_OFFLINE_WORKER_ADAPTER_FACTORY
+        )
+
+    def _llm_credentials_ready(self) -> bool:
+        if not self._settings.research_enabled:
+            return True
+        key = self._settings.llm_api_key
+        return bool(key and key.get_secret_value())
 
 
 worker_health = WorkerHealthRegistry(

@@ -44,26 +44,36 @@ class SafeHttpsFetcher:
         current = url
         for _ in range(4):
             _validate_url(current, self._resolver)
-            client = self._client_factory() if self._client_factory else httpx.Client(
-                timeout=httpx.Timeout(30, connect=10), follow_redirects=False,
-                headers={"User-Agent": "QuantumLearn/1.0"},
+            client = (
+                self._client_factory()
+                if self._client_factory
+                else httpx.Client(
+                    timeout=httpx.Timeout(30, connect=10),
+                    follow_redirects=False,
+                    headers={"User-Agent": "QuantumLearn/1.0"},
+                )
             )
             with client, client.stream("GET", current) as response:
-                    if response.status_code in {301, 302, 303, 307, 308}:
-                        location = response.headers.get("location")
-                        if not location:
-                            raise InvalidDocumentError()
-                        current = str(response.url.join(location))
-                        continue
-                    response.raise_for_status()
-                    content_type = response.headers.get("content-type", "").split(";", 1)[0]
-                    extension = {"application/pdf": ".pdf", "text/html": ".html", "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx", "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx"}.get(content_type)
-                    if extension is None:
+                if response.status_code in {301, 302, 303, 307, 308}:
+                    location = response.headers.get("location")
+                    if not location:
                         raise InvalidDocumentError()
-                    content = bytearray()
-                    for part in response.iter_bytes():
-                        content.extend(part)
-                        if len(content) > settings.rag_max_file_bytes:
-                            raise InvalidDocumentError()
-                    return DownloadedMaterial(current, f"source{extension}", bytes(content))
+                    current = str(response.url.join(location))
+                    continue
+                response.raise_for_status()
+                content_type = response.headers.get("content-type", "").split(";", 1)[0]
+                extension = {
+                    "application/pdf": ".pdf",
+                    "text/html": ".html",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+                }.get(content_type)
+                if extension is None:
+                    raise InvalidDocumentError()
+                content = bytearray()
+                for part in response.iter_bytes():
+                    content.extend(part)
+                    if len(content) > settings.rag_max_file_bytes:
+                        raise InvalidDocumentError()
+                return DownloadedMaterial(current, f"source{extension}", bytes(content))
         raise InvalidDocumentError()

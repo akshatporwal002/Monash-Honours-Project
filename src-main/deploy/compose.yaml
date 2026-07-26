@@ -1,0 +1,153 @@
+name: quantumlearn
+
+x-backend-environment: &backend-environment
+  APP_ENV: ${APP_ENV:-development}
+  API_PREFIX: /api/v1
+  API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+  DATABASE_URL: sqlite:////data/quantumlearn.db
+  RAG_UPLOAD_DIR: /data/uploads
+  RAG_MAX_FILE_BYTES: ${RAG_MAX_FILE_BYTES:-20971520}
+  MAX_REQUEST_BODY_BYTES: ${MAX_REQUEST_BODY_BYTES:-22020096}
+  FRONTEND_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+  CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost:8080}
+  SESSION_SECRET_KEY: ${SESSION_SECRET_KEY:-local-development-session-secret-not-for-hosting}
+  SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+  LEARNING_EVENT_PSEUDONYM_SECRET: ${LEARNING_EVENT_PSEUDONYM_SECRET:-local-development-pseudonym-secret-not-for-hosting}
+  CSRF_ENABLED: "true"
+  RATE_LIMIT_ENABLED: "true"
+  WORKER_ADAPTER_FACTORY: ${WORKER_ADAPTER_FACTORY:-app.worker:build_offline_worker_adapters}
+  RESEARCH_ENABLED: ${RESEARCH_ENABLED:-false}
+  PRODUCTION_ADAPTERS_READY: ${PRODUCTION_ADAPTERS_READY:-false}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+  LLM_API_BASE_URL: ${LLM_API_BASE_URL:-https://api.openai.com/v1}
+  LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+  LLM_MODEL: ${LLM_MODEL:-}
+  LLM_INPUT_COST_PER_MILLION: ${LLM_INPUT_COST_PER_MILLION:-0}
+  LLM_OUTPUT_COST_PER_MILLION: ${LLM_OUTPUT_COST_PER_MILLION:-0}
+  MIGRATE_ON_START: ${MIGRATE_ON_START:-true}
+  BOOTSTRAP_DEMO: ${BOOTSTRAP_DEMO:-false}
+
+services:
+  backend:
+    image: quantumlearn-backend:${IMAGE_TAG:-local}
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    environment: *backend-environment
+    expose:
+      - "8000"
+    volumes:
+      - quantumlearn_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2).read()"
+      interval: 15s
+      timeout: 3s
+      start_period: 30s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - application
+
+  worker:
+    image: quantumlearn-backend:${IMAGE_TAG:-local}
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      <<: *backend-environment
+      MIGRATE_ON_START: "false"
+      BOOTSTRAP_DEMO: "false"
+    command:
+      - quantumlearn-worker
+    volumes:
+      - quantumlearn_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    healthcheck:
+      disable: true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - application
+
+  frontend:
+    image: quantumlearn-frontend:${IMAGE_TAG:-local}
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    restart: unless-stopped
+    init: true
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${HTTP_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 10s
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - http://127.0.0.1:8080/healthz
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks:
+      - application
+
+networks:
+  application:
+    driver: bridge
+
+volumes:
+  quantumlearn_data:
+    name: ${DATA_VOLUME_NAME:-quantumlearn_data}

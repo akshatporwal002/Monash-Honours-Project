@@ -2,15 +2,22 @@
 
 ## Local setup
 
-Install the backend RAG extra, run Alembic to the single head, then configure `RAG_DATA_DIR` outside version control. Source files, Chroma data, and model cache folders are deliberately ignored by Git.
+Install the locked backend dependencies, run Alembic to the single head, then configure
+`RAG_UPLOAD_DIR` outside version control. Uploaded source files are deliberately ignored by Git.
+The runnable MVP does not download an embedding model or require a separate vector service.
 
 ## Processing flow
 
-Upload or register an HTTPS material, then call its process endpoint. SQLite owns material/chunk text and course ownership; Chroma is a disposable candidate index. A process failure leaves a safe status/error message and can be retried with `force=true`.
+Canonical PDF, DOCX, and PPTX uploads are extracted and chunked immediately. SQLite owns the
+material, chunk text, indexing state, and course ownership. The course-scoped lexical retriever
+ranks those authorised chunks and emits source labels. A processing failure leaves a safe
+status/error message and can be retried through the explicit process endpoint with `force=true`.
 
-## Recovering Chroma
+## Rebuilding an index
 
-If Chroma is missing or corrupted, stop the API, remove only the configured `RAG_CHROMA_DIR`, restart it, and force-process every material with status `indexed`. Never delete SQLite or upload storage during an index rebuild.
+Keep the uploaded files and SQLite database. Force-process the affected saved materials; their
+chunks are rebuilt transactionally from the stored source. Never delete SQLite or upload storage
+during an index rebuild.
 
 ## Privacy
 

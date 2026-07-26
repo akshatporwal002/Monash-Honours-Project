@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import NoReturn, Protocol
+from typing import Protocol
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.api.feedback_dependencies import FeedbackApiException
 from app.core.config import settings
 from app.db.session import SessionLocal, get_db_session
 from app.schemas.feedback_api import AuthenticatedActor
+from app.services.access import SqlAlchemyResearchExportAccessPolicy
 from app.services.audit import IndependentAuditRecorder
 from app.services.research_export import ResearchExportService
 from app.services.research_export_repository import (
@@ -23,11 +23,10 @@ class ResearchExportAccessPolicy(Protocol):
     ) -> set[str]: ...
 
 
-def get_research_export_access_policy() -> ResearchExportAccessPolicy:
-    _unavailable(
-        "research_export_authorization_unavailable",
-        "Research export authorization is not configured.",
-    )
+def get_research_export_access_policy(
+    session: Session = Depends(get_db_session),
+) -> ResearchExportAccessPolicy:
+    return SqlAlchemyResearchExportAccessPolicy(session)
 
 
 def get_research_export_service(
@@ -39,7 +38,3 @@ def get_research_export_service(
         row_limit=settings.research_export_row_limit,
         batch_size=settings.research_export_batch_size,
     )
-
-
-def _unavailable(code: str, message: str) -> NoReturn:
-    raise FeedbackApiException(503, code, message)

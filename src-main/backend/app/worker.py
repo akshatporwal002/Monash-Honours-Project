@@ -21,12 +21,15 @@ from app.core.readiness import (
 )
 from app.db.session import SessionLocal
 from app.db.session import engine as application_engine
+from app.schemas.feedback import FeedbackContext, GeneratedFeedback, JudgeEvaluationOutcome
 from app.services.audit import BestEffortAuditSink, IndependentAuditRecorder
 from app.services.audit_events import FeedbackAuditEvents
 from app.services.continuation import (
     ContinuationWorker,
     NextTaskRecommender,
+    NextTaskRequest,
     ProgressPersistenceAdapter,
+    ProgressUpdate,
     SqlAlchemyContinuationRepository,
 )
 from app.services.feedback.application import (
@@ -81,6 +84,64 @@ class WorkerAdapters:
     next_task_recommender: NextTaskRecommender
     feedback_audit_events: FeedbackAuditEvents | None = None
     terminal_reconciliation: WorkerPass | None = None
+
+
+class _OfflineBaselineContextProvider:
+    async def get_context(self, workflow_run_id: str) -> FeedbackContext | None:
+        del workflow_run_id
+        return None
+
+
+class _OfflineBaselineGenerator:
+    async def generate(
+        self,
+        context: FeedbackContext,
+        *,
+        expected_provider: str,
+        expected_model: str,
+    ) -> GeneratedFeedback:
+        del context, expected_provider, expected_model
+        raise RuntimeError("research baseline generation is disabled")
+
+
+class _OfflineBaselineJudge:
+    async def evaluate(
+        self,
+        context: FeedbackContext,
+        feedback: GeneratedFeedback,
+    ) -> JudgeEvaluationOutcome:
+        del context, feedback
+        raise RuntimeError("research baseline evaluation is disabled")
+
+
+class _OfflineProgressAdapter:
+    async def record_terminal_feedback(self, update: ProgressUpdate) -> None:
+        del update
+
+
+class _OfflineNextTaskRecommender:
+    async def recommend_next_task(self, request: NextTaskRequest) -> str:
+        # The LMS records progress synchronously. Reusing the completed task's
+        # opaque reference is a deterministic terminal handoff for the MVP.
+        return request.completed_task_reference
+
+
+def build_offline_worker_adapters(configured_settings: Settings) -> WorkerAdapters:
+    """Build the durable worker using only adapters shipped with the MVP."""
+    if configured_settings.research_enabled:
+        raise WorkerConfigurationError(
+            "the offline worker adapters require research processing to be disabled"
+        )
+    from app.services.feedback.runtime import build_feedback_pipeline_for_repository
+
+    return WorkerAdapters(
+        feedback_pipeline_factory=build_feedback_pipeline_for_repository,
+        baseline_context_provider=_OfflineBaselineContextProvider(),
+        baseline_generator=_OfflineBaselineGenerator(),
+        baseline_judge=_OfflineBaselineJudge(),
+        progress_adapter=_OfflineProgressAdapter(),
+        next_task_recommender=_OfflineNextTaskRecommender(),
+    )
 
 
 class _BaselineDatabasePass:

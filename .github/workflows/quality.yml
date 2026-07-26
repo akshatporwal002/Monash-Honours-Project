@@ -40,7 +40,7 @@ jobs:
         working-directory: src-main/backend
         run: |
           uv lock --check
-          uv sync --frozen --extra dev
+          uv sync --frozen --all-extras
 
       - name: Ruff check
         working-directory: src-main/backend
@@ -56,7 +56,11 @@ jobs:
           APP_ENV: test
           DATABASE_URL: sqlite:///./ci-tests.db
           LEARNING_EVENT_PSEUDONYM_SECRET: ci-only-pseudonym-secret-32-bytes-minimum
-        run: uv run --frozen pytest
+        run: >
+          uv run --frozen pytest
+          --cov=app.services
+          --cov-report=term-missing
+          --cov-fail-under=80
 
       - name: Alembic clean, legacy, and round-trip checks
         working-directory: src-main/backend
@@ -101,7 +105,7 @@ jobs:
         working-directory: src-main/backend
         run: |
           uv lock --check
-          uv sync --frozen --extra dev
+          uv sync --frozen --all-extras
 
       - name: Install locked dependencies
         working-directory: src-main/frontend
@@ -119,9 +123,9 @@ jobs:
         working-directory: src-main/frontend
         run: npm run build
 
-      - name: Install Playwright browser
+      - name: Install Playwright browsers
         working-directory: src-main/frontend
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chrome msedge firefox webkit
 
       - name: Browser E2E
         working-directory: src-main/frontend
@@ -152,7 +156,7 @@ jobs:
         working-directory: src-main/backend
         run: |
           uv lock --check
-          uv sync --frozen --extra dev
+          uv sync --frozen --all-extras
 
       - name: Audit Python dependency environment
         working-directory: src-main/backend

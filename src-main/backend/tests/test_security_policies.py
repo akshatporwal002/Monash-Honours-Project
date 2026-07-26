@@ -111,7 +111,7 @@ def test_request_size_limit_rejects_body_before_route_execution() -> None:
     assert calls == 0
 
 
-def test_configured_cors_rejects_unlisted_origins_methods_and_headers() -> None:
+def test_configured_cors_accepts_api_methods_and_rejects_unlisted_values() -> None:
     client = TestClient(create_app())
     base_headers = {
         "origin": settings.allowed_cors_origins[0],
@@ -124,9 +124,13 @@ def test_configured_cors_rejects_unlisted_origins_methods_and_headers() -> None:
         "/api/v1/learning-events",
         headers={**base_headers, "origin": "https://untrusted.example"},
     )
-    bad_method = client.options(
+    delete_accepted = client.options(
         "/api/v1/learning-events",
         headers={**base_headers, "access-control-request-method": "DELETE"},
+    )
+    bad_method = client.options(
+        "/api/v1/learning-events",
+        headers={**base_headers, "access-control-request-method": "TRACE"},
     )
     bad_header = client.options(
         "/api/v1/learning-events",
@@ -137,6 +141,7 @@ def test_configured_cors_rejects_unlisted_origins_methods_and_headers() -> None:
     assert accepted.headers["access-control-allow-origin"] == settings.allowed_cors_origins[0]
     assert bad_origin.status_code == 400
     assert "access-control-allow-origin" not in bad_origin.headers
+    assert delete_accepted.status_code == 200
     assert bad_method.status_code == 400
     assert bad_header.status_code == 400
 

@@ -65,6 +65,15 @@ class ResearchStatus(str, Enum):
 
 
 class TaskType(str, Enum):
+    MULTIPLE_CHOICE = "multiple_choice"
+    MULTIPLE_ANSWER = "multiple_answer"
+    SHORT_ANSWER = "short_answer"
+    CODE_EXPLANATION = "code_explanation"
+    CODE_COMPLETION = "code_completion"
+    QUANTUM_CIRCUIT = "quantum_circuit"
+
+    # Kept for rows created by the early demo. New LMS code uses the six
+    # requirement-named values above.
     QUIZ = "quiz"
     CODE = "code"
     CIRCUIT = "circuit"

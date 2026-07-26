@@ -8,27 +8,35 @@ from app.api.routes.materials import _require_manage, get_actor_id, get_course_a
 from app.api.routes.retrieval import get_retrieval_service
 from app.db.session import get_db_session
 from app.schemas.content import GeneratedTaskRead, GenerateTasksRequest
+from app.services.local_ai import LocalTaskGenerationClient
 from app.services.rag.contracts import CourseAccessPolicy, TaskGenerationClient
+from app.services.rag.errors import RagError
+from app.services.rag.local_retrieval import LocalCourseRetrievalService
 from app.services.rag.task_generation import (
     GenerateTasksInput,
     GroundedTaskGenerationService,
-    TaskGenerationProviderUnavailableError,
 )
+from app.services.task_generation_runtime import configured_task_generation_client
 
 router = APIRouter(prefix="/courses/{course_id}/tasks")
 
 
-def get_task_generation_client() -> TaskGenerationClient | None:
-    return None
+def get_task_generation_client(
+    db: Session = Depends(get_db_session),
+) -> TaskGenerationClient:
+    return configured_task_generation_client(db)
 
 
 def get_task_generation_service(
     db: Session = Depends(get_db_session),
-    client: TaskGenerationClient | None = Depends(get_task_generation_client),
+    client: TaskGenerationClient = Depends(get_task_generation_client),
 ) -> GroundedTaskGenerationService:
-    if client is None:
-        # A placeholder retrieval object is never used because the service fails before retrieval.
-        return GroundedTaskGenerationService(db, None, None)  # type: ignore[arg-type]
+    if isinstance(client, LocalTaskGenerationClient):
+        return GroundedTaskGenerationService(
+            db,
+            LocalCourseRetrievalService(db),
+            client,
+        )
     return GroundedTaskGenerationService(db, get_retrieval_service(db), client)
 
 
@@ -44,15 +52,34 @@ async def generate_tasks(
     try:
         tasks = await service.generate(
             GenerateTasksInput(
-                course_id=course_id, module_id=payload.module_id,
+                course_id=course_id,
+                module_id=payload.module_id,
                 learning_outcome_id=payload.learning_outcome_id,
                 learning_outcome_text=payload.learning_outcome_text,
-                task_count=payload.task_count, allowed_task_types=tuple(payload.allowed_task_types),
+                task_count=payload.task_count,
+                allowed_task_types=tuple(payload.allowed_task_types),
                 difficulty_levels=tuple(payload.difficulty_levels),
             )
         )
-    except TaskGenerationProviderUnavailableError as error:
-        raise HTTPException(status_code=error.http_status, detail={"code": error.code, "message": error.safe_message}) from error
+    except RagError as error:
+        raise HTTPException(
+            status_code=error.http_status,
+            detail={"code": error.code, "message": error.safe_message},
+        ) from error
     except ValueError as error:
-        raise HTTPException(status_code=422, detail={"code": "invalid_generation_output", "message": str(error)}) from error
-    return [GeneratedTaskRead(id=task.id, title=task.title, prompt=task.description, instructions=task.instructions, task_type=task.task_type, difficulty=task.difficulty, learning_outcome_id=task.learning_outcome_id, source_references=task.source_references) for task in tasks]
+        raise HTTPException(
+            status_code=422, detail={"code": "invalid_generation_output", "message": str(error)}
+        ) from error
+    return [
+        GeneratedTaskRead(
+            id=task.id,
+            title=task.title,
+            prompt=task.description,
+            instructions=task.instructions,
+            task_type=task.task_type,
+            difficulty=task.difficulty,
+            learning_outcome_id=task.learning_outcome_id,
+            source_references=task.source_references,
+        )
+        for task in tasks
+    ]

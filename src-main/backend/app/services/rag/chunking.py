@@ -19,7 +19,9 @@ class WhitespaceTokenCounter:
 
 
 class HeadingAwareChunker:
-    def __init__(self, counter: TokenCounter, target_tokens: int, max_tokens: int, overlap_tokens: int) -> None:
+    def __init__(
+        self, counter: TokenCounter, target_tokens: int, max_tokens: int, overlap_tokens: int
+    ) -> None:
         self.counter = counter
         self.target_tokens = target_tokens
         self.max_tokens = max_tokens
@@ -74,7 +76,11 @@ class HeadingAwareChunker:
                 current = candidate
         if current:
             pieces.append(current)
-        return [subpiece for piece in pieces for subpiece in self.counter.split_to_token_limit(piece, self.max_tokens)]
+        return [
+            subpiece
+            for piece in pieces
+            for subpiece in self.counter.split_to_token_limit(piece, self.max_tokens)
+        ]
 
     def _draft(self, index: int, text: str, heading: str | None, location: str) -> ChunkDraft:
         return ChunkDraft(

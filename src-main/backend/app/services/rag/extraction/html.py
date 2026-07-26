@@ -12,7 +12,18 @@ from app.services.rag.extraction.base import document_from_blocks
 class _HtmlTextParser(HTMLParser):
     ignored: ClassVar[set[str]] = {"script", "style", "nav", "form", "noscript"}
     retained: ClassVar[set[str]] = {
-        "p", "li", "pre", "code", "td", "th", "h1", "h2", "h3", "h4", "h5", "h6"
+        "p",
+        "li",
+        "pre",
+        "code",
+        "td",
+        "th",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
     }
 
     def __init__(self) -> None:
@@ -63,5 +74,9 @@ class HtmlDocumentExtractor:
                 block_type = "table"
             else:
                 block_type = "paragraph"
-            blocks.append(ExtractedBlock(len(blocks), text, heading, f"Web section: {heading or 'Page'}", block_type))
+            blocks.append(
+                ExtractedBlock(
+                    len(blocks), text, heading, f"Web section: {heading or 'Page'}", block_type
+                )
+            )
         return document_from_blocks(blocks, parser.title)

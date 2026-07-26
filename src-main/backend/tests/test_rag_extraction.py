@@ -120,7 +120,9 @@ def test_openxml_extractors_reject_corrupt_or_archive_bomb_inputs() -> None:
 
 
 def test_registry_selects_by_mime_type_and_rejects_unknown_types() -> None:
-    registry = ExtractorRegistry([PdfDocumentExtractor(), DocxDocumentExtractor(), PptxDocumentExtractor()])
+    registry = ExtractorRegistry(
+        [PdfDocumentExtractor(), DocxDocumentExtractor(), PptxDocumentExtractor()]
+    )
 
     assert isinstance(registry.get("application/pdf"), PdfDocumentExtractor)
     with pytest.raises(UnsupportedMaterialTypeError):

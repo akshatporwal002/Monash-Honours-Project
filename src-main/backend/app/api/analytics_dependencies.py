@@ -8,6 +8,10 @@ from sqlalchemy.orm import Session
 from app.api.feedback_dependencies import FeedbackApiException
 from app.core.config import settings
 from app.db.session import get_db_session
+from app.services.access import (
+    SqlAlchemyAnalyticsAccessPolicy,
+    SqlAlchemyRosterAdapter,
+)
 from app.services.analytics import (
     AnalyticsAccessPolicy,
     AnalyticsApplication,
@@ -16,12 +20,6 @@ from app.services.analytics import (
     SqlAlchemyAnalyticsRepository,
 )
 from app.services.learning_events import HmacSha256Pseudonymizer
-
-
-class UnavailableRosterAdapter:
-    async def learner_references(self, course_ids: set[str]) -> list[str]:
-        del course_ids
-        _unavailable("roster_unavailable", "Roster access is not configured.")
 
 
 class UnavailableAnalyticsPseudonymizer:
@@ -33,15 +31,16 @@ class UnavailableAnalyticsPseudonymizer:
         )
 
 
-def get_analytics_access_policy() -> AnalyticsAccessPolicy:
-    _unavailable(
-        "analytics_authorization_unavailable",
-        "Analytics authorization is not configured.",
-    )
+def get_analytics_access_policy(
+    session: Session = Depends(get_db_session),
+) -> AnalyticsAccessPolicy:
+    return SqlAlchemyAnalyticsAccessPolicy(session)
 
 
-def get_roster_adapter() -> RosterAdapter:
-    return UnavailableRosterAdapter()
+def get_roster_adapter(
+    session: Session = Depends(get_db_session),
+) -> RosterAdapter:
+    return SqlAlchemyRosterAdapter(session)
 
 
 def get_analytics_pseudonymizer() -> AnalyticsPseudonymizer:

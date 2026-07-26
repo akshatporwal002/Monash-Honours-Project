@@ -1,5 +1,4 @@
 from app.services.feedback.agent import AI_GENERATED_NOTICE, LlmFeedbackGenerator
-from app.services.feedback.composition import build_grounded_feedback_context_collector
 from app.services.feedback.application import (
     FeedbackAccessPolicy,
     FeedbackBackgroundExecutor,
@@ -7,6 +6,7 @@ from app.services.feedback.application import (
     InProcessFeedbackExecutor,
     workflow_response,
 )
+from app.services.feedback.composition import build_grounded_feedback_context_collector
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.contracts import (
     FeedbackAttemptPersistence,

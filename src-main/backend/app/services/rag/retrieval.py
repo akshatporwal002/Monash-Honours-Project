@@ -1,4 +1,4 @@
-"""Course-isolated retrieval that revalidates Chroma candidates in SQLite."""
+"""Course-isolated semantic retrieval behind generic embedding/index contracts."""
 
 from __future__ import annotations
 
@@ -24,7 +24,9 @@ NO_RESULT_MESSAGE = "No relevant passage was found in the authorised course mate
 
 
 class RetrievalService:
-    def __init__(self, session: Session, embedding: EmbeddingProvider, vectors: VectorStore) -> None:
+    def __init__(
+        self, session: Session, embedding: EmbeddingProvider, vectors: VectorStore
+    ) -> None:
         self.session, self.embedding, self.vectors = session, embedding, vectors
 
     def search(self, query: RetrievalQuery) -> RetrievalResult:
@@ -32,7 +34,15 @@ class RetrievalService:
         text = normalise_text(query.text)
         if not text or len(text) > settings.rag_query_max_chars:
             raise ValueError("query must be non-empty and within the configured length")
-        vector_matches = self.vectors.query(VectorQuery(query.course_id, self.embedding.embed_query(text), settings.rag_candidate_count, query.module_id, query.allowed_chunk_ids))
+        vector_matches = self.vectors.query(
+            VectorQuery(
+                query.course_id,
+                self.embedding.embed_query(text),
+                settings.rag_candidate_count,
+                query.module_id,
+                query.allowed_chunk_ids,
+            )
+        )
         hits: list[RetrievalHit] = []
         seen_hashes: set[str] = set()
         for match in vector_matches:
@@ -40,7 +50,11 @@ class RetrievalService:
             if not chunk or chunk.chunk_hash in seen_hashes:
                 continue
             material = self.session.get(LearningMaterial, chunk.material_id)
-            if not material or material.course_id != query.course_id or material.indexing_status != MaterialIndexStatus.INDEXED:
+            if (
+                not material
+                or material.course_id != query.course_id
+                or material.indexing_status != MaterialIndexStatus.INDEXED
+            ):
                 continue
             if query.module_id and material.module_id != query.module_id:
                 continue
@@ -50,12 +64,52 @@ class RetrievalService:
             if score < query.min_relevance:
                 continue
             seen_hashes.add(chunk.chunk_hash)
-            label = " — ".join(part for part in [material.original_filename or material.source_url or "Material", chunk.location_label, chunk.heading] if part)
-            hits.append(RetrievalHit(chunk.id, material.id, material.course_id, chunk.chunk_text, label, score, chunk.chunk_index))
+            label = " — ".join(
+                part
+                for part in [
+                    material.original_filename or material.source_url or "Material",
+                    chunk.location_label,
+                    chunk.heading,
+                ]
+                if part
+            )
+            hits.append(
+                RetrievalHit(
+                    chunk.id,
+                    material.id,
+                    material.course_id,
+                    chunk.chunk_text,
+                    label,
+                    score,
+                    chunk.chunk_index,
+                )
+            )
         hits.sort(key=lambda hit: (-hit.relevance_score, hit.chunk_id))
         hits = hits[: query.top_k]
         latency = int((time.perf_counter() - started) * 1000)
-        result = RetrievalResult(str(uuid.uuid4()), bool(hits), tuple(hits), None if hits else NO_RESULT_MESSAGE, latency, self.embedding.model_id)
-        self.session.add(RetrievalAudit(course_id=query.course_id, module_id=query.module_id, task_id=query.task_id, purpose=query.purpose.value, query_hash=hashlib.sha256(text.encode()).hexdigest(), top_k=query.top_k, minimum_relevance=query.min_relevance, result_chunk_ids=[hit.chunk_id for hit in hits], result_scores=[hit.relevance_score for hit in hits], hit_count=len(hits), latency_ms=latency, embedding_model=self.embedding.model_id))
+        result = RetrievalResult(
+            str(uuid.uuid4()),
+            bool(hits),
+            tuple(hits),
+            None if hits else NO_RESULT_MESSAGE,
+            latency,
+            self.embedding.model_id,
+        )
+        self.session.add(
+            RetrievalAudit(
+                course_id=query.course_id,
+                module_id=query.module_id,
+                task_id=query.task_id,
+                purpose=query.purpose.value,
+                query_hash=hashlib.sha256(text.encode()).hexdigest(),
+                top_k=query.top_k,
+                minimum_relevance=query.min_relevance,
+                result_chunk_ids=[hit.chunk_id for hit in hits],
+                result_scores=[hit.relevance_score for hit in hits],
+                hit_count=len(hits),
+                latency_ms=latency,
+                embedding_model=self.embedding.model_id,
+            )
+        )
         self.session.commit()
         return result

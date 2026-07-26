@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import Generator
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -52,7 +53,7 @@ from app.api.research_export_dependencies import (
     get_research_export_service,
 )
 from app.api.security_dependencies import get_request_security_guard
-from app.db.session import create_db_engine, create_session_factory
+from app.db.session import create_db_engine, create_session_factory, get_db
 from app.main import create_app
 from app.models import (
     ContinuationJob,
@@ -96,6 +97,7 @@ from app.services.learning_events import (
     LearningEventScope,
     TrustedLearningEventHooks,
 )
+from app.services.lms import bootstrap_demo
 from app.services.research import (
     BaselineJobExecutor,
     DatabaseResearchJobDispatcher,
@@ -246,6 +248,8 @@ def _build_app(database_url: str):
     command.upgrade(_migration_config(database_url), "head")
     engine = create_db_engine(database_url)
     session_factory = create_session_factory(engine)
+    with session_factory() as demo_session:
+        bootstrap_demo(demo_session)
     pseudonymizer = HmacSha256Pseudonymizer(PSEUDONYM_SECRET)
     learning_recorder = LearningEventRecorder(
         session_factory,
@@ -386,12 +390,10 @@ def _build_app(database_url: str):
     _seed_learning_events(learning_recorder, trusted_events, claim.workflow_run_id)
 
     app = create_app()
-    request_sessions: list[Session] = []
 
-    def request_session() -> Session:
-        session = session_factory()
-        request_sessions.append(session)
-        return session
+    def request_database_session() -> Generator[Session, None, None]:
+        with session_factory() as session:
+            yield session
 
     async def actor_dependency() -> AuthenticatedActor:
         return AuthenticatedActor(
@@ -399,28 +401,32 @@ def _build_app(database_url: str):
             role="browser-e2e",
         )
 
-    def feedback_application_dependency() -> FeedbackWorkflowApplication:
-        return FeedbackWorkflowApplication(
-            SqlAlchemyFeedbackWorkflowRepository(request_session()),
-            now=lambda: NOW + timedelta(minutes=2),
-        )
+    def feedback_application_dependency() -> Generator[FeedbackWorkflowApplication, None, None]:
+        with session_factory() as session:
+            yield FeedbackWorkflowApplication(
+                SqlAlchemyFeedbackWorkflowRepository(session),
+                now=lambda: NOW + timedelta(minutes=2),
+            )
 
-    def analytics_application_dependency() -> AnalyticsApplication:
-        return AnalyticsApplication(
-            SqlAlchemyAnalyticsRepository(request_session()),
-            BrowserRoster(),
-            pseudonymizer,
-            now=lambda: NOW + timedelta(hours=1),
-        )
+    def analytics_application_dependency() -> Generator[AnalyticsApplication, None, None]:
+        with session_factory() as session:
+            yield AnalyticsApplication(
+                SqlAlchemyAnalyticsRepository(session),
+                BrowserRoster(),
+                pseudonymizer,
+                now=lambda: NOW + timedelta(hours=1),
+            )
 
-    def export_service_dependency() -> ResearchExportService:
-        return ResearchExportService(
-            SqlAlchemyResearchExportRepository(request_session()),
-            IndependentAuditRecorder(session_factory),  # type: ignore[arg-type]
-            batch_size=1,
-        )
+    def export_service_dependency() -> Generator[ResearchExportService, None, None]:
+        with session_factory() as session:
+            yield ResearchExportService(
+                SqlAlchemyResearchExportRepository(session),
+                IndependentAuditRecorder(session_factory),  # type: ignore[arg-type]
+                batch_size=1,
+            )
 
     app.dependency_overrides[get_authenticated_actor] = actor_dependency
+    app.dependency_overrides[get_db] = request_database_session
     app.dependency_overrides[get_feedback_access_policy] = BrowserFeedbackPolicy
     app.dependency_overrides[get_feedback_application] = feedback_application_dependency
     app.dependency_overrides[get_feedback_executor] = lambda: executor
@@ -436,8 +442,6 @@ def _build_app(database_url: str):
     app.dependency_overrides[get_request_security_guard] = BrowserSecurityGuard
 
     def close_resources() -> None:
-        for session in request_sessions:
-            session.close()
         engine.dispose()
 
     app.state.browser_e2e_cleanup = close_resources

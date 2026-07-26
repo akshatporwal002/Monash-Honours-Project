@@ -3,9 +3,10 @@
   gap: 1rem;
   max-width: 52rem;
   padding: 1.5rem;
-  border: 1px solid #ccd4e3;
+  border: 1px solid #3d3658;
   border-radius: 0.75rem;
-  background: #fff;
+  background: #151126;
+  color: #f5f4ff;
 }
 
 .feedback-panel h2,

@@ -131,7 +131,10 @@ class LocalFileStorage:
                 compressed_size = sum(entry.compress_size for entry in entries)
                 if total_size > _MAX_ZIP_UNCOMPRESSED_BYTES:
                     raise InvalidDocumentError()
-                if total_size and (compressed_size == 0 or total_size / compressed_size > _MAX_ZIP_COMPRESSION_RATIO):
+                if total_size and (
+                    compressed_size == 0
+                    or total_size / compressed_size > _MAX_ZIP_COMPRESSION_RATIO
+                ):
                     raise InvalidDocumentError()
                 names = set(archive.namelist())
         except zipfile.BadZipFile as error:

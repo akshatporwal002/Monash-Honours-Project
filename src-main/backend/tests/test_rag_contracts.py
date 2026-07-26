@@ -40,8 +40,18 @@ def test_in_memory_vector_store_enforces_course_and_allowed_chunk_filters() -> N
     store = InMemoryVectorStore()
     store.upsert(
         [
-            VectorRecord("allowed", provider.embed_query("gate"), "gate", {"course_id": "course-1", "material_id": "m1"}),
-            VectorRecord("other-course", provider.embed_query("gate"), "gate", {"course_id": "course-2", "material_id": "m2"}),
+            VectorRecord(
+                "allowed",
+                provider.embed_query("gate"),
+                "gate",
+                {"course_id": "course-1", "material_id": "m1"},
+            ),
+            VectorRecord(
+                "other-course",
+                provider.embed_query("gate"),
+                "gate",
+                {"course_id": "course-2", "material_id": "m2"},
+            ),
         ]
     )
 

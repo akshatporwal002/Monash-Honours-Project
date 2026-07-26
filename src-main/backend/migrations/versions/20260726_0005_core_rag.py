@@ -17,7 +17,9 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     with op.batch_alter_table("material_chunks") as batch_op:
-        batch_op.add_column(sa.Column("chunk_hash", sa.String(128), nullable=False, server_default=""))
+        batch_op.add_column(
+            sa.Column("chunk_hash", sa.String(128), nullable=False, server_default="")
+        )
         batch_op.add_column(sa.Column("embedding_dimension", sa.Integer(), nullable=True))
         batch_op.add_column(sa.Column("indexed_at", sa.DateTime(timezone=True), nullable=True))
 
@@ -36,14 +38,24 @@ def upgrade() -> None:
         sa.Column("hit_count", sa.Integer(), nullable=False),
         sa.Column("latency_ms", sa.Integer(), nullable=False),
         sa.Column("embedding_model", sa.String(255), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
         sa.CheckConstraint("top_k > 0", name="ck_retrieval_audits_retrieval_audit_top_k"),
-        sa.CheckConstraint("minimum_relevance BETWEEN 0 AND 1", name="ck_retrieval_audits_retrieval_audit_relevance"),
+        sa.CheckConstraint(
+            "minimum_relevance BETWEEN 0 AND 1",
+            name="ck_retrieval_audits_retrieval_audit_relevance",
+        ),
         sa.CheckConstraint("hit_count >= 0", name="ck_retrieval_audits_retrieval_audit_hit_count"),
         sa.CheckConstraint("latency_ms >= 0", name="ck_retrieval_audits_retrieval_audit_latency"),
         sa.PrimaryKeyConstraint("id", name="pk_retrieval_audits"),
     )
-    op.create_index("ix_retrieval_audits_course_created", "retrieval_audits", ["course_id", "created_at"])
+    op.create_index(
+        "ix_retrieval_audits_course_created", "retrieval_audits", ["course_id", "created_at"]
+    )
 
 
 def downgrade() -> None:

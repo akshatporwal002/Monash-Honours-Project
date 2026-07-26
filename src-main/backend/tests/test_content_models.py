@@ -23,8 +23,18 @@ def test_material_and_ordered_chunks_persist(db_session) -> None:
     db_session.flush()
     db_session.add_all(
         [
-            MaterialChunk(material_id=material.id, chunk_index=0, chunk_text="Qubits have two basis states.", token_count=6),
-            MaterialChunk(material_id=material.id, chunk_index=1, chunk_text="Measurement produces classical output.", token_count=5),
+            MaterialChunk(
+                material_id=material.id,
+                chunk_index=0,
+                chunk_text="Qubits have two basis states.",
+                token_count=6,
+            ),
+            MaterialChunk(
+                material_id=material.id,
+                chunk_index=1,
+                chunk_text="Measurement produces classical output.",
+                token_count=5,
+            ),
         ]
     )
     db_session.commit()

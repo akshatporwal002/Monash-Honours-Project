@@ -348,8 +348,8 @@ def test_fallback_response_has_no_assessment_or_references() -> None:
 
 def test_authentication_and_ownership_fail_closed_without_resource_leaks() -> None:
     default_response = TestClient(app).get("/api/v1/submissions/submission-1/feedback")
-    assert default_response.status_code == 503
-    assert default_response.json()["error"]["code"] == "authentication_unavailable"
+    assert default_response.status_code == 401
+    assert default_response.json()["detail"] == "Authentication required"
 
     configure(FakeApplication(processing_claim()), actor=None)
     unauthenticated = TestClient(app).get("/api/v1/submissions/submission-1/feedback")

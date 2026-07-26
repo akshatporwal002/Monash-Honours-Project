@@ -6,9 +6,8 @@ Revises: 20260713_0001
 
 from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision: str = "20260722_0002"
 down_revision: str | None = "20260713_0001"
@@ -27,7 +26,12 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(100), nullable=False),
         sa.Column("points", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("streak_days", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_student_profiles"),
     )
     op.create_table(
@@ -66,15 +70,36 @@ def upgrade() -> None:
         sa.Column("answer", sa.Text(), nullable=False, server_default=""),
         sa.Column("code", sa.Text(), nullable=True),
         sa.Column("circuit", sa.JSON(), nullable=True),
-        sa.Column("status", _enum("draft", "submitted", "completed", name="submission_status"), nullable=False),
+        sa.Column(
+            "status",
+            _enum("draft", "submitted", "completed", name="submission_status"),
+            nullable=False,
+        ),
         sa.Column("score", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("feedback", sa.Text(), nullable=True),
         sa.Column("attempts", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
-        sa.CheckConstraint("score BETWEEN 0 AND 100", name="ck_student_submissions_student_submission_score"),
-        sa.ForeignKeyConstraint(["student_id"], ["student_profiles.id"], ondelete="CASCADE", name="fk_student_submissions_student_id_student_profiles"),
-        sa.ForeignKeyConstraint(["task_id"], ["learning_tasks.id"], ondelete="CASCADE", name="fk_student_submissions_task_id_learning_tasks"),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
+        sa.CheckConstraint(
+            "score BETWEEN 0 AND 100", name="ck_student_submissions_student_submission_score"
+        ),
+        sa.ForeignKeyConstraint(
+            ["student_id"],
+            ["student_profiles.id"],
+            ondelete="CASCADE",
+            name="fk_student_submissions_student_id_student_profiles",
+        ),
+        sa.ForeignKeyConstraint(
+            ["task_id"],
+            ["learning_tasks.id"],
+            ondelete="CASCADE",
+            name="fk_student_submissions_task_id_learning_tasks",
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_student_submissions"),
         sa.UniqueConstraint("student_id", "task_id", name="uq_student_submissions_student_task"),
     )
@@ -83,9 +108,24 @@ def upgrade() -> None:
         sa.Column("id", sa.String(36), nullable=False),
         sa.Column("student_id", sa.String(36), nullable=False),
         sa.Column("achievement_id", sa.String(36), nullable=False),
-        sa.Column("earned_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
-        sa.ForeignKeyConstraint(["student_id"], ["student_profiles.id"], ondelete="CASCADE", name="fk_student_achievements_student_id_student_profiles"),
-        sa.ForeignKeyConstraint(["achievement_id"], ["achievements.id"], ondelete="CASCADE", name="fk_student_achievements_achievement_id_achievements"),
+        sa.Column(
+            "earned_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["student_id"],
+            ["student_profiles.id"],
+            ondelete="CASCADE",
+            name="fk_student_achievements_student_id_student_profiles",
+        ),
+        sa.ForeignKeyConstraint(
+            ["achievement_id"],
+            ["achievements.id"],
+            ondelete="CASCADE",
+            name="fk_student_achievements_achievement_id_achievements",
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_student_achievements"),
         sa.UniqueConstraint("student_id", "achievement_id", name="uq_student_achievement"),
     )
@@ -93,12 +133,26 @@ def upgrade() -> None:
         "student_notifications",
         sa.Column("id", sa.String(36), nullable=False),
         sa.Column("student_id", sa.String(36), nullable=False),
-        sa.Column("kind", _enum("reminder", "achievement", "feedback", name="notification_kind"), nullable=False),
+        sa.Column(
+            "kind",
+            _enum("reminder", "achievement", "feedback", name="notification_kind"),
+            nullable=False,
+        ),
         sa.Column("title", sa.String(150), nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
         sa.Column("is_read", sa.Boolean(), nullable=False, server_default=sa.false()),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("CURRENT_TIMESTAMP")),
-        sa.ForeignKeyConstraint(["student_id"], ["student_profiles.id"], ondelete="CASCADE", name="fk_student_notifications_student_id_student_profiles"),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["student_id"],
+            ["student_profiles.id"],
+            ondelete="CASCADE",
+            name="fk_student_notifications_student_id_student_profiles",
+        ),
         sa.PrimaryKeyConstraint("id", name="pk_student_notifications"),
     )
 

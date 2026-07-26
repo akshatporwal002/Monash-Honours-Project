@@ -2,6 +2,34 @@
 // Run: uv run --frozen python scripts/generate_frontend_contracts.py
 
 export type ApiSchemas = {
+  "AchievementRead": {
+    "code": string
+    "description": string
+    "earned_at": string
+    "icon": string
+    "name": string
+  }
+  "AdminUserCreate": {
+    "email": string
+    "full_name": string
+    "password": string
+    "role": ApiSchemas["UserRole"]
+  }
+  "AdminUserRead": {
+    "created_at": string
+    "email": string
+    "full_name": string
+    "id": number
+    "is_active": boolean
+    "role": ApiSchemas["UserRole"]
+    "student_profile_id"?: (string) | (null)
+    "updated_at": string
+  }
+  "AdminUserUpdate": {
+    "email"?: (string) | (null)
+    "full_name"?: (string) | (null)
+    "role"?: (ApiSchemas["UserRole"]) | (null)
+  }
   "AnalyticsFilterOptions": {
     "courses"?: Array<string>
     "experimental_conditions"?: Array<string>
@@ -20,6 +48,42 @@ export type ApiSchemas = {
     "start_at"?: (string) | (null)
     "task_types"?: Array<string>
   }
+  "AttemptRead": {
+    "answer": string
+    "attempt_number": number
+    "circuit": (Record<string, unknown>) | (null)
+    "code": (string) | (null)
+    "feedback": string
+    "feedback_reference": (string) | (null)
+    "id": string
+    "points_awarded": number
+    "score": number
+    "status": ApiSchemas["AttemptStatus"]
+    "submitted_at": string
+    "task_id": string
+  }
+  "AttemptStatus": "submitted" | "completed"
+  "AuthenticatedUserResponse": {
+    "email": string
+    "full_name": string
+    "id": number
+    "role": ApiSchemas["UserRole"]
+  }
+  "Body_upload_course_material_api_v1_courses__course_id__materials_upload_post": {
+    "file": string
+  }
+  "Body_upload_material_api_v1_courses__course_id__materials_uploads_post": {
+    "file": string
+  }
+  "BootstrapRead": {
+    "course": ApiSchemas["CourseRead"]
+    "users": Array<ApiSchemas["AdminUserRead"]>
+  }
+  "BulkReminderCreate": {
+    "message": string
+    "student_ids": Array<string>
+    "task_id"?: (string) | (null)
+  }
   "ConditionMetrics": {
     "average_cost": ApiSchemas["MetricValue"]
     "average_latency_ms": ApiSchemas["MetricValue"]
@@ -30,6 +94,49 @@ export type ApiSchemas = {
     "overall_pass_rate": ApiSchemas["MetricValue"]
     "p95_latency_ms": ApiSchemas["MetricValue"]
   }
+  "CourseCreate": {
+    "code"?: (string) | (null)
+    "description"?: string
+    "enrollment_open"?: boolean
+    "title": string
+  }
+  "CourseProgressRead": {
+    "code": string
+    "description": string
+    "id": string
+    "progress_percentage": number
+    "state": ApiSchemas["CourseState"]
+    "title": string
+  }
+  "CourseRead": {
+    "code": string
+    "created_at": string
+    "description": string
+    "educator_id": number
+    "enrollment_open": boolean
+    "id": string
+    "module_count"?: number
+    "progress_percentage"?: number
+    "state": ApiSchemas["CourseState"]
+    "student_count"?: number
+    "title": string
+    "updated_at": string
+  }
+  "CourseState": "draft" | "published" | "archived"
+  "CourseUpdate": {
+    "code"?: (string) | (null)
+    "description"?: (string) | (null)
+    "enrollment_open"?: (boolean) | (null)
+    "title"?: (string) | (null)
+  }
+  "DraftRead": {
+    "answer": string
+    "circuit": (Record<string, unknown>) | (null)
+    "code": (string) | (null)
+    "id": string
+    "task_id": string
+    "updated_at": string
+  }
   "DraftSaveLearningEventRequest": {
     "event_id": string
     "event_type": "draft_save"
@@ -39,6 +146,50 @@ export type ApiSchemas = {
   "DraftSaveMetadata": {
     "duration_ms"?: (number) | (null)
   }
+  "DraftWrite": {
+    "answer"?: string
+    "circuit"?: (Record<string, unknown>) | (null)
+    "code"?: (string) | (null)
+  }
+  "EducatorDashboardRead": {
+    "at_risk_students": number
+    "completion_percentage": number
+    "concept_mastery": Array<ApiSchemas["LabelScoreRead"]>
+    "courses": Array<ApiSchemas["CourseRead"]>
+    "leaderboard": Array<ApiSchemas["LeaderboardEntryRead"]>
+    "recent_activity": Array<ApiSchemas["RecentActivityRead"]>
+    "task_type_performance": Array<ApiSchemas["LabelScoreRead"]>
+    "total_students": number
+    "weekly_engagement": Array<ApiSchemas["WeeklyEngagementRead"]>
+  }
+  "EducatorStudentRead": {
+    "at_risk": boolean
+    "average_score": number
+    "completed_tasks": number
+    "completion_percentage": number
+    "course_id": string
+    "course_title": string
+    "display_name": string
+    "email": string
+    "last_active": (string) | (null)
+    "overdue_tasks": number
+    "student_id": string
+    "total_tasks": number
+    "user_id": number
+  }
+  "EnrollmentCreate": {
+    "student_id": number
+  }
+  "EnrollmentRead": {
+    "course_id": string
+    "enrolled_at": string
+    "id": string
+    "status": ApiSchemas["EnrollmentStatus"]
+    "student_email": string
+    "student_id": number
+    "student_name": string
+  }
+  "EnrollmentStatus": "active" | "completed" | "withdrawn"
   "ExperimentalCondition": "agentic_rag" | "single_step_baseline"
   "FeedbackApiErrorDetail": {
     "code": string
@@ -80,6 +231,31 @@ export type ApiSchemas = {
     "event_type": ApiSchemas["LearningEventType"]
     "previous_stage_rate": ApiSchemas["MetricValue"]
   }
+  "GateOperation": {
+    "gate": "h" | "x" | "cx"
+    "targets": Array<number>
+  }
+  "GenerateTasksRequest": {
+    "allowed_task_types": Array<ApiSchemas["TaskType"]>
+    "difficulty_levels": Array<string>
+    "learning_outcome_id": string
+    "learning_outcome_text": string
+    "module_id"?: (string) | (null)
+    "task_count"?: number
+  }
+  "GeneratedTaskRead": {
+    "difficulty": string
+    "id": string
+    "instructions": string
+    "learning_outcome_id": string
+    "prompt": string
+    "source_references": Array<string>
+    "task_type": ApiSchemas["TaskType"]
+    "title": string
+  }
+  "HTTPValidationError": {
+    "detail"?: Array<ApiSchemas["ValidationError"]>
+  }
   "HealthResponse": {
     "status": "ok"
   }
@@ -99,12 +275,52 @@ export type ApiSchemas = {
     "total": number
   }
   "JudgeDecision": "pass" | "fail"
+  "LabelScoreRead": {
+    "label": string
+    "score": number
+  }
+  "LatestAttemptSummary": {
+    "attempt_number": number
+    "id": string
+    "score": number
+    "status": ApiSchemas["AttemptStatus"]
+    "submitted_at": string
+  }
+  "LeaderboardEntryRead": {
+    "completed_tasks": number
+    "display_name": string
+    "points": number
+    "student_id": string
+  }
   "LearningEventReceipt": {
     "learning_event_id": string
     "occurred_at": string
     "status"?: "recorded"
   }
   "LearningEventType": "task_view" | "draft_save" | "submission" | "feedback_view" | "completion"
+  "LearningMaterialLinkCreate": {
+    "module_id"?: (string) | (null)
+    "source_url": string
+  }
+  "LearningMaterialRead": {
+    "content_hash": string
+    "course_id": string
+    "created_at": string
+    "error_code"?: (string) | (null)
+    "extracted_at"?: (string) | (null)
+    "extraction_error"?: (string) | (null)
+    "failure_stage"?: (string) | (null)
+    "file_size_bytes"?: (number) | (null)
+    "id": string
+    "indexed_at"?: (string) | (null)
+    "indexing_status"?: ApiSchemas["MaterialIndexStatus"]
+    "mime_type": string
+    "module_id"?: (string) | (null)
+    "original_filename"?: (string) | (null)
+    "processing_revision"?: number
+    "source_url"?: (string) | (null)
+    "storage_key"?: (string) | (null)
+  }
   "LearningMetricsResult": {
     "average_attempts": ApiSchemas["MetricValue"]
     "average_score": ApiSchemas["MetricValue"]
@@ -122,12 +338,83 @@ export type ApiSchemas = {
     "unique_submissions": ApiSchemas["MetricValue"]
     "unique_task_views": ApiSchemas["MetricValue"]
   }
+  "LoginRequest": {
+    "email": string
+    "password": string
+  }
+  "MaterialIndexStatus": "pending" | "processing" | "extracted" | "indexed" | "failed"
+  "MaterialLinkCreate": {
+    "module_id"?: (string) | (null)
+    "source_url": string
+  }
+  "MaterialProcessingRead": {
+    "chunk_count": number
+    "indexed_chunk_count": number
+    "material": ApiSchemas["LearningMaterialRead"]
+    "processing_revision": number
+  }
+  "MaterialRead": {
+    "course_id": string
+    "created_at": string
+    "file_size_bytes": (number) | (null)
+    "id": string
+    "indexing_status": ApiSchemas["MaterialIndexStatus"]
+    "mime_type": string
+    "module_id": (string) | (null)
+    "original_filename": (string) | (null)
+    "source_url": (string) | (null)
+  }
   "MetricValue": {
     "denominator": number
     "numerator": number
     "sample_size": number
     "unit": string
     "value": (number) | (null)
+  }
+  "ModuleCreate": {
+    "description"?: string
+    "position": number
+    "title": string
+  }
+  "ModuleRead": {
+    "course_id": string
+    "created_at": string
+    "description": string
+    "id": string
+    "position": number
+    "title": string
+    "updated_at": string
+  }
+  "ModuleUpdate": {
+    "description"?: (string) | (null)
+    "position"?: (number) | (null)
+    "title"?: (string) | (null)
+  }
+  "OutcomeCreate": {
+    "kind": ApiSchemas["OutcomeKind"]
+    "position": number
+    "statement": string
+    "title": string
+    "week_number"?: (number) | (null)
+  }
+  "OutcomeKind": "weekly" | "topic"
+  "OutcomeRead": {
+    "created_at": string
+    "id": string
+    "kind": ApiSchemas["OutcomeKind"]
+    "module_id": string
+    "position": number
+    "statement": string
+    "title": string
+    "updated_at": string
+    "week_number": (number) | (null)
+  }
+  "OutcomeUpdate": {
+    "kind"?: (ApiSchemas["OutcomeKind"]) | (null)
+    "position"?: (number) | (null)
+    "statement"?: (string) | (null)
+    "title"?: (string) | (null)
+    "week_number"?: (number) | (null)
   }
   "PairedDifferences": {
     "cost": ApiSchemas["MetricValue"]
@@ -139,6 +426,27 @@ export type ApiSchemas = {
   "ReadinessResponse": {
     "checks": Partial<Record<string, "ready" | "not_ready">>
     "status": "ready" | "not_ready"
+  }
+  "RecentActivityRead": {
+    "occurred_at": string
+    "score": number
+    "student_name": string
+    "task_title": string
+  }
+  "RecommendationRead": {
+    "priority": "high" | "medium" | "low"
+    "reason": string
+    "task_id": string
+    "title": string
+    "updated_at": string
+  }
+  "ReminderRead": {
+    "created_at": string
+    "id": string
+    "is_read": boolean
+    "message": string
+    "task_id": string
+    "title": string
   }
   "ResearchExportFormat": "csv" | "json"
   "ResearchMetricsResult": {
@@ -154,6 +462,27 @@ export type ApiSchemas = {
     "retrieval_threshold_version"?: string
     "schema_version"?: string
   }
+  "RetrievalHitRead": {
+    "chunk_id": string
+    "chunk_text": string
+    "material_id": string
+    "relevance_score": number
+    "source_label": string
+  }
+  "RetrievalResultRead": {
+    "embedding_model": string
+    "found": boolean
+    "hits": Array<ApiSchemas["RetrievalHitRead"]>
+    "latency_ms": number
+    "message"?: (string) | (null)
+    "request_id": string
+  }
+  "RetrievalSearchRequest": {
+    "minimum_relevance"?: number
+    "module_id"?: (string) | (null)
+    "query": string
+    "top_k"?: number
+  }
   "SafeFallbackView": {
     "explanation": string
     "feedback_id": string
@@ -162,6 +491,127 @@ export type ApiSchemas = {
     "simulation_references"?: Array<string>
     "sources"?: Array<ApiSchemas["FeedbackSourceView"]>
     "summary": string
+  }
+  "SettingsRead": {
+    "at_risk_threshold": number
+    "llm_model": string
+    "llm_provider": string
+    "passing_score": number
+    "points_per_level": number
+    "reminders_enabled": boolean
+  }
+  "SettingsUpdate": {
+    "at_risk_threshold"?: (number) | (null)
+    "llm_model"?: (string) | (null)
+    "llm_provider"?: (string) | (null)
+    "passing_score"?: (number) | (null)
+    "points_per_level"?: (number) | (null)
+    "reminders_enabled"?: (boolean) | (null)
+  }
+  "SimulationRead": {
+    "circuit_text": string
+    "counts": Partial<Record<string, number>>
+    "engine": string
+    "probabilities": Partial<Record<string, number>>
+  }
+  "SimulationRequest": {
+    "operations"?: Array<ApiSchemas["GateOperation"]>
+    "qubits"?: number
+    "shots"?: number
+  }
+  "StudentDashboardRead": {
+    "achievements": Array<ApiSchemas["AchievementRead"]>
+    "courses": Array<ApiSchemas["CourseProgressRead"]>
+    "recommendations": Array<ApiSchemas["RecommendationRead"]>
+    "reminders": Array<ApiSchemas["ReminderRead"]>
+    "student": ApiSchemas["StudentIdentityRead"]
+    "summary": ApiSchemas["StudentSummaryRead"]
+    "tasks": Array<ApiSchemas["TaskRead"]>
+  }
+  "StudentIdentityRead": {
+    "display_name": string
+    "id": string
+    "user_id": number
+  }
+  "StudentSummaryRead": {
+    "average_score": number
+    "completed_tasks": number
+    "completion_percentage": number
+    "level": number
+    "next_level_points": number
+    "points": number
+    "total_tasks": number
+  }
+  "SubmissionCreate": {
+    "answer"?: string
+    "circuit"?: (Record<string, unknown>) | (null)
+    "code"?: (string) | (null)
+  }
+  "TaskChoice": {
+    "id": string
+    "text": string
+  }
+  "TaskCreate": {
+    "difficulty": "beginner" | "intermediate" | "advanced"
+    "due_at"?: (string) | (null)
+    "expected_answer"?: (string) | (null)
+    "instructions": string
+    "learning_outcome_id": string
+    "marking_criteria"?: Record<string, unknown>
+    "module_id": string
+    "points"?: number
+    "position": number
+    "prerequisite_task_ids"?: Array<string>
+    "prompt": string
+    "source_references"?: Array<string>
+    "starter_code"?: (string) | (null)
+    "task_type": ApiSchemas["TaskType"]
+    "title": string
+  }
+  "TaskGenerateRequest": {
+    "due_at"?: (string) | (null)
+    "learning_outcome_id": string
+    "task_count"?: number
+    "task_types"?: Array<ApiSchemas["TaskType"]>
+  }
+  "TaskRead": {
+    "access_status": "locked" | "available" | "in_progress" | "completed"
+    "attempt_count"?: number
+    "choices"?: Array<ApiSchemas["TaskChoice"]>
+    "course_id": string
+    "difficulty": string
+    "due_at": (string) | (null)
+    "id": string
+    "instructions": string
+    "latest_attempt"?: (ApiSchemas["LatestAttemptSummary"]) | (null)
+    "latest_score"?: (number) | (null)
+    "learning_outcome_id": string
+    "module_id": string
+    "module_title": string
+    "points": number
+    "position": number
+    "prerequisite_task_ids": Array<string>
+    "prompt": string
+    "source_references": Array<string>
+    "starter_circuit"?: (Record<string, unknown>) | (null)
+    "starter_code": (string) | (null)
+    "task_type": ApiSchemas["TaskType"]
+    "title": string
+  }
+  "TaskType": "multiple_choice" | "multiple_answer" | "short_answer" | "code_explanation" | "code_completion" | "quantum_circuit" | "quiz" | "code" | "circuit"
+  "TaskUpdate": {
+    "difficulty"?: ("beginner" | "intermediate" | "advanced") | (null)
+    "due_at"?: (string) | (null)
+    "expected_answer"?: (string) | (null)
+    "instructions"?: (string) | (null)
+    "marking_criteria"?: (Record<string, unknown>) | (null)
+    "points"?: (number) | (null)
+    "position"?: (number) | (null)
+    "prerequisite_task_ids"?: (Array<string>) | (null)
+    "prompt"?: (string) | (null)
+    "source_references"?: (Array<string>) | (null)
+    "starter_code"?: (string) | (null)
+    "title"?: (string) | (null)
   }
   "TaskViewLearningEventRequest": {
     "event_id": string
@@ -172,6 +622,7 @@ export type ApiSchemas = {
   "TaskViewMetadata": {
     "source"?: (string) | (null)
   }
+  "UserRole": "student" | "educator" | "administrator"
   "ValidatedFeedbackView": {
     "ai_generated_notice": string
     "explanation"?: (string) | (null)
@@ -184,6 +635,18 @@ export type ApiSchemas = {
     "simulation_references"?: Array<string>
     "sources"?: Array<ApiSchemas["FeedbackSourceView"]>
     "summary": string
+  }
+  "ValidationError": {
+    "ctx"?: Record<string, never>
+    "input"?: unknown
+    "loc": Array<(string) | (number)>
+    "msg": string
+    "type": string
+  }
+  "WeeklyEngagementRead": {
+    "active_students": number
+    "label": string
+    "submissions": number
   }
   "WorkflowStage": "pending" | "context_collection" | "generating" | "judging" | "regenerating" | "completed" | "failed"
 }

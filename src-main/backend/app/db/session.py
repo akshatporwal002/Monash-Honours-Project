@@ -14,6 +14,9 @@ def create_db_engine(database_url: str) -> Engine:
     connect_args: dict[str, Any] = {}
     if url.get_backend_name() == "sqlite":
         connect_args["check_same_thread"] = False
+        # Give short, valid write transactions time to serialize instead of
+        # failing immediately when another request holds SQLite's writer lock.
+        connect_args["timeout"] = 30.0
 
     engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
 
@@ -23,6 +26,7 @@ def create_db_engine(database_url: str) -> Engine:
         def _enable_sqlite_foreign_keys(dbapi_connection: Any, _: Any) -> None:
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.execute("PRAGMA busy_timeout=30000")
             cursor.close()
 
     return engine

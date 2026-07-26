@@ -7,39 +7,35 @@ import io
 from collections.abc import Generator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.authentication import get_current_user
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.models import LearningMaterial, MaterialIndexStatus
+from app.models.user import User
 from app.schemas.content import (
     LearningMaterialLinkCreate,
     LearningMaterialRead,
     MaterialProcessingRead,
 )
+from app.services.access import SqlAlchemyCourseAccessPolicy
+from app.services.material_indexing import OfflineMaterialProcessor
 from app.services.rag.contracts import CourseAccessPolicy
-from app.services.rag.embeddings import SentenceTransformerEmbeddingProvider
 from app.services.rag.errors import CourseAccessDeniedError, DuplicateMaterialError, RagError
-from app.services.rag.extraction.docx import DocxDocumentExtractor
-from app.services.rag.extraction.html import HtmlDocumentExtractor
-from app.services.rag.extraction.pdf import PdfDocumentExtractor
-from app.services.rag.extraction.pptx import PptxDocumentExtractor
-from app.services.rag.fakes import AllowAllCourseAccessPolicy, DenyAllCourseAccessPolicy
-from app.services.rag.ingestion import MaterialProcessor
 from app.services.rag.repositories import MaterialRepository
 from app.services.rag.storage import FileStorage, LocalFileStorage
-from app.services.rag.vector_store import ChromaVectorStore
 from app.services.rag.web import SafeHttpsFetcher
 
 router = APIRouter(prefix="/courses/{course_id}/materials")
 
 
-def get_course_access_policy() -> CourseAccessPolicy:
-    if settings.app_env in {"development", "test"}:
-        return AllowAllCourseAccessPolicy()
-    return DenyAllCourseAccessPolicy()
+def get_course_access_policy(
+    db: Session = Depends(get_db_session),
+) -> CourseAccessPolicy:
+    return SqlAlchemyCourseAccessPolicy(db)
 
 
 def get_material_storage() -> Generator[FileStorage, None, None]:
@@ -48,24 +44,12 @@ def get_material_storage() -> Generator[FileStorage, None, None]:
 
 def get_material_processor(
     db: Session = Depends(get_db_session), storage: FileStorage = Depends(get_material_storage)
-) -> MaterialProcessor:
-    embedding = SentenceTransformerEmbeddingProvider()
-    return MaterialProcessor(
-        db,
-        storage,
-        {
-            "application/pdf": PdfDocumentExtractor(),
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": DocxDocumentExtractor(),
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation": PptxDocumentExtractor(),
-            "text/html": HtmlDocumentExtractor(),
-        },
-        embedding,
-        ChromaVectorStore(embedding.model_id, embedding.dimension),
-    )
+) -> OfflineMaterialProcessor:
+    return OfflineMaterialProcessor(db, storage)
 
 
-def get_actor_id(x_actor_id: Annotated[str | None, Header()] = None) -> str:
-    return x_actor_id or "development-actor"
+def get_actor_id(user: User = Depends(get_current_user)) -> str:
+    return str(user.id)
 
 
 def get_https_fetcher() -> SafeHttpsFetcher:
@@ -156,9 +140,13 @@ def register_linked_material(
             staged.temporary_path.unlink(missing_ok=True)
             raise _http_error(DuplicateMaterialError(duplicate.id))
         material = LearningMaterial(
-            course_id=course_id, module_id=payload.module_id, source_url=downloaded.url,
-            mime_type=staged.mime_type, content_hash=staged.content_hash,
-            indexing_status=MaterialIndexStatus.PENDING, file_size_bytes=staged.file_size_bytes,
+            course_id=course_id,
+            module_id=payload.module_id,
+            source_url=downloaded.url,
+            mime_type=staged.mime_type,
+            content_hash=staged.content_hash,
+            indexing_status=MaterialIndexStatus.PENDING,
+            file_size_bytes=staged.file_size_bytes,
         )
         db.add(material)
         db.flush()
@@ -228,7 +216,7 @@ def process_material(
     force: bool = False,
     actor_id: str = Depends(get_actor_id),
     policy: CourseAccessPolicy = Depends(get_course_access_policy),
-    processor: MaterialProcessor = Depends(get_material_processor),
+    processor: OfflineMaterialProcessor = Depends(get_material_processor),
     db: Session = Depends(get_db_session),
 ) -> MaterialProcessingRead:
     _require_manage(policy, actor_id, course_id)

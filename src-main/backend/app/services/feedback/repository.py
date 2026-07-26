@@ -70,6 +70,11 @@ class SqlAlchemyFeedbackWorkflowRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    @property
+    def session(self) -> Session:
+        """Expose the unit-of-work used by runtime dependency composition."""
+        return self._session
+
     def get_by_submission(self, submission_id: str) -> FeedbackPipelineResult | None:
         statement = (
             select(WorkflowRun)

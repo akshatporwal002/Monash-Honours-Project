@@ -12,23 +12,34 @@ EXPECTED_TABLES = {
     "alembic_version",
     "audit_events",
     "continuation_jobs",
+    "course_modules",
+    "courses",
+    "enrollments",
     "feedback_records",
     "feedback_reports",
     "judge_evaluations",
     "learning_events",
     "learning_materials",
+    "learning_outcomes",
     "learning_tasks",
     "material_chunks",
+    "platform_audit_events",
+    "recommendations",
     "research_evaluations",
     "retrieval_audits",
     "student_achievements",
     "student_notifications",
     "student_profiles",
     "student_submissions",
+    "submission_attempts",
+    "submission_drafts",
+    "system_settings",
+    "task_point_awards",
     "terminal_integration_outbox",
     "users",
     "worker_heartbeats",
     "workflow_runs",
+    "reminders",
 }
 
 
@@ -48,6 +59,37 @@ def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
     engine = create_engine(database_url)
     inspector = inspect(engine)
     assert set(inspector.get_table_names()) == EXPECTED_TABLES
+    with engine.connect() as connection:
+        achievement_rows = (
+            connection.execute(
+                text("SELECT id, code, name, description, icon FROM achievements ORDER BY code")
+            )
+            .mappings()
+            .all()
+        )
+    assert [dict(row) for row in achievement_rows] == [
+        {
+            "id": "00000000-0000-4000-9000-000000000102",
+            "code": "circuit-maker",
+            "name": "Circuit Maker",
+            "description": "Complete a circuit activity.",
+            "icon": "⌁",
+        },
+        {
+            "id": "00000000-0000-4000-9000-000000000101",
+            "code": "first-step",
+            "name": "First Step",
+            "description": "Complete your first learning activity.",
+            "icon": "✦",
+        },
+        {
+            "id": "00000000-0000-4000-9000-000000000103",
+            "code": "perfect-score",
+            "name": "Quantum Ace",
+            "description": "Earn a perfect task score.",
+            "icon": "★",
+        },
+    ]
     assert inspector.get_foreign_keys("feedback_records")[0]["referred_table"] == "workflow_runs"
     assert inspector.get_foreign_keys("feedback_records")[0]["constrained_columns"] == [
         "workflow_run_id",
@@ -70,14 +112,67 @@ def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
     } <= feedback_columns
     task_columns = {column["name"] for column in inspector.get_columns("learning_tasks")}
     assert {
-        "course_id", "learning_outcome_id", "marking_criteria", "source_references",
-        "prerequisite_task_ids", "generation_provider", "generation_total_tokens",
+        "course_id",
+        "learning_outcome_id",
+        "marking_criteria",
+        "source_references",
+        "prerequisite_task_ids",
+        "generation_provider",
+        "generation_total_tokens",
     } <= task_columns
-    assert inspector.get_foreign_keys("material_chunks")[0]["referred_table"] == "learning_materials"
+    assert (
+        inspector.get_foreign_keys("material_chunks")[0]["referred_table"] == "learning_materials"
+    )
     material_columns = {column["name"] for column in inspector.get_columns("learning_materials")}
     assert {
-        "storage_key", "file_size_bytes", "failure_stage", "error_code", "processing_revision",
+        "storage_key",
+        "file_size_bytes",
+        "failure_stage",
+        "error_code",
+        "processing_revision",
     } <= material_columns
+    with engine.connect() as connection:
+        scope_triggers = set(
+            connection.execute(
+                text(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type = 'trigger' AND name LIKE 'trg_learning_%_scope_%'"
+                )
+            ).scalars()
+        )
+    assert scope_triggers == {
+        "trg_learning_materials_scope_insert",
+        "trg_learning_materials_scope_update",
+        "trg_learning_tasks_scope_insert",
+        "trg_learning_tasks_scope_update",
+    }
+    with pytest.raises(IntegrityError, match="invalid learning material scope"):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO learning_materials "
+                    "(id, course_id, module_id, original_filename, source_url, mime_type, "
+                    "content_hash, indexing_status, processing_revision, created_at) "
+                    "VALUES ('invalid-material', 'missing-course', NULL, 'notes.pdf', NULL, "
+                    "'application/pdf', 'sha256:invalid', 'pending', 0, CURRENT_TIMESTAMP)"
+                )
+            )
+    with pytest.raises(IntegrityError, match="invalid learning task scope"):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO learning_tasks "
+                    "(id, slug, title, module, description, instructions, task_type, "
+                    "difficulty, points, position, course_id, module_id, "
+                    "learning_outcome_id, source_references, prerequisite_task_ids, "
+                    "generation_input_tokens, generation_output_tokens, "
+                    "generation_total_tokens, generation_estimated_cost) "
+                    "VALUES ('invalid-task', 'invalid-task', 'Invalid', 'Missing', "
+                    "'Invalid', 'Invalid', 'quiz', 'beginner', 10, 1, "
+                    "'missing-course', 'missing-module', 'missing-outcome', '[]', '[]', "
+                    "0, 0, 0, 0)"
+                )
+            )
     workflow_columns = {column["name"] for column in inspector.get_columns("workflow_runs")}
     assert {
         "course_id",
@@ -278,6 +373,39 @@ def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
     }
     round_trip_engine.dispose()
     command.check(config)
+
+
+def test_default_achievement_seed_preserves_existing_codes_and_fills_missing(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "existing-achievements.db"
+    database_url = f"sqlite:///{database_path.as_posix()}"
+    config = migration_config(database_url)
+    command.upgrade(config, "20260726_0012")
+    legacy_id = "00000000-0000-4000-8000-000000000999"
+    engine = create_engine(database_url)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO achievements (id, code, name, description, icon) "
+                "VALUES (:id, 'first-step', 'Existing First Step', "
+                "'Existing deployment definition.', '!')"
+            ),
+            {"id": legacy_id},
+        )
+    engine.dispose()
+
+    command.upgrade(config, "head")
+
+    upgraded_engine = create_engine(database_url)
+    with upgraded_engine.connect() as connection:
+        rows = connection.execute(text("SELECT id, code FROM achievements ORDER BY code")).all()
+    upgraded_engine.dispose()
+    assert rows == [
+        ("00000000-0000-4000-9000-000000000102", "circuit-maker"),
+        (legacy_id, "first-step"),
+        ("00000000-0000-4000-9000-000000000103", "perfect-score"),
+    ]
 
 
 def test_feedback_metadata_migration_backfills_legacy_rows(tmp_path: Path) -> None:

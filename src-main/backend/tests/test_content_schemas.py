@@ -30,8 +30,19 @@ def test_material_and_chunk_schemas_validate() -> None:
     "payload",
     [
         {"course_id": "course-1", "mime_type": "application/pdf", "content_hash": "hash"},
-        {"course_id": "course-1", "original_filename": "slides.pdf", "source_url": "https://example.edu/slides.pdf", "mime_type": "application/pdf", "content_hash": "hash"},
-        {"course_id": "course-1", "source_url": "http://example.edu/slides.pdf", "mime_type": "application/pdf", "content_hash": "hash"},
+        {
+            "course_id": "course-1",
+            "original_filename": "slides.pdf",
+            "source_url": "https://example.edu/slides.pdf",
+            "mime_type": "application/pdf",
+            "content_hash": "hash",
+        },
+        {
+            "course_id": "course-1",
+            "source_url": "http://example.edu/slides.pdf",
+            "mime_type": "application/pdf",
+            "content_hash": "hash",
+        },
     ],
 )
 def test_material_schema_rejects_invalid_source_identity(payload: dict[str, str]) -> None:
@@ -42,8 +53,13 @@ def test_material_schema_rejects_invalid_source_identity(payload: dict[str, str]
 def test_generation_metadata_requires_consistent_tokens() -> None:
     with pytest.raises(ValidationError):
         TaskGenerationMetadata(
-            provider="provider", model="model", prompt_version="v1",
-            input_tokens=2, output_tokens=3, total_tokens=4, estimated_cost=Decimal(0),
+            provider="provider",
+            model="model",
+            prompt_version="v1",
+            input_tokens=2,
+            output_tokens=3,
+            total_tokens=4,
+            estimated_cost=Decimal(0),
         )
 
 
@@ -82,10 +98,20 @@ def test_task_context_mapper_converts_grounded_task() -> None:
 )
 def test_task_context_mapper_rejects_incomplete_generated_task(changes: dict[str, object]) -> None:
     values: dict[str, object] = {
-        "id": "task-1", "slug": "task", "title": "Task", "module": "Foundations",
-        "description": "Description", "instructions": "Instructions", "task_type": TaskType.QUIZ,
-        "difficulty": "Beginner", "points": 10, "position": 1, "course_id": "course-1",
-        "learning_outcome_id": "outcome-1", "expected_answer": "Expected", "source_references": ["chunk-1"],
+        "id": "task-1",
+        "slug": "task",
+        "title": "Task",
+        "module": "Foundations",
+        "description": "Description",
+        "instructions": "Instructions",
+        "task_type": TaskType.QUIZ,
+        "difficulty": "Beginner",
+        "points": 10,
+        "position": 1,
+        "course_id": "course-1",
+        "learning_outcome_id": "outcome-1",
+        "expected_answer": "Expected",
+        "source_references": ["chunk-1"],
     }
     values.update(changes)
     with pytest.raises(ValueError):

@@ -115,8 +115,10 @@ def test_production_configuration_requires_a_32_byte_pseudonym_secret() -> None:
     configured = Settings(
         _env_file=None,
         app_env="production",
+        frontend_origin="https://learn.example",
         learning_event_pseudonym_secret="x" * 32,
         session_secret_key="y" * 32,
+        session_cookie_secure=True,
     )
     assert configured.learning_event_pseudonym_secret is not None
 

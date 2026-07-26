@@ -82,9 +82,13 @@ class InMemoryVectorStore:
                 continue
             if allowed and record.chunk_id not in allowed:
                 continue
-            distance = 1.0 - sum(a * b for a, b in zip(request.embedding, record.embedding, strict=True))
+            distance = 1.0 - sum(
+                a * b for a, b in zip(request.embedding, record.embedding, strict=True)
+            )
             matches.append(VectorMatch(record.chunk_id, distance, metadata))
-        return sorted(matches, key=lambda match: (match.distance, match.chunk_id))[: request.candidate_count]
+        return sorted(matches, key=lambda match: (match.distance, match.chunk_id))[
+            : request.candidate_count
+        ]
 
     def delete_material(self, material_id: str) -> None:
         matching_ids = [
@@ -96,7 +100,9 @@ class InMemoryVectorStore:
             del self.records[chunk_id]
 
     def contains_material(self, material_id: str) -> bool:
-        return any(record.metadata.get("material_id") == material_id for record in self.records.values())
+        return any(
+            record.metadata.get("material_id") == material_id for record in self.records.values()
+        )
 
 
 class StaticDocumentExtractor:

@@ -26,9 +26,14 @@ class ContentSchema(BaseModel):
 class LearningMaterialCreate(ContentSchema):
     course_id: ExternalId
     module_id: ExternalId | None = None
-    original_filename: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)] | None = None
+    original_filename: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+        | None
+    ) = None
     source_url: AnyUrl | None = None
-    mime_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+    mime_type: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
     content_hash: ContentHash
     indexing_status: MaterialIndexStatus = MaterialIndexStatus.PENDING
     extraction_error: str | None = None
@@ -64,8 +69,14 @@ class MaterialChunkCreate(ContentSchema):
     material_id: ExternalId
     chunk_index: Annotated[int, Field(ge=0)]
     chunk_text: NonEmptyText
-    heading: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)] | None = None
-    location_label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)] | None = None
+    heading: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+        | None
+    ) = None
+    location_label: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+        | None
+    ) = None
     token_count: Annotated[int, Field(ge=0)] = 0
     chunk_hash: ContentHash | None = None
     embedding_model: ExternalId | None = None
@@ -129,7 +140,9 @@ class GenerateTasksRequest(ContentSchema):
     learning_outcome_text: NonEmptyText
     task_count: Annotated[int, Field(ge=1, le=10)] = 3
     allowed_task_types: list[TaskType]
-    difficulty_levels: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]]
+    difficulty_levels: list[
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
+    ]
 
 
 class GeneratedTaskRead(ContentSchema):

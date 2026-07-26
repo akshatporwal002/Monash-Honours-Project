@@ -23,9 +23,6 @@ from sqlalchemy import (
 from sqlalchemy import (
     Enum as SqlEnum,
 )
-from sqlalchemy import (
-    Enum as SqlEnum,
-)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -658,23 +655,39 @@ class StudentProfile(Base):
     __tablename__ = "student_profiles"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        unique=True,
+    )
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
     points: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     streak_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
     submissions: Mapped[list[StudentSubmission]] = relationship(back_populates="student")
     notifications: Mapped[list[StudentNotification]] = relationship(back_populates="student")
     achievements: Mapped[list[StudentAchievement]] = relationship(back_populates="student")
+    user: Mapped["User | None"] = relationship(  # noqa: F821
+        back_populates="student_profile",
+    )
 
 
 class LearningTask(Base):
     __tablename__ = "learning_tasks"
     __table_args__ = (
         UniqueConstraint("slug", name="uq_learning_tasks_slug"),
-        CheckConstraint("generation_input_tokens >= 0", name="learning_task_generation_input_tokens"),
-        CheckConstraint("generation_output_tokens >= 0", name="learning_task_generation_output_tokens"),
-        CheckConstraint("generation_total_tokens >= 0", name="learning_task_generation_total_tokens"),
+        CheckConstraint(
+            "generation_input_tokens >= 0", name="learning_task_generation_input_tokens"
+        ),
+        CheckConstraint(
+            "generation_output_tokens >= 0", name="learning_task_generation_output_tokens"
+        ),
+        CheckConstraint(
+            "generation_total_tokens >= 0", name="learning_task_generation_total_tokens"
+        ),
         CheckConstraint("generation_estimated_cost >= 0", name="learning_task_generation_cost"),
         CheckConstraint(
             "(generation_provider IS NULL AND generation_model IS NULL "
@@ -733,7 +746,9 @@ class LearningMaterial(Base):
             "source_url IS NULL OR source_url LIKE 'https://%'",
             name="learning_material_https_source",
         ),
-        CheckConstraint("file_size_bytes IS NULL OR file_size_bytes >= 0", name="learning_material_file_size"),
+        CheckConstraint(
+            "file_size_bytes IS NULL OR file_size_bytes >= 0", name="learning_material_file_size"
+        ),
         CheckConstraint("processing_revision >= 0", name="learning_material_processing_revision"),
         Index("ix_learning_materials_course_id", "course_id"),
     )
@@ -758,7 +773,9 @@ class LearningMaterial(Base):
     processing_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
     chunks: Mapped[list[MaterialChunk]] = relationship(
         back_populates="material", cascade="all, delete-orphan", passive_deletes=True
@@ -788,7 +805,9 @@ class MaterialChunk(Base):
     embedding_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
     embedding_dimension: Mapped[int | None] = mapped_column(Integer, nullable=True)
     indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
     material: Mapped[LearningMaterial] = relationship(back_populates="chunks")
 
@@ -829,17 +848,25 @@ class StudentSubmission(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
-    student_id: Mapped[str] = mapped_column(ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
-    task_id: Mapped[str] = mapped_column(ForeignKey("learning_tasks.id", ondelete="CASCADE"), nullable=False)
+    student_id: Mapped[str] = mapped_column(
+        ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    task_id: Mapped[str] = mapped_column(
+        ForeignKey("learning_tasks.id", ondelete="CASCADE"), nullable=False
+    )
     answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
     circuit: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    status: Mapped[SubmissionStatus] = mapped_column(enum_column(SubmissionStatus, "submission_status"), nullable=False)
+    status: Mapped[SubmissionStatus] = mapped_column(
+        enum_column(SubmissionStatus, "submission_status"), nullable=False
+    )
     score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now
+    )
 
     student: Mapped[StudentProfile] = relationship(back_populates="submissions")
     task: Mapped[LearningTask] = relationship(back_populates="submissions")
@@ -858,12 +885,20 @@ class Achievement(Base):
 
 class StudentAchievement(Base):
     __tablename__ = "student_achievements"
-    __table_args__ = (UniqueConstraint("student_id", "achievement_id", name="uq_student_achievement"),)
+    __table_args__ = (
+        UniqueConstraint("student_id", "achievement_id", name="uq_student_achievement"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
-    student_id: Mapped[str] = mapped_column(ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
-    achievement_id: Mapped[str] = mapped_column(ForeignKey("achievements.id", ondelete="CASCADE"), nullable=False)
-    earned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    student_id: Mapped[str] = mapped_column(
+        ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    achievement_id: Mapped[str] = mapped_column(
+        ForeignKey("achievements.id", ondelete="CASCADE"), nullable=False
+    )
+    earned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
     student: Mapped[StudentProfile] = relationship(back_populates="achievements")
     achievement: Mapped[Achievement] = relationship()
@@ -873,11 +908,17 @@ class StudentNotification(Base):
     __tablename__ = "student_notifications"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
-    student_id: Mapped[str] = mapped_column(ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False)
-    kind: Mapped[NotificationKind] = mapped_column(enum_column(NotificationKind, "notification_kind"), nullable=False)
+    student_id: Mapped[str] = mapped_column(
+        ForeignKey("student_profiles.id", ondelete="CASCADE"), nullable=False
+    )
+    kind: Mapped[NotificationKind] = mapped_column(
+        enum_column(NotificationKind, "notification_kind"), nullable=False
+    )
     title: Mapped[str] = mapped_column(String(150), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
     student: Mapped[StudentProfile] = relationship(back_populates="notifications")
