@@ -1,0 +1,2397 @@
+{
+  "components": {
+    "schemas": {
+      "AnalyticsFilterOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "courses": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Courses",
+            "type": "array"
+          },
+          "experimental_conditions": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Experimental Conditions",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "judge_decisions": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Judge Decisions",
+            "type": "array"
+          },
+          "models": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Models",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": "analytics-filter-options-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "task_types": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Task Types",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at"
+        ],
+        "title": "AnalyticsFilterOptions",
+        "type": "object"
+      },
+      "AnalyticsFilterSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "course_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Course Ids",
+            "type": "array"
+          },
+          "end_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End At"
+          },
+          "experimental_conditions": {
+            "items": {
+              "$ref": "#/components/schemas/ExperimentalCondition"
+            },
+            "maxItems": 1000,
+            "title": "Experimental Conditions",
+            "type": "array"
+          },
+          "judge_decisions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Judge Decisions",
+            "type": "array"
+          },
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Models",
+            "type": "array"
+          },
+          "start_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start At"
+          },
+          "task_types": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "title": "Task Types",
+            "type": "array"
+          }
+        },
+        "title": "AnalyticsFilterSnapshot",
+        "type": "object"
+      },
+      "ConditionMetrics": {
+        "additionalProperties": false,
+        "properties": {
+          "average_cost": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "average_latency_ms": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "average_relevance": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "average_total_tokens": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "fallback_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "hallucination_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "overall_pass_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "p95_latency_ms": {
+            "$ref": "#/components/schemas/MetricValue"
+          }
+        },
+        "required": [
+          "hallucination_rate",
+          "overall_pass_rate",
+          "average_relevance",
+          "average_latency_ms",
+          "p95_latency_ms",
+          "average_total_tokens",
+          "average_cost",
+          "fallback_rate"
+        ],
+        "title": "ConditionMetrics",
+        "type": "object"
+      },
+      "DraftSaveLearningEventRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "draft_save",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/DraftSaveMetadata"
+          },
+          "task_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "task_id"
+        ],
+        "title": "DraftSaveLearningEventRequest",
+        "type": "object"
+      },
+      "DraftSaveMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_ms": {
+            "anyOf": [
+              {
+                "maximum": 86400000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          }
+        },
+        "title": "DraftSaveMetadata",
+        "type": "object"
+      },
+      "ExperimentalCondition": {
+        "enum": [
+          "agentic_rag",
+          "single_step_baseline"
+        ],
+        "title": "ExperimentalCondition",
+        "type": "string"
+      },
+      "FeedbackApiErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 12000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "FeedbackApiErrorDetail",
+        "type": "object"
+      },
+      "FeedbackApiErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/FeedbackApiErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "FeedbackApiErrorResponse",
+        "type": "object"
+      },
+      "FeedbackFailureView": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "const": "feedback_processing_failed",
+            "default": "feedback_processing_failed",
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "const": "Feedback processing could not be completed.",
+            "default": "Feedback processing could not be completed.",
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "retryable"
+        ],
+        "title": "FeedbackFailureView",
+        "type": "object"
+      },
+      "FeedbackReportCategory": {
+        "enum": [
+          "incorrect",
+          "unsafe",
+          "unclear",
+          "citation_issue",
+          "other"
+        ],
+        "title": "FeedbackReportCategory",
+        "type": "string"
+      },
+      "FeedbackReportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/FeedbackReportCategory"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "category"
+        ],
+        "title": "FeedbackReportRequest",
+        "type": "object"
+      },
+      "FeedbackReportResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "report_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Report Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "received",
+            "default": "received",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id"
+        ],
+        "title": "FeedbackReportResponse",
+        "type": "object"
+      },
+      "FeedbackResponseClassification": {
+        "enum": [
+          "correct",
+          "partially_correct",
+          "incorrect"
+        ],
+        "title": "FeedbackResponseClassification",
+        "type": "string"
+      },
+      "FeedbackSourceView": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "source_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "label"
+        ],
+        "title": "FeedbackSourceView",
+        "type": "object"
+      },
+      "FeedbackWorkflowResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeedbackFailureView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValidatedFeedbackView"
+              },
+              {
+                "$ref": "#/components/schemas/SafeFallbackView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "processing_stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/FeedbackWorkflowStatus"
+          },
+          "submission_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Submission Id",
+            "type": "string"
+          },
+          "workflow_run_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Workflow Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflow_run_id",
+          "submission_id",
+          "status"
+        ],
+        "title": "FeedbackWorkflowResponse",
+        "type": "object"
+      },
+      "FeedbackWorkflowStatus": {
+        "enum": [
+          "processing",
+          "validated",
+          "fallback",
+          "failed"
+        ],
+        "title": "FeedbackWorkflowStatus",
+        "type": "string"
+      },
+      "FunnelStage": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "event_type": {
+            "$ref": "#/components/schemas/LearningEventType"
+          },
+          "previous_stage_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          }
+        },
+        "required": [
+          "event_type",
+          "count",
+          "previous_stage_rate"
+        ],
+        "title": "FunnelStage",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "InactiveLearner": {
+        "additionalProperties": false,
+        "properties": {
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          },
+          "pseudonymous_user_id": {
+            "title": "Pseudonymous User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pseudonymous_user_id",
+          "last_activity_at"
+        ],
+        "title": "InactiveLearner",
+        "type": "object"
+      },
+      "InactiveLearnerPage": {
+        "additionalProperties": false,
+        "properties": {
+          "excluded_incomplete_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Excluded Incomplete Count",
+            "type": "integer"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/AnalyticsFilterSnapshot"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "inactive_learner_count": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InactiveLearner"
+            },
+            "maxItems": 100,
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "schema_version": {
+            "default": "inactive-learners-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "generated_at",
+          "inactive_learner_count",
+          "items",
+          "page",
+          "page_size",
+          "total"
+        ],
+        "title": "InactiveLearnerPage",
+        "type": "object"
+      },
+      "JudgeDecision": {
+        "enum": [
+          "pass",
+          "fail"
+        ],
+        "title": "JudgeDecision",
+        "type": "string"
+      },
+      "LearningEventReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "learning_event_id": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "title": "Learning Event Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "status": {
+            "const": "recorded",
+            "default": "recorded",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_event_id",
+          "occurred_at"
+        ],
+        "title": "LearningEventReceipt",
+        "type": "object"
+      },
+      "LearningEventType": {
+        "enum": [
+          "task_view",
+          "draft_save",
+          "submission",
+          "feedback_view",
+          "completion"
+        ],
+        "title": "LearningEventType",
+        "type": "string"
+      },
+      "LearningMetricsResult": {
+        "additionalProperties": false,
+        "properties": {
+          "average_attempts": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "average_score": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "completion_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "excluded_incomplete_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Excluded Incomplete Count",
+            "type": "integer"
+          },
+          "feedback_view_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/AnalyticsFilterSnapshot"
+          },
+          "funnel": {
+            "items": {
+              "$ref": "#/components/schemas/FunnelStage"
+            },
+            "title": "Funnel",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "inactive_learner_count": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "schema_version": {
+            "default": "learning-metrics-v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "submissions": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "task_views": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "total_attempts": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "unique_submissions": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "unique_task_views": {
+            "$ref": "#/components/schemas/MetricValue"
+          }
+        },
+        "required": [
+          "generated_at",
+          "task_views",
+          "unique_task_views",
+          "submissions",
+          "unique_submissions",
+          "completion_rate",
+          "average_score",
+          "total_attempts",
+          "average_attempts",
+          "feedback_view_rate",
+          "funnel",
+          "inactive_learner_count"
+        ],
+        "title": "LearningMetricsResult",
+        "type": "object"
+      },
+      "MetricValue": {
+        "additionalProperties": false,
+        "properties": {
+          "denominator": {
+            "minimum": 0.0,
+            "title": "Denominator",
+            "type": "integer"
+          },
+          "numerator": {
+            "title": "Numerator",
+            "type": "number"
+          },
+          "sample_size": {
+            "minimum": 0.0,
+            "title": "Sample Size",
+            "type": "integer"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value",
+          "numerator",
+          "denominator",
+          "sample_size",
+          "unit"
+        ],
+        "title": "MetricValue",
+        "type": "object"
+      },
+      "PairedDifferences": {
+        "additionalProperties": false,
+        "properties": {
+          "cost": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "latency_ms": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "pass_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "relevance": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "total_tokens": {
+            "$ref": "#/components/schemas/MetricValue"
+          }
+        },
+        "required": [
+          "pass_rate",
+          "relevance",
+          "latency_ms",
+          "total_tokens",
+          "cost"
+        ],
+        "title": "PairedDifferences",
+        "type": "object"
+      },
+      "ReadinessResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "enum": [
+                "ready",
+                "not_ready"
+              ],
+              "type": "string"
+            },
+            "title": "Checks",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "title": "ReadinessResponse",
+        "type": "object"
+      },
+      "ResearchExportFormat": {
+        "enum": [
+          "csv",
+          "json"
+        ],
+        "title": "ResearchExportFormat",
+        "type": "string"
+      },
+      "ResearchMetricsResult": {
+        "additionalProperties": false,
+        "properties": {
+          "by_condition": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ConditionMetrics"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/ExperimentalCondition"
+            },
+            "title": "By Condition",
+            "type": "object"
+          },
+          "excluded_incomplete_count": {
+            "minimum": 0.0,
+            "title": "Excluded Incomplete Count",
+            "type": "integer"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/AnalyticsFilterSnapshot"
+          },
+          "first_pass_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "paired_agentic_minus_baseline": {
+            "$ref": "#/components/schemas/PairedDifferences"
+          },
+          "regeneration_success_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "retrieval_hit_rate": {
+            "$ref": "#/components/schemas/MetricValue"
+          },
+          "retrieval_threshold": {
+            "default": 0.5,
+            "title": "Retrieval Threshold",
+            "type": "number"
+          },
+          "retrieval_threshold_version": {
+            "default": "retrieval-relevance-v1",
+            "title": "Retrieval Threshold Version",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "research-metrics-v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "generated_at",
+          "by_condition",
+          "first_pass_rate",
+          "regeneration_success_rate",
+          "retrieval_hit_rate",
+          "paired_agentic_minus_baseline",
+          "excluded_incomplete_count"
+        ],
+        "title": "ResearchMetricsResult",
+        "type": "object"
+      },
+      "SafeFallbackView": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation": {
+            "maxLength": 12000,
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "feedback_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Feedback Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "safe_fallback",
+            "default": "safe_fallback",
+            "title": "Kind",
+            "type": "string"
+          },
+          "recommended_next_step": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Recommended Next Step",
+            "type": "string"
+          },
+          "simulation_references": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Simulation References",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackSourceView"
+            },
+            "maxItems": 100,
+            "title": "Sources",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feedback_id",
+          "summary",
+          "explanation",
+          "recommended_next_step"
+        ],
+        "title": "SafeFallbackView",
+        "type": "object"
+      },
+      "TaskViewLearningEventRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "const": "task_view",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/TaskViewMetadata"
+          },
+          "task_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "task_id"
+        ],
+        "title": "TaskViewLearningEventRequest",
+        "type": "object"
+      },
+      "TaskViewMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          }
+        },
+        "title": "TaskViewMetadata",
+        "type": "object"
+      },
+      "ValidatedFeedbackView": {
+        "additionalProperties": false,
+        "properties": {
+          "ai_generated_notice": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Ai Generated Notice",
+            "type": "string"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "maxLength": 12000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          },
+          "feedback_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Feedback Id",
+            "type": "string"
+          },
+          "identified_error": {
+            "anyOf": [
+              {
+                "maxLength": 12000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identified Error"
+          },
+          "improvement_actions": {
+            "items": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Improvement Actions",
+            "type": "array"
+          },
+          "kind": {
+            "const": "validated",
+            "default": "validated",
+            "title": "Kind",
+            "type": "string"
+          },
+          "recommended_next_step": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Next Step"
+          },
+          "response_classification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeedbackResponseClassification"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "simulation_references": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Simulation References",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackSourceView"
+            },
+            "maxItems": 100,
+            "title": "Sources",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feedback_id",
+          "summary",
+          "ai_generated_notice"
+        ],
+        "title": "ValidatedFeedbackView",
+        "type": "object"
+      },
+      "WorkflowStage": {
+        "enum": [
+          "pending",
+          "context_collection",
+          "generating",
+          "judging",
+          "regenerating",
+          "completed",
+          "failed"
+        ],
+        "title": "WorkflowStage",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "title": "QuantumLearn API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/analytics/filter-options": {
+      "get": {
+        "operationId": "analytics_filter_options_api_v1_analytics_filter_options_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsFilterOptions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Analytics Filter Options",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/inactive-learners": {
+      "get": {
+        "operationId": "inactive_learners_api_v1_analytics_inactive_learners_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "course_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InactiveLearnerPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Inactive Learners",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/learning": {
+      "get": {
+        "operationId": "learning_analytics_api_v1_analytics_learning_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "course_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningMetricsResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Learning Analytics",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/research": {
+      "get": {
+        "operationId": "research_analytics_api_v1_analytics_research_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "course_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "experimental_condition",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ExperimentalCondition"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Experimental Condition"
+            }
+          },
+          {
+            "in": "query",
+            "name": "task_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model"
+            }
+          },
+          {
+            "in": "query",
+            "name": "judge_decision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/JudgeDecision"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Judge Decision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchMetricsResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Research Analytics",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
+    "/api/v1/feedback/{feedback_id}/report": {
+      "post": {
+        "operationId": "report_feedback_api_v1_feedback__feedback_id__report_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedback_id",
+            "required": true,
+            "schema": {
+              "maxLength": 36,
+              "minLength": 36,
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+              "title": "Feedback Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackReportResponse"
+                }
+              }
+            },
+            "description": "Exact report replay"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Report Feedback",
+        "tags": [
+          "feedback"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/learning-events": {
+      "post": {
+        "operationId": "record_browser_learning_event_api_v1_learning_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "draft_save": "#/components/schemas/DraftSaveLearningEventRequest",
+                    "task_view": "#/components/schemas/TaskViewLearningEventRequest"
+                  },
+                  "propertyName": "event_type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TaskViewLearningEventRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DraftSaveLearningEventRequest"
+                  }
+                ],
+                "title": "Command"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningEventReceipt"
+                }
+              }
+            },
+            "description": "Exact event replay"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningEventReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Record Browser Learning Event",
+        "tags": [
+          "learning-events"
+        ]
+      }
+    },
+    "/api/v1/ready": {
+      "get": {
+        "operationId": "readiness_check_api_v1_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Readiness Check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/research/exports": {
+      "get": {
+        "operationId": "research_export_api_v1_research_exports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "format",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ResearchExportFormat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "course_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Course Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "experimental_condition",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ExperimentalCondition"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Experimental Condition"
+            }
+          },
+          {
+            "in": "query",
+            "name": "task_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Task Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model"
+            }
+          },
+          {
+            "in": "query",
+            "name": "judge_decision",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/JudgeDecision"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Judge Decision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Audited research export stream"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Research Export",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/v1/submissions/{submission_id}/feedback": {
+      "get": {
+        "operationId": "get_feedback_api_v1_submissions__submission_id__feedback_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,254}$",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackWorkflowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Get Feedback",
+        "tags": [
+          "feedback"
+        ]
+      },
+      "post": {
+        "operationId": "start_feedback_api_v1_submissions__submission_id__feedback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,254}$",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackWorkflowResponse"
+                }
+              }
+            },
+            "description": "Existing terminal workflow"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackWorkflowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackApiErrorResponse"
+                }
+              }
+            },
+            "description": "Sanitized API error"
+          }
+        },
+        "summary": "Start Feedback",
+        "tags": [
+          "feedback"
+        ]
+      }
+    }
+  }
+}

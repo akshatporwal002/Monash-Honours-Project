@@ -1,9 +1,12 @@
 from collections.abc import Mapping
 from copy import deepcopy
 
+from app.models.enums import JudgeEvaluationStatus
 from app.schemas.feedback import (
     FeedbackContext,
+    FeedbackRegenerationContext,
     GeneratedFeedback,
+    JudgeEvaluationOutcome,
     JudgeResult,
     RetrievalContext,
     SimulationContext,
@@ -38,6 +41,7 @@ class RecordingStructuredLlmClient:
             model=self._response.model,
             token_usage=self._response.token_usage.model_copy(deep=True),
             estimated_cost=self._response.estimated_cost,
+            usage_complete=self._response.usage_complete,
         )
 
 
@@ -92,30 +96,44 @@ class StaticSimulationProvider:
 class FakeFeedbackGenerator:
     def __init__(
         self,
-        result: GeneratedFeedback,
+        result: GeneratedFeedback | list[GeneratedFeedback],
         error: Exception | None = None,
+        error_on_calls: Mapping[int, Exception] | None = None,
     ) -> None:
-        self._result = result
-        self._error = error
+        self._results = list(result) if isinstance(result, list) else [result]
+        self._errors = dict(error_on_calls or {})
+        if error is not None:
+            self._errors[1] = error
         self.call_count = 0
         self.contexts: list[FeedbackContext] = []
+        self.regenerations: list[FeedbackRegenerationContext | None] = []
 
-    async def generate(self, context: FeedbackContext) -> GeneratedFeedback:
+    async def generate(
+        self,
+        context: FeedbackContext,
+        regeneration: FeedbackRegenerationContext | None = None,
+    ) -> GeneratedFeedback:
         self.call_count += 1
         self.contexts.append(context)
-        if self._error is not None:
-            raise self._error
-        return self._result.model_copy(deep=True)
+        self.regenerations.append(regeneration)
+        if self.call_count in self._errors:
+            raise self._errors[self.call_count]
+        result_index = min(self.call_count - 1, len(self._results) - 1)
+        return self._results[result_index].model_copy(deep=True)
 
 
 class FakeFeedbackJudge:
     def __init__(
         self,
-        result: JudgeResult,
+        result: JudgeResult | JudgeEvaluationOutcome | list[JudgeResult | JudgeEvaluationOutcome],
         error: Exception | None = None,
+        error_on_calls: Mapping[int, Exception] | None = None,
     ) -> None:
-        self._result = result
-        self._error = error
+        raw_results = list(result) if isinstance(result, list) else [result]
+        self._results = [self._as_outcome(item) for item in raw_results]
+        self._errors = dict(error_on_calls or {})
+        if error is not None:
+            self._errors[1] = error
         self.call_count = 0
         self.contexts: list[FeedbackContext] = []
         self.feedback: list[GeneratedFeedback] = []
@@ -124,10 +142,27 @@ class FakeFeedbackJudge:
         self,
         context: FeedbackContext,
         feedback: GeneratedFeedback,
-    ) -> JudgeResult:
+    ) -> JudgeEvaluationOutcome:
         self.call_count += 1
         self.contexts.append(context)
         self.feedback.append(feedback)
-        if self._error is not None:
-            raise self._error
-        return self._result.model_copy(deep=True)
+        if self.call_count in self._errors:
+            raise self._errors[self.call_count]
+        result_index = min(self.call_count - 1, len(self._results) - 1)
+        return self._results[result_index].model_copy(deep=True)
+
+    @staticmethod
+    def _as_outcome(
+        result: JudgeResult | JudgeEvaluationOutcome,
+    ) -> JudgeEvaluationOutcome:
+        if isinstance(result, JudgeEvaluationOutcome):
+            return result
+        return JudgeEvaluationOutcome(
+            evaluation_status=JudgeEvaluationStatus.VALID,
+            reported_decision=result.decision,
+            judge_result=result,
+            reason=result.reason,
+            provider="fake-provider",
+            model="fake-judge-model",
+            prompt_version="quality-judge-v1",
+        )

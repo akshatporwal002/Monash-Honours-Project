@@ -66,6 +66,7 @@ def test_create_serialize_and_retrieve_all_records(db_session: Session) -> None:
     judge = JudgeEvaluation(
         feedback_id=feedback.id,
         evaluation_status=JudgeEvaluationStatus.VALID,
+        reported_decision=JudgeDecision.PASS,
         decision=JudgeDecision.PASS,
         correctness_score=90,
         relevance_score=91,
@@ -75,6 +76,9 @@ def test_create_serialize_and_retrieve_all_records(db_session: Session) -> None:
         reason="The feedback is grounded and actionable.",
         unsupported_claims=[],
         regeneration_instructions=[],
+        provider="fake-provider",
+        model="fake-judge-model",
+        prompt_version="quality-judge-v1",
     )
     learning_event = LearningEvent(
         pseudonymous_user_id="student-pseudonym",
@@ -85,18 +89,26 @@ def test_create_serialize_and_retrieve_all_records(db_session: Session) -> None:
         metadata_payload={"attempt_number": 1},
     )
     research = ResearchEvaluation(
-        case_id=str(uuid4()),
+        case_id=workflow.id,
         workflow_run_id=workflow.id,
-        pseudonymous_user_id="student-pseudonym",
+        correlation_id=workflow.id,
+        pseudonymous_user_id=f"v1_{'a' * 64}",
         course_id="course-external",
         task_id="task-external",
-        submission_reference=workflow.submission_id,
+        task_type="short_answer",
+        submission_reference=f"v1_{'b' * 64}",
         experimental_condition=ExperimentalCondition.AGENTIC_RAG,
         prompt_version="feedback-v1",
         provider="fake-provider",
         model="test-model",
         input_references=["task-external", workflow.submission_id],
-        retrieved_sources=[{"source_id": "source-1"}],
+        retrieved_sources=[
+            {
+                "source_id": "source-1",
+                "label": "Course notes",
+                "relevance_score": 0.9,
+            }
+        ],
         generated_output={"summary": "Review the measurement result."},
         judge_result={"decision": "pass"},
         latency_ms=125,
@@ -143,6 +155,22 @@ def test_sqlite_foreign_keys_are_enforced(db_session: Session) -> None:
         db_session.commit()
     db_session.rollback()
 
+    workflow = create_workflow(db_session, "submission-actual")
+    mismatched = FeedbackRecord(
+        submission_id="submission-other",
+        workflow_run_id=workflow.id,
+        feedback_content={"summary": "Wrong aggregate"},
+        status=FeedbackStatus.PENDING_JUDGEMENT,
+        generation_attempt=1,
+        provider="fake-provider",
+        model="test-model",
+        prompt_version="feedback-v1",
+    )
+    db_session.add(mismatched)
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
+
 
 def test_unique_submission_and_attempt_constraints(db_session: Session) -> None:
     workflow = create_workflow(db_session)
@@ -165,6 +193,27 @@ def test_unique_submission_and_attempt_constraints(db_session: Session) -> None:
         source_references=[],
     )
     db_session.add(duplicate_attempt)
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
+
+
+def test_workflow_can_have_only_one_released_feedback_record(
+    db_session: Session,
+) -> None:
+    workflow = create_workflow(db_session)
+    released = create_feedback(db_session, workflow)
+    released.status = FeedbackStatus.ACCEPTED
+    db_session.commit()
+
+    db_session.add(
+        FeedbackRecord(
+            submission_id=workflow.submission_id,
+            workflow_run_id=workflow.id,
+            feedback_content={"summary": "Fallback"},
+            status=FeedbackStatus.SAFE_FALLBACK,
+        )
+    )
     with pytest.raises(IntegrityError):
         db_session.commit()
     db_session.rollback()
@@ -267,6 +316,7 @@ def test_database_rejects_out_of_range_judge_score(db_session: Session) -> None:
     judge = JudgeEvaluation(
         feedback_id=feedback.id,
         evaluation_status=JudgeEvaluationStatus.VALID,
+        reported_decision=JudgeDecision.FAIL,
         decision=JudgeDecision.FAIL,
         correctness_score=101,
         relevance_score=50,
@@ -276,6 +326,9 @@ def test_database_rejects_out_of_range_judge_score(db_session: Session) -> None:
         reason="Invalid score",
         unsupported_claims=[],
         regeneration_instructions=["Regenerate"],
+        provider="fake-provider",
+        model="fake-judge-model",
+        prompt_version="quality-judge-v1",
     )
     db_session.add(judge)
 

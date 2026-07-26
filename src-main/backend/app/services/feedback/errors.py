@@ -33,6 +33,17 @@ class ContextCollectionError(FeedbackPipelineError):
         super().__init__("Feedback context could not be collected")
 
 
+class ContextIntegrityError(FeedbackPipelineError):
+    def __init__(self) -> None:
+        super().__init__("Feedback context did not match the requested workflow")
+
+
+class LostWorkflowLeaseError(FeedbackPipelineError):
+    def __init__(self, workflow_run_id: str) -> None:
+        self.workflow_run_id = workflow_run_id
+        super().__init__(f"Workflow lease '{workflow_run_id}' is no longer owned")
+
+
 class FeedbackGenerationError(FeedbackPipelineError):
     def __init__(self, correlation_id: str) -> None:
         self.correlation_id = correlation_id
@@ -49,3 +60,8 @@ class PipelinePersistenceError(FeedbackPipelineError):
     def __init__(self, submission_id: str) -> None:
         self.submission_id = submission_id
         super().__init__(f"Feedback workflow for submission '{submission_id}' could not be stored")
+
+
+class FeedbackReportConflictError(FeedbackPipelineError):
+    def __init__(self) -> None:
+        super().__init__("A different report already exists for this feedback")

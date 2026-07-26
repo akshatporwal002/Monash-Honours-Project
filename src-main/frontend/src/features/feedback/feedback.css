@@ -1,0 +1,96 @@
+.feedback-panel {
+  display: grid;
+  gap: 1rem;
+  max-width: 52rem;
+  padding: 1.5rem;
+  border: 1px solid #ccd4e3;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.feedback-panel h2,
+.feedback-panel h3,
+.feedback-panel p {
+  margin: 0;
+}
+
+.feedback-panel pre {
+  overflow-x: auto;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: #111827;
+  color: #f9fafb;
+  white-space: pre;
+}
+
+.feedback-panel code {
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+
+.feedback-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.feedback-status__spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #c7d2fe;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+}
+
+.feedback-sources,
+.improvement-actions {
+  margin-bottom: 0;
+}
+
+.feedback-panel__notice {
+  padding: 0.75rem;
+  border-left: 0.25rem solid #6d5bd0;
+  background: #f2efff;
+  color: #3d3562;
+}
+
+.feedback-report {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.feedback-report form {
+  display: grid;
+  width: min(100%, 34rem);
+  gap: 0.5rem;
+}
+
+.feedback-report select,
+.feedback-report textarea,
+.feedback-report button,
+.feedback-panel button {
+  font: inherit;
+}
+
+.feedback-report textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.feedback-report button,
+.feedback-panel > button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.875rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .feedback-status__spinner {
+    animation: feedback-spin 0.9s linear infinite;
+  }
+}
+
+@keyframes feedback-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,6 +1,22 @@
-from app.schemas.feedback import FeedbackContext, SubmissionContext
+import asyncio
+
+from pydantic import ValidationError
+
+from app.schemas.feedback import (
+    ContextProviderStatus,
+    FeedbackContext,
+    RetrievalContext,
+    RetrievalResult,
+    SimulationContext,
+    SimulationResult,
+    SubmissionContext,
+)
 from app.services.feedback.contracts import RetrievalProvider, SimulationProvider, TaskProvider
-from app.services.feedback.errors import ContextCollectionError, TaskNotFoundError
+from app.services.feedback.errors import (
+    ContextCollectionError,
+    ContextIntegrityError,
+    TaskNotFoundError,
+)
 
 
 class DefaultFeedbackContextCollector:
@@ -9,10 +25,15 @@ class DefaultFeedbackContextCollector:
         task_provider: TaskProvider,
         retrieval_provider: RetrievalProvider | None = None,
         simulation_provider: SimulationProvider | None = None,
+        *,
+        provider_timeout_seconds: float = 60,
     ) -> None:
+        if not 0 < provider_timeout_seconds <= 60:
+            raise ValueError("provider_timeout_seconds must be between 0 and 60")
         self._task_provider = task_provider
         self._retrieval_provider = retrieval_provider
         self._simulation_provider = simulation_provider
+        self._provider_timeout_seconds = provider_timeout_seconds
 
     async def collect(
         self,
@@ -20,32 +41,74 @@ class DefaultFeedbackContextCollector:
         correlation_id: str,
     ) -> FeedbackContext:
         try:
-            task = await self._task_provider.get_task(submission.task_id)
+            task = await asyncio.wait_for(
+                self._task_provider.get_task(submission.task_id),
+                timeout=self._provider_timeout_seconds,
+            )
             if task is None:
                 raise TaskNotFoundError(submission.task_id)
+            if task.task_id != submission.task_id:
+                raise ContextIntegrityError()
+            if task.course_id != submission.course_id:
+                raise ContextIntegrityError()
 
-            retrieval_context = []
+            retrieval_result = RetrievalResult(status=ContextProviderStatus.NOT_REQUESTED)
             if self._retrieval_provider is not None:
-                retrieval_context = await self._retrieval_provider.get_retrieval_context(
-                    task,
-                    submission,
+                raw_retrieval = await asyncio.wait_for(
+                    self._retrieval_provider.get_retrieval_context(task, submission),
+                    timeout=self._provider_timeout_seconds,
                 )
+                retrieval_result = self._normalize_retrieval(raw_retrieval)
 
-            simulation_context = None
+            simulation_result = SimulationResult(status=ContextProviderStatus.NOT_REQUESTED)
             if self._simulation_provider is not None:
-                simulation_context = await self._simulation_provider.get_simulation_context(
-                    task,
-                    submission,
+                raw_simulation = await asyncio.wait_for(
+                    self._simulation_provider.get_simulation_context(task, submission),
+                    timeout=self._provider_timeout_seconds,
                 )
+                simulation_result = self._normalize_simulation(raw_simulation)
 
             return FeedbackContext(
                 correlation_id=correlation_id,
                 task=task,
                 submission=submission,
-                retrieval_context=retrieval_context,
-                simulation_context=simulation_context,
+                retrieval_context=retrieval_result.items,
+                retrieval_status=retrieval_result.status,
+                retrieval_request_ids=retrieval_result.request_ids,
+                simulation_context=simulation_result.context,
+                simulation_status=simulation_result.status,
             )
-        except TaskNotFoundError:
+        except (ContextIntegrityError, TaskNotFoundError):
             raise
+        except ValidationError:
+            raise ContextIntegrityError() from None
         except Exception:
             raise ContextCollectionError() from None
+
+    @staticmethod
+    def _normalize_retrieval(
+        result: RetrievalResult | list[RetrievalContext],
+    ) -> RetrievalResult:
+        if isinstance(result, RetrievalResult):
+            return result
+        items = [RetrievalContext.model_validate(item) for item in result]
+        if not items:
+            return RetrievalResult(status=ContextProviderStatus.EMPTY)
+        return RetrievalResult(
+            status=ContextProviderStatus.COMPLETED,
+            request_ids=sorted({item.retrieval_request_id for item in items}),
+            items=items,
+        )
+
+    @staticmethod
+    def _normalize_simulation(
+        result: SimulationResult | SimulationContext | None,
+    ) -> SimulationResult:
+        if isinstance(result, SimulationResult):
+            return result
+        if result is None:
+            return SimulationResult(status=ContextProviderStatus.EMPTY)
+        return SimulationResult(
+            status=ContextProviderStatus.COMPLETED,
+            context=SimulationContext.model_validate(result),
+        )

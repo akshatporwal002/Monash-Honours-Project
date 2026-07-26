@@ -1,10 +1,15 @@
 from pydantic import ValidationError
 
-from app.schemas.feedback import FeedbackAgentOutput, FeedbackContext, GeneratedFeedback
+from app.schemas.feedback import (
+    FeedbackAgentOutput,
+    FeedbackContext,
+    FeedbackRegenerationContext,
+    FeedbackSourceAttribution,
+    GeneratedFeedback,
+)
 from app.services.feedback.contracts import StructuredLlmClient
 from app.services.feedback.errors import FeedbackClientError, InvalidFeedbackOutputError
 from app.services.feedback.prompt import FeedbackPromptBuilder
-
 
 AI_GENERATED_NOTICE = "AI-generated feedback. Verify important details and report any concerns."
 
@@ -18,8 +23,12 @@ class LlmFeedbackGenerator:
         self._client = client
         self._prompt_builder = prompt_builder or FeedbackPromptBuilder()
 
-    async def generate(self, context: FeedbackContext) -> GeneratedFeedback:
-        request = self._prompt_builder.build(context)
+    async def generate(
+        self,
+        context: FeedbackContext,
+        regeneration: FeedbackRegenerationContext | None = None,
+    ) -> GeneratedFeedback:
+        request = self._prompt_builder.build(context, regeneration)
         try:
             response = await self._client.generate_structured(request)
         except Exception:
@@ -30,15 +39,26 @@ class LlmFeedbackGenerator:
             self._validate_references(context, output)
             content = output.model_dump(mode="json")
             content["ai_generated_notice"] = AI_GENERATED_NOTICE
+            labels_by_source = {
+                item.source_id: item.source_label for item in context.retrieval_context
+            }
             return GeneratedFeedback(
                 feedback_content=content,
                 provider=response.provider,
                 model=response.model,
                 prompt_version=request.prompt_version,
                 source_references=output.source_references,
+                source_attributions=[
+                    FeedbackSourceAttribution(
+                        source_id=source_id,
+                        label=labels_by_source[source_id],
+                    )
+                    for source_id in output.source_references
+                ],
                 simulation_references=output.simulation_references,
                 token_usage=response.token_usage,
                 estimated_cost=response.estimated_cost,
+                usage_complete=response.usage_complete,
             )
         except (ValidationError, ValueError):
             raise InvalidFeedbackOutputError() from None
