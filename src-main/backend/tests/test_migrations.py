@@ -15,6 +15,7 @@ EXPECTED_TABLES = {
     "learning_tasks",
     "material_chunks",
     "research_evaluations",
+    "retrieval_audits",
     "student_achievements",
     "student_notifications",
     "student_profiles",

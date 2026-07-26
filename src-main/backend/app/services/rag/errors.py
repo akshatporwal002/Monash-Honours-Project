@@ -56,6 +56,26 @@ class NoExtractableTextError(RagError):
         super().__init__("no_extractable_text", "No extractable text was found in this document.", 422)
 
 
+class MaterialAlreadyProcessingError(RagError):
+    def __init__(self) -> None:
+        super().__init__("material_already_processing", "This material is already processing.", 409)
+
+
+class InvalidMaterialStateError(RagError):
+    def __init__(self) -> None:
+        super().__init__("invalid_material_state", "This material cannot be processed in its current state.", 409)
+
+
+class ExtractedContentTooLargeError(RagError):
+    def __init__(self) -> None:
+        super().__init__("extracted_content_too_large", "The extracted content exceeds the allowed size.", 422)
+
+
+class IndexConfigurationError(RagError):
+    def __init__(self) -> None:
+        super().__init__("index_configuration_mismatch", "The vector index configuration does not match.", 503)
+
+
 class EmbeddingProviderUnavailableError(RagError):
     def __init__(self) -> None:
         super().__init__("embedding_provider_unavailable", "The embedding provider is unavailable.", 503)

@@ -480,11 +480,42 @@ class MaterialChunk(Base):
     heading: Mapped[str | None] = mapped_column(String(500), nullable=True)
     location_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
     token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    chunk_hash: Mapped[str] = mapped_column(String(128), nullable=False, default="")
     embedding_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
     embedding_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    embedding_dimension: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
 
     material: Mapped[LearningMaterial] = relationship(back_populates="chunks")
+
+
+class RetrievalAudit(Base):
+    __tablename__ = "retrieval_audits"
+    __table_args__ = (
+        CheckConstraint("top_k > 0", name="retrieval_audit_top_k"),
+        CheckConstraint("minimum_relevance BETWEEN 0 AND 1", name="retrieval_audit_relevance"),
+        CheckConstraint("hit_count >= 0", name="retrieval_audit_hit_count"),
+        CheckConstraint("latency_ms >= 0", name="retrieval_audit_latency"),
+        Index("ix_retrieval_audits_course_created", "course_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    course_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    module_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    task_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    purpose: Mapped[str] = mapped_column(String(50), nullable=False)
+    query_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    top_k: Mapped[int] = mapped_column(Integer, nullable=False)
+    minimum_relevance: Mapped[float] = mapped_column(nullable=False)
+    result_chunk_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    result_scores: Mapped[list[float]] = mapped_column(JSON, nullable=False, default=list)
+    hit_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    latency_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    embedding_model: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
 
 
 class StudentSubmission(Base):

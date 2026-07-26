@@ -67,13 +67,47 @@ class MaterialChunkCreate(ContentSchema):
     heading: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)] | None = None
     location_label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)] | None = None
     token_count: Annotated[int, Field(ge=0)] = 0
+    chunk_hash: ContentHash | None = None
     embedding_model: ExternalId | None = None
     embedding_version: ExternalId | None = None
+    embedding_dimension: Annotated[int, Field(gt=0)] | None = None
+    indexed_at: datetime | None = None
 
 
 class MaterialChunkRead(MaterialChunkCreate):
     id: str
     created_at: datetime
+
+
+class MaterialProcessingRead(ContentSchema):
+    material: LearningMaterialRead
+    chunk_count: Annotated[int, Field(ge=0)]
+    indexed_chunk_count: Annotated[int, Field(ge=0)]
+    processing_revision: Annotated[int, Field(ge=0)]
+
+
+class RetrievalSearchRequest(ContentSchema):
+    query: NonEmptyText
+    module_id: ExternalId | None = None
+    top_k: Annotated[int, Field(ge=1, le=10)] = 5
+    minimum_relevance: Annotated[float, Field(ge=0, le=1)] = 0.45
+
+
+class RetrievalHitRead(ContentSchema):
+    chunk_id: str
+    material_id: str
+    source_label: NonEmptyText
+    chunk_text: NonEmptyText
+    relevance_score: Annotated[float, Field(ge=0, le=1)]
+
+
+class RetrievalResultRead(ContentSchema):
+    request_id: str
+    found: bool
+    hits: list[RetrievalHitRead]
+    message: str | None = None
+    latency_ms: Annotated[int, Field(ge=0)]
+    embedding_model: ExternalId
 
 
 class TaskGenerationMetadata(ContentSchema):

@@ -13,12 +13,18 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.models import LearningMaterial, MaterialIndexStatus
-from app.schemas.content import LearningMaterialRead
+from app.schemas.content import LearningMaterialRead, MaterialProcessingRead
 from app.services.rag.contracts import CourseAccessPolicy
+from app.services.rag.embeddings import SentenceTransformerEmbeddingProvider
 from app.services.rag.errors import CourseAccessDeniedError, DuplicateMaterialError, RagError
+from app.services.rag.extraction.docx import DocxDocumentExtractor
+from app.services.rag.extraction.pdf import PdfDocumentExtractor
+from app.services.rag.extraction.pptx import PptxDocumentExtractor
 from app.services.rag.fakes import AllowAllCourseAccessPolicy, DenyAllCourseAccessPolicy
+from app.services.rag.ingestion import MaterialProcessor
 from app.services.rag.repositories import MaterialRepository
 from app.services.rag.storage import FileStorage, LocalFileStorage
+from app.services.rag.vector_store import ChromaVectorStore
 
 router = APIRouter(prefix="/courses/{course_id}/materials")
 
@@ -31,6 +37,23 @@ def get_course_access_policy() -> CourseAccessPolicy:
 
 def get_material_storage() -> Generator[FileStorage, None, None]:
     yield LocalFileStorage(settings.rag_upload_dir, settings.rag_max_file_bytes)
+
+
+def get_material_processor(
+    db: Session = Depends(get_db_session), storage: FileStorage = Depends(get_material_storage)
+) -> MaterialProcessor:
+    embedding = SentenceTransformerEmbeddingProvider()
+    return MaterialProcessor(
+        db,
+        storage,
+        {
+            "application/pdf": PdfDocumentExtractor(),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": DocxDocumentExtractor(),
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation": PptxDocumentExtractor(),
+        },
+        embedding,
+        ChromaVectorStore(embedding.model_id, embedding.dimension),
+    )
 
 
 def get_actor_id(x_actor_id: Annotated[str | None, Header()] = None) -> str:
@@ -146,4 +169,29 @@ def delete_material(
         db.commit()
     except RagError as error:
         db.rollback()
+        raise _http_error(error) from error
+
+
+@router.post("/{material_id}/process", response_model=MaterialProcessingRead)
+def process_material(
+    course_id: str,
+    material_id: str,
+    force: bool = False,
+    actor_id: str = Depends(get_actor_id),
+    policy: CourseAccessPolicy = Depends(get_course_access_policy),
+    processor: MaterialProcessor = Depends(get_material_processor),
+    db: Session = Depends(get_db_session),
+) -> MaterialProcessingRead:
+    _require_manage(policy, actor_id, course_id)
+    try:
+        material = MaterialRepository(db).get(course_id, material_id)
+        chunk_count, indexed_chunk_count = processor.process(material, force)
+        db.refresh(material)
+        return MaterialProcessingRead(
+            material=LearningMaterialRead.model_validate(material),
+            chunk_count=chunk_count,
+            indexed_chunk_count=indexed_chunk_count,
+            processing_revision=material.processing_revision,
+        )
+    except RagError as error:
         raise _http_error(error) from error

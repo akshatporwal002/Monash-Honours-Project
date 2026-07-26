@@ -43,6 +43,8 @@ class FileStorage(Protocol):
 
     def delete(self, storage_key: str | None) -> None: ...
 
+    def open_read(self, storage_key: str) -> BinaryIO: ...
+
 
 class LocalFileStorage:
     def __init__(self, upload_dir: str | Path, max_file_bytes: int) -> None:
@@ -97,6 +99,9 @@ class LocalFileStorage:
                 parent.rmdir()
             except OSError:
                 pass
+
+    def open_read(self, storage_key: str) -> BinaryIO:
+        return self._resolve_key(storage_key).open("rb")
 
     def _resolve_key(self, storage_key: str) -> Path:
         candidate = (self.upload_dir / storage_key).resolve()
