@@ -25,6 +25,27 @@ class UnsupportedMaterialTypeError(RagError):
         super().__init__("unsupported_material_type", "This material type is not supported.", 415)
 
 
+class MaterialNotFoundError(RagError):
+    def __init__(self) -> None:
+        super().__init__("material_not_found", "The learning material was not found.", 404)
+
+
+class MaterialTooLargeError(RagError):
+    def __init__(self) -> None:
+        super().__init__("material_too_large", "The material exceeds the maximum file size.", 413)
+
+
+class DuplicateMaterialError(RagError):
+    def __init__(self, material_id: str) -> None:
+        super().__init__("duplicate_material", "An identical material already exists in this course.", 409)
+        self.material_id = material_id
+
+
+class InvalidDocumentError(RagError):
+    def __init__(self) -> None:
+        super().__init__("invalid_document", "The uploaded file does not match its supported document type.", 422)
+
+
 class EmbeddingProviderUnavailableError(RagError):
     def __init__(self) -> None:
         super().__init__("embedding_provider_unavailable", "The embedding provider is unavailable.", 503)

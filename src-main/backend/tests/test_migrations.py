@@ -59,6 +59,10 @@ def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
         "prerequisite_task_ids", "generation_provider", "generation_total_tokens",
     } <= task_columns
     assert inspector.get_foreign_keys("material_chunks")[0]["referred_table"] == "learning_materials"
+    material_columns = {column["name"] for column in inspector.get_columns("learning_materials")}
+    assert {
+        "storage_key", "file_size_bytes", "failure_stage", "error_code", "processing_revision",
+    } <= material_columns
     engine.dispose()
     command.check(config)
 

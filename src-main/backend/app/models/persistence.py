@@ -430,6 +430,8 @@ class LearningMaterial(Base):
             "source_url IS NULL OR source_url LIKE 'https://%'",
             name="learning_material_https_source",
         ),
+        CheckConstraint("file_size_bytes IS NULL OR file_size_bytes >= 0", name="learning_material_file_size"),
+        CheckConstraint("processing_revision >= 0", name="learning_material_processing_revision"),
         Index("ix_learning_materials_course_id", "course_id"),
     )
 
@@ -445,7 +447,12 @@ class LearningMaterial(Base):
         nullable=False,
         default=MaterialIndexStatus.PENDING,
     )
+    storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    file_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     extraction_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    failure_stage: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    processing_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)

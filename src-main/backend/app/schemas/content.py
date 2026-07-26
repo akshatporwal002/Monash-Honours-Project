@@ -52,6 +52,11 @@ class LearningMaterialRead(LearningMaterialCreate):
     source_url: str | None = None
     extracted_at: datetime | None = None
     indexed_at: datetime | None = None
+    storage_key: str | None = None
+    file_size_bytes: Annotated[int, Field(ge=0)] | None = None
+    failure_stage: str | None = None
+    error_code: str | None = None
+    processing_revision: Annotated[int, Field(ge=0)] = 0
     created_at: datetime
 
 

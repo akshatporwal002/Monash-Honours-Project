@@ -75,6 +75,7 @@ class NotificationKind(str, Enum):
 
 class MaterialIndexStatus(str, Enum):
     PENDING = "pending"
+    PROCESSING = "processing"
     EXTRACTED = "extracted"
     INDEXED = "indexed"
     FAILED = "failed"
