@@ -71,3 +71,10 @@ class NotificationKind(str, Enum):
     REMINDER = "reminder"
     ACHIEVEMENT = "achievement"
     FEEDBACK = "feedback"
+
+
+class MaterialIndexStatus(str, Enum):
+    PENDING = "pending"
+    EXTRACTED = "extracted"
+    INDEXED = "indexed"
+    FAILED = "failed"

@@ -4,7 +4,6 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect, text
 
-
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_TABLES = {
     "achievements",
@@ -12,7 +11,9 @@ EXPECTED_TABLES = {
     "feedback_records",
     "judge_evaluations",
     "learning_events",
+    "learning_materials",
     "learning_tasks",
+    "material_chunks",
     "research_evaluations",
     "student_achievements",
     "student_notifications",
@@ -52,6 +53,12 @@ def test_migration_upgrade_and_downgrade(tmp_path: Path) -> None:
         "total_tokens",
         "estimated_cost",
     } <= feedback_columns
+    task_columns = {column["name"] for column in inspector.get_columns("learning_tasks")}
+    assert {
+        "course_id", "learning_outcome_id", "marking_criteria", "source_references",
+        "prerequisite_task_ids", "generation_provider", "generation_total_tokens",
+    } <= task_columns
+    assert inspector.get_foreign_keys("material_chunks")[0]["referred_table"] == "learning_materials"
     engine.dispose()
     command.check(config)
 

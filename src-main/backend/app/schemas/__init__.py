@@ -1,5 +1,12 @@
 """API request and response schemas."""
 
+from app.schemas.content import (
+    LearningMaterialCreate,
+    LearningMaterialRead,
+    MaterialChunkCreate,
+    MaterialChunkRead,
+    TaskGenerationMetadata,
+)
 from app.schemas.feedback import (
     FeedbackAgentOutput,
     FeedbackContext,
@@ -43,12 +50,17 @@ __all__ = [
     "JudgeResult",
     "LearningEventCreate",
     "LearningEventRead",
+    "LearningMaterialCreate",
+    "LearningMaterialRead",
+    "MaterialChunkCreate",
+    "MaterialChunkRead",
     "ResearchEvaluationCreate",
     "ResearchEvaluationRead",
     "RetrievalContext",
     "SimulationContext",
     "SubmissionContext",
     "TaskContext",
+    "TaskGenerationMetadata",
     "TokenUsage",
     "WorkflowRunCreate",
     "WorkflowRunRead",

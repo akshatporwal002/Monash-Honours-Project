@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
-    Enum as SqlEnum,
     ForeignKey,
     Index,
     Integer,
@@ -17,7 +17,9 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    Boolean,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,17 +30,18 @@ from app.models.enums import (
     JudgeDecision,
     JudgeEvaluationStatus,
     LearningEventType,
-    ResearchStatus,
-    WorkflowOutcome,
-    WorkflowStage,
+    MaterialIndexStatus,
     NotificationKind,
+    ResearchStatus,
     SubmissionStatus,
     TaskType,
+    WorkflowOutcome,
+    WorkflowStage,
 )
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def new_uuid() -> str:
@@ -152,7 +155,7 @@ class FeedbackRecord(Base):
     estimated_cost: Mapped[Decimal] = mapped_column(
         Numeric(12, 6),
         nullable=False,
-        default=Decimal("0"),
+        default=Decimal(0),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -330,7 +333,7 @@ class ResearchEvaluation(Base):
     estimated_cost: Mapped[Decimal] = mapped_column(
         Numeric(12, 6),
         nullable=False,
-        default=Decimal("0"),
+        default=Decimal(0),
     )
     regeneration_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[ResearchStatus] = mapped_column(
@@ -364,7 +367,23 @@ class StudentProfile(Base):
 
 class LearningTask(Base):
     __tablename__ = "learning_tasks"
-    __table_args__ = (UniqueConstraint("slug", name="uq_learning_tasks_slug"),)
+    __table_args__ = (
+        UniqueConstraint("slug", name="uq_learning_tasks_slug"),
+        CheckConstraint("generation_input_tokens >= 0", name="learning_task_generation_input_tokens"),
+        CheckConstraint("generation_output_tokens >= 0", name="learning_task_generation_output_tokens"),
+        CheckConstraint("generation_total_tokens >= 0", name="learning_task_generation_total_tokens"),
+        CheckConstraint("generation_estimated_cost >= 0", name="learning_task_generation_cost"),
+        CheckConstraint(
+            "(generation_provider IS NULL AND generation_model IS NULL "
+            "AND generation_prompt_version IS NULL AND generation_input_tokens = 0 "
+            "AND generation_output_tokens = 0 AND generation_total_tokens = 0 "
+            "AND generation_estimated_cost = 0) OR "
+            "(generation_provider IS NOT NULL AND generation_model IS NOT NULL "
+            "AND generation_prompt_version IS NOT NULL "
+            "AND generation_total_tokens = generation_input_tokens + generation_output_tokens)",
+            name="learning_task_generation_metadata",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     slug: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -379,8 +398,86 @@ class LearningTask(Base):
     starter_code: Mapped[str | None] = mapped_column(Text, nullable=True)
     expected_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    course_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    module_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    learning_outcome_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    marking_criteria: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(JSON, nullable=True)
+    source_references: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    prerequisite_task_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    generation_provider: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    generation_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    generation_prompt_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    generation_input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    generation_output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    generation_total_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    generation_estimated_cost: Mapped[Decimal] = mapped_column(
+        Numeric(12, 6), nullable=False, default=Decimal(0)
+    )
 
     submissions: Mapped[list[StudentSubmission]] = relationship(back_populates="task")
+
+
+class LearningMaterial(Base):
+    __tablename__ = "learning_materials"
+    __table_args__ = (
+        UniqueConstraint("course_id", "content_hash", name="uq_learning_materials_course_hash"),
+        CheckConstraint(
+            "(original_filename IS NOT NULL AND source_url IS NULL) OR "
+            "(original_filename IS NULL AND source_url IS NOT NULL)",
+            name="learning_material_source_identity",
+        ),
+        CheckConstraint(
+            "source_url IS NULL OR source_url LIKE 'https://%'",
+            name="learning_material_https_source",
+        ),
+        Index("ix_learning_materials_course_id", "course_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    course_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    module_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
+    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    indexing_status: Mapped[MaterialIndexStatus] = mapped_column(
+        enum_column(MaterialIndexStatus, "material_index_status"),
+        nullable=False,
+        default=MaterialIndexStatus.PENDING,
+    )
+    extraction_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+    chunks: Mapped[list[MaterialChunk]] = relationship(
+        back_populates="material", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+
+class MaterialChunk(Base):
+    __tablename__ = "material_chunks"
+    __table_args__ = (
+        UniqueConstraint("material_id", "chunk_index", name="uq_material_chunks_material_index"),
+        CheckConstraint("chunk_index >= 0", name="material_chunk_index"),
+        CheckConstraint("token_count >= 0", name="material_chunk_token_count"),
+        Index("ix_material_chunks_material_order", "material_id", "chunk_index"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    material_id: Mapped[str] = mapped_column(
+        ForeignKey("learning_materials.id", ondelete="CASCADE"), nullable=False
+    )
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
+    heading: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    location_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    token_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    embedding_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    embedding_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+    material: Mapped[LearningMaterial] = relationship(back_populates="chunks")
 
 
 class StudentSubmission(Base):

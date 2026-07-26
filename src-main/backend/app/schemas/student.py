@@ -1,10 +1,10 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.models.enums import NotificationKind, SubmissionStatus, TaskType
-
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -26,6 +26,19 @@ class TaskRead(StudentSchema):
     position: int
     starter_code: str | None
     due_at: datetime | None
+    course_id: str | None = None
+    module_id: str | None = None
+    learning_outcome_id: str | None = None
+    marking_criteria: dict | list | None = None
+    source_references: list[str] = Field(default_factory=list)
+    prerequisite_task_ids: list[str] = Field(default_factory=list)
+    generation_provider: str | None = None
+    generation_model: str | None = None
+    generation_prompt_version: str | None = None
+    generation_input_tokens: int = 0
+    generation_output_tokens: int = 0
+    generation_total_tokens: int = 0
+    generation_estimated_cost: Decimal = Decimal(0)
     status: SubmissionStatus | None = None
     score: int | None = None
 

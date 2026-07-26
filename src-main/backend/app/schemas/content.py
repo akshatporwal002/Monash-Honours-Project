@@ -1,0 +1,87 @@
+from datetime import datetime
+from decimal import Decimal
+from typing import Annotated
+
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
+
+from app.models.enums import MaterialIndexStatus
+
+ExternalId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+NonEmptyText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+ContentHash = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
+
+
+class ContentSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid", from_attributes=True, strict=True)
+
+
+class LearningMaterialCreate(ContentSchema):
+    course_id: ExternalId
+    module_id: ExternalId | None = None
+    original_filename: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)] | None = None
+    source_url: AnyUrl | None = None
+    mime_type: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+    content_hash: ContentHash
+    indexing_status: MaterialIndexStatus = MaterialIndexStatus.PENDING
+    extraction_error: str | None = None
+
+    @field_validator("source_url")
+    @classmethod
+    def require_https(cls, value: AnyUrl | None) -> AnyUrl | None:
+        if value is not None and value.scheme != "https":
+            raise ValueError("source_url must use HTTPS")
+        return value
+
+    @model_validator(mode="after")
+    def require_exactly_one_source(self) -> "LearningMaterialCreate":
+        if (self.original_filename is None) == (self.source_url is None):
+            raise ValueError("exactly one of original_filename or source_url is required")
+        return self
+
+
+class LearningMaterialRead(LearningMaterialCreate):
+    id: str
+    source_url: str | None = None
+    extracted_at: datetime | None = None
+    indexed_at: datetime | None = None
+    created_at: datetime
+
+
+class MaterialChunkCreate(ContentSchema):
+    material_id: ExternalId
+    chunk_index: Annotated[int, Field(ge=0)]
+    chunk_text: NonEmptyText
+    heading: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)] | None = None
+    location_label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)] | None = None
+    token_count: Annotated[int, Field(ge=0)] = 0
+    embedding_model: ExternalId | None = None
+    embedding_version: ExternalId | None = None
+
+
+class MaterialChunkRead(MaterialChunkCreate):
+    id: str
+    created_at: datetime
+
+
+class TaskGenerationMetadata(ContentSchema):
+    provider: ExternalId
+    model: ExternalId
+    prompt_version: ExternalId
+    input_tokens: Annotated[int, Field(ge=0)]
+    output_tokens: Annotated[int, Field(ge=0)]
+    total_tokens: Annotated[int, Field(ge=0)]
+    estimated_cost: Annotated[Decimal, Field(ge=0)]
+
+    @model_validator(mode="after")
+    def validate_token_total(self) -> "TaskGenerationMetadata":
+        if self.total_tokens != self.input_tokens + self.output_tokens:
+            raise ValueError("total_tokens must equal input_tokens plus output_tokens")
+        return self
