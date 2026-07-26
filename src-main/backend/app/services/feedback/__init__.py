@@ -1,4 +1,5 @@
 from app.services.feedback.agent import AI_GENERATED_NOTICE, LlmFeedbackGenerator
+from app.services.feedback.composition import build_grounded_feedback_context_collector
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.contracts import (
     FeedbackContextCollector,
@@ -37,15 +38,16 @@ from app.services.feedback.fakes import (
 )
 from app.services.feedback.pipeline import FeedbackPipeline
 from app.services.feedback.prompt import FEEDBACK_PROMPT_VERSION, FeedbackPromptBuilder
+from app.services.feedback.providers import SqlAlchemySubmissionProvider, SqlAlchemyTaskProvider
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 
 __all__ = [
     "AI_GENERATED_NOTICE",
+    "FEEDBACK_PROMPT_VERSION",
     "ContextCollectionError",
     "DefaultFeedbackContextCollector",
     "FakeFeedbackGenerator",
     "FakeFeedbackJudge",
-    "FEEDBACK_PROMPT_VERSION",
     "FeedbackAgentError",
     "FeedbackClientError",
     "FeedbackContextCollector",
@@ -67,6 +69,8 @@ __all__ = [
     "RetrievalProvider",
     "SimulationProvider",
     "SqlAlchemyFeedbackWorkflowRepository",
+    "SqlAlchemySubmissionProvider",
+    "SqlAlchemyTaskProvider",
     "StaticRetrievalProvider",
     "StaticSimulationProvider",
     "StructuredLlmClient",
@@ -76,4 +80,5 @@ __all__ = [
     "SubmissionProvider",
     "TaskNotFoundError",
     "TaskProvider",
+    "build_grounded_feedback_context_collector",
 ]
