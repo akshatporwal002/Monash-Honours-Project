@@ -64,14 +64,14 @@ Files:
 
 Changes:
 
-- [ ] Reproduce the existing assertion failure under `TZ=UTC` before editing.
-- [ ] Name the latest submitted-at fixture value so the response and assertion use the same exact
+- [x] Reproduce the existing assertion failure under `TZ=UTC` before editing.
+- [x] Name the latest submitted-at fixture value so the response and assertion use the same exact
   timestamp.
-- [ ] Derive the expected `en-AU` local display string from that timestamp using `dateStyle:
+- [x] Derive the expected `en-AU` local display string from that timestamp using `dateStyle:
   'medium'` and `timeStyle: 'short'`.
-- [ ] Assert the rendered `<time>` contains the derived local label and preserves the exact ISO
+- [x] Assert the rendered `<time>` contains the derived local label and preserves the exact ISO
   value in its `datetime` attribute.
-- [ ] Leave `TaskView`, API contracts, CI timezone, and product code unchanged.
+- [x] Leave `TaskView`, API contracts, CI timezone, and product code unchanged.
 
 Edge and failure cases:
 
@@ -84,6 +84,14 @@ Edge and failure cases:
 **Acceptance:** With `TZ=UTC`, the named `App.test.tsx` test passes and its selected `<time>` has
 `datetime="2026-07-26T08:30:00Z"`; the full App test file also passes in the normal local timezone.
 
+Verification (2026-08-14): PASS. Before editing, Node 22.13.0/npm 10.9.0 with `TZ=UTC` reproduced
+the GitHub failure as 1 failed and 14 passed: the test expected the Australia/Sydney label while
+the semantic `<time datetime="2026-07-26T08:30:00Z">` correctly rendered the UTC label. After the
+focused assertion change, the complete App test file reported 15 passed under UTC and 15 passed in
+the normal Australia/Sydney environment. The selected element must now have both the runtime's
+`en-AU` local label and the exact original ISO `datetime` attribute. The existing non-failing jsdom
+canvas diagnostic remains outside this fix.
+
 Requirements: NFR10, NFR19, AC9.
 
 ## Step 2: Verify the complete frontend gate and publish CI evidence
@@ -95,11 +103,11 @@ Files:
 
 Changes:
 
-- [ ] Run frontend lint, the full unit/accessibility suite under `TZ=UTC`, and the production build
+- [x] Run frontend lint, the full unit/accessibility suite under `TZ=UTC`, and the production build
   using the repository's Node 22 toolchain.
-- [ ] Run the configured Playwright E2E suite if the installed browser environment remains
+- [x] Run the configured Playwright E2E suite if the installed browser environment remains
   available; report an environment failure as `NOT RUN`, not a pass.
-- [ ] Run `git diff --check` and confirm the diff contains only this plan and the focused test fix.
+- [x] Run `git diff --check` and confirm the diff contains only this plan and the focused test fix.
 - [ ] Commit and push the branch only after local checks pass.
 - [ ] Inspect the resulting GitHub Actions run and record whether the frontend unit, build, and
   browser steps pass; do not claim the fix complete while the current-head UI job is failing.
@@ -115,6 +123,17 @@ Edge and failure cases:
 **Acceptance:** The complete local frontend gate passes under UTC and the GitHub Actions
 `Frontend / Node 22` job passes on the pushed fix commit, including unit/accessibility tests,
 production build, and configured browser E2E.
+
+Local verification (2026-08-14): PARTIAL pending current-head GitHub proof. With Node 22.13.0,
+npm 10.9.0, and `TZ=UTC`, ESLint passed, all 8 Vitest files/59 tests passed, and the production
+build transformed 284 modules successfully. The complete local Playwright invocation passed all
+five scenarios in Chrome Stable, Edge Stable, and WebKit (15 passed) but the installed Firefox
+runtime failed all five before application navigation at `browserContext.newPage` with
+`Cannot read properties of undefined (reading '_page')`. A one-test Firefox rerun without `TZ`
+failed identically, and a forced refresh of the exact Playwright 1.61.1 Firefox 151.0 managed
+runtime did not change the pre-page failure, proving the error is independent of this timezone
+assertion. This local Firefox result is an environment failure, not a product pass; the workflow's
+fresh Ubuntu Playwright installation and four-browser run remain required for acceptance.
 
 Requirements: NFR10, NFR18, NFR19, AC9.
 

@@ -505,6 +505,11 @@ test('allows code-completion tasks to edit and submit Qiskit code', async () => 
 })
 
 test('shows retained student attempt history and the latest existing feedback', async () => {
+  const latestSubmittedAt = '2026-07-26T08:30:00Z'
+  const latestSubmittedLabel = new Date(latestSubmittedAt).toLocaleString('en-AU', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
     if (url.endsWith('/draft')) return response(null)
@@ -540,7 +545,7 @@ test('shows retained student attempt history and the latest existing feedback', 
         feedback: 'Validated feedback',
         feedback_reference: 'attempt-2',
         points_awarded: 100,
-        submitted_at: '2026-07-26T08:30:00Z',
+        submitted_at: latestSubmittedAt,
       },
       {
         id: 'attempt-1',
@@ -574,7 +579,7 @@ test('shows retained student attempt history and the latest existing feedback', 
   expect(await screen.findByText('2 attempts')).toBeInTheDocument()
   expect(screen.getByText('#2')).toBeInTheDocument()
   expect(screen.getByText('90%')).toBeInTheDocument()
-  expect(screen.getByText('26 July 2026, 6:30 pm')).toBeInTheDocument()
+  expect(screen.getByText(latestSubmittedLabel)).toHaveAttribute('datetime', latestSubmittedAt)
   expect(screen.getByText('submitted')).toBeInTheDocument()
   expect(await screen.findByText('Review how relative phase changes interference.')).toBeInTheDocument()
   expect(fetchMock.mock.calls.some(([input]) =>
