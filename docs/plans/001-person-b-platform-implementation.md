@@ -300,24 +300,49 @@ Files:
 
 - New `docs/learnlens/baseline-verification.md`
 - `.github/workflows/quality.yml` only if a command is demonstrably stale or incomplete
+- `src-main/backend/pyproject.toml` and `src-main/backend/uv.lock` only for the minimum audited
+  Python dependency fix
+- `src-main/.nvmrc`, `src-main/frontend/package.json`, and
+  `src-main/frontend/package-lock.json` only for the minimum supported Node floor and audited
+  transitive dependency fixes
+- `src-main/backend/app/core/security.py`, `app/schemas/__init__.py`,
+  `app/services/feedback/providers.py`, and `app/services/rag/feedback_adapter.py` only for the
+  exact mechanical formatting reported by the pinned baseline formatter
 - Existing backend/frontend tests and scripts
 
 Changes:
 
-- [ ] Record the verified commit, operating system, Python/Node/npm/uv versions, commands, durations, results, and limitations.
-- [ ] Run targeted analytics tests first, then backend Ruff, format, tests/coverage, migration tests, OpenAPI drift, and generated-contract drift.
-- [ ] Run frontend lint, unit/accessibility tests, build, and browser E2E where installed browsers permit.
-- [ ] Run Python and npm dependency audits and the available secret/privacy scan.
-- [ ] Record `NOT RUN`, `BLOCKED`, flaky, or environment-limited results verbatim.
-- [ ] Do not edit CI to hide a local toolchain failure; restore/use the documented locked toolchain instead.
+- [x] Record the verified commit, operating system, Python/Node/npm/uv versions, commands, durations, results, and limitations.
+- [x] Run targeted analytics tests first, then backend Ruff, format, tests/coverage, migration tests, OpenAPI drift, and generated-contract drift.
+- [x] Run frontend lint, unit/accessibility tests, build, and browser E2E where installed browsers permit.
+- [x] Run Python and npm dependency audits and the available secret/privacy scan.
+- [x] Record `NOT RUN`, `BLOCKED`, flaky, or environment-limited results verbatim.
+- [x] Do not edit CI to hide a local toolchain failure; restore/use the documented locked toolchain instead.
+- [x] Apply the pinned Ruff formatter only to the four clean baseline files it reports, with no
+  semantic change and no expansion to unrelated files.
+- [x] Raise stale tool/runtime pins and dependency locks only to the minimum versions that satisfy
+  current engine constraints and remove the reproduced high-severity audit findings.
 
 Edge and failure cases:
 
 - The current lack of `uv` on PATH is an environment limit until resolved; `.venv` test results do not prove `uv --frozen` lock fidelity.
 - A browser installer or network failure is not an application failure and is not a pass.
 - Existing user-owned databases, logs, and unrelated files are not deleted or rewritten.
+- Formatter repair is limited to the exact reported files; any additional formatting failure
+  requires another plan update before editing.
+- Audit repair must not introduce a major dependency upgrade or product behaviour change; rerun
+  lock checks, full tests, builds, contracts, and both full/production audits afterward.
 
 **Acceptance:** The baseline record contains every current CI command and exact result; all runnable gates pass after Step 2 or the plan stops before feature implementation with a named blocker.
+
+Verification (2026-08-14): PASS for the runnable local baseline. `docs/learnlens/baseline-verification.md`
+records the environment, commands, durations, initial failures, bounded repairs, final results,
+and non-claims. Final proof includes 388 backend tests at 83.41% service coverage, four migration
+tests, current OpenAPI/generated contracts, 59 frontend unit/accessibility tests, a production
+build, 20 Playwright scenarios across four configured projects, zero Python/npm audit findings,
+and a 31-commit Gitleaks scan with no leaks. Native Safari, manual screen readers/zoom/reflow,
+hosted availability/TLS, load/scale, restore drill, external evaluator/cost datasets, and human
+usability studies remain `NOT RUN` with named owners/effects in the baseline record.
 
 Requirements: B1, NFR10, AC9.
 

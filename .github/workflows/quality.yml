@@ -32,7 +32,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v6
         with:
-          version: "0.11.12"
+          version: "0.11.15"
           enable-cache: true
           cache-dependency-glob: src-main/backend/uv.lock
 
@@ -91,7 +91,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v6
         with:
-          version: "0.11.12"
+          version: "0.11.15"
           enable-cache: true
           cache-dependency-glob: src-main/backend/uv.lock
 
@@ -144,7 +144,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v6
         with:
-          version: "0.11.12"
+          version: "0.11.15"
 
       - uses: actions/setup-node@v4
         with:
