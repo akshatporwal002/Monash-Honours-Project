@@ -360,9 +360,9 @@ Changes:
 - [ ] Record the exact Person A DTO import path, assessment definition/version IDs, response-version ID, task-form version, evidence-reference fields, and compatibility policy.
 - [ ] Define a Person B port that accepts response/task/version references and returns immutable `EvidenceReference` values.
 - [ ] Define a read-only formal-result summary provider for progress projection; it cannot be imported by adaptation, learner-model, research, feedback-generation, or gamification code.
-- [ ] Enumerate forbidden formal-result inputs: research condition/consent, demographics, confidence, time, retries, hints, points, access support, learner-model estimates, and progress state.
+- [x] Enumerate forbidden formal-result inputs: research condition/consent, demographics, confidence, time, retries, hints, points, access support, learner-model estimates, and progress state.
 - [ ] Add import/dependency tests proving Person B modules do not import Person A ORM models or result services.
-- [ ] Stop dependent steps if A1 has not frozen the DTOs; do not invent temporary assessment enums.
+- [x] Stop dependent steps if A1 has not frozen the DTOs; do not invent temporary assessment enums.
 
 Edge and failure cases:
 
@@ -371,6 +371,15 @@ Edge and failure cases:
 - A stale response, task, source, or rule version returns a conflict/reference-invalid outcome.
 
 **Acceptance:** Both workstreams approve the checked-in contract; dependency tests pass; Person B can create and resolve an evidence reference without importing shared LMS ORM models or constructing a formal result.
+
+Gate verification (2026-08-14): `BLOCKED`. A live `git ls-remote --heads origin` check found
+`origin/main` still at `52d45828f0a6e528a9a5736c4cc2a0cdc0009f6a` and no published Person A
+A1 branch. The repository has no `app/schemas/assessment.py`, frozen evidence-reference DTO,
+assessment/version-field contract, or approved Quality Judge compatibility policy. The durable
+handoff record now enumerates the specification-fixed isolation rules, forbidden inputs, exact A1
+deliverables, dependency tests, approval requirements, and unblock procedure. No temporary DTO,
+assessment enum, evidence port, or dependent Step 5 source has been created. The acceptance line
+remains unproved until Person A publishes and approves A1 and the port tests pass.
 
 Requirements: Handoff 1, FR17, FR19, BP13, BP15, AT20, AT21, AT23.
 
