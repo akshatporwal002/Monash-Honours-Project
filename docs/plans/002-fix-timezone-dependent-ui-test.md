@@ -1,6 +1,6 @@
 # 002: Fix timezone-dependent attempt-history UI test
 
-Status: proposed
+Status: approved; implementation verification in progress
 
 Owner: Codex
 
