@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft Implementation Plan"
+  short_description: "Ground evidence and write executable plans"
+  default_prompt: "Use $draft-implementation-plan to inspect the repository and write a grounded implementation plan."

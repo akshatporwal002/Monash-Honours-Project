@@ -1,0 +1,44 @@
+version: 1
+project: "LearnLens"
+workflow: ".agents/workflows/change-delivery.md"
+context_template: ".agents/context/change-record-template.md"
+
+source_order:
+  - "docs/01-implementation-requirements.md"
+  - "docs/02-pass-incomplete-bloom-assessment-spec.md"
+  - "docs/03-codex-implementation-work-order.md"
+  - "src-main"
+  - ".github/workflows/quality.yml"
+
+states:
+  - "grounding"
+  - "planned"
+  - "implementing"
+  - "testing"
+  - "local_review"
+  - "pr_ready"
+  - "blocked"
+
+agents:
+  github_workflow:
+    definition: ".agents/agents/github-workflow-agent.md"
+    skills:
+      - "draft-implementation-plan"
+      - "draft-pull-request"
+      - "write-commit-message"
+  code_reviewer:
+    definition: ".agents/agents/code-reviewer-agent.md"
+  test_judge:
+    definition: ".agents/agents/test-judge-agent.md"
+  code_quality_reviewer:
+    definition: ".agents/agents/code-quality-reviewer-agent.md"
+
+gates:
+  - "grounded"
+  - "plan_written"
+  - "implementation_matches_plan"
+  - "tests_approved"
+  - "code_review_approved"
+  - "code_quality_approved"
+  - "github_checks_passed"
+  - "human_review_requested"

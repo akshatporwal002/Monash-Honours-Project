@@ -1,0 +1,4 @@
+interface:
+  display_name: "Draft Pull Request"
+  short_description: "Draft a plan-matched pull request"
+  default_prompt: "Use $draft-pull-request to draft a pull request that mirrors the approved plan and test evidence."

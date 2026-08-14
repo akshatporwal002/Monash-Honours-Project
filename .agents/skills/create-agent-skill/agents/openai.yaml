@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Agent Skill"
+  short_description: "Create and validate project agent skills"
+  default_prompt: "Use $create-agent-skill to create a concise, validated skill for this agent harness."

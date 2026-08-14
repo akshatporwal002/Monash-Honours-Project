@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Commit Message"
+  short_description: "Write grounded conventional commit messages"
+  default_prompt: "Use $write-commit-message to draft a commit message from the staged diff."
