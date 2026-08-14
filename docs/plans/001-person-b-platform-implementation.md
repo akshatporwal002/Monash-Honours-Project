@@ -233,12 +233,12 @@ Files:
 
 Changes:
 
-- [ ] Add exactly one row for FR1-FR39, PD1-PD12, BP1-BP15, NFR1-NFR31, AC1-AC22, and AT1-AT24.
-- [ ] Give every row one allowed status: `IMPLEMENTED`, `PARTIAL`, `MISSING`, `CONFLICTING`, or `UNVERIFIED`.
-- [ ] Cite exact source symbols, test names, runtime commands/results, the remaining gap, and the planned step(s).
-- [ ] Distinguish existing older-MVP proof from the new controlling requirements.
-- [ ] Mark browser, load, manual accessibility, evaluator-validation, hosted, and user-study claims `UNVERIFIED` unless current evidence proves them.
-- [ ] Add a validator that checks completeness, unique IDs, allowed statuses, non-empty proof/gap/test cells, and valid planned-step references.
+- [x] Add exactly one row for FR1-FR39, PD1-PD12, BP1-BP15, NFR1-NFR31, AC1-AC22, and AT1-AT24.
+- [x] Give every row one allowed status: `IMPLEMENTED`, `PARTIAL`, `MISSING`, `CONFLICTING`, or `UNVERIFIED`.
+- [x] Cite exact source symbols, test names, runtime commands/results, the remaining gap, and the planned step(s).
+- [x] Distinguish existing older-MVP proof from the new controlling requirements.
+- [x] Mark browser, load, manual accessibility, evaluator-validation, hosted, and user-study claims `UNVERIFIED` unless current evidence proves them.
+- [x] Add a validator that checks completeness, unique IDs, allowed statuses, non-empty proof/gap/test cells, and valid planned-step references.
 
 Edge and failure cases:
 
@@ -247,6 +247,12 @@ Edge and failure cases:
 - A requirement may cite multiple implementation steps, but it still has one canonical matrix row.
 
 **Acceptance:** `python src-main/scripts/validate_gap_matrix.py docs/learnlens/implementation-gap-matrix.md` and `pytest src-main/backend/tests/test_gap_matrix.py` pass; manual ID counts are FR=39, PD=12, BP=15, NFR=31, AC=22, AT=24.
+
+Verification (2026-08-14): PASS. The validator reported 143 canonical rows with FR=39, PD=12,
+BP=15, NFR=31, AC=22, and AT=24. The targeted test command using the repository Python 3.11
+virtual environment reported `3 passed`. Targeted Ruff check and format check both passed, and
+`git diff --check` passed. This proves matrix structure and the validator behaviour; each row still
+records its own runtime, external, or policy limitations and is not promoted beyond that evidence.
 
 Requirements: Phase 0 gate, B1, NFR10, AC9.
 
