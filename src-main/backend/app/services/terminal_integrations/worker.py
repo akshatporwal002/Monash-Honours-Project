@@ -130,7 +130,7 @@ class TerminalIntegrationWorker:
             return
         if claim.integration_type is TerminalIntegrationType.RESEARCH_PAIR:
             seed = self._research_seed(claim)
-            SqlAlchemyResearchJobRepository(self._session).create_pair(seed)
+            SqlAlchemyResearchJobRepository(self._session, now=self._now).create_pair(seed)
             return
         raise TerminalIntegrationPayloadError("terminal integration payload is invalid")
 

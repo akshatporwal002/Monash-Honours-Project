@@ -54,6 +54,10 @@ def _uuid() -> str:
     return str(uuid4())
 
 
+def _now() -> datetime:
+    return datetime.now(UTC)
+
+
 def _utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
@@ -83,10 +87,12 @@ class SqlAlchemyResearchJobRepository(ResearchBaselineJobRepository):
         *,
         lease_duration: timedelta = timedelta(minutes=5),
         uuid_factory: Callable[[], str] = _uuid,
+        now: Callable[[], datetime] = _now,
     ) -> None:
         self._session = session
         self._lease_duration = lease_duration
         self._uuid_factory = uuid_factory
+        self._now = now
 
     def create_pair(self, seed: ResearchCaseSeed) -> None:
         self._validate_seed(seed)
@@ -113,7 +119,7 @@ class SqlAlchemyResearchJobRepository(ResearchBaselineJobRepository):
                 final_judge.quality_policy_version if final_judge is not None else None
             ),
         }
-        completed_at = datetime.now(UTC)
+        created_at = _utc(self._now())
         shared = {
             "case_id": seed.case_id,
             "workflow_run_id": seed.workflow_run_id,
@@ -160,7 +166,8 @@ class SqlAlchemyResearchJobRepository(ResearchBaselineJobRepository):
             **_judge_fields(seed.final_judge, prefix="final"),
             **final_scores,
             status=ResearchStatus.COMPLETED,
-            completed_at=completed_at,
+            created_at=created_at,
+            completed_at=created_at,
         )
         baseline = ResearchEvaluation(
             id=self._uuid_factory(),
@@ -184,6 +191,7 @@ class SqlAlchemyResearchJobRepository(ResearchBaselineJobRepository):
             retrieval_request_count=0,
             retrieval_hit_count=0,
             status=ResearchStatus.PENDING,
+            created_at=created_at,
         )
         self._session.add_all([agentic, baseline])
         try:

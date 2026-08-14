@@ -231,6 +231,31 @@ def test_create_pair_canonicalizes_cost_for_exact_storage_replay(
     assert agentic.estimated_cost == Decimal("0.030000")
 
 
+def test_create_pair_uses_one_normalized_injected_creation_time(
+    db_session: Session,
+) -> None:
+    workflow_record = workflow(db_session)
+    repository = SqlAlchemyResearchJobRepository(
+        db_session,
+        now=lambda: NOW.replace(tzinfo=None),
+    )
+
+    repository.create_pair(seed(workflow_record.id))
+
+    rows = list(db_session.scalars(select(ResearchEvaluation)))
+    assert {row.created_at for row in rows} == {NOW.replace(tzinfo=None)}
+    agentic = next(
+        row for row in rows if row.experimental_condition is ExperimentalCondition.AGENTIC_RAG
+    )
+    baseline = next(
+        row
+        for row in rows
+        if row.experimental_condition is ExperimentalCondition.SINGLE_STEP_BASELINE
+    )
+    assert agentic.completed_at == NOW.replace(tzinfo=None)
+    assert baseline.completed_at is None
+
+
 def test_stale_baseline_claim_is_fenced_and_measurements_are_separated(
     db_session: Session,
 ) -> None:

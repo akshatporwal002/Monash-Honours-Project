@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.models.continuation import ContinuationJob
 from app.models.enums import (
+    ExperimentalCondition,
     TerminalIntegrationFailureCategory,
     TerminalIntegrationState,
     TerminalIntegrationType,
@@ -389,6 +390,20 @@ def test_worker_reconciles_eligible_research_pair_only_after_terminal_commit(
     }
     research_rows = list(db_session.scalars(select(ResearchEvaluation)))
     assert {row.correlation_id for row in research_rows} == {context.correlation_id}
+    observed_at = (NOW + timedelta(seconds=2)).replace(tzinfo=None)
+    assert {row.created_at for row in research_rows} == {observed_at}
+    agentic = next(
+        row
+        for row in research_rows
+        if row.experimental_condition is ExperimentalCondition.AGENTIC_RAG
+    )
+    baseline = next(
+        row
+        for row in research_rows
+        if row.experimental_condition is ExperimentalCondition.SINGLE_STEP_BASELINE
+    )
+    assert agentic.completed_at == observed_at
+    assert baseline.completed_at is None
     serialized_payloads = " ".join(
         str(payload) for payload in db_session.scalars(select(TerminalIntegrationOutbox.payload))
     ).lower()

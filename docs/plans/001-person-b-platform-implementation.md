@@ -268,13 +268,13 @@ Files:
 
 Changes:
 
-- [ ] Replace `SqlAlchemyResearchJobRepository.create_pair`'s direct `datetime.now(UTC)` call with an injected UTC clock or explicit creation time.
-- [ ] Persist the same observed creation time on both paired research rows and use a separately explicit completion time where required.
-- [ ] Pass `TerminalIntegrationWorker._now` through the research repository boundary so deterministic workflow time and analytics time agree.
-- [ ] Give direct analytics fixtures explicit `created_at` values rather than relying on wall-clock defaults.
-- [ ] Preserve the existing half-open `[start_at, end_at)` filter and incomplete-pair exclusion rules.
-- [ ] Add boundary tests for a row at `start_at`, a row immediately before `end_at`, and a row exactly at `end_at`.
-- [ ] Add a regression test proving a historical fixed-time test remains stable when the host wall clock advances.
+- [x] Replace `SqlAlchemyResearchJobRepository.create_pair`'s direct `datetime.now(UTC)` call with an injected UTC clock or explicit creation time.
+- [x] Persist the same observed creation time on both paired research rows and use a separately explicit completion time where required.
+- [x] Pass `TerminalIntegrationWorker._now` through the research repository boundary so deterministic workflow time and analytics time agree.
+- [x] Give direct analytics fixtures explicit `created_at` values rather than relying on wall-clock defaults.
+- [x] Preserve the existing half-open `[start_at, end_at)` filter and incomplete-pair exclusion rules.
+- [x] Add boundary tests for a row at `start_at`, a row immediately before `end_at`, and a row exactly at `end_at`.
+- [x] Add a regression test proving a historical fixed-time test remains stable when the host wall clock advances.
 
 Edge and failure cases:
 
@@ -284,6 +284,13 @@ Edge and failure cases:
 - The date filter must not be weakened merely to make the tests pass.
 
 **Acceptance:** The two reproduced failures pass for the clock-root-cause fix; analytics boundary tests pass; no existing research repository, export, or half-open-filter test regresses.
+
+Verification (2026-08-14): PASS. Before the change, the two named regressions reproduced as
+`2 failed`. After the change, the widened set containing every `test_research*.py` file plus
+`test_metrics.py`, `test_analytics_application.py`, `test_terminal_integration_outbox.py`, and
+`test_person4_e2e.py` reported `57 passed` in 8.53 seconds. Targeted Ruff check and format check
+passed, as did `git diff --check`. Pytest emitted one existing Starlette/httpx deprecation warning;
+it does not affect the timestamp assertions and remains recorded for the broader baseline.
 
 Requirements: B1, NFR10, NFR17, NFR23, AC9.
 

@@ -169,6 +169,7 @@ def test_sql_analytics_use_half_open_filters_roster_and_terminal_research(
                 unsupported_claim_count=0,
                 quality_policy_version="quality-policy-v1",
                 status=ResearchStatus.COMPLETED,
+                created_at=NOW,
                 completed_at=NOW,
             ),
             ResearchEvaluation(
@@ -190,6 +191,7 @@ def test_sql_analytics_use_half_open_filters_roster_and_terminal_research(
                 measurement_schema_version="research-v1",
                 comparable=True,
                 status=ResearchStatus.PENDING,
+                created_at=NOW,
             ),
         ]
     )
@@ -228,6 +230,50 @@ def test_sql_analytics_use_half_open_filters_roster_and_terminal_research(
     assert options.courses == ["course-1"]
     assert options.task_types == ["short_answer"]
     assert options.models == ["model"]
+
+
+def test_research_analytics_use_half_open_created_at_boundaries(
+    db_session: Session,
+) -> None:
+    start_at = NOW - timedelta(days=1)
+    end_at = NOW + timedelta(days=1)
+
+    def record(case_id: str, created_at: datetime) -> ResearchEvaluation:
+        return ResearchEvaluation(
+            case_id=case_id,
+            pseudonymous_user_id=ACTIVE,
+            course_id="course-1",
+            task_id="task-1",
+            task_type="short_answer",
+            submission_reference=f"v1_{case_id[-1] * 64}",
+            experimental_condition=ExperimentalCondition.SINGLE_STEP_BASELINE,
+            prompt_version="baseline-v1",
+            provider="provider",
+            model="model",
+            created_at=created_at,
+        )
+
+    db_session.add_all(
+        [
+            record("case-at-start-a", start_at),
+            record("case-before-end-b", end_at - timedelta(microseconds=1)),
+            record("case-at-end-c", end_at),
+        ]
+    )
+    db_session.commit()
+
+    records = SqlAlchemyAnalyticsRepository(db_session).research_records(
+        AnalyticsQuery(
+            course_ids=("course-1",),
+            start_at=start_at,
+            end_at=end_at,
+        )
+    )
+
+    assert {record.case_id for record in records} == {
+        "case-at-start-a",
+        "case-before-end-b",
+    }
 
 
 def test_inactivity_uses_latest_activity_before_historical_range_end(
