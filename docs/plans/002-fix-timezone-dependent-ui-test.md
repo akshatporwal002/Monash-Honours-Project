@@ -1,6 +1,6 @@
 # 002: Fix timezone-dependent attempt-history UI test
 
-Status: approved; implementation verification in progress
+Status: implemented; final current-head verification in progress
 
 Owner: Codex
 
@@ -108,8 +108,8 @@ Changes:
 - [x] Run the configured Playwright E2E suite if the installed browser environment remains
   available; report an environment failure as `NOT RUN`, not a pass.
 - [x] Run `git diff --check` and confirm the diff contains only this plan and the focused test fix.
-- [ ] Commit and push the branch only after local checks pass.
-- [ ] Inspect the resulting GitHub Actions run and record whether the frontend unit, build, and
+- [x] Commit and push the branch only after local checks pass.
+- [x] Inspect the resulting GitHub Actions run and record whether the frontend unit, build, and
   browser steps pass; do not claim the fix complete while the current-head UI job is failing.
 
 Edge and failure cases:
@@ -134,6 +134,14 @@ failed identically, and a forced refresh of the exact Playwright 1.61.1 Firefox 
 runtime did not change the pre-page failure, proving the error is independent of this timezone
 assertion. This local Firefox result is an environment failure, not a product pass; the workflow's
 fresh Ubuntu Playwright installation and four-browser run remain required for acceptance.
+
+GitHub verification (2026-08-14): PASS on implementation head `5636862`. Quality and release gate
+run `31788112901` completed successfully. `Frontend / Node 22` passed locked installs, ESLint, the
+unit/accessibility step that previously failed, production build, Playwright browser installation,
+and Browser E2E. Backend/Python, dependency audit, and secret scan jobs also passed. This evidence
+closes the original Ubuntu timezone failure and supplies the fresh-run Firefox/browser proof that
+the local Windows environment could not provide. The final documentation-only evidence commit
+must receive its own current-head workflow result before review readiness is claimed.
 
 Requirements: NFR10, NFR18, NFR19, AC9.
 
