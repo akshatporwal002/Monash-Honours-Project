@@ -8,7 +8,9 @@ Created: 2026-08-15
 
 Target branch: `main` at `cc79df39a9fc01eeb56a72804c45330f6fdc3680`
 
-Implementation branch: create `codex/person-a-assessment` from the verified target after this plan is approved.
+Implementation branch: `codex/person-a-assessment-step-1`
+
+Current draft PR scope: Step 1 only. Steps 2 to 20 remain planned future changes.
 
 ## Outcome
 
