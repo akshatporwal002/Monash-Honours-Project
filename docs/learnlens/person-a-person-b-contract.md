@@ -4,7 +4,7 @@ Status: `PERSON A APPROVED`, pending Person B approval
 
 Recorded: 2026-08-15
 
-Person A branch: `codex/person-a-assessment-step-1`
+Person A branch: `arv-person-a-assessment`
 
 Person B branch: `codex/person-b-platform`
 

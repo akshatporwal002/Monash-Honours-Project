@@ -8,9 +8,10 @@ Created: 2026-08-15
 
 Target branch: `main` at `cc79df39a9fc01eeb56a72804c45330f6fdc3680`
 
-Implementation branch: `codex/person-a-assessment-step-1`
+Implementation branch: `arv-person-a-assessment`
 
-Current draft PR scope: Step 1 only. Steps 2 to 20 remain planned future changes.
+Current draft PR scope: the full 20-step Person A workstream. Step 1 is complete. Steps 2 to 20
+remain pending in the same draft PR.
 
 ## Outcome
 
@@ -1248,9 +1249,8 @@ named configuration or handoff gate.
 
 ## PR mapping
 
-Each Person A implementation PR must mirror every included step, checklist, acceptance line,
-requirement, test, migration, risk, handoff, missing decision, and limit. This draft PR mirrors
-Step 1. Steps 2 to 20 will use later reviewable PRs.
+The Person A implementation PR must mirror all 20 steps, their checklists, acceptance lines,
+requirements, tests, migrations, risks, handoffs, missing decisions, and limits.
 
 Use one independently reviewable commit per numbered step. Combine adjacent test or documentation
 commits only when the acceptance proof remains clear.
