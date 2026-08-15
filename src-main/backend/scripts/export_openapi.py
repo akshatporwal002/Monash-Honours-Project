@@ -9,15 +9,47 @@ import argparse
 import json
 from pathlib import Path
 
+from pydantic import TypeAdapter
+
 from app.main import create_app
+from app.schemas.assessment import ASSESSMENT_CONTRACT_TYPES
 
 DEFAULT_OUTPUT = Path(__file__).resolve().parents[2] / "contracts" / "openapi.json"
+
+
+def assessment_contract_schemas() -> dict[str, object]:
+    """Build OpenAPI components for route-independent frozen contracts."""
+    schemas: dict[str, object] = {}
+    for contract_type in ASSESSMENT_CONTRACT_TYPES:
+        schema = TypeAdapter(contract_type).json_schema(ref_template="#/components/schemas/{model}")
+        definitions = schema.pop("$defs", {})
+        for name, definition in definitions.items():
+            _add_schema(schemas, name, definition)
+        _add_schema(schemas, contract_type.__name__, schema)
+    return schemas
+
+
+def _add_schema(schemas: dict[str, object], name: str, schema: object) -> None:
+    existing = schemas.get(name)
+    if existing is not None and existing != schema:
+        raise ValueError(f"conflicting OpenAPI schema definition: {name}")
+    schemas[name] = schema
+
+
+def openapi_document() -> dict[str, object]:
+    """Return the route contract plus frozen cross-person contract schemas."""
+    document = create_app().openapi()
+    components = document.setdefault("components", {})
+    schemas = components.setdefault("schemas", {})
+    for name, schema in assessment_contract_schemas().items():
+        _add_schema(schemas, name, schema)
+    return document
 
 
 def rendered_contract() -> str:
     return (
         json.dumps(
-            create_app().openapi(),
+            openapi_document(),
             ensure_ascii=False,
             indent=2,
             sort_keys=True,

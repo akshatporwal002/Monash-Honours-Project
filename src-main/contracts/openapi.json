@@ -1,6 +1,41 @@
 {
   "components": {
     "schemas": {
+      "AccessDeniedEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reference_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Reference Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "ACCESS_DENIED",
+            "default": "ACCESS_DENIED",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "reference_id",
+          "reason_code"
+        ],
+        "title": "AccessDeniedEvidenceReference",
+        "type": "object"
+      },
       "AchievementRead": {
         "additionalProperties": false,
         "properties": {
@@ -309,6 +344,148 @@
         "title": "AnalyticsFilterSnapshot",
         "type": "object"
       },
+      "AssessmentPurpose": {
+        "enum": [
+          "DIAGNOSTIC",
+          "FORMATIVE",
+          "AS_LEARNING",
+          "SUMMATIVE",
+          "RESEARCH"
+        ],
+        "title": "AssessmentPurpose",
+        "type": "string"
+      },
+      "AssessmentResult": {
+        "enum": [
+          "PASS",
+          "INCOMPLETE"
+        ],
+        "title": "AssessmentResult",
+        "type": "string"
+      },
+      "AssessmentVersionReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_attempt_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "assessment_definition_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Definition Id",
+            "type": "string"
+          },
+          "assessment_definition_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Assessment Definition Version",
+            "type": "integer"
+          },
+          "bloom_target_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Bloom Target Id",
+            "type": "string"
+          },
+          "bloom_target_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Bloom Target Version",
+            "type": "integer"
+          },
+          "course_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "criterion_set_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Criterion Set Id",
+            "type": "string"
+          },
+          "criterion_set_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Criterion Set Version",
+            "type": "integer"
+          },
+          "outcome_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "outcome_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Outcome Version",
+            "type": "integer"
+          },
+          "pass_rule_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Pass Rule Id",
+            "type": "string"
+          },
+          "pass_rule_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Pass Rule Version",
+            "type": "integer"
+          },
+          "response_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "task_form_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Task Form Version",
+            "type": "integer"
+          },
+          "task_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_id",
+          "assessment_definition_id",
+          "assessment_definition_version",
+          "outcome_id",
+          "outcome_version",
+          "bloom_target_id",
+          "bloom_target_version",
+          "criterion_set_id",
+          "criterion_set_version",
+          "pass_rule_id",
+          "pass_rule_version",
+          "task_id",
+          "task_form_version",
+          "assessment_attempt_id",
+          "response_version_id"
+        ],
+        "title": "AssessmentVersionReference",
+        "type": "object"
+      },
       "AttemptRead": {
         "additionalProperties": false,
         "properties": {
@@ -435,6 +612,28 @@
         ],
         "title": "AuthenticatedUserResponse",
         "type": "object"
+      },
+      "BloomKnowledge": {
+        "enum": [
+          "FACTUAL",
+          "CONCEPTUAL",
+          "PROCEDURAL",
+          "METACOGNITIVE"
+        ],
+        "title": "BloomKnowledge",
+        "type": "string"
+      },
+      "BloomProcess": {
+        "enum": [
+          "REMEMBER",
+          "UNDERSTAND",
+          "APPLY",
+          "ANALYSE",
+          "EVALUATE",
+          "CREATE"
+        ],
+        "title": "BloomProcess",
+        "type": "string"
       },
       "Body_upload_course_material_api_v1_courses__course_id__materials_upload_post": {
         "properties": {
@@ -564,6 +763,46 @@
           "fallback_rate"
         ],
         "title": "ConditionMetrics",
+        "type": "object"
+      },
+      "ConflictingEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "evidence_ids": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 2,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "status": {
+            "const": "CONFLICT",
+            "default": "CONFLICT",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "evidence_ids",
+          "reason_code"
+        ],
+        "title": "ConflictingEvidenceReference",
         "type": "object"
       },
       "CourseCreate": {
@@ -780,6 +1019,15 @@
         },
         "title": "CourseUpdate",
         "type": "object"
+      },
+      "CriterionDecision": {
+        "enum": [
+          "MET",
+          "NOT_MET",
+          "NOT_EVALUABLE"
+        ],
+        "title": "CriterionDecision",
+        "type": "string"
       },
       "DraftRead": {
         "additionalProperties": false,
@@ -1146,6 +1394,127 @@
         "title": "EnrollmentStatus",
         "type": "string"
       },
+      "EvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "content_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "learnlens.assessment-evidence.v1",
+            "default": "learnlens.assessment-evidence.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "evidence_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "evidence_type": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9._-]*$",
+            "title": "Evidence Type",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "record_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Record Version",
+            "type": "integer"
+          },
+          "schema_version": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_record_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Source Record Id",
+            "type": "string"
+          },
+          "source_record_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Source Record Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assessment",
+          "evidence_id",
+          "evidence_type",
+          "schema_version",
+          "record_version",
+          "content_digest",
+          "source_record_id",
+          "source_record_version",
+          "occurred_at"
+        ],
+        "title": "EvidenceReference",
+        "type": "object"
+      },
+      "EvidenceReferenceResolutionEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "resolution": {
+            "discriminator": {
+              "mapping": {
+                "ACCESS_DENIED": "#/components/schemas/AccessDeniedEvidenceReference",
+                "CONFLICT": "#/components/schemas/ConflictingEvidenceReference",
+                "INVALID": "#/components/schemas/InvalidEvidenceReference",
+                "MISSING": "#/components/schemas/MissingEvidenceReference",
+                "RESOLVED": "#/components/schemas/ResolvedEvidenceReference",
+                "STALE": "#/components/schemas/StaleEvidenceReference"
+              },
+              "propertyName": "status"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/MissingEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/StaleEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/ConflictingEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/AccessDeniedEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/InvalidEvidenceReference"
+              }
+            ],
+            "title": "Resolution"
+          }
+        },
+        "required": [
+          "resolution"
+        ],
+        "title": "EvidenceReferenceResolutionEnvelope",
+        "type": "object"
+      },
       "ExperimentalCondition": {
         "enum": [
           "agentic_rag",
@@ -1377,6 +1746,124 @@
         ],
         "title": "FeedbackWorkflowStatus",
         "type": "string"
+      },
+      "FormalResultSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_attempt_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "assessment_definition_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Definition Id",
+            "type": "string"
+          },
+          "assessor_reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Assessor Reviewed At"
+          },
+          "contract_version": {
+            "const": "learnlens.formal-result-summary.v1",
+            "default": "learnlens.formal-result-summary.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "course_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Decided At"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Decision Id"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[A-Z][A-Z0-9_]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "response_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          }
+        },
+        "required": [
+          "course_id",
+          "assessment_definition_id",
+          "assessment_attempt_id",
+          "response_version_id",
+          "result_state"
+        ],
+        "title": "FormalResultSummary",
+        "type": "object"
       },
       "FunnelStage": {
         "additionalProperties": false,
@@ -1660,6 +2147,44 @@
           "total"
         ],
         "title": "InactiveLearnerPage",
+        "type": "object"
+      },
+      "InvalidEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reference_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reference Id"
+          },
+          "status": {
+            "const": "INVALID",
+            "default": "INVALID",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code"
+        ],
+        "title": "InvalidEvidenceReference",
         "type": "object"
       },
       "JudgeDecision": {
@@ -2281,6 +2806,51 @@
         "title": "MetricValue",
         "type": "object"
       },
+      "MisconceptionState": {
+        "enum": [
+          "PERSISTED",
+          "WEAKENED",
+          "CORRECTED",
+          "UNCERTAIN"
+        ],
+        "title": "MisconceptionState",
+        "type": "string"
+      },
+      "MissingEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "evidence_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "status": {
+            "const": "MISSING",
+            "default": "MISSING",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "evidence_id",
+          "reason_code"
+        ],
+        "title": "MissingEvidenceReference",
+        "type": "object"
+      },
       "ModuleCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2608,6 +3178,14 @@
         "title": "PairedDifferences",
         "type": "object"
       },
+      "QualityReviewDecision": {
+        "enum": [
+          "APPROVED",
+          "REJECTED"
+        ],
+        "title": "QualityReviewDecision",
+        "type": "string"
+      },
       "ReadinessResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2821,6 +3399,36 @@
         ],
         "title": "ResearchMetricsResult",
         "type": "object"
+      },
+      "ResolvedEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/EvidenceReference"
+          },
+          "status": {
+            "const": "RESOLVED",
+            "default": "RESOLVED",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference"
+        ],
+        "title": "ResolvedEvidenceReference",
+        "type": "object"
+      },
+      "ResultState": {
+        "enum": [
+          "NOT_ASSESSED",
+          "PROVISIONAL",
+          "CONFIRMED",
+          "OVERRIDDEN",
+          "VOID"
+        ],
+        "title": "ResultState",
+        "type": "string"
       },
       "RetrievalHitRead": {
         "additionalProperties": false,
@@ -3198,6 +3806,46 @@
         "title": "SimulationRequest",
         "type": "object"
       },
+      "StaleEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "mismatched_fields": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Mismatched Fields",
+            "type": "array"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/EvidenceReference"
+          },
+          "status": {
+            "const": "STALE",
+            "default": "STALE",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "mismatched_fields",
+          "reason_code"
+        ],
+        "title": "StaleEvidenceReference",
+        "type": "object"
+      },
       "StudentDashboardRead": {
         "additionalProperties": false,
         "properties": {
@@ -3357,6 +4005,18 @@
         },
         "title": "SubmissionCreate",
         "type": "object"
+      },
+      "SubmissionState": {
+        "enum": [
+          "NOT_STARTED",
+          "DRAFT",
+          "SUBMITTED",
+          "UNDER_REVIEW",
+          "RETURNED",
+          "COMPLETED"
+        ],
+        "title": "SubmissionState",
+        "type": "string"
       },
       "TaskChoice": {
         "additionalProperties": false,

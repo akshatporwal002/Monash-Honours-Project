@@ -2,6 +2,12 @@
 // Run: uv run --frozen python scripts/generate_frontend_contracts.py
 
 export type ApiSchemas = {
+  "AccessDeniedEvidenceReference": {
+    "assessment": ApiSchemas["AssessmentVersionReference"]
+    "reason_code": string
+    "reference_id": string
+    "status"?: "ACCESS_DENIED"
+  }
   "AchievementRead": {
     "code": string
     "description": string
@@ -48,6 +54,25 @@ export type ApiSchemas = {
     "start_at"?: (string) | (null)
     "task_types"?: Array<string>
   }
+  "AssessmentPurpose": "DIAGNOSTIC" | "FORMATIVE" | "AS_LEARNING" | "SUMMATIVE" | "RESEARCH"
+  "AssessmentResult": "PASS" | "INCOMPLETE"
+  "AssessmentVersionReference": {
+    "assessment_attempt_id": string
+    "assessment_definition_id": string
+    "assessment_definition_version": number
+    "bloom_target_id": string
+    "bloom_target_version": number
+    "course_id": string
+    "criterion_set_id": string
+    "criterion_set_version": number
+    "outcome_id": string
+    "outcome_version": number
+    "pass_rule_id": string
+    "pass_rule_version": number
+    "response_version_id": string
+    "task_form_version": number
+    "task_id": string
+  }
   "AttemptRead": {
     "answer": string
     "attempt_number": number
@@ -69,6 +94,8 @@ export type ApiSchemas = {
     "id": number
     "role": ApiSchemas["UserRole"]
   }
+  "BloomKnowledge": "FACTUAL" | "CONCEPTUAL" | "PROCEDURAL" | "METACOGNITIVE"
+  "BloomProcess": "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYSE" | "EVALUATE" | "CREATE"
   "Body_upload_course_material_api_v1_courses__course_id__materials_upload_post": {
     "file": string
   }
@@ -93,6 +120,12 @@ export type ApiSchemas = {
     "hallucination_rate": ApiSchemas["MetricValue"]
     "overall_pass_rate": ApiSchemas["MetricValue"]
     "p95_latency_ms": ApiSchemas["MetricValue"]
+  }
+  "ConflictingEvidenceReference": {
+    "assessment": ApiSchemas["AssessmentVersionReference"]
+    "evidence_ids": Array<string>
+    "reason_code": string
+    "status"?: "CONFLICT"
   }
   "CourseCreate": {
     "code"?: (string) | (null)
@@ -129,6 +162,7 @@ export type ApiSchemas = {
     "enrollment_open"?: (boolean) | (null)
     "title"?: (string) | (null)
   }
+  "CriterionDecision": "MET" | "NOT_MET" | "NOT_EVALUABLE"
   "DraftRead": {
     "answer": string
     "circuit": (Record<string, unknown>) | (null)
@@ -190,6 +224,21 @@ export type ApiSchemas = {
     "student_name": string
   }
   "EnrollmentStatus": "active" | "completed" | "withdrawn"
+  "EvidenceReference": {
+    "assessment": ApiSchemas["AssessmentVersionReference"]
+    "content_digest": string
+    "contract_version"?: "learnlens.assessment-evidence.v1"
+    "evidence_id": string
+    "evidence_type": string
+    "occurred_at": string
+    "record_version": number
+    "schema_version": string
+    "source_record_id": string
+    "source_record_version": number
+  }
+  "EvidenceReferenceResolutionEnvelope": {
+    "resolution": (ApiSchemas["ResolvedEvidenceReference"]) | (ApiSchemas["MissingEvidenceReference"]) | (ApiSchemas["StaleEvidenceReference"]) | (ApiSchemas["ConflictingEvidenceReference"]) | (ApiSchemas["AccessDeniedEvidenceReference"]) | (ApiSchemas["InvalidEvidenceReference"])
+  }
   "ExperimentalCondition": "agentic_rag" | "single_step_baseline"
   "FeedbackApiErrorDetail": {
     "code": string
@@ -226,6 +275,19 @@ export type ApiSchemas = {
     "workflow_run_id": string
   }
   "FeedbackWorkflowStatus": "processing" | "validated" | "fallback" | "failed"
+  "FormalResultSummary": {
+    "assessment_attempt_id": string
+    "assessment_definition_id": string
+    "assessor_reviewed_at"?: (string) | (null)
+    "contract_version"?: "learnlens.formal-result-summary.v1"
+    "course_id": string
+    "decided_at"?: (string) | (null)
+    "decision_id"?: (string) | (null)
+    "reason_code"?: (string) | (null)
+    "response_version_id": string
+    "result"?: (ApiSchemas["AssessmentResult"]) | (null)
+    "result_state": ApiSchemas["ResultState"]
+  }
   "FunnelStage": {
     "count": number
     "event_type": ApiSchemas["LearningEventType"]
@@ -273,6 +335,11 @@ export type ApiSchemas = {
     "page_size": number
     "schema_version"?: string
     "total": number
+  }
+  "InvalidEvidenceReference": {
+    "reason_code": string
+    "reference_id"?: (string) | (null)
+    "status"?: "INVALID"
   }
   "JudgeDecision": "pass" | "fail"
   "LabelScoreRead": {
@@ -371,6 +438,13 @@ export type ApiSchemas = {
     "unit": string
     "value": (number) | (null)
   }
+  "MisconceptionState": "PERSISTED" | "WEAKENED" | "CORRECTED" | "UNCERTAIN"
+  "MissingEvidenceReference": {
+    "assessment": ApiSchemas["AssessmentVersionReference"]
+    "evidence_id": string
+    "reason_code": string
+    "status"?: "MISSING"
+  }
   "ModuleCreate": {
     "description"?: string
     "position": number
@@ -423,6 +497,7 @@ export type ApiSchemas = {
     "relevance": ApiSchemas["MetricValue"]
     "total_tokens": ApiSchemas["MetricValue"]
   }
+  "QualityReviewDecision": "APPROVED" | "REJECTED"
   "ReadinessResponse": {
     "checks": Partial<Record<string, "ready" | "not_ready">>
     "status": "ready" | "not_ready"
@@ -462,6 +537,11 @@ export type ApiSchemas = {
     "retrieval_threshold_version"?: string
     "schema_version"?: string
   }
+  "ResolvedEvidenceReference": {
+    "reference": ApiSchemas["EvidenceReference"]
+    "status"?: "RESOLVED"
+  }
+  "ResultState": "NOT_ASSESSED" | "PROVISIONAL" | "CONFIRMED" | "OVERRIDDEN" | "VOID"
   "RetrievalHitRead": {
     "chunk_id": string
     "chunk_text": string
@@ -519,6 +599,12 @@ export type ApiSchemas = {
     "qubits"?: number
     "shots"?: number
   }
+  "StaleEvidenceReference": {
+    "mismatched_fields": Array<string>
+    "reason_code": string
+    "reference": ApiSchemas["EvidenceReference"]
+    "status"?: "STALE"
+  }
   "StudentDashboardRead": {
     "achievements": Array<ApiSchemas["AchievementRead"]>
     "courses": Array<ApiSchemas["CourseProgressRead"]>
@@ -547,6 +633,7 @@ export type ApiSchemas = {
     "circuit"?: (Record<string, unknown>) | (null)
     "code"?: (string) | (null)
   }
+  "SubmissionState": "NOT_STARTED" | "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "RETURNED" | "COMPLETED"
   "TaskChoice": {
     "id": string
     "text": string

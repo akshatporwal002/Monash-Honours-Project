@@ -1,5 +1,15 @@
 from enum import Enum
 
+from app.domain.assessment import AssessmentPurpose as AssessmentPurpose
+from app.domain.assessment import AssessmentResult as AssessmentResult
+from app.domain.assessment import BloomKnowledge as BloomKnowledge
+from app.domain.assessment import BloomProcess as BloomProcess
+from app.domain.assessment import CriterionDecision as CriterionDecision
+from app.domain.assessment import MisconceptionState as MisconceptionState
+from app.domain.assessment import QualityReviewDecision as QualityReviewDecision
+from app.domain.assessment import ResultState as ResultState
+from app.domain.assessment import SubmissionState as SubmissionState
+
 
 class WorkflowStage(str, Enum):
     PENDING = "pending"
