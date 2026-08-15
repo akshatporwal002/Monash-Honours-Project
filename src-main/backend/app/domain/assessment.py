@@ -16,6 +16,26 @@ class ResultState(StrEnum):
     VOID = "VOID"
 
 
+class AssessmentAttemptState(StrEnum):
+    PENDING = "PENDING"
+    EVALUATED = "EVALUATED"
+    FAULTED = "FAULTED"
+    VOID = "VOID"
+
+
+class AssessorReviewAction(StrEnum):
+    CONFIRM = "CONFIRM"
+    OVERRIDE = "OVERRIDE"
+    VOID = "VOID"
+    RETURN = "RETURN"
+
+
+class AppealOrCorrectionState(StrEnum):
+    PENDING = "PENDING"
+    RESOLVED = "RESOLVED"
+    WITHDRAWN = "WITHDRAWN"
+
+
 class SubmissionState(StrEnum):
     NOT_STARTED = "NOT_STARTED"
     DRAFT = "DRAFT"
@@ -69,7 +89,10 @@ class MisconceptionState(StrEnum):
 
 __all__ = [
     "AssessmentPurpose",
+    "AssessmentAttemptState",
     "AssessmentResult",
+    "AppealOrCorrectionState",
+    "AssessorReviewAction",
     "BloomKnowledge",
     "BloomProcess",
     "CriterionDecision",

@@ -71,6 +71,52 @@
         "title": "AchievementRead",
         "type": "object"
       },
+      "ActiveScopedRoleAssignmentResponse": {
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ScopedRole"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "course_id",
+          "role",
+          "version",
+          "valid_from",
+          "valid_until"
+        ],
+        "title": "ActiveScopedRoleAssignmentResponse",
+        "type": "object"
+      },
       "AdminUserCreate": {
         "additionalProperties": false,
         "properties": {
@@ -602,13 +648,21 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"
+          },
+          "scoped_assignments": {
+            "items": {
+              "$ref": "#/components/schemas/ActiveScopedRoleAssignmentResponse"
+            },
+            "title": "Scoped Assignments",
+            "type": "array"
           }
         },
         "required": [
           "id",
           "email",
           "full_name",
-          "role"
+          "role",
+          "scoped_assignments"
         ],
         "title": "AuthenticatedUserResponse",
         "type": "object"
@@ -3621,6 +3675,14 @@
         ],
         "title": "SafeFallbackView",
         "type": "object"
+      },
+      "ScopedRole": {
+        "enum": [
+          "assessor",
+          "research"
+        ],
+        "title": "ScopedRole",
+        "type": "string"
       },
       "SettingsRead": {
         "additionalProperties": false,

@@ -15,6 +15,14 @@ export type ApiSchemas = {
     "icon": string
     "name": string
   }
+  "ActiveScopedRoleAssignmentResponse": {
+    "course_id": string
+    "id": string
+    "role": ApiSchemas["ScopedRole"]
+    "valid_from": string
+    "valid_until": (string) | (null)
+    "version": number
+  }
   "AdminUserCreate": {
     "email": string
     "full_name": string
@@ -93,6 +101,7 @@ export type ApiSchemas = {
     "full_name": string
     "id": number
     "role": ApiSchemas["UserRole"]
+    "scoped_assignments": Array<ApiSchemas["ActiveScopedRoleAssignmentResponse"]>
   }
   "BloomKnowledge": "FACTUAL" | "CONCEPTUAL" | "PROCEDURAL" | "METACOGNITIVE"
   "BloomProcess": "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYSE" | "EVALUATE" | "CREATE"
@@ -572,6 +581,7 @@ export type ApiSchemas = {
     "sources"?: Array<ApiSchemas["FeedbackSourceView"]>
     "summary": string
   }
+  "ScopedRole": "assessor" | "research"
   "SettingsRead": {
     "at_risk_threshold": number
     "llm_model": string

@@ -12,7 +12,12 @@ from app.core.session import create_session_token
 from app.db.session import get_db
 from app.models.lms import PlatformAuditEvent
 from app.models.user import User
-from app.schemas.authentication import AuthenticatedUserResponse, LoginRequest
+from app.schemas.authentication import (
+    ActiveScopedRoleAssignmentResponse,
+    AuthenticatedUserResponse,
+    LoginRequest,
+)
+from app.services.assessment.access import RoleAssignmentService
 from app.services.authentication import authenticate_user, normalize_email
 
 router = APIRouter(prefix="/auth")
@@ -24,7 +29,7 @@ def login(
     request: Request,
     response: Response,
     session: Annotated[Session, Depends(get_db)],
-) -> User:
+) -> AuthenticatedUserResponse:
     user = authenticate_user(session, str(credentials.email), credentials.password)
     if user is None:
         _record_login(
@@ -64,7 +69,7 @@ def login(
         samesite="lax",
         path="/",
     )
-    return user
+    return _authenticated_user_response(session, user)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -102,8 +107,28 @@ def logout(
 
 
 @router.get("/me", response_model=AuthenticatedUserResponse)
-def current_user(user: Annotated[User, Depends(get_current_user)]) -> User:
-    return user
+def current_user(
+    session: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> AuthenticatedUserResponse:
+    return _authenticated_user_response(session, user)
+
+
+def _authenticated_user_response(
+    session: Session,
+    user: User,
+) -> AuthenticatedUserResponse:
+    assignments = RoleAssignmentService(session).list_active_assignments(user.id)
+    return AuthenticatedUserResponse(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        scoped_assignments=[
+            ActiveScopedRoleAssignmentResponse.model_validate(assignment)
+            for assignment in assignments
+        ],
+    )
 
 
 def _record_login(

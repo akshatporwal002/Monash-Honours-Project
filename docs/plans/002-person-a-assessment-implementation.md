@@ -277,26 +277,35 @@ Files:
 - `src-main/backend/app/models/user.py`
 - `src-main/backend/app/models/__init__.py`
 - `src-main/backend/app/schemas/authentication.py`
-- `src-main/backend/app/schemas/lms.py`
-- `src-main/backend/app/api/dependencies/roles.py`
 - `src-main/backend/app/api/routes/authentication.py`
-- `src-main/backend/app/services/lms.py`
+- `src-main/backend/app/core/readiness.py`
+- New `src-main/backend/app/services/assessment/__init__.py`
 - New `src-main/backend/app/services/assessment/access.py`
 - New Alembic revision under `src-main/backend/migrations/versions`
+- `src-main/contracts/openapi.json`
+- `src-main/frontend/src/api/generated.ts`
 - New `src-main/backend/tests/test_assessment_permissions.py`
 - `src-main/backend/tests/test_authentication_routes.py`
 - `src-main/backend/tests/test_lms_core_api.py`
+- `src-main/backend/tests/test_migrations.py`
 
 Changes:
 
-- [ ] Add `ScopedRole.ASSESSOR` and `ScopedRole.RESEARCH`.
-- [ ] Add versioned `RoleAssignment` records with course scope, assigning actor, reason, dates, and revocation.
-- [ ] Keep `User.role` as the primary student, educator, or administrator workspace role.
-- [ ] Return active scoped assignments from login and `/auth/me`.
-- [ ] Add reusable assessor and research access policies that recheck the database.
-- [ ] Deny educator-only, revoked, inactive, out-of-course, and cross-course requests.
-- [ ] Add audit events for assignment, change, and revocation.
-- [ ] Backfill no assessor or research grant from the current educator role.
+- [x] Add `ScopedRole.ASSESSOR` and `ScopedRole.RESEARCH`.
+- [x] Add versioned `RoleAssignment` records with course scope, assigning actor, reason, dates, and revocation.
+- [x] Keep `User.role` as the primary student, educator, or administrator workspace role.
+- [x] Return active scoped assignments from login and `/auth/me`.
+- [x] Add reusable assessor and research access policies that recheck the database.
+- [x] Deny educator-only, revoked, inactive, out-of-course, and cross-course requests.
+- [x] Add audit events for assignment, change, and revocation.
+- [x] Backfill no assessor or research grant from the current educator role.
+- [x] Fail closed when no approved assessor or research eligibility policy is supplied.
+- [x] Reject a future-dated replacement while the current assignment is active.
+- [x] Keep generic LMS course access unchanged. Scoped grants apply only through the new
+  assessor and research policies.
+- [x] Defer route transport schemas and FastAPI dependency adapters until Step 7 mounts the
+  assignment and assessment routes that consume them.
+- [x] Regenerate the committed OpenAPI and TypeScript contracts after changing authentication.
 
 Edge and failure cases:
 
@@ -313,9 +322,26 @@ Named tests:
 - `test_cross_course_assessor_and_research_access_are_denied`
 - `test_assignment_changes_are_versioned_and_audited`
 - `test_login_returns_active_assignments_without_changing_primary_role`
+- `test_assignment_requires_explicit_eligibility_policy`
+- `test_future_replacement_cannot_interrupt_active_assignment`
+- `test_concurrent_revocation_preserves_the_winning_actor_reason_and_audit`
+- `test_assign_revoke_race_does_not_regrant_from_a_stale_version`
 
 **Acceptance:** Permission tests pass. Existing student, educator, and administrator authentication
 tests still pass. No existing educator gains assessor or research access through migration.
+
+Verification on 2026-08-15:
+
+- `python -m pytest tests/test_assessment_permissions.py tests/test_authentication_routes.py`
+  with a repository-local `--basetemp`: 18 passed.
+- Full backend suite with `--cov=app.services --cov-fail-under=80`: 409 passed, 83.53% coverage.
+- `python -m pytest tests/test_migrations.py`: 5 passed.
+- `ruff check .` and `ruff format --check .`: passed.
+- OpenAPI and frontend contract generator `--check` commands: current.
+- Frontend lint, unit tests, and build: passed, including 60 tests.
+- Test Judge, Code Reviewer, and Code Quality Reviewer: `APPROVED` on the implementation diff.
+- GitHub CI: `NOT RUN`. Step 2 remains uncommitted and unpushed, and the existing PR was not
+  changed.
 
 Requirements: A3, FR1, FR20, FR38, PD12, AC1, AC16, AT17.
 
@@ -326,20 +352,23 @@ Files:
 - New `src-main/backend/app/models/assessment.py`
 - `src-main/backend/app/models/lms.py`
 - `src-main/backend/app/models/__init__.py`
+- `src-main/backend/app/core/readiness.py`
 - New Alembic revision under `src-main/backend/migrations/versions`
 - New `src-main/backend/tests/test_assessment_models.py`
 - `src-main/backend/tests/test_migrations.py`
 
 Changes:
 
-- [ ] Add stable assessment and criterion identities with immutable versions.
-- [ ] Add `OutcomeVersion`, `AssessmentDefinitionVersion`, `BloomTargetVersion`, `CriterionVersion`, `PassRuleVersion`, `TaskFormVersion`, and `TaskApproval` records.
-- [ ] Store the claim, supporting evidence, contradicting evidence, insufficient evidence, task conditions, and next-action contract.
-- [ ] Store tool, instructional support, access, transfer, purpose, result eligibility, and evidence-sufficiency fields separately.
-- [ ] Store the typed pass-rule expression outside prompts.
-- [ ] Require owner, approval state, actor, timestamps, course scope, and source versions.
-- [ ] Prevent edits to approved or retired versions. A change creates a new version.
-- [ ] Add uniqueness, foreign-key, approval-shape, version-order, and course-scope constraints.
+- [x] Add stable assessment and criterion identities with immutable versions.
+- [x] Add `OutcomeVersion`, `AssessmentDefinitionVersion`, `BloomTargetVersion`, `CriterionVersion`, `PassRuleVersion`, `TaskFormVersion`, and `TaskApproval` records.
+- [x] Store the claim, supporting evidence, contradicting evidence, insufficient evidence, task conditions, and next-action contract.
+- [x] Store tool, instructional support, access, transfer, purpose, result eligibility, and evidence-sufficiency fields separately.
+- [x] Store the typed pass-rule expression outside prompts.
+- [x] Enforce the typed pass-rule tree and criterion-version scope for direct database writes.
+- [x] Require owner, approval state, actor, timestamps, course scope, and source versions.
+- [x] Prevent edits to approved or retired versions. A change creates a new version.
+- [x] Add uniqueness, foreign-key, approval-shape, version-order, and course-scope constraints.
+- [x] Update the readiness migration head for the new assessment-definition revision.
 
 Edge and failure cases:
 
@@ -347,18 +376,43 @@ Edge and failure cases:
 - An assessment has no formal result eligibility until it is declared before the learner starts.
 - Access support and instructional support use separate fields.
 - A task-form source or rule mismatch blocks use.
+- Direct SQL cannot store an unknown pass-rule operator, numeric field, or cross-course criterion leaf.
 
 Named tests:
 
 - `test_approved_assessment_versions_are_immutable`
 - `test_definition_versions_keep_exact_outcome_bloom_criteria_rule_and_source_links`
 - `test_pass_rule_storage_rejects_scores_weights_and_unknown_operators`
+- `test_pass_rule_can_reference_a_pending_criterion_version`
+- `test_pass_rule_accepts_a_nested_boolean_expression`
+- `test_draft_version_row_identifiers_are_immutable`
+- `test_referenced_criterion_version_cannot_be_reassigned_or_deleted`
 - `test_access_and_instructional_support_are_separate`
 - `test_cross_course_definition_links_fail_at_database_layer`
+- `test_pass_rule_database_trigger_rejects_bypass_writes`
 - `test_definition_migration_upgrades_clean_database`
 
 **Acceptance:** Model and clean-migration tests pass. Invalid approval shapes and cross-course links
 fail at the database layer. Approved versions remain unchanged after later drafts.
+
+Verification on 2026-08-15:
+
+- `python -m pytest tests/test_assessment_models.py tests/test_migrations.py` with a
+  repository-local `--basetemp`: 23 passed.
+- Direct migrated-database tests reject invalid `APPROVED` and `RETIRED` shapes, a direct
+  `DRAFT` to `RETIRED` transition, version-row ID updates, malformed expression topology,
+  unknown pass-rule operators, numeric rule fields, missing or cross-course criterion leaves,
+  referenced-criterion reassignment and deletion, and accept a nested Boolean rule.
+- Full backend suite with `--cov=app.services --cov-fail-under=80`: 427 passed, 83.51%
+  coverage.
+- `uv lock --check` with a repository-local cache, `ruff check .`, `ruff format --check .`,
+  OpenAPI export check, and frontend contract generator check: passed.
+- Frontend lint, 60 unit tests, and production build: passed. Vitest emitted its existing
+  non-failing canvas warnings.
+- GitHub CI: `NOT RUN`. Step 2 and Step 3 remain uncommitted and unpushed, and the existing
+  PR was not changed.
+- Test Judge, Code Reviewer, and Code Quality Reviewer verdicts: `APPROVED` for the current
+  head.
 
 Requirements: A2, FR6, FR8, FR26, FR38, BP1-BP6, BP8, BP15, NFR17, NFR20, AT4-AT6, AT21.
 
@@ -377,14 +431,14 @@ Files:
 
 Changes:
 
-- [ ] Use `SubmissionAttempt.id` as the exact `response_version_id`.
-- [ ] Add task-form version, response schema version, content digest, idempotency key, and declared conditions to the immutable attempt.
-- [ ] Make the old score column nullable and classify it as legacy-only data.
-- [ ] Add `AssessmentAttempt`, `CriterionEvaluation`, `AssessmentDecision`, `AssessorReview`, `ReassessmentLink`, and `AppealOrCorrection`.
-- [ ] Store exact assessment, response, task, source, Bloom, criterion, rule, model, prompt, retrieval, actor, and time references.
-- [ ] Enforce one decision for an evaluation idempotency key.
-- [ ] Enforce lifecycle transitions and reason requirements.
-- [ ] Extend append-only audit actions for assessment definition, attempt, decision, review, and correction events.
+- [x] Use `SubmissionAttempt.id` as the exact `response_version_id`.
+- [x] Add task-form version, response schema version, content digest, idempotency key, and declared conditions to the immutable attempt.
+- [x] Make the old score column nullable and classify it as legacy-only data.
+- [x] Add `AssessmentAttempt`, `CriterionEvaluation`, `AssessmentDecision`, `AssessorReview`, `ReassessmentLink`, and `AppealOrCorrection`.
+- [x] Store exact assessment, response, task, source, Bloom, criterion, rule, model, prompt, retrieval, actor, and time references.
+- [x] Enforce one decision for an evaluation idempotency key.
+- [x] Enforce lifecycle transitions and reason requirements.
+- [x] Extend append-only audit actions for assessment definition, attempt, decision, review, and correction events.
 
 Edge and failure cases:
 
@@ -397,14 +451,28 @@ Edge and failure cases:
 Named tests:
 
 - `test_submission_attempt_is_the_immutable_response_version`
-- `test_response_version_idempotency_replays_same_content_only`
+- `test_response_version_idempotency_allows_one_record_per_request_key`
+- `test_assessment_decision_idempotency_allows_one_record_per_evaluation`
 - `test_decision_references_exact_response_and_rule_versions`
 - `test_invalid_result_lifecycle_writes_fail`
 - `test_confirm_override_void_and_return_require_actor_reason_and_time`
 - `test_assessment_audit_events_are_append_only_and_content_free`
+- `test_assessment_attempt_database_triggers_reject_direct_bypass_writes`
 
 **Acceptance:** Attempt and decision model tests pass. Accepted response content remains immutable.
 Invalid lifecycle, version, and duplicate writes fail without changing earlier data.
+
+Verification on 2026-08-15:
+
+- `python -m pytest tests/test_assessment_attempt_models.py tests/test_assessment_models.py
+  tests/test_migrations.py` with a repository-local `--basetemp`: 34 passed.
+- Full backend suite with `--cov=app.services --cov-fail-under=80`: 438 passed, 83.35%
+  coverage.
+- `uv lock --check` with a repository-local cache, `ruff check .`, `ruff format --check .`,
+  OpenAPI export check, and frontend contract generator check: passed.
+- GitHub CI: `NOT RUN`. Step 2 through Step 4 remain uncommitted and unpushed, and the existing
+  PR was not changed. Fresh Test Judge, Code Reviewer, and Code Quality Reviewer verdicts:
+  `APPROVED`.
 
 Requirements: A2, FR12, FR19, FR26, FR38, BP8, BP15, NFR16, NFR17, NFR20, AT1-AT3, AT15,
 AT16, AT21, AT22.

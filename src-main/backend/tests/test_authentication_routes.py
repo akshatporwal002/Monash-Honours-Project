@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,8 +12,9 @@ from app.core.security import hash_password
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
-from app.models.lms import PlatformAuditEvent
-from app.models.user import User, UserRole
+from app.models.lms import Course, PlatformAuditEvent
+from app.models.user import ScopedRole, User, UserRole
+from app.services.assessment.access import RoleAssignmentService
 
 
 @pytest.fixture
@@ -71,6 +73,7 @@ def test_login_sets_session_and_csrf_cookies(
         "email": "student@example.edu",
         "full_name": "Example Student",
         "role": "student",
+        "scoped_assignments": [],
     }
     assert client.cookies.get(settings.session_cookie_name) is not None
     assert client.cookies.get(settings.csrf_cookie_name) is not None
@@ -97,6 +100,95 @@ def test_current_user_restores_authenticated_session(
 
     assert response.status_code == 200
     assert response.json()["email"] == "student@example.edu"
+
+
+def test_login_returns_active_assignments_without_changing_primary_role(
+    client: TestClient,
+    session: Session,
+) -> None:
+    educator = User(
+        email="owner@example.edu",
+        password_hash=hash_password("owner-password"),
+        full_name="Course Owner",
+        role=UserRole.EDUCATOR,
+        is_active=True,
+    )
+    administrator = User(
+        email="admin@example.edu",
+        password_hash=hash_password("admin-password"),
+        full_name="Administrator",
+        role=UserRole.ADMINISTRATOR,
+        is_active=True,
+    )
+    session.add_all([educator, administrator])
+    session.flush()
+    course = Course(
+        educator_id=educator.id,
+        code="QNT201",
+        title="Assessment Foundations",
+    )
+    session.add(course)
+    session.commit()
+    assignment = RoleAssignmentService(
+        session,
+        assignment_eligibility=lambda _subject, _role: True,
+    ).assign(
+        administrator,
+        subject_user_id=educator.id,
+        course_id=course.id,
+        role=ScopedRole.ASSESSOR,
+        reason="Approved course assessor.",
+    )
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": educator.email, "password": "owner-password"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "educator"
+    assert response.json()["scoped_assignments"] == [
+        {
+            "id": assignment.id,
+            "course_id": course.id,
+            "role": "assessor",
+            "version": 1,
+            "valid_from": assignment.valid_from.isoformat(),
+            "valid_until": None,
+        }
+    ]
+    assert (
+        client.get("/api/v1/auth/me").json()["scoped_assignments"]
+        == response.json()["scoped_assignments"]
+    )
+    assignment_service = RoleAssignmentService(
+        session,
+        assignment_eligibility=lambda _subject, _role: True,
+    )
+    assignment_service.revoke(
+        administrator,
+        assignment.id,
+        reason="Assessor access withdrawn.",
+    )
+    now = datetime.now(UTC)
+    assignment_service.assign(
+        administrator,
+        subject_user_id=educator.id,
+        course_id=course.id,
+        role=ScopedRole.RESEARCH,
+        reason="Research access starts next week.",
+        valid_from=now + timedelta(days=7),
+    )
+    assignment_service.assign(
+        administrator,
+        subject_user_id=educator.id,
+        course_id=course.id,
+        role=ScopedRole.ASSESSOR,
+        reason="Expired assessor access.",
+        valid_from=now - timedelta(days=14),
+        valid_until=now - timedelta(days=7),
+    )
+    assert client.get("/api/v1/auth/me").json()["scoped_assignments"] == []
 
 
 def test_logout_clears_session_cookie(client: TestClient, session: Session) -> None:
