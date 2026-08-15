@@ -1248,8 +1248,9 @@ named configuration or handoff gate.
 
 ## PR mapping
 
-The Person A implementation PR must mirror all 20 steps, their checklists, acceptance lines,
-requirements, tests, migrations, risks, handoffs, missing decisions, and limits.
+Each Person A implementation PR must mirror every included step, checklist, acceptance line,
+requirement, test, migration, risk, handoff, missing decision, and limit. This draft PR mirrors
+Step 1. Steps 2 to 20 will use later reviewable PRs.
 
 Use one independently reviewable commit per numbered step. Combine adjacent test or documentation
 commits only when the acceptance proof remains clear.
