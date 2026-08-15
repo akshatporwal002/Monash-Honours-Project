@@ -14,6 +14,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -610,6 +611,49 @@ class AssessmentAttempt(Base):
     )
 
 
+class AssessmentLegacyHistory(Base):
+    """Read-only archive of pre-versioned assessment values.
+
+    This record is not a formal assessment decision.  It retains source data
+    while the compatibility path is available, and can only map an explicit
+    public legacy FAIL value to INCOMPLETE.
+    """
+
+    __tablename__ = "assessment_legacy_history"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_table",
+            "source_record_id",
+            name="uq_assessment_legacy_history_source_record",
+        ),
+        CheckConstraint(
+            "mapped_result IS NULL OR ("
+            "source_table = 'legacy_learner_results' "
+            "AND upper(trim(source_result)) = 'FAIL' "
+            "AND mapped_result = 'INCOMPLETE' "
+            "AND migration_reason = 'LEGACY_PUBLIC_FAIL_TO_INCOMPLETE'"
+            ")",
+            name="assessment_legacy_history_mapped_result",
+        ),
+        Index("ix_assessment_legacy_history_response", "response_version_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    source_table: Mapped[str] = mapped_column(String(100), nullable=False)
+    source_record_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    response_version_id: Mapped[str | None] = mapped_column(
+        ForeignKey("submission_attempts.id", ondelete="RESTRICT"), nullable=True
+    )
+    source_status: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    source_result: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    source_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    mapped_result: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    migration_revision: Mapped[str] = mapped_column(String(32), nullable=False)
+    migration_actor: Mapped[str] = mapped_column(String(255), nullable=False)
+    migration_reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    archived_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class CriterionEvaluation(Base):
     __tablename__ = "criterion_evaluations"
     __table_args__ = (
@@ -1025,6 +1069,10 @@ def _prevent_assessment_record_mutation(_mapper: object, _connection: object, _t
     raise ImmutableAssessmentVersionError("assessment records are append-only")
 
 
+def _prevent_legacy_history_insert(_mapper: object, _connection: object, _target: Any) -> None:
+    raise ImmutableAssessmentVersionError("assessment legacy history is migration-only")
+
+
 for _version_model in (
     OutcomeVersion,
     AssessmentDefinitionVersion,
@@ -1322,7 +1370,13 @@ event.listen(AssessmentAttempt, "before_update", _prevent_assessment_attempt_ver
 event.listen(AssessmentAttempt, "before_delete", _prevent_assessment_record_mutation)
 event.listen(AppealOrCorrection, "before_update", _validate_appeal_transition)
 event.listen(AppealOrCorrection, "before_delete", _prevent_assessment_record_mutation)
-for _append_only_model in (CriterionEvaluation, AssessorReview, ReassessmentLink):
+event.listen(AssessmentLegacyHistory, "before_insert", _prevent_legacy_history_insert)
+for _append_only_model in (
+    AssessmentLegacyHistory,
+    CriterionEvaluation,
+    AssessorReview,
+    ReassessmentLink,
+):
     event.listen(_append_only_model, "before_update", _prevent_assessment_record_mutation)
     event.listen(_append_only_model, "before_delete", _prevent_assessment_record_mutation)
 
@@ -1332,6 +1386,7 @@ __all__ = [
     "AssessmentAttempt",
     "AssessmentDefinition",
     "AssessmentDefinitionVersion",
+    "AssessmentLegacyHistory",
     "BloomTarget",
     "BloomTargetVersion",
     "CriterionEvaluation",

@@ -481,22 +481,30 @@ AT16, AT21, AT22.
 
 Files:
 
-- Person A Alembic revisions from Steps 2 to 4
+- `src-main/backend/app/core/readiness.py`
+- `src-main/backend/app/models/audit.py`
+- `src-main/backend/app/models/__init__.py`
+- `src-main/backend/app/models/assessment.py`
+- New `src-main/backend/migrations/versions/20260815_0018_assessment_legacy_history.py`
 - `src-main/backend/tests/test_migrations.py`
+- `src-main/backend/tests/test_assessment_models.py`
 - New `src-main/backend/tests/fixtures/legacy_assessment.sql`
 - `src-main/backend/scripts/verify_sqlite_backup.py`
 - New `docs/learnlens/person-a-assessment-migration.md`
 
 Changes:
 
-- [ ] Test clean, legacy, repeated, partial, duplicate, stale, and current-head upgrades.
-- [ ] Preserve old score and status values in protected legacy history.
-- [ ] Do not infer `PASS` from a numeric threshold.
-- [ ] Map an actual legacy learner `FAIL` to `INCOMPLETE` only with source value and migration reason.
-- [ ] Keep legacy Quality Judge `fail` in the quality compatibility path, not the learner-result path.
-- [ ] Compare row counts, foreign keys, content digests, and assessment links.
-- [ ] Verify a safe backup and restore before destructive compatibility removal.
-- [ ] Recheck the current Alembic heads before allocating each revision.
+- [x] Test clean, legacy, repeated, partial, duplicate, stale, and current-head upgrades.
+- [x] Preserve old score and status values in protected legacy history.
+- [x] Do not infer `PASS` from a numeric threshold.
+- [x] Map an actual legacy learner `FAIL` to `INCOMPLETE` only with source value and migration reason.
+- [x] Keep legacy Quality Judge `fail` in the quality compatibility path, not the learner-result path.
+- [x] Compare row counts, foreign keys, content digests, and assessment links.
+- [x] Block downgrade whenever any protected history exists, including unmapped numeric rows.
+- [x] Verify a safe backup and restore before destructive compatibility removal.
+- [x] Replace stale insert guards after controlled replay and reject source IDs that cannot form a
+  collision-safe audit key.
+- [x] Recheck the current Alembic heads before allocating each revision.
 
 Edge and failure cases:
 
@@ -513,9 +521,24 @@ Named tests:
 - `test_legacy_fail_mapping_keeps_source_and_reason`
 - `test_quality_judge_fail_never_becomes_incomplete`
 - `test_assessment_backup_restore_preserves_counts_links_and_digests`
+- `test_numeric_only_populated_history_blocks_downgrade`
+- `test_assessment_migration_replaces_stale_insert_guard_on_rerun`
+- `test_legacy_learner_result_ids_that_could_collide_in_audit_are_rejected`
 
 **Acceptance:** Migration tests pass against clean and real-shaped legacy fixtures. Record counts and
 digests match. A verified restore reproduces all sampled records. No numeric value creates `PASS`.
+
+Verification on 2026-08-15:
+
+- `python -m pytest tests/test_assessment_models.py tests/test_migrations.py` with a
+  repository-local `--basetemp`: 38 passed.
+- Full backend suite with `--cov=app.services --cov-fail-under=80`: 451 passed, 83.43%
+  coverage.
+- `alembic heads`, migration autogeneration check inside the clean upgrade test, `ruff check .`,
+  and `ruff format --check .`: passed. `alembic check` against the developer database was not
+  run because it remains deliberately on revision `20260815_0017`.
+- Test Judge, Code Reviewer, and Code Quality Reviewer approved the current head after the
+  downgrade, stale-guard, and audit-key regressions.
 
 Requirements: A2, FR26, BP8, BP15, NFR5, NFR17, NFR20, AC19, AT1-AT3, AT21, AT22.
 

@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -10,15 +11,24 @@ from test_assessment_attempt_models import _criterion_outside_frozen_rule
 from test_assessment_models import _blueprint
 
 from app.core.security import hash_password
-from app.domain.assessment import AssessmentAttemptState, AssessmentResult, ResultState
+from app.domain.assessment import (
+    AssessmentAttemptState,
+    AssessmentResult,
+    QualityReviewDecision,
+    ResultState,
+)
 from app.models.assessment import AssessmentAttempt, AssessmentDecision
 from app.models.lms import AttemptStatus, SubmissionAttempt, SubmissionDraft
 from app.models.user import User, UserRole
+from app.schemas.assessment import legacy_judge_decision_to_quality_review
+from scripts.verify_sqlite_backup import create_verified_backup, database_manifest
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
+LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
     "assessment_definition_versions",
     "assessment_definitions",
+    "assessment_legacy_history",
     "assessment_attempts",
     "assessment_decisions",
     "appeals_or_corrections",
@@ -76,6 +86,43 @@ def migration_config(database_url: str) -> Config:
     config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
     config.set_main_option("sqlalchemy.url", database_url)
     return config
+
+
+def _load_sql_fixture(engine: Engine, fixture_path: Path) -> None:
+    """Apply a checked-in SQLite fixture without interpolating its contents."""
+
+    raw_connection = engine.raw_connection()
+    try:
+        raw_connection.executescript(fixture_path.read_text(encoding="utf-8"))
+        raw_connection.commit()
+    finally:
+        raw_connection.close()
+
+
+def _prepare_legacy_assessment_database(tmp_path: Path) -> tuple[Path, Config]:
+    database_path = tmp_path / "legacy-assessment.db"
+    database_url = f"sqlite:///{database_path.as_posix()}"
+    config = migration_config(database_url)
+    command.upgrade(config, "20260815_0017")
+    engine = create_engine(database_url)
+    try:
+        _load_sql_fixture(engine, LEGACY_ASSESSMENT_FIXTURE)
+    finally:
+        engine.dispose()
+    return database_path, config
+
+
+def _legacy_history_rows(engine: Engine) -> list[dict[str, object]]:
+    with engine.connect() as connection:
+        rows = connection.execute(
+            text(
+                "SELECT source_table, source_record_id, response_version_id, source_status, "
+                "source_result, source_score, mapped_result, migration_revision, migration_actor, "
+                "migration_reason "
+                "FROM assessment_legacy_history ORDER BY source_table, source_record_id"
+            )
+        ).mappings()
+        return [dict(row) for row in rows]
 
 
 def _assert_cross_course_definition_link_is_rejected(engine: Engine) -> None:
@@ -899,6 +946,469 @@ def test_assessment_attempt_downgrade_restores_prior_audit_actions(tmp_path: Pat
         assert "feedback_generation_started" in audit_table_sql
     finally:
         engine.dispose()
+
+
+def test_assessment_migration_upgrades_clean_and_legacy_databases(tmp_path: Path) -> None:
+    clean_path = tmp_path / "clean-assessment.db"
+    clean_config = migration_config(f"sqlite:///{clean_path.as_posix()}")
+    command.upgrade(clean_config, "head")
+    clean_engine = create_engine(f"sqlite:///{clean_path.as_posix()}")
+    try:
+        assert "assessment_legacy_history" in inspect(clean_engine).get_table_names()
+        with clean_engine.connect() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT COUNT(*) FROM assessment_legacy_history")
+                ).scalar_one()
+                == 0
+            )
+    finally:
+        clean_engine.dispose()
+
+    legacy_path, legacy_config = _prepare_legacy_assessment_database(tmp_path)
+    before_manifest = database_manifest(legacy_path)
+    command.upgrade(legacy_config, "head")
+    legacy_engine = create_engine(f"sqlite:///{legacy_path.as_posix()}")
+    try:
+        history = _legacy_history_rows(legacy_engine)
+        assert len(history) == 5
+        assert {row["source_table"] for row in history} == {
+            "legacy_learner_results",
+            "submission_attempts",
+        }
+        assert all(row["mapped_result"] != "PASS" for row in history)
+        assert {
+            row["source_record_id"]: (row["source_status"], row["source_score"])
+            for row in history
+            if row["source_table"] == "submission_attempts"
+        } == {
+            "00000000-0000-4000-8000-000000000521": ("completed", 92),
+            "00000000-0000-4000-8000-000000000522": ("submitted", 15),
+        }
+        legacy_pass = next(
+            row for row in history if row["source_record_id"] == "legacy-learner-pass"
+        )
+        assert legacy_pass["source_result"] == "PASS"
+        assert legacy_pass["mapped_result"] is None
+        assert legacy_pass["migration_reason"] == "LEGACY_PUBLIC_RESULT_UNMAPPED"
+        inspector = inspect(legacy_engine)
+        assert "ck_assessment_legacy_history_assessment_legacy_history_mapped_result" in {
+            constraint["name"]
+            for constraint in inspector.get_check_constraints("assessment_legacy_history")
+        }
+        assert "uq_assessment_legacy_history_source_record" in {
+            constraint["name"]
+            for constraint in inspector.get_unique_constraints("assessment_legacy_history")
+        }
+        assert "ix_assessment_legacy_history_response" in {
+            index["name"] for index in inspector.get_indexes("assessment_legacy_history")
+        }
+        assert any(
+            foreign_key["constrained_columns"] == ["response_version_id"]
+            and foreign_key["referred_table"] == "submission_attempts"
+            for foreign_key in inspector.get_foreign_keys("assessment_legacy_history")
+        )
+        with legacy_engine.connect() as connection:
+            trigger_names = set(
+                connection.execute(
+                    text(
+                        "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+                        "AND tbl_name = 'assessment_legacy_history'"
+                    )
+                ).scalars()
+            )
+            assert trigger_names >= {
+                "trg_assessment_legacy_history_immutable_delete",
+                "trg_assessment_legacy_history_immutable_update",
+                "trg_assessment_legacy_history_migration_only_insert",
+            }
+        with legacy_engine.connect() as connection:
+            invalid_links = connection.execute(
+                text(
+                    "SELECT COUNT(*) FROM assessment_legacy_history AS history "
+                    "LEFT JOIN submission_attempts AS attempt "
+                    "ON attempt.id = history.response_version_id "
+                    "WHERE history.response_version_id IS NOT NULL AND attempt.id IS NULL"
+                )
+            ).scalar_one()
+            assert invalid_links == 0
+        with legacy_engine.begin() as connection:
+            with pytest.raises(IntegrityError, match="immutable"):
+                connection.execute(
+                    text(
+                        "UPDATE assessment_legacy_history SET source_score = 0 "
+                        "WHERE source_table = 'submission_attempts'"
+                    )
+                )
+    finally:
+        legacy_engine.dispose()
+
+    after_manifest = database_manifest(legacy_path)
+    for table_name in {
+        "submission_attempts",
+        "legacy_learner_results",
+        "legacy_quality_judge_results",
+    }:
+        assert after_manifest[table_name] == before_manifest[table_name]
+
+
+def test_assessment_migration_is_repeat_safe(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        first_rows = _legacy_history_rows(engine)
+        with engine.connect() as connection:
+            first_audit_count = connection.execute(
+                text(
+                    "SELECT COUNT(*) FROM audit_events "
+                    "WHERE action = 'assessment_legacy_result_migrated'"
+                )
+            ).scalar_one()
+        assert first_audit_count == 1
+        with engine.begin() as connection:
+            connection.execute(text("UPDATE alembic_version SET version_num = '20260815_0017'"))
+    finally:
+        engine.dispose()
+
+    # This represents a process that committed the archived rows but was not
+    # able to mark the revision complete.  Re-running must not duplicate data.
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        assert _legacy_history_rows(engine) == first_rows
+        with engine.connect() as connection:
+            assert (
+                connection.execute(
+                    text(
+                        "SELECT COUNT(*) FROM audit_events "
+                        "WHERE action = 'assessment_legacy_result_migrated'"
+                    )
+                ).scalar_one()
+                == first_audit_count
+            )
+        with engine.begin() as connection:
+            with pytest.raises(IntegrityError, match="migration-only"):
+                connection.execute(
+                    text(
+                        "INSERT INTO assessment_legacy_history "
+                        "(id, source_table, source_record_id, migration_revision, migration_actor, "
+                        "migration_reason, archived_at) "
+                        "VALUES ('duplicate-history', 'submission_attempts', "
+                        "'00000000-0000-4000-8000-000000000521', '20260815_0018', "
+                        "'untrusted', 'DUPLICATE', CURRENT_TIMESTAMP)"
+                    )
+                )
+    finally:
+        engine.dispose()
+
+
+def test_assessment_migration_replaces_stale_insert_guard_on_rerun(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text("DROP TRIGGER trg_assessment_legacy_history_migration_only_insert")
+            )
+            connection.execute(
+                text(
+                    "CREATE TRIGGER trg_assessment_legacy_history_migration_only_insert "
+                    "BEFORE INSERT ON assessment_legacy_history BEGIN SELECT 1; END"
+                )
+            )
+            connection.execute(text("UPDATE alembic_version SET version_num = '20260815_0017'"))
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            with pytest.raises(IntegrityError, match="migration-only"):
+                connection.execute(
+                    text(
+                        "INSERT INTO assessment_legacy_history "
+                        "(id, source_table, source_record_id, migration_revision, migration_actor, "
+                        "migration_reason, archived_at) "
+                        "VALUES ('forged-history', 'submission_attempts', 'forged-source', "
+                        "'20260815_0018', 'untrusted', 'FORGED', CURRENT_TIMESTAMP)"
+                    )
+                )
+    finally:
+        engine.dispose()
+
+
+def test_assessment_migration_rejects_partial_history_schema_for_recovery(tmp_path: Path) -> None:
+    database_path = tmp_path / "partial-assessment-history.db"
+    config = migration_config(f"sqlite:///{database_path.as_posix()}")
+    command.upgrade(config, "20260815_0017")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "CREATE TABLE assessment_legacy_history "
+                    "(id TEXT PRIMARY KEY, source_table TEXT, source_record_id TEXT)"
+                )
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO assessment_legacy_history "
+                    "(id, source_table, source_record_id) "
+                    "VALUES ('partial-history', 'submission_attempts', 'partial-row')"
+                )
+            )
+        partial_manifest = database_manifest(database_path)
+    finally:
+        engine.dispose()
+
+    with pytest.raises(RuntimeError, match="exists but is incomplete"):
+        command.upgrade(config, "head")
+
+    assert database_manifest(database_path) == partial_manifest
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.connect() as connection:
+            assert connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one() == ("20260815_0017")
+    finally:
+        engine.dispose()
+
+
+def test_assessment_migration_rejects_stale_same_name_history_schema(tmp_path: Path) -> None:
+    database_path = tmp_path / "stale-assessment-history.db"
+    config = migration_config(f"sqlite:///{database_path.as_posix()}")
+    command.upgrade(config, "20260815_0017")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "CREATE TABLE assessment_legacy_history ("
+                    "id VARCHAR(255) NOT NULL PRIMARY KEY, "
+                    "source_table VARCHAR(100) NOT NULL, "
+                    "source_record_id VARCHAR(255) NOT NULL, "
+                    "response_version_id VARCHAR(36), "
+                    "source_status VARCHAR(100), source_result VARCHAR(100), "
+                    "source_score TEXT, mapped_result VARCHAR(20), "
+                    "migration_revision VARCHAR(32) NOT NULL, "
+                    "migration_actor VARCHAR(255) NOT NULL, "
+                    "migration_reason VARCHAR(255) NOT NULL, archived_at DATETIME NOT NULL, "
+                    "CONSTRAINT ck_assessment_legacy_history_assessment_legacy_history_mapped_result "
+                    "CHECK (mapped_result IS NULL OR mapped_result = 'INCOMPLETE'), "
+                    "CONSTRAINT uq_assessment_legacy_history_source_record "
+                    "UNIQUE (source_table, source_record_id), "
+                    "CONSTRAINT fk_assessment_legacy_history_response_version_id_submission_attempts "
+                    "FOREIGN KEY(response_version_id) REFERENCES submission_attempts(id) ON DELETE CASCADE)"
+                )
+            )
+            connection.execute(
+                text(
+                    "CREATE INDEX ix_assessment_legacy_history_response "
+                    "ON assessment_legacy_history(response_version_id)"
+                )
+            )
+            connection.execute(
+                text(
+                    "CREATE TRIGGER trg_assessment_legacy_history_immutable_update "
+                    "BEFORE UPDATE ON assessment_legacy_history BEGIN SELECT 1; END"
+                )
+            )
+            connection.execute(
+                text(
+                    "CREATE TRIGGER trg_assessment_legacy_history_immutable_delete "
+                    "BEFORE DELETE ON assessment_legacy_history BEGIN SELECT 1; END"
+                )
+            )
+    finally:
+        engine.dispose()
+
+    with pytest.raises(RuntimeError, match="exists but is incomplete"):
+        command.upgrade(config, "head")
+
+
+def test_numeric_scores_are_preserved_but_never_mapped_to_pass(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        rows = _legacy_history_rows(engine)
+        numeric_rows = [row for row in rows if row["source_table"] == "submission_attempts"]
+        assert {row["source_score"] for row in numeric_rows} == {15, 92}
+        assert all(row["mapped_result"] is None for row in numeric_rows)
+        assert all(row["mapped_result"] != "PASS" for row in rows)
+    finally:
+        engine.dispose()
+
+
+def test_legacy_fail_mapping_keeps_source_and_reason(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        rows = _legacy_history_rows(engine)
+        fail_row = next(row for row in rows if row["source_record_id"] == "legacy-learner-fail")
+        assert fail_row == {
+            "source_table": "legacy_learner_results",
+            "source_record_id": "legacy-learner-fail",
+            "response_version_id": "00000000-0000-4000-8000-000000000522",
+            "source_status": None,
+            "source_result": "FAIL",
+            "source_score": 15,
+            "mapped_result": "INCOMPLETE",
+            "migration_revision": "20260815_0018",
+            "migration_actor": "alembic:20260815_0018",
+            "migration_reason": "LEGACY_PUBLIC_FAIL_TO_INCOMPLETE",
+        }
+        unknown_row = next(
+            row for row in rows if row["source_record_id"] == "legacy-learner-unknown"
+        )
+        assert unknown_row["mapped_result"] is None
+        assert unknown_row["migration_reason"] == "LEGACY_PUBLIC_RESULT_UNMAPPED"
+        with engine.connect() as connection:
+            audit_row = (
+                connection.execute(
+                    text(
+                        "SELECT actor_reference, action, outcome, resource_type, resource_id, "
+                        "deduplication_key FROM audit_events "
+                        "WHERE action = 'assessment_legacy_result_migrated'"
+                    )
+                )
+                .mappings()
+                .one()
+            )
+        assert dict(audit_row) == {
+            "actor_reference": "alembic:20260815_0018",
+            "action": "assessment_legacy_result_migrated",
+            "outcome": "success",
+            "resource_type": "assessment_legacy_history",
+            "resource_id": "legacy_learner_results:legacy-learner-fail",
+            "deduplication_key": "assessment-legacy-result:legacy-learner-fail",
+        }
+    finally:
+        engine.dispose()
+
+
+def test_legacy_learner_result_ids_that_could_collide_in_audit_are_rejected(
+    tmp_path: Path,
+) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    shared_prefix = "legacy-id-" + ("x" * 221)
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO legacy_learner_results (id, response_version_id, result, score) "
+                    "VALUES (:first, '00000000-0000-4000-8000-000000000521', 'FAIL', 92), "
+                    "(:second, '00000000-0000-4000-8000-000000000522', 'FAIL', 15)"
+                ),
+                {"first": shared_prefix + "a", "second": shared_prefix + "b"},
+            )
+        before_manifest = database_manifest(database_path)
+    finally:
+        engine.dispose()
+
+    with pytest.raises(RuntimeError, match="maximum safe audit source ID length"):
+        command.upgrade(config, "head")
+
+    assert database_manifest(database_path) == before_manifest
+
+
+def test_quality_judge_fail_never_becomes_incomplete(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.connect() as connection:
+            decision = connection.execute(
+                text(
+                    "SELECT decision FROM legacy_quality_judge_results "
+                    "WHERE id = 'legacy-quality-judge-fail'"
+                )
+            ).scalar_one()
+            assert (
+                connection.execute(text("SELECT COUNT(*) FROM assessment_decisions")).scalar_one()
+                == 0
+            )
+        assert legacy_judge_decision_to_quality_review(decision) is QualityReviewDecision.REJECTED
+        assert all(
+            row["source_table"] != "legacy_quality_judge_results"
+            for row in _legacy_history_rows(engine)
+        )
+    finally:
+        engine.dispose()
+
+
+def test_assessment_backup_restore_preserves_counts_links_and_digests(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    command.upgrade(config, "head")
+    source_manifest = database_manifest(database_path)
+
+    result = create_verified_backup(database_path, tmp_path / "verified-backups")
+
+    assert result.backup_path.is_file()
+    assert result.manifest_path.is_file()
+    assert database_manifest(result.backup_path) == source_manifest
+    assert result.table_count == len(source_manifest)
+    assert result.record_count == sum(table.row_count for table in source_manifest.values())
+
+
+def test_assessment_populated_downgrade_restores_verified_backup(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    command.upgrade(config, "head")
+    before_downgrade = database_manifest(database_path)
+    backup = create_verified_backup(database_path, tmp_path / "downgrade-backups")
+
+    with pytest.raises(RuntimeError, match="cannot downgrade populated"):
+        command.downgrade(config, "20260815_0017")
+    assert database_manifest(database_path) == before_downgrade
+
+    with sqlite3.connect(backup.backup_path) as source_connection:
+        with sqlite3.connect(database_path) as restored_connection:
+            source_connection.backup(restored_connection)
+
+    assert database_manifest(database_path) == before_downgrade
+
+
+def test_numeric_only_populated_history_blocks_downgrade(tmp_path: Path) -> None:
+    database_path, config = _prepare_legacy_assessment_database(tmp_path)
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE legacy_learner_results"))
+    finally:
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.connect() as connection:
+            assert (
+                connection.execute(
+                    text("SELECT COUNT(*) FROM assessment_legacy_history")
+                ).scalar_one()
+                == 2
+            )
+            assert (
+                connection.execute(
+                    text(
+                        "SELECT COUNT(*) FROM audit_events "
+                        "WHERE action = 'assessment_legacy_result_migrated'"
+                    )
+                ).scalar_one()
+                == 0
+            )
+    finally:
+        engine.dispose()
+
+    before_downgrade = database_manifest(database_path)
+    with pytest.raises(RuntimeError, match="cannot downgrade populated"):
+        command.downgrade(config, "20260815_0017")
+    assert database_manifest(database_path) == before_downgrade
 
 
 def test_definition_migration_upgrades_clean_database(tmp_path: Path) -> None:

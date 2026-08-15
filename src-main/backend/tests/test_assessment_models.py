@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError, StatementError
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,7 @@ from app.models.assessment import (
     AssessmentApprovalState,
     AssessmentDefinition,
     AssessmentDefinitionVersion,
+    AssessmentLegacyHistory,
     BloomTarget,
     BloomTargetVersion,
     Criterion,
@@ -233,6 +235,51 @@ def test_approved_assessment_versions_are_immutable(db_session: Session) -> None
     approval.approval_state = AssessmentApprovalState.RETIRED
     with pytest.raises(ImmutableAssessmentVersionError, match="immutable"):
         db_session.commit()
+
+
+def test_legacy_assessment_history_is_append_only_in_the_orm(db_session: Session) -> None:
+    db_session.execute(
+        insert(AssessmentLegacyHistory).values(
+            id="legacy-history-orm-record",
+            source_table="submission_attempts",
+            source_record_id="legacy-response-1",
+            source_status="completed",
+            source_score=92,
+            migration_revision="20260815_0018",
+            migration_actor="alembic:20260815_0018",
+            migration_reason="LEGACY_NUMERIC_SCORE_AND_STATUS_PRESERVED_UNMAPPED",
+            archived_at=NOW,
+        )
+    )
+    db_session.commit()
+    history = db_session.get(AssessmentLegacyHistory, "legacy-history-orm-record")
+    assert history is not None
+
+    fabricated = AssessmentLegacyHistory(
+        id="fabricated-legacy-history-record",
+        source_table="submission_attempts",
+        source_record_id="fabricated-response",
+        source_status="completed",
+        source_score=92,
+        migration_revision="20260815_0018",
+        migration_actor="alembic:20260815_0018",
+        migration_reason="LEGACY_NUMERIC_SCORE_AND_STATUS_PRESERVED_UNMAPPED",
+        archived_at=NOW,
+    )
+    db_session.add(fabricated)
+    with pytest.raises(ImmutableAssessmentVersionError, match="migration-only"):
+        db_session.commit()
+    db_session.rollback()
+
+    history.source_score = 0
+    with pytest.raises(ImmutableAssessmentVersionError, match="append-only"):
+        db_session.commit()
+    db_session.rollback()
+
+    db_session.delete(history)
+    with pytest.raises(ImmutableAssessmentVersionError, match="append-only"):
+        db_session.commit()
+    db_session.rollback()
 
 
 def test_definition_versions_keep_exact_outcome_bloom_criteria_rule_and_source_links(
