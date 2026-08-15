@@ -1,6 +1,6 @@
 # LearnLens Person A / Person B assessment handoff contract
 
-Status: `A1 IMPLEMENTED LOCALLY`, pending checked-in commit and Person B approval
+Status: `PERSON A APPROVED`, pending Person B approval
 
 Recorded: 2026-08-15
 
@@ -31,8 +31,8 @@ The A1 contract is implemented on the local Person A branch:
 - The frontend contract test, production build, and lint checks pass.
 
 This handoff is not yet approved for Person B integration. The Test Judge, Code Reviewer, and Code
-Quality Reviewer approved the local implementation on 2026-08-15. Person A must now record the
-checked-in commit. Person B must then approve the same contract commit.
+Quality Reviewer approved the local implementation on 2026-08-15. Person A approved contract
+commit `fe7c168af1397e65176ccccdb63343c0c8691bf2`. Person B must approve that contract commit.
 
 ## Facts fixed by the controlling specifications
 
@@ -138,17 +138,17 @@ The future `assessment_port.py` must:
 
 | Workstream | Required approval | Status |
 | --- | --- | --- |
-| Person A | Confirms DTO paths, enums, version fields, error shapes, and compatibility policy | `LOCAL REVIEWS APPROVED; PENDING COMMIT SHA` |
-| Person B | Confirms the port can only import the read-only DTO contract | `PENDING PERSON A COMMIT` |
+| Person A | Confirms DTO paths, enums, version fields, error shapes, and compatibility policy | `APPROVED: fe7c168af1397e65176ccccdb63343c0c8691bf2` |
+| Person B | Confirms the port can only import the read-only DTO contract | `PENDING REVIEW OF PERSON A COMMIT` |
 
 Chat agreement does not satisfy this record. Both approvals must name one checked-in contract
 commit. The contract and dependency tests must pass on the integrated head.
 
 ## Unblock procedure
 
-1. Finish Step 1 checks and the three required local agent reviews.
-2. Check in the A1 contract and record its commit SHA here.
-3. Have Person B review the exact contract commit and record approval here.
+1. Person A completed Step 1 checks and the three required local agent reviews.
+2. Person A checked in A1 as `fe7c168af1397e65176ccccdb63343c0c8691bf2`.
+3. Have Person B review that exact contract commit and record approval here.
 4. Update the implementation plan if the port differs from this dependency direction.
 5. Implement `assessment_port.py` and `test_assessment_evidence_port.py`.
 6. Run Ruff, pytest, OpenAPI drift, frontend drift, and dependency checks.

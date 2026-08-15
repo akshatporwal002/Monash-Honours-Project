@@ -238,7 +238,8 @@ Changes:
 - [x] Add the one-way legacy Quality Judge compatibility adapter.
 - [x] Include every frozen DTO in the committed OpenAPI and generated TypeScript contracts.
 - [x] Replace each A1-owned `UNAVAILABLE` row in the handoff document with the local path, symbol, field, value, and error rule.
-- [ ] Record Person A's approval against the A1 commit. Leave Person B approval pending its port tests.
+- [x] Record Person A's approval against A1 commit `fe7c168af1397e65176ccccdb63343c0c8691bf2`.
+  Leave Person B approval pending its port tests.
 - [x] Do not create Person B's `assessment_port.py` or its dependency test.
 
 Edge and failure cases:
