@@ -451,8 +451,10 @@ Files:
 
 - New `src-main/backend/app/models/learning_evidence.py`
 - New Alembic revision from the then-current head
+- `src-main/backend/app/core/readiness.py`
 - New `src-main/backend/tests/test_evidence_models.py`
 - `src-main/backend/tests/test_migrations.py`
+- `src-main/backend/tests/test_deployment_runtime.py`
 
 Changes:
 
@@ -463,6 +465,8 @@ Changes:
 - [x] Add unique idempotency constraints and append-only update/delete triggers.
 - [x] Add indexes for learner/outcome timeline, course/outcome projection, response reference, evidence type/time, and correlation ID.
 - [x] Test clean upgrade, legacy upgrade, repeated upgrade, downgrade/recovery policy, trigger enforcement, record counts, and FK integrity.
+- [x] Keep the readiness migration pin synchronized with the forward-migration head and prove it
+  cannot drift again.
 
 Edge and failure cases:
 
@@ -487,6 +491,13 @@ downgrade. `tests/test_evidence_models.py` reported 2 passed and the full migrat
 `scripts/export_openapi.py --check` and `scripts/generate_frontend_contracts.py --check` reported
 no drift. Exact duplicate-replay classification, course-scope validation across references, and
 privacy-authorised reads/writes remain Step 7 work; no formal result is stored or derived.
+
+Readiness follow-up verification (2026-08-16): The evidence migration initially advanced Alembic
+without advancing `app.core.readiness.MIGRATION_HEAD`, which made an otherwise healthy upgraded
+database return `/ready` as `503`. The pin now names `20260816_0019`; a deployment-runtime test
+compares it directly with Alembic's script-directory head, and the existing Person 4 end-to-end
+readiness assertion passes again after a full upgrade. This change does not alter any LMS,
+assessment, router, or generated-contract file.
 
 Requirements: FR19, FR26, FR29, NFR17, NFR20, AC11, AC15.
 

@@ -16,7 +16,7 @@ from app.db.session import engine as application_engine
 from app.models.worker import WORKER_HEARTBEAT_SLOT, WorkerHeartbeat
 from app.schemas.health import ReadinessResponse
 
-MIGRATION_HEAD = "20260815_0018"
+MIGRATION_HEAD = "20260816_0019"
 
 
 class WorkerHeartbeatRepository(Protocol):
