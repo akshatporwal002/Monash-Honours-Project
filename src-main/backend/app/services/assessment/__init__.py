@@ -8,6 +8,20 @@ from app.services.assessment.access import (
     RoleAssignmentValidationError,
     ScopedRoleAccessDeniedError,
 )
+from app.services.assessment.alignment import AssessmentAlignmentError
+from app.services.assessment.definitions import (
+    AssessmentDefinitionConflictError,
+    AssessmentDefinitionDraft,
+    AssessmentDefinitionError,
+    AssessmentDefinitionService,
+    AssessmentDefinitionValidationError,
+    CriterionDraft,
+    TaskFormDraft,
+)
+from app.services.assessment.repository import (
+    AssessmentDefinitionNotFoundError,
+    AssessmentDefinitionRepository,
+)
 
 __all__ = [
     "RoleAssignmentConflictError",
@@ -16,4 +30,14 @@ __all__ = [
     "RoleAssignmentService",
     "RoleAssignmentValidationError",
     "ScopedRoleAccessDeniedError",
+    "AssessmentAlignmentError",
+    "AssessmentDefinitionConflictError",
+    "AssessmentDefinitionDraft",
+    "AssessmentDefinitionError",
+    "AssessmentDefinitionNotFoundError",
+    "AssessmentDefinitionRepository",
+    "AssessmentDefinitionService",
+    "AssessmentDefinitionValidationError",
+    "CriterionDraft",
+    "TaskFormDraft",
 ]

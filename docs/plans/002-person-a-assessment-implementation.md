@@ -549,17 +549,18 @@ Files:
 - New `src-main/backend/app/services/assessment/repository.py`
 - New `src-main/backend/app/services/assessment/definitions.py`
 - New `src-main/backend/app/services/assessment/alignment.py`
+- `src-main/backend/app/services/assessment/__init__.py`
 - New `src-main/backend/tests/test_assessment_definitions.py`
 
 Changes:
 
-- [ ] Add course-scoped reads and writes for draft and approved definition versions.
-- [ ] Require expected version on every change.
-- [ ] Return `409` semantics for stale drafts or approval races.
-- [ ] Validate Bloom process, knowledge dimensions, criteria, pass rule, purpose, conditions, and source approval.
-- [ ] Block recall-only forms for an `ANALYSE` target through declared task evidence.
-- [ ] Block publication when an access mode changes the intended construct.
-- [ ] Preserve every earlier approved version and approval action.
+- [x] Add course-scoped reads and writes for draft and approved definition versions.
+- [x] Require expected version on every change.
+- [x] Return `409` semantics for stale drafts or approval races.
+- [x] Validate Bloom process, knowledge dimensions, criteria, pass rule, purpose, conditions, and source approval.
+- [x] Block recall-only forms for an `ANALYSE` target through declared task evidence.
+- [x] Block publication when an access mode changes the intended construct.
+- [x] Preserve every earlier approved version and approval action.
 
 Edge and failure cases:
 
@@ -577,6 +578,16 @@ Named tests:
 
 **Acceptance:** Definition service tests pass. The same complete draft can be approved once. Missing,
 stale, misaligned, cross-course, and construct-changing definitions are rejected safely.
+
+Verification on 2026-08-16:
+
+- `uv run --frozen pytest --basetemp .tmp-step6-pytest-final tests/test_assessment_definitions.py`:
+  5 passed.
+- `uv run --frozen pytest --basetemp .tmp-step6-pytest-models-final tests/test_assessment_models.py`:
+  16 passed.
+- `uv run --frozen ruff check app/services/assessment tests/test_assessment_definitions.py` and
+  `uv run --frozen ruff format --check app/services/assessment tests/test_assessment_definitions.py`:
+  passed.
 
 Requirements: A3, FR6, FR8, FR38, PD9, PD12, BP1-BP6, BP8, BP9, AC2, AC3, AC16, AT4-AT6,
 AT21.
