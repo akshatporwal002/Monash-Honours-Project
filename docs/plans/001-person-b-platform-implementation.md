@@ -608,23 +608,29 @@ Requirements: FR19, FR20, FR29, FR31, NFR16, NFR20, AC11.
 
 Files:
 
+- `src-main/backend/app/domain/platform_enums.py`
 - New `src-main/backend/app/models/learner_model.py`
 - New Alembic revision from the then-current head
+- `src-main/backend/app/core/readiness.py`
+- `src-main/backend/migrations/env.py`
 - New `src-main/backend/app/services/learner_model/contracts.py`
 - New `src-main/backend/app/services/learner_model/repository.py`
 - New `src-main/backend/app/services/learner_model/builder.py`
 - New `src-main/backend/app/services/learner_model/safety.py`
 - New `src-main/backend/tests/test_learner_model.py`
 - New `src-main/backend/tests/test_learner_model_safety.py`
+- `src-main/backend/tests/test_migrations.py`
 
 Changes:
 
-- [ ] Add append-only snapshots and outcome estimates with prior snapshot, evidence links, supporting/contradicting classification, uncertainty, recency, rule/model version, actor/agent, and time.
-- [ ] Represent observed prior knowledge, reasoning strengths/gaps, possible misconceptions, confidence calibration, feedback use, scaffold dependence, independence, transfer, and explicit preferences without fixed labels.
-- [ ] Build deterministic rule-based snapshots first; keep any model adapter behind a versioned interface and human-review threshold.
-- [ ] Require more than one weak signal for broad independence/mastery or persistent-misconception inferences.
-- [ ] Reject diagnosis, disability, neurodivergence, medical, demographic, psychological, motivation, fixed-ability, and learning-style fields or generated claims.
-- [ ] Store uncertainty as inference metadata, never a learner result or numeric mark.
+- [x] Add append-only snapshots and outcome estimates with prior snapshot, evidence links, supporting/contradicting classification, uncertainty, recency, rule/model version, actor/agent, and time.
+- [x] Represent observed prior knowledge, reasoning strengths/gaps, possible misconceptions, confidence calibration, feedback use, scaffold dependence, independence, transfer, and explicit preferences without fixed labels.
+- [x] Build deterministic rule-based snapshots first; keep any model adapter behind a versioned interface and human-review threshold.
+- [x] Require more than one weak signal for broad independence/mastery or persistent-misconception inferences.
+- [x] Reject diagnosis, disability, neurodivergence, medical, demographic, psychological, motivation, fixed-ability, and learning-style fields or generated claims.
+- [x] Store uncertainty as inference metadata, never a learner result or numeric mark.
+- [x] Advance the readiness migration pin with the forward migration; the existing deployment
+  regression test must continue to compare it with Alembic's current head.
 
 Edge and failure cases:
 
@@ -633,6 +639,31 @@ Edge and failure cases:
 - A model/provider failure leaves evidence stored and creates no new inference.
 
 **Acceptance:** Seeded evidence produces a reproducible snapshot with linked evidence and uncertainty; safety fixtures reject every banned claim; old snapshots remain queryable after new or contradicting evidence.
+
+Verification (2026-08-16): `PASS`. `learner_model_snapshots`, outcome-specific estimates, and
+per-estimate support/contradiction links are isolated Person B tables with immutable update/delete
+triggers, forward migration `20260816_0020`, scope-checked predecessor references, a unique
+idempotency key, and stable `(occurred_at, created_at, id)` history. The migration loader adds
+imports for only the two isolated Person B model modules, leaving Person A's shared model barrel
+unchanged.
+The migration refuses a populated learner-model, evidence, or assessment downgrade before it can
+remove any table, and the readiness pin now advances with Alembic head.
+
+The deterministic builder creates controlled, outcome-specific dimension estimates only from
+selected immutable evidence. Every estimate records the precise evidence links, relation,
+uncertainty, latest evidence time, reason code, and rule/model version. A single possible-
+misconception signal remains `UNCERTAIN`; two supporting signals are required before it becomes
+`SUPPORTED`, and conflicting evidence produces a later immutable snapshot rather than modifying
+the earlier one. A future non-rule adapter is a versioned protocol and cannot run without explicit
+human review; an unavailable provider leaves the existing evidence and snapshot history unchanged.
+Strict contracts and safety checks reject diagnostic, disability, neurodivergence, medical,
+demographic, psychological, motivation, fixed-ability, learning-style, numeric-score, and formal-
+result inputs. No learner result is calculated or stored.
+
+`pytest -q tests/test_learner_model.py tests/test_learner_model_safety.py tests/test_deployment_runtime.py tests/test_worker_health.py tests/test_person4_e2e.py::test_person4_deterministic_end_to_end` reported 32 passed; the full
+`pytest -q tests/test_migrations.py` suite reported 22 passed. Targeted Ruff and format, OpenAPI,
+generated frontend-contract, and `git diff --check` checks passed. No shared LMS, router,
+frontend, generated-contract, or Person A model-barrel file was modified.
 
 Requirements: FR30, PD3, BP4, NFR27, NFR31, AC12, AC15.
 

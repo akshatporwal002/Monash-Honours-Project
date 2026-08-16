@@ -71,6 +71,21 @@ class ModelSource(StrEnum):
     LEARNER = "LEARNER"
 
 
+class LearnerModelDimension(StrEnum):
+    """Observed learning dimensions, never fixed learner traits or results."""
+
+    PRIOR_KNOWLEDGE = "PRIOR_KNOWLEDGE"
+    REASONING_STRENGTH = "REASONING_STRENGTH"
+    REASONING_GAP = "REASONING_GAP"
+    POSSIBLE_MISCONCEPTION = "POSSIBLE_MISCONCEPTION"
+    CONFIDENCE_CALIBRATION = "CONFIDENCE_CALIBRATION"
+    FEEDBACK_USE = "FEEDBACK_USE"
+    SCAFFOLD_DEPENDENCE = "SCAFFOLD_DEPENDENCE"
+    INDEPENDENCE = "INDEPENDENCE"
+    TRANSFER = "TRANSFER"
+    EXPLICIT_PREFERENCE = "EXPLICIT_PREFERENCE"
+
+
 class EvidenceLinkRelation(StrEnum):
     SUPPORTS = "SUPPORTS"
     CONTRADICTS = "CONTRADICTS"
@@ -85,6 +100,7 @@ __all__ = [
     "EvidenceType",
     "InferenceStatus",
     "InstructionalSupportLevel",
+    "LearnerModelDimension",
     "ModelSource",
     "ObservationType",
 ]
