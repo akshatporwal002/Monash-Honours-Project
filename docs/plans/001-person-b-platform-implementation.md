@@ -415,12 +415,12 @@ Files:
 
 Changes:
 
-- [ ] Define separate enum namespaces for evidence type, evidence provenance, instructional-support level, access-support state, observation type, inference status, correction action, and model source.
-- [ ] Define strict, versioned Pydantic contracts for evidence artefacts, evidence records, evidence links, and opaque evidence references.
-- [ ] Cover prediction, explanation, reasoning, response/revision, confidence, hint, scaffold, feedback interaction, reflection, simulation, misconception check, transfer, and diagnostic evidence.
-- [ ] Require course, learner, outcome, activity/task, response version where applicable, source interaction, task conditions, occurred-at time, actor/agent, schema version, and idempotency key.
-- [ ] Keep access support distinct from instructional support in both type and field name.
-- [ ] Reject unknown fields, numeric formal-grade fields, research assignment fields, diagnosis/demographic fields, and oversized payloads.
+- [x] Define separate enum namespaces for evidence type, evidence provenance, instructional-support level, access-support state, observation type, inference status, correction action, and model source.
+- [x] Define strict, versioned Pydantic contracts for evidence artefacts, evidence records, evidence links, and opaque evidence references.
+- [x] Cover prediction, explanation, reasoning, response/revision, confidence, hint, scaffold, feedback interaction, reflection, simulation, misconception check, transfer, and diagnostic evidence.
+- [x] Require course, learner, outcome, activity/task, response version where applicable, source interaction, task conditions, occurred-at time, actor/agent, schema version, and idempotency key.
+- [x] Keep access support distinct from instructional support in both type and field name.
+- [x] Reject unknown fields, numeric formal-grade fields, research assignment fields, diagnosis/demographic fields, and oversized payloads.
 
 Edge and failure cases:
 
@@ -429,6 +429,19 @@ Edge and failure cases:
 - System-fault evidence is recorded as operational evidence, not learner `INCOMPLETE` evidence.
 
 **Acceptance:** Contract tests accept every required evidence kind, reject forbidden/cross-namespace fields, and serialize a stable `evidence.v1` reference without a formal result.
+
+Verification (2026-08-16): `PASS`. `app.domain.platform_enums` introduces only Person B evidence,
+support, inference, correction, and model-source namespaces; it does not reuse Person A's formal
+assessment enums. `app.schemas.evidence` supplies frozen `evidence-artifact.v1`,
+`evidence-record.v1`, `evidence-link.v1`, and opaque `evidence.v1` contracts. Protected artefact
+content is bounded at 65,536 characters at this API boundary, while references intentionally omit
+both protected content and learner identity. `reference_from_record` rejects an artifact whose ID
+or learner/course scope differs from the metadata record. `tests/test_evidence_contracts.py`
+reported 11 passed, and the combined Step 4/5 suite (`test_evidence_contracts`,
+`test_assessment_evidence_port`, `test_assessment_contracts`, and `test_criterion_evaluation`)
+reported 34 passed. Targeted Ruff and format checks passed, as did `git diff --check`. Evidence
+persistence, append-only storage, access-policy enforcement, and learner-model inference remain
+Step 6 onward work and are not claimed by these contracts.
 
 Requirements: FR19, FR20, FR29, BP5, BP6, NFR16, NFR27, NFR31, AC11, AC15.
 
