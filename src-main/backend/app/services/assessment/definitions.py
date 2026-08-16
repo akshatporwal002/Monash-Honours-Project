@@ -95,6 +95,7 @@ class AssessmentDefinitionDraft:
     access_conditions: dict[str, Any] | list[Any]
     transfer_rule: dict[str, Any] | list[Any]
     evidence_sufficiency: dict[str, Any] | list[Any]
+    formal_result_eligible: bool
     bloom_process: BloomProcess
     knowledge_dimension: BloomKnowledge
     criteria: list[CriterionDraft]
@@ -218,12 +219,15 @@ class AssessmentDefinitionService:
             self.session.commit()
         except AssessmentDefinitionError:
             self.session.rollback()
+            self._record_rejected_approval(actor_user_id, version)
             raise
         except (AssessmentAlignmentError, ValueError) as error:
             self.session.rollback()
+            self._record_rejected_approval(actor_user_id, version)
             raise AssessmentDefinitionValidationError(str(error)) from error
         except (IntegrityError, SQLAlchemyError) as error:
             self.session.rollback()
+            self._record_rejected_approval(actor_user_id, version)
             raise AssessmentDefinitionConflictError(
                 "assessment definition changed before approval completed"
             ) from error
@@ -269,6 +273,8 @@ class AssessmentDefinitionService:
                 access_conditions=draft.access_conditions,
                 transfer_rule=draft.transfer_rule,
                 evidence_sufficiency=draft.evidence_sufficiency,
+                formal_result_eligible=draft.formal_result_eligible,
+                result_eligibility_declared_at=self._utc(self._now()),
             )
             self.session.add(row)
             self.session.flush()
@@ -553,6 +559,17 @@ class AssessmentDefinitionService:
                 },
             )
         )
+
+    def _record_rejected_approval(
+        self,
+        actor_user_id: int,
+        version: AssessmentDefinitionVersion,
+    ) -> None:
+        self._audit(actor_user_id, "assessment_definition.approval_rejected", version)
+        try:
+            self.session.commit()
+        except SQLAlchemyError:
+            self.session.rollback()
 
     @staticmethod
     def _utc(value: datetime) -> datetime:

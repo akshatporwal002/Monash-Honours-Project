@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.security import hash_password
 from app.models import (
     Achievement,
+    AssessmentApprovalState,
     AttemptStatus,
     Course,
     CourseModule,
@@ -29,6 +30,7 @@ from app.models import (
     MaterialChunk,
     MaterialIndexStatus,
     OutcomeKind,
+    OutcomeVersion,
     PlatformAuditEvent,
     Recommendation,
     Reminder,
@@ -328,6 +330,50 @@ class LmsService:
         self._audit(educator, "outcome.created", "learning_outcome", outcome.id)
         self._commit()
         return outcome
+
+    def create_assessment_outcome_version(
+        self,
+        educator: User,
+        course_id: str,
+        outcome_id: str,
+    ) -> OutcomeVersion:
+        """Freeze the course owner's current outcome wording for an assessment draft.
+
+        This records the educator-approved course source. It does not approve a
+        formal assessment definition or task form, which remains assessor-only.
+        """
+
+        course = self._require_course_owner(educator, course_id)
+        self._require_not_archived(course)
+        outcome = self._get_outcome(outcome_id)
+        module = self._get_module(outcome.module_id)
+        if module.course_id != course.id:
+            raise _not_found("Learning outcome")
+        current = self.session.scalar(
+            select(func.max(OutcomeVersion.version)).where(
+                OutcomeVersion.learning_outcome_id == outcome.id
+            )
+        )
+        version_number = (current or 0) + 1
+        now = datetime.now(UTC)
+        version = OutcomeVersion(
+            course_id=course.id,
+            learning_outcome_id=outcome.id,
+            version=version_number,
+            owner_user_id=educator.id,
+            created_by_user_id=educator.id,
+            title=outcome.title,
+            statement=outcome.statement,
+            source_version=f"lms.outcome.v{version_number}",
+            approval_state=AssessmentApprovalState.APPROVED,
+            approved_at=now,
+            approved_by_user_id=educator.id,
+        )
+        self.session.add(version)
+        self.session.flush()
+        self._audit(educator, "assessment.outcome_source_versioned", "outcome_version", version.id)
+        self._commit()
+        return version
 
     def update_outcome(
         self,

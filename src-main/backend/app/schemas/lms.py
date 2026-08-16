@@ -14,6 +14,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.domain.assessment import AssessmentPurpose, BloomKnowledge, BloomProcess
+from app.models.assessment import AssessmentApprovalState, CriterionEvaluatorType
 from app.models.enums import MaterialIndexStatus, TaskType
 from app.models.lms import (
     AttemptStatus,
@@ -21,7 +23,7 @@ from app.models.lms import (
     EnrollmentStatus,
     OutcomeKind,
 )
-from app.models.user import UserRole
+from app.models.user import ScopedRole, UserRole
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -150,6 +152,141 @@ class OutcomeRead(LmsSchema):
     position: int
     created_at: datetime
     updated_at: datetime
+
+
+class ScopedRoleAssignmentCreate(LmsSchema):
+    subject_user_id: Annotated[int, Field(gt=0)]
+    role: ScopedRole
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2_000)]
+
+
+class ScopedRoleAssignmentRevoke(LmsSchema):
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2_000)]
+
+
+class ScopedRoleAssignmentRead(LmsSchema):
+    id: str
+    subject_user_id: int
+    course_id: str
+    role: ScopedRole
+    version: int
+    reason: str
+    assigned_by_user_id: int
+    assigned_at: datetime
+    valid_from: datetime
+    valid_until: datetime | None
+    revoked_at: datetime | None
+
+
+class AssessmentCriterionDraft(LmsSchema):
+    stable_key: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
+    learner_description: NonEmpty
+    evidence_description: NonEmpty
+    mandatory: bool
+    evidence_source_types: list[NonEmpty]
+    met_rule: NonEmpty
+    not_met_rule: NonEmpty
+    not_evaluable_rule: NonEmpty
+    approved_anchors: dict[str, Any] | list[Any]
+    critical_error_rules: dict[str, Any] | list[Any]
+    evaluator_type: CriterionEvaluatorType = CriterionEvaluatorType.RULES
+
+
+class AssessmentTaskFormDraft(LmsSchema):
+    learning_task_id: UuidString
+    source_version: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
+    source_digest: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
+    task_family: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
+    context: dict[str, Any] | list[Any]
+    constraints: dict[str, Any] | list[Any]
+
+
+class AssessmentDefinitionDraftCreate(LmsSchema):
+    claim: NonEmpty
+    supporting_evidence: dict[str, Any] | list[Any]
+    contradicting_evidence: dict[str, Any] | list[Any]
+    insufficient_evidence: dict[str, Any] | list[Any]
+    task_conditions: dict[str, Any] | list[Any]
+    next_action_contract: dict[str, Any] | list[Any]
+    purpose: AssessmentPurpose
+    permitted_tools: dict[str, Any] | list[Any]
+    instructional_support: dict[str, Any] | list[Any]
+    access_conditions: dict[str, Any] | list[Any]
+    transfer_rule: dict[str, Any] | list[Any]
+    evidence_sufficiency: dict[str, Any] | list[Any]
+    formal_result_eligible: bool
+    bloom_process: BloomProcess
+    knowledge_dimension: BloomKnowledge
+    criteria: list[AssessmentCriterionDraft]
+    pass_rule_expression: dict[str, Any]
+    task_forms: list[AssessmentTaskFormDraft]
+
+
+class AssessmentDefinitionApproval(LmsSchema):
+    expected_version: Annotated[int, Field(ge=1)]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2_000)]
+
+
+class AssessmentCriterionRead(LmsSchema):
+    id: str
+    stable_key: str
+    version: int
+    learner_description: str
+    evidence_description: str
+    mandatory: bool
+    evidence_source_types: list[str]
+    met_rule: str
+    not_met_rule: str
+    not_evaluable_rule: str
+    evaluator_type: CriterionEvaluatorType
+
+
+class AssessmentTaskFormRead(LmsSchema):
+    id: str
+    learning_task_id: str
+    version: int
+    source_version: str
+    source_digest: str
+    task_family: str
+    context: dict[str, Any] | list[Any]
+    constraints: dict[str, Any] | list[Any]
+
+
+class AssessmentDefinitionRead(LmsSchema):
+    id: str
+    assessment_definition_id: str
+    course_id: str
+    outcome_version_id: str
+    version: int
+    approval_state: AssessmentApprovalState
+    purpose: AssessmentPurpose
+    bloom_process: BloomProcess
+    knowledge_dimension: BloomKnowledge
+    claim: str
+    supporting_evidence: dict[str, Any] | list[Any]
+    contradicting_evidence: dict[str, Any] | list[Any]
+    insufficient_evidence: dict[str, Any] | list[Any]
+    task_conditions: dict[str, Any] | list[Any]
+    next_action_contract: dict[str, Any] | list[Any]
+    permitted_tools: dict[str, Any] | list[Any]
+    instructional_support: dict[str, Any] | list[Any]
+    access_conditions: dict[str, Any] | list[Any]
+    transfer_rule: dict[str, Any] | list[Any]
+    evidence_sufficiency: dict[str, Any] | list[Any]
+    criteria: list[AssessmentCriterionRead]
+    pass_rule_expression: dict[str, Any]
+    task_forms: list[AssessmentTaskFormRead]
+    formal_result_eligible: bool | None
+    approved_at: datetime | None
+    approved_by_user_id: int | None
 
 
 class EnrollmentCreate(LmsSchema):

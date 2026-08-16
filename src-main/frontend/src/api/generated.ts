@@ -62,8 +62,105 @@ export type ApiSchemas = {
     "start_at"?: (string) | (null)
     "task_types"?: Array<string>
   }
+  "AssessmentApprovalState": "DRAFT" | "APPROVED" | "RETIRED"
+  "AssessmentCriterionDraft": {
+    "approved_anchors": (Record<string, unknown>) | (Array<unknown>)
+    "critical_error_rules": (Record<string, unknown>) | (Array<unknown>)
+    "evaluator_type"?: ApiSchemas["CriterionEvaluatorType"]
+    "evidence_description": string
+    "evidence_source_types": Array<string>
+    "learner_description": string
+    "mandatory": boolean
+    "met_rule": string
+    "not_evaluable_rule": string
+    "not_met_rule": string
+    "stable_key": string
+  }
+  "AssessmentCriterionRead": {
+    "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
+    "evidence_description": string
+    "evidence_source_types": Array<string>
+    "id": string
+    "learner_description": string
+    "mandatory": boolean
+    "met_rule": string
+    "not_evaluable_rule": string
+    "not_met_rule": string
+    "stable_key": string
+    "version": number
+  }
+  "AssessmentDefinitionApproval": {
+    "expected_version": number
+    "reason": string
+  }
+  "AssessmentDefinitionDraftCreate": {
+    "access_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "bloom_process": ApiSchemas["BloomProcess"]
+    "claim": string
+    "contradicting_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "criteria": Array<ApiSchemas["AssessmentCriterionDraft"]>
+    "evidence_sufficiency": (Record<string, unknown>) | (Array<unknown>)
+    "formal_result_eligible": boolean
+    "instructional_support": (Record<string, unknown>) | (Array<unknown>)
+    "insufficient_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "knowledge_dimension": ApiSchemas["BloomKnowledge"]
+    "next_action_contract": (Record<string, unknown>) | (Array<unknown>)
+    "pass_rule_expression": Record<string, unknown>
+    "permitted_tools": (Record<string, unknown>) | (Array<unknown>)
+    "purpose": ApiSchemas["AssessmentPurpose"]
+    "supporting_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "task_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "task_forms": Array<ApiSchemas["AssessmentTaskFormDraft"]>
+    "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
+  }
+  "AssessmentDefinitionRead": {
+    "access_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "approval_state": ApiSchemas["AssessmentApprovalState"]
+    "approved_at": (string) | (null)
+    "approved_by_user_id": (number) | (null)
+    "assessment_definition_id": string
+    "bloom_process": ApiSchemas["BloomProcess"]
+    "claim": string
+    "contradicting_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "course_id": string
+    "criteria": Array<ApiSchemas["AssessmentCriterionRead"]>
+    "evidence_sufficiency": (Record<string, unknown>) | (Array<unknown>)
+    "formal_result_eligible": (boolean) | (null)
+    "id": string
+    "instructional_support": (Record<string, unknown>) | (Array<unknown>)
+    "insufficient_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "knowledge_dimension": ApiSchemas["BloomKnowledge"]
+    "next_action_contract": (Record<string, unknown>) | (Array<unknown>)
+    "outcome_version_id": string
+    "pass_rule_expression": Record<string, unknown>
+    "permitted_tools": (Record<string, unknown>) | (Array<unknown>)
+    "purpose": ApiSchemas["AssessmentPurpose"]
+    "supporting_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "task_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "task_forms": Array<ApiSchemas["AssessmentTaskFormRead"]>
+    "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
+    "version": number
+  }
   "AssessmentPurpose": "DIAGNOSTIC" | "FORMATIVE" | "AS_LEARNING" | "SUMMATIVE" | "RESEARCH"
   "AssessmentResult": "PASS" | "INCOMPLETE"
+  "AssessmentTaskFormDraft": {
+    "constraints": (Record<string, unknown>) | (Array<unknown>)
+    "context": (Record<string, unknown>) | (Array<unknown>)
+    "learning_task_id": string
+    "source_digest": string
+    "source_version": string
+    "task_family": string
+  }
+  "AssessmentTaskFormRead": {
+    "constraints": (Record<string, unknown>) | (Array<unknown>)
+    "context": (Record<string, unknown>) | (Array<unknown>)
+    "id": string
+    "learning_task_id": string
+    "source_digest": string
+    "source_version": string
+    "task_family": string
+    "version": number
+  }
   "AssessmentVersionReference": {
     "assessment_attempt_id": string
     "assessment_definition_id": string
@@ -172,6 +269,7 @@ export type ApiSchemas = {
     "title"?: (string) | (null)
   }
   "CriterionDecision": "MET" | "NOT_MET" | "NOT_EVALUABLE"
+  "CriterionEvaluatorType": "rules" | "human" | "validated_ai" | "mixed"
   "DraftRead": {
     "answer": string
     "circuit": (Record<string, unknown>) | (null)
@@ -582,6 +680,27 @@ export type ApiSchemas = {
     "summary": string
   }
   "ScopedRole": "assessor" | "research"
+  "ScopedRoleAssignmentCreate": {
+    "reason": string
+    "role": ApiSchemas["ScopedRole"]
+    "subject_user_id": number
+  }
+  "ScopedRoleAssignmentRead": {
+    "assigned_at": string
+    "assigned_by_user_id": number
+    "course_id": string
+    "id": string
+    "reason": string
+    "revoked_at": (string) | (null)
+    "role": ApiSchemas["ScopedRole"]
+    "subject_user_id": number
+    "valid_from": string
+    "valid_until": (string) | (null)
+    "version": number
+  }
+  "ScopedRoleAssignmentRevoke": {
+    "reason": string
+  }
   "SettingsRead": {
     "at_risk_threshold": number
     "llm_model": string

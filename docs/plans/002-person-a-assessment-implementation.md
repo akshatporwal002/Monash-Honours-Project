@@ -598,23 +598,27 @@ Files:
 
 - New `src-main/backend/app/api/assessment_dependencies.py`
 - New `src-main/backend/app/api/routes/assessment.py`
-- `src-main/backend/app/api/routes/lms.py`
 - `src-main/backend/app/api/router.py`
 - `src-main/backend/app/schemas/lms.py`
 - `src-main/backend/app/services/lms.py`
+- `src-main/backend/app/services/assessment/definitions.py`
+- `src-main/contracts/openapi.json`
+- `src-main/frontend/src/api/generated.ts`
 - New `src-main/backend/tests/test_assessment_definition_api.py`
+- `src-main/backend/tests/test_assessment_definitions.py`
 - `src-main/backend/tests/test_lms_core_api.py`
+- `src-main/backend/tests/test_assessment_permissions.py`
 
 Changes:
 
-- [ ] Add admin APIs to assign and revoke scoped assessor or research access.
-- [ ] Add educator draft and assessor approval endpoints.
-- [ ] Add outcome, Bloom, criteria, pass-rule, tool, support, access, transfer, form, and approval history endpoints.
-- [ ] Permit a course owner to draft without granting formal approval rights.
-- [ ] Require a course-scoped assessor to approve and publish assessed task forms.
-- [ ] Return `403`, non-leaking `404`, `409`, and `422` responses from the controlling API rules.
-- [ ] Audit every assignment, definition, approval, publication, and rejection action.
-- [ ] Expose no answer key or evaluator prompt to learners.
+- [x] Add admin APIs to assign and revoke scoped assessor or research access.
+- [x] Add educator draft and assessor approval endpoints.
+- [x] Add outcome, Bloom, criteria, pass-rule, tool, support, access, transfer, form, and approval history endpoints.
+- [x] Permit a course owner to draft without granting formal approval rights.
+- [x] Require a course-scoped assessor to approve and publish assessed task forms.
+- [x] Return `403`, non-leaking `404`, `409`, and `422` responses from the controlling API rules.
+- [x] Audit every assignment, definition, approval, publication, and rejection action.
+- [x] Expose no answer key or evaluator prompt to learners.
 
 Edge and failure cases:
 
@@ -634,6 +638,18 @@ Named tests:
 
 **Acceptance:** API tests prove that an assigned assessor can publish one complete version. All
 unassigned, out-of-course, stale, incomplete, and misaligned requests fail with safe responses.
+
+Verification on 2026-08-16:
+
+- `uv run --frozen pytest --basetemp .tmp-step7-pytest-final tests/test_assessment_definition_api.py tests/test_assessment_definitions.py tests/test_lms_core_api.py tests/test_assessment_permissions.py`:
+  31 passed.
+- `uv run --frozen ruff check app/api/assessment_dependencies.py app/api/routes/assessment.py app/api/router.py app/schemas/lms.py app/services/lms.py app/services/assessment/definitions.py tests/test_assessment_definition_api.py tests/test_assessment_definitions.py` and the matching `ruff format --check` command: passed.
+- `uv run --frozen python scripts/export_openapi.py --check` and
+  `uv run --frozen python scripts/generate_frontend_contracts.py --check`: passed after regeneration.
+
+The default API dependencies fail closed for unresolved scoped-role eligibility and live-pilot
+publication policies. Tests inject explicit approved policies to prove assignment and publication
+machinery without claiming a production policy decision.
 
 Requirements: A3, FR1, FR6, FR8, FR20, FR38, PD9, PD12, BP1-BP9, AC1, AC2, AC16, AT4-AT6,
 AT17, AT21.

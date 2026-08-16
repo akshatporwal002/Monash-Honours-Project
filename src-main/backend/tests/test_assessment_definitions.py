@@ -124,6 +124,7 @@ def _draft(
         },
         transfer_rule={"required": True, "new_context": "another quantum circuit"},
         evidence_sufficiency={"requires": ["criterion evidence"]},
+        formal_result_eligible=False,
         bloom_process=BloomProcess.ANALYSE,
         knowledge_dimension=BloomKnowledge.CONCEPTUAL,
         criteria=[
