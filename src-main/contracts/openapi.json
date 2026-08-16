@@ -1155,6 +1155,352 @@
         "title": "AssessmentResult",
         "type": "string"
       },
+      "AssessmentReviewActionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AssessorReviewAction"
+          },
+          "expected_result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "expected_review_revision": {
+            "minimum": 0.0,
+            "title": "Expected Review Revision",
+            "type": "integer"
+          },
+          "new_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "reason",
+          "expected_result_state",
+          "expected_review_revision"
+        ],
+        "title": "AssessmentReviewActionCreate",
+        "type": "object"
+      },
+      "AssessmentReviewActionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "string"
+          },
+          "review_revision": {
+            "title": "Review Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision_id",
+          "review_id",
+          "result",
+          "result_state",
+          "review_revision",
+          "replayed"
+        ],
+        "title": "AssessmentReviewActionRead",
+        "type": "object"
+      },
+      "AssessmentReviewCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion_version": {
+            "title": "Criterion Version",
+            "type": "integer"
+          },
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CriterionDecision"
+          },
+          "evaluator_reference": {
+            "title": "Evaluator Reference",
+            "type": "string"
+          },
+          "evidence_references": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Evidence References"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "retrieval_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retrieval Version"
+          }
+        },
+        "required": [
+          "criterion_version_id",
+          "criterion_version",
+          "decision",
+          "reason",
+          "evidence_references",
+          "evaluator_reference",
+          "model_version",
+          "prompt_version",
+          "retrieval_version"
+        ],
+        "title": "AssessmentReviewCriterionRead",
+        "type": "object"
+      },
+      "AssessmentReviewDetailRead": {
+        "additionalProperties": false,
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentReviewCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentReviewHistoryRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "missing_criterion_version_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Criterion Version Ids",
+            "type": "array"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "quality_review_status": {
+            "title": "Quality Review Status",
+            "type": "string"
+          },
+          "response_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Response Conditions"
+          },
+          "response_text": {
+            "title": "Response Text",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "review_revision": {
+            "title": "Review Revision",
+            "type": "integer"
+          },
+          "system_reason": {
+            "title": "System Reason",
+            "type": "string"
+          },
+          "versions": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Versions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "decision_id",
+          "course_id",
+          "outcome_id",
+          "response_text",
+          "response_conditions",
+          "result",
+          "result_state",
+          "system_reason",
+          "review_revision",
+          "quality_review_status",
+          "versions",
+          "criteria",
+          "missing_criterion_version_ids",
+          "history",
+          "created_at"
+        ],
+        "title": "AssessmentReviewDetailRead",
+        "type": "object"
+      },
+      "AssessmentReviewHistoryRead": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AssessorReviewAction"
+          },
+          "assessor_user_id": {
+            "title": "Assessor User Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "new_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prior_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "review_revision": {
+            "title": "Review Revision",
+            "type": "integer"
+          },
+          "reviewed_at": {
+            "format": "date-time",
+            "title": "Reviewed At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "review_revision",
+          "assessor_user_id",
+          "action",
+          "prior_result",
+          "new_result",
+          "reason",
+          "reviewed_at"
+        ],
+        "title": "AssessmentReviewHistoryRead",
+        "type": "object"
+      },
       "AssessmentTaskCriterionRead": {
         "additionalProperties": false,
         "properties": {
@@ -1475,6 +1821,17 @@
         ],
         "title": "AssessmentVersionReference",
         "type": "object"
+      },
+      "AssessorReviewAction": {
+        "enum": [
+          "CONFIRM",
+          "OVERRIDE",
+          "WITHHOLD",
+          "VOID",
+          "RETURN"
+        ],
+        "title": "AssessorReviewAction",
+        "type": "string"
       },
       "AttemptRead": {
         "additionalProperties": false,
@@ -7527,6 +7884,273 @@
           }
         },
         "summary": "Create Assessment Definition Draft",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/review-queue": {
+      "get": {
+        "operationId": "assessment_review_queue_api_v1_assessment_courses__course_id__review_queue_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AssessmentResult"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Result"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result_state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ResultState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Result State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "review_flag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Review Flag"
+            }
+          },
+          {
+            "in": "query",
+            "name": "minimum_age_hours",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Minimum Age Hours"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssessmentReviewDetailRead"
+                  },
+                  "title": "Response Assessment Review Queue Api V1 Assessment Courses  Course Id  Review Queue Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assessment Review Queue",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/decisions/{decision_id}/review": {
+      "get": {
+        "operationId": "assessment_review_detail_api_v1_assessment_decisions__decision_id__review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentReviewDetailRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assessment Review Detail",
+        "tags": [
+          "assessment"
+        ]
+      },
+      "post": {
+        "operationId": "record_assessment_review_action_api_v1_assessment_decisions__decision_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentReviewActionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentReviewActionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Assessment Review Action",
         "tags": [
           "assessment"
         ]

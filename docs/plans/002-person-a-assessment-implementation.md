@@ -949,20 +949,35 @@ AC19, AC20, AC22, AT1-AT14, AT20-AT23.
 
 Files:
 
+- `src-main/backend/app/domain/assessment.py`
+- `src-main/backend/app/models/assessment.py`
+- New `src-main/backend/migrations/versions/20260816_0021_assessor_review_actions.py`
 - New `src-main/backend/app/services/assessment/review.py`
 - `src-main/backend/app/api/routes/assessment.py`
 - New `src-main/backend/tests/test_assessor_review_api.py`
+- `src-main/backend/tests/test_migrations.py`
+- `src-main/contracts/openapi.json`
+- `src-main/frontend/src/api/generated.ts`
 
 Changes:
 
-- [ ] Add course, outcome, result, state, flag, and age filters.
-- [ ] Show exact response, criterion evidence, missing evidence, versions, evaluator, and Quality Review details.
-- [ ] Add confirm, override, withhold, void, and return actions.
-- [ ] Require an authorised course-scoped assessor for every action.
-- [ ] Require a reason for override, withhold, void, and return.
-- [ ] Keep duplicate finalisation idempotent and stale actions conflict-safe.
-- [ ] Retain the original and every later action in order.
-- [ ] Audit actions with actor, time, correlation, result, and version references.
+- [x] Add course, outcome, result, state, flag, and age filters.
+- [x] Show exact response, criterion evidence, missing evidence, versions, evaluator, and Quality Review details.
+- [x] Add confirm, override, withhold, void, and return actions.
+- [x] Require an authorised course-scoped assessor for every action.
+- [x] Require a reason for override, withhold, void, and return.
+- [x] Keep duplicate finalisation idempotent and stale actions conflict-safe.
+- [x] Retain the original and every later action in order.
+- [x] Audit actions with actor, time, correlation, result, and version references.
+
+Implementation note added on 2026-08-16:
+
+- The pre-existing `AssessorReviewAction` and review table do not represent `WITHHOLD`, and a
+  provisional `WITHHOLD` action otherwise cannot be made stale-safe. This step adds the explicit
+  action and an append-only review revision token. The API requires the revision observed by the
+  assessor; an exact retry replays the already-recorded action, while a different later action
+  returns a conflict. This is a model and migration extension required by the controlling assessor
+  action rules, not a new product policy.
 
 Edge and failure cases:
 
@@ -983,6 +998,34 @@ Named tests:
 **Acceptance:** AT15 to AT17 pass. Each action has complete audit and history. Duplicate and stale
 actions cannot create conflicting formal results.
 
+Verification on 2026-08-16:
+
+- The review queue rechecks a live course-scoped assessor assignment before every read and action.
+  Its detail includes the immutable response, response conditions, criterion evidence, evaluator
+  versions, Quality Review status, frozen version references, missing evidence, and ordered action
+  history. Out-of-course access maps to a non-leaking not-found response.
+- `WITHHOLD` and `RETURN` append a reviewed action while retaining `PROVISIONAL`. A required
+  review revision makes competing actions conflict-safe; an exact retry returns the prior action.
+  `CONFIRM`, `OVERRIDE`, and `VOID` use the existing database lifecycle guards and immutable audit
+  history. Void changes the attempt to `VOID` only after its matching decision transition flushes.
+- `uv run --frozen pytest --basetemp .tmp-step13-pytest3
+  tests/test_assessor_review_api.py tests/test_assessment_attempt_models.py`: 16 passed.
+- The 71-test focused assessment selection passed through 69 tests before the 100-second command
+  limit. The two pending migration tests passed on rerun. The three migration tests covering
+  database triggers, clean and legacy upgrade, ordered review-history backfill, and downgrade
+  protection all passed.
+- Focused Ruff check and format check, OpenAPI and TypeScript contract drift checks, frontend lint,
+  and frontend production build: passed.
+- On 2026-08-17, `uv run --frozen pytest --basetemp
+  .tmp-step14-precommit-rerun-20260817 tests/test_assessor_review_api.py
+  tests/test_migrations.py`: 31 passed. This run includes the complete review API file and migration
+  suite. It also proves the current head blocks a populated downgrade before any revision changes.
+- On 2026-08-17, full backend Ruff check and format check passed. OpenAPI and TypeScript contract
+  drift checks also passed.
+
+The full backend release suite is `NOT RUN`. The authenticated browser checks are recorded in Step
+14. No independent reviewer verdict covers the current head after the final migration guard change.
+
 Requirements: A5, FR38, PD7, PD12, BP7-BP9, AC1, AC16, AC22, AT15-AT17.
 
 ## Step 14: Build the accessible assessor review interface
@@ -991,20 +1034,29 @@ Files:
 
 - New `src-main/frontend/src/features/assessment/AssessorReviewQueue.tsx`
 - New `src-main/frontend/src/features/assessment/AssessorReviewQueue.test.tsx`
+- New `src-main/frontend/e2e/assessment-review.e2e.ts`
+- `src-main/backend/tests/browser_e2e_server.py`
+- `src-main/backend/app/services/assessment/review.py`
+- `src-main/backend/app/models/assessment.py`
+- `src-main/backend/tests/test_assessor_review_api.py`
+- `src-main/frontend/src/app/api.ts`
 - `src-main/frontend/src/features/assessment/api.ts`
 - `src-main/frontend/src/features/assessment/assessment.css`
+- `src-main/frontend/src/styles.css`
 - `src-main/frontend/src/components/AppShell.tsx`
 - `src-main/frontend/src/App.tsx`
 
 Changes:
 
-- [ ] Add accessible queue filters and result-state summaries.
-- [ ] Show original response, evidence, criterion decisions, missing evidence, and versions before actions.
-- [ ] Add confirm, override, withhold, void, and return controls.
-- [ ] Require and validate reasons where the API requires them.
-- [ ] Restore focus after dialogs and announce action results.
-- [ ] Handle stale actions by reloading current history without losing the typed reason.
-- [ ] Avoid colour-only status meaning.
+- [x] Add accessible queue filters and result-state summaries.
+- [x] Show original response, evidence, criterion decisions, missing evidence, and versions before actions.
+- [x] Add confirm, override, withhold, void, and return controls.
+- [x] Require and validate reasons where the API requires them.
+- [x] Restore focus after dialogs and announce action results.
+- [x] Handle stale actions by reloading current history without losing the typed reason.
+- [x] Avoid colour-only status meaning.
+- [x] Prove the authenticated assessor queue and action path in the browser across supported engines.
+- [x] Allow an authorised assessor to override a provisional result through the integrated browser path.
 
 Edge and failure cases:
 
@@ -1018,10 +1070,44 @@ Named tests:
 - `override void withhold and return require a reason`
 - `stale review keeps typed reason and reloads current state`
 - `revoked assessor cannot use cached action controls`
-- `review queue supports keyboard focus zoom and axe checks`
+- `review queue supports keyboard focus containment and axe checks`
+- `assessor reviews frozen evidence and records an action by keyboard`
 
 **Acceptance:** Review UI tests pass. The complete queue and action path works by keyboard, restores
 focus, announces results, and has no detectable Axe violation.
+
+Verification on 2026-08-17:
+
+- `npm.cmd test -- AssessorReviewQueue.test.tsx`: 7 passed, including the evidence-before-action,
+  required-reason, stale-retry, revoked-action and revoked-reload, retained-network-failure,
+  keyboard-focus-containment, successful keyboard submission, and Axe checks. `npm.cmd test --
+  src/test/App.test.tsx`: 19 passed, including the stable one-access-check and one-queue-load
+  review-navigation regression.
+- `npm.cmd test -- --maxWorkers=1`: 75 passed across 11 frontend files. The default parallel run
+  timed out in five unrelated existing files under local resource contention; each passed in an
+  isolated rerun, and the one-worker full suite passed. The JSDOM Axe run emits its existing
+  non-failing canvas-support notice.
+- `npm.cmd run lint` and `npm.cmd run build`: passed.
+- `npm.cmd run test:e2e -- --headed`: 24 passed in 50.1 seconds across Chrome Stable, Edge Stable,
+  Firefox, and WebKit. The authenticated assessment test recorded queue and detail GET responses,
+  then a successful action POST. Chrome exercised `WITHHOLD`, Edge exercised `RETURN`, Firefox
+  exercised `CONFIRM`, and WebKit exercised `OVERRIDE`. Full-page and dialog Axe checks passed.
+- The default headless E2E command is not a clean release result in this Windows session. Firefox
+  did not finish launching within 180 seconds. The same Firefox tests passed in the full headed run.
+- A manual Edge keyboard journey signed in as the demo educator, opened Assessment review through
+  navigation controls, read the evidence before actions, and recorded `WITHHOLD`. The dialog placed
+  focus on Reason, trapped Tab and Shift+Tab, announced success through the status region, and
+  restored focus to the action button after the refreshed record reached revision 1.
+- Manual visual checks at 640px and 320px, the reflow equivalents of 200% and 400% from a 1280px
+  layout, showed readable text, visible focus, and no clipped page content. The document scroll width
+  matched its 625px and 305px client width after the classic scrollbar. Native browser zoom was not
+  run. Automated Axe colour-contrast checks passed in all four browser engines.
+- Windows Narrator was launched, but spoken output was not verified. The desktop control bridge
+  stopped because it could not confirm the active Edge URL with enough confidence. Treat the manual
+  screen-reader check as `NOT RUN`.
+- The prior Code Reviewer and Code Quality Reviewer approvals predate the final migration, focus,
+  and reflow corrections. The Test Judge has not judged the current head. Step 14 is not ready for
+  human PR review.
 
 Requirements: A5, FR38, BP7-BP9, AC16, AC17, AC22, AT15-AT17, AT24.
 

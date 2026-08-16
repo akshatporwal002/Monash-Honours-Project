@@ -7,7 +7,11 @@ from alembic.config import Config
 from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from test_assessment_attempt_models import _criterion_outside_frozen_rule
+from test_assessment_attempt_models import (
+    _attempt_context,
+    _criterion_outside_frozen_rule,
+    _provisional_decision,
+)
 from test_assessment_models import _blueprint
 
 from app.core.security import hash_password
@@ -716,9 +720,9 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
             connection.execute(
                 text(
                     "INSERT INTO assessor_reviews "
-                    "(id, assessment_decision_id, assessor_user_id, action, prior_result, "
+                    "(id, assessment_decision_id, review_revision, assessor_user_id, action, prior_result, "
                     "new_result, reason, reviewed_at) VALUES ('wrong-override-review', :decision, "
-                    ":owner, 'OVERRIDE', 'INCOMPLETE', 'PASS', 'Wrong reason.', CURRENT_TIMESTAMP)"
+                    "1, :owner, 'OVERRIDE', 'INCOMPLETE', 'PASS', 'Wrong reason.', CURRENT_TIMESTAMP)"
                 ),
                 {"decision": decision.id, "owner": owner.id},
             )
@@ -828,9 +832,9 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
             connection.execute(
                 text(
                     "INSERT INTO assessor_reviews "
-                    "(id, assessment_decision_id, assessor_user_id, action, prior_result, "
+                    "(id, assessment_decision_id, review_revision, assessor_user_id, action, prior_result, "
                     "new_result, reason, reviewed_at) VALUES ('stored-review', :decision, "
-                    ":owner, 'RETURN', NULL, NULL, 'Return for clarification.', CURRENT_TIMESTAMP)"
+                    "2, :owner, 'RETURN', NULL, NULL, 'Return for clarification.', CURRENT_TIMESTAMP)"
                 ),
                 {"decision": decision.id, "owner": owner.id},
             )
@@ -1057,6 +1061,50 @@ def test_assessment_migration_upgrades_clean_and_legacy_databases(tmp_path: Path
         "legacy_quality_judge_results",
     }:
         assert after_manifest[table_name] == before_manifest[table_name]
+
+
+def test_assessor_review_migration_backfills_history_and_blocks_downgrade(tmp_path: Path) -> None:
+    database_path = tmp_path / "assessor-review-history.db"
+    database_url = f"sqlite:///{database_path.as_posix()}"
+    config = migration_config(database_url)
+    command.upgrade(config, "20260816_0020")
+    engine = create_engine(database_url)
+    session = Session(engine)
+    try:
+        attempt, _, _, _, owner = _attempt_context(session)
+        decision = _provisional_decision(session, attempt)
+        session.commit()
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO assessor_reviews "
+                    "(id, assessment_decision_id, assessor_user_id, action, prior_result, "
+                    "new_result, reason, reviewed_at) VALUES "
+                    "('review-history-1', :decision, :owner, 'RETURN', NULL, NULL, "
+                    "'First retained review.', '2026-08-16T09:00:00+00:00'), "
+                    "('review-history-2', :decision, :owner, 'RETURN', NULL, NULL, "
+                    "'Second retained review.', '2026-08-16T09:01:00+00:00')"
+                ),
+                {"decision": decision.id, "owner": owner.id},
+            )
+    finally:
+        session.close()
+        engine.dispose()
+
+    command.upgrade(config, "head")
+    upgraded = create_engine(database_url)
+    try:
+        with upgraded.connect() as connection:
+            rows = connection.execute(
+                text("SELECT id, review_revision FROM assessor_reviews ORDER BY review_revision")
+            ).all()
+        assert rows == [("review-history-1", 1), ("review-history-2", 2)]
+        with pytest.raises(
+            RuntimeError, match="cannot downgrade populated assessor review history"
+        ):
+            command.downgrade(config, "20260816_0020")
+    finally:
+        upgraded.dispose()
 
 
 def test_assessment_migration_is_repeat_safe(tmp_path: Path) -> None:

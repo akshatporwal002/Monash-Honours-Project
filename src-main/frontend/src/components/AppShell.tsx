@@ -11,6 +11,7 @@ export type ScreenId =
   | 'students'
   | 'analytics'
   | 'assessor-setup'
+  | 'assessor-review'
   | 'admin-overview'
   | 'admin-users'
   | 'admin-courses'
@@ -42,7 +43,7 @@ const navigation: Record<UserRole, NavigationItem[]> = {
 
 function navigationFor(role: UserRole, hasAssessorAccess: boolean): NavigationItem[] {
   if (role !== 'educator' || !hasAssessorAccess) return navigation[role]
-  return [...navigation.educator, { id: 'assessor-setup', label: 'Assessment setup', icon: 'check' }]
+  return [...navigation.educator, { id: 'assessor-setup', label: 'Assessment setup', icon: 'check' }, { id: 'assessor-review', label: 'Assessment review', icon: 'check' }]
 }
 
 function defaultScreen(role: UserRole): ScreenId {

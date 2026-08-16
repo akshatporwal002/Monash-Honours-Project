@@ -20,6 +20,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     event,
+    func,
     inspect,
     select,
 )
@@ -747,11 +748,18 @@ class AssessmentDecision(Base):
 class AssessorReview(Base):
     __tablename__ = "assessor_reviews"
     __table_args__ = (
+        UniqueConstraint(
+            "assessment_decision_id",
+            "review_revision",
+            name="uq_assessor_reviews_decision_revision",
+        ),
         CheckConstraint("length(trim(reason)) > 0", name="assessor_review_reason"),
+        CheckConstraint("review_revision > 0", name="assessor_review_revision"),
         CheckConstraint(
             "(action = 'CONFIRM' AND prior_result IS NULL AND new_result IN ('PASS', 'INCOMPLETE')) OR "
             "(action = 'OVERRIDE' AND prior_result IN ('PASS', 'INCOMPLETE') "
             "AND new_result IN ('PASS', 'INCOMPLETE') AND prior_result != new_result) OR "
+            "(action = 'WITHHOLD' AND prior_result IS NULL AND new_result IS NULL) OR "
             "(action = 'VOID' AND prior_result IN ('PASS', 'INCOMPLETE') AND new_result IS NULL) OR "
             "(action = 'RETURN' AND prior_result IS NULL AND new_result IS NULL)",
             name="assessor_review_action_shape",
@@ -762,6 +770,7 @@ class AssessorReview(Base):
     assessment_decision_id: Mapped[str] = mapped_column(
         ForeignKey("assessment_decisions.id", ondelete="RESTRICT"), nullable=False
     )
+    review_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     assessor_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
@@ -1172,6 +1181,22 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
     from app.models.lms import SubmissionAttempt
 
     pending = {item.id: item for item in session.new if getattr(item, "id", None) is not None}
+    pending_reviews = [review for review in session.new if isinstance(review, AssessorReview)]
+    for decision_id in {review.assessment_decision_id for review in pending_reviews}:
+        reviews = [
+            review for review in pending_reviews if review.assessment_decision_id == decision_id
+        ]
+        current_revision = (
+            session.scalar(
+                select(func.max(AssessorReview.review_revision)).where(
+                    AssessorReview.assessment_decision_id == decision_id
+                )
+            )
+            or 0
+        )
+        for offset, review in enumerate(reviews, start=1):
+            review.review_revision = current_revision + offset
+
     for attempt in session.new.union(session.dirty):
         if not isinstance(attempt, AssessmentAttempt):
             continue
@@ -1282,10 +1307,11 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
             ResultState.OVERRIDDEN: AssessorReviewAction.OVERRIDE,
             ResultState.VOID: AssessorReviewAction.VOID,
         }.get(decision.result_state)
+        transition_reviews = (*session.new, *session.identity_map.values())
         matching_review = next(
             (
                 review
-                for review in session.new
+                for review in transition_reviews
                 if isinstance(review, AssessorReview)
                 and review.assessment_decision_id == decision.id
                 and review.action is expected_action

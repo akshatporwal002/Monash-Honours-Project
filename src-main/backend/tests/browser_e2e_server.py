@@ -13,6 +13,7 @@ from alembic import command
 from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from test_assessor_review_api import _assign_assessor, _decision_context
 from test_person4_e2e import (
     COURSE_ID,
     NOW,
@@ -249,7 +250,17 @@ def _build_app(database_url: str):
     engine = create_db_engine(database_url)
     session_factory = create_session_factory(engine)
     with session_factory() as demo_session:
-        bootstrap_demo(demo_session)
+        demo_users, _ = bootstrap_demo(demo_session)
+        demo_educator = next(
+            user for user in demo_users if user.email == "educator@quantumlearn.demo"
+        )
+        assessment_attempt, _, _, assessment_owner = _decision_context(demo_session)
+        _assign_assessor(
+            demo_session,
+            demo_educator,
+            assessment_attempt.course_id,
+            assessment_owner,
+        )
     pseudonymizer = HmacSha256Pseudonymizer(PSEUDONYM_SECRET)
     learning_recorder = LearningEventRecorder(
         session_factory,

@@ -13,6 +13,7 @@ import { StudentDashboard } from './components/StudentDashboard'
 import { StudentsView } from './components/StudentsView'
 import { TaskView } from './components/TaskView'
 import { AssessorSetup } from './features/assessment/AssessorSetup'
+import { AssessorReviewQueue } from './features/assessment/AssessorReviewQueue'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
 
@@ -153,13 +154,21 @@ function App() {
     }
   }
 
-  const refreshAssessorAccess = async (): Promise<boolean> => {
+  const refreshAssessorAccess = useCallback(async (): Promise<boolean> => {
     const refreshedUser = await api.auth.me()
     const active = hasActiveAssessorAssignment(refreshedUser)
     setUser(refreshedUser)
-    if (!active && activeScreen === 'assessor-setup') setActiveScreen(defaultScreen(refreshedUser.role))
+    if (!active) {
+      setActiveScreen((current) => (current === 'assessor-setup' || current === 'assessor-review')
+        ? defaultScreen(refreshedUser.role)
+        : current)
+    }
     return active
-  }
+  }, [])
+
+  const leaveAssessorWorkspace = useCallback(() => {
+    setActiveScreen(defaultScreen('educator'))
+  }, [])
 
   const openStudentTask = async (task: LearningTask) => {
     const requestId = taskRequestId.current + 1
@@ -245,7 +254,15 @@ function App() {
         <AssessorSetup
           assignments={user.scoped_assignments}
           onCheckAccess={refreshAssessorAccess}
-          onAccessRevoked={() => setActiveScreen(defaultScreen(user.role))}
+          onAccessRevoked={leaveAssessorWorkspace}
+        />
+      )
+    } else if (activeScreen === 'assessor-review' && hasActiveAssessorAssignment(user)) {
+      content = (
+        <AssessorReviewQueue
+          assignments={user.scoped_assignments}
+          onCheckAccess={refreshAssessorAccess}
+          onAccessRevoked={leaveAssessorWorkspace}
         />
       )
     } else if (activeScreen === 'course-editor') content = <CourseEditor />

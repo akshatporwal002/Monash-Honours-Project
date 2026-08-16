@@ -26,6 +26,7 @@ class AssessmentAttemptState(StrEnum):
 class AssessorReviewAction(StrEnum):
     CONFIRM = "CONFIRM"
     OVERRIDE = "OVERRIDE"
+    WITHHOLD = "WITHHOLD"
     VOID = "VOID"
     RETURN = "RETURN"
 

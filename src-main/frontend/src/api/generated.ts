@@ -157,6 +157,59 @@ export type ApiSchemas = {
   }
   "AssessmentPurpose": "DIAGNOSTIC" | "FORMATIVE" | "AS_LEARNING" | "SUMMATIVE" | "RESEARCH"
   "AssessmentResult": "PASS" | "INCOMPLETE"
+  "AssessmentReviewActionCreate": {
+    "action": ApiSchemas["AssessorReviewAction"]
+    "expected_result_state": ApiSchemas["ResultState"]
+    "expected_review_revision": number
+    "new_result"?: (ApiSchemas["AssessmentResult"]) | (null)
+    "reason": string
+  }
+  "AssessmentReviewActionRead": {
+    "decision_id": string
+    "replayed": boolean
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "result_state": ApiSchemas["ResultState"]
+    "review_id": string
+    "review_revision": number
+  }
+  "AssessmentReviewCriterionRead": {
+    "criterion_version": number
+    "criterion_version_id": string
+    "decision": ApiSchemas["CriterionDecision"]
+    "evaluator_reference": string
+    "evidence_references": (Record<string, unknown>) | (Array<unknown>)
+    "model_version": (string) | (null)
+    "prompt_version": (string) | (null)
+    "reason": string
+    "retrieval_version": (string) | (null)
+  }
+  "AssessmentReviewDetailRead": {
+    "course_id": string
+    "created_at": string
+    "criteria": Array<ApiSchemas["AssessmentReviewCriterionRead"]>
+    "decision_id": string
+    "history": Array<ApiSchemas["AssessmentReviewHistoryRead"]>
+    "missing_criterion_version_ids": Array<string>
+    "outcome_id": string
+    "quality_review_status": string
+    "response_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "response_text": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "result_state": ApiSchemas["ResultState"]
+    "review_revision": number
+    "system_reason": string
+    "versions": Partial<Record<string, (string) | (number)>>
+  }
+  "AssessmentReviewHistoryRead": {
+    "action": ApiSchemas["AssessorReviewAction"]
+    "assessor_user_id": number
+    "id": string
+    "new_result": (ApiSchemas["AssessmentResult"]) | (null)
+    "prior_result": (ApiSchemas["AssessmentResult"]) | (null)
+    "reason": string
+    "review_revision": number
+    "reviewed_at": string
+  }
   "AssessmentTaskCriterionRead": {
     "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
     "evidence_description": string
@@ -205,6 +258,7 @@ export type ApiSchemas = {
     "task_form_version": number
     "task_id": string
   }
+  "AssessorReviewAction": "CONFIRM" | "OVERRIDE" | "WITHHOLD" | "VOID" | "RETURN"
   "AttemptRead": {
     "answer": string
     "attempt_number": number

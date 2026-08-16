@@ -418,6 +418,33 @@ export const api = {
       `/assessment/courses/${encodeURIComponent(courseId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}/publish`,
       json('POST', payload),
     ),
+    reviewQueue: (
+      courseId: string,
+      filters: {
+        outcome_id?: string
+        result?: ApiSchemas['AssessmentResult']
+        result_state?: ApiSchemas['ResultState']
+        review_flag?: string
+        minimum_age_hours?: number
+      } = {},
+    ) => {
+      const query = new URLSearchParams()
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') query.set(key, String(value))
+      })
+      const suffix = query.size ? `?${query.toString()}` : ''
+      return request<ApiSchemas['AssessmentReviewDetailRead'][]>(
+        `/assessment/courses/${encodeURIComponent(courseId)}/review-queue${suffix}`,
+      )
+    },
+    reviewDetail: (decisionId: string) => request<ApiSchemas['AssessmentReviewDetailRead']>(
+      `/assessment/decisions/${encodeURIComponent(decisionId)}/review`,
+    ),
+    reviewAction: (decisionId: string, payload: ApiSchemas['AssessmentReviewActionCreate']) =>
+      request<ApiSchemas['AssessmentReviewActionRead']>(
+        `/assessment/decisions/${encodeURIComponent(decisionId)}/review`,
+        json('POST', payload),
+      ),
   },
   student: {
     dashboard: async (signal?: AbortSignal) =>

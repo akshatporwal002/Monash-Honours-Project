@@ -621,6 +621,7 @@ svg {
 
 .app-shell {
   min-height: 100vh;
+  overflow-x: clip;
 }
 
 .app-sidebar {
@@ -3207,6 +3208,11 @@ svg {
 }
 
 @media (max-width: 760px) {
+  html,
+  body {
+    min-width: 0;
+  }
+
   .app-sidebar {
     z-index: 240;
     width: min(17rem, 84vw);

@@ -141,6 +141,38 @@ test('assessor navigation follows active server assignments', async () => {
   expect(screen.queryByRole('button', { name: 'Approve and publish' })).not.toBeInTheDocument()
 })
 
+test('assessment review loads its access check and queue once after navigation', async () => {
+  const reviewRecord = {
+    decision_id: 'decision-1', course_id: 'course-1', outcome_id: 'outcome-1', response_text: 'A response.',
+    response_conditions: {}, result: 'INCOMPLETE', result_state: 'PROVISIONAL', system_reason: 'Evidence is incomplete.',
+    review_revision: 0, quality_review_status: 'APPROVED', versions: {}, criteria: [],
+    missing_criterion_version_ids: [], history: [], created_at: '2026-08-16T00:00:00Z',
+  }
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) {
+      return response({
+        id: 2, email: 'educator@example.edu', full_name: 'Avery Educator', role: 'educator',
+        scoped_assignments: [{ id: 'assignment-1', course_id: 'course-1', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null }],
+      })
+    }
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    if (url.includes('/assessment/courses/course-1/review-queue')) return response([reviewRecord])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Assessment review' }))
+  expect(await screen.findByRole('heading', { name: 'Assessment review queue' })).toBeInTheDocument()
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) =>
+    String(input).includes('/assessment/courses/course-1/review-queue'))).toHaveLength(1))
+  await new Promise((resolve) => setTimeout(resolve, 25))
+  expect(fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/auth/me'))).toHaveLength(2)
+  expect(fetchMock.mock.calls.filter(([input]) =>
+    String(input).includes('/assessment/courses/course-1/review-queue'))).toHaveLength(1)
+})
+
 test('maps the backend administrator role to the Admin workspace', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from datetime import datetime
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from pydantic import Field
+from sqlalchemy.orm import Session
 
 from app.api.assessment_dependencies import (
     AssessmentPublicationPolicy,
@@ -16,6 +19,13 @@ from app.api.assessment_dependencies import (
 )
 from app.api.dependencies.roles import CurrentAdministrator, CurrentEducator, CurrentUser
 from app.api.routes.lms import Lms
+from app.db.session import get_db
+from app.domain.assessment import (
+    AssessmentResult,
+    AssessorReviewAction,
+    CriterionDecision,
+    ResultState,
+)
 from app.models.assessment import AssessmentDefinitionVersion
 from app.models.user import RoleAssignment, UserRole
 from app.schemas.lms import (
@@ -24,6 +34,7 @@ from app.schemas.lms import (
     AssessmentDefinitionDraftCreate,
     AssessmentDefinitionRead,
     AssessmentTaskFormRead,
+    LmsSchema,
     ScopedRoleAssignmentCreate,
     ScopedRoleAssignmentRead,
     ScopedRoleAssignmentRevoke,
@@ -36,6 +47,15 @@ from app.services.assessment.definitions import (
     TaskFormDraft,
 )
 from app.services.assessment.repository import AssessmentDefinitionNotFoundError
+from app.services.assessment.review import (
+    AssessmentReviewActionRequest,
+    AssessmentReviewConflictError,
+    AssessmentReviewDetail,
+    AssessmentReviewFilters,
+    AssessmentReviewNotFoundError,
+    AssessmentReviewService,
+    AssessmentReviewValidationError,
+)
 from app.services.lms import LmsServiceError
 
 router = APIRouter(prefix="/assessment")
@@ -45,6 +65,79 @@ Definitions = Annotated[AssessmentDefinitionService, Depends(get_assessment_defi
 PublicationPolicy = Annotated[
     AssessmentPublicationPolicy, Depends(get_assessment_publication_policy)
 ]
+
+
+class AssessmentReviewActionCreate(LmsSchema):
+    action: AssessorReviewAction
+    reason: Annotated[str, Field(min_length=1, max_length=2_000)]
+    expected_result_state: ResultState
+    expected_review_revision: Annotated[int, Field(ge=0)]
+    new_result: AssessmentResult | None = None
+
+
+class AssessmentReviewCriterionRead(LmsSchema):
+    criterion_version_id: str
+    criterion_version: int
+    decision: CriterionDecision
+    reason: str
+    evidence_references: dict[str, Any] | list[Any]
+    evaluator_reference: str
+    model_version: str | None
+    prompt_version: str | None
+    retrieval_version: str | None
+
+
+class AssessmentReviewHistoryRead(LmsSchema):
+    id: str
+    review_revision: int
+    assessor_user_id: int
+    action: AssessorReviewAction
+    prior_result: AssessmentResult | None
+    new_result: AssessmentResult | None
+    reason: str
+    reviewed_at: datetime
+
+
+class AssessmentReviewDetailRead(LmsSchema):
+    decision_id: str
+    course_id: str
+    outcome_id: str
+    response_text: str
+    response_conditions: dict[str, Any] | list[Any]
+    result: AssessmentResult | None
+    result_state: ResultState
+    system_reason: str
+    review_revision: int
+    quality_review_status: str
+    versions: dict[str, str | int]
+    criteria: list[AssessmentReviewCriterionRead]
+    missing_criterion_version_ids: list[str]
+    history: list[AssessmentReviewHistoryRead]
+    created_at: datetime
+
+
+class AssessmentReviewActionRead(LmsSchema):
+    decision_id: str
+    review_id: str
+    result: AssessmentResult | None
+    result_state: ResultState
+    review_revision: int
+    replayed: bool
+
+
+def get_assessment_review_service(
+    request: Request,
+    session: Annotated[Session, Depends(get_db)],
+    assignments: RoleAssignments,
+) -> AssessmentReviewService:
+    return AssessmentReviewService(
+        session,
+        assignments=assignments,
+        correlation_id=getattr(request.state, "correlation_id", None),
+    )
+
+
+ReviewService = Annotated[AssessmentReviewService, Depends(get_assessment_review_service)]
 
 
 @router.post(
@@ -189,6 +282,74 @@ def publish_assessment_definition(
     return _definition_read(approved)
 
 
+@router.get(
+    "/courses/{course_id}/review-queue",
+    response_model=list[AssessmentReviewDetailRead],
+)
+def assessment_review_queue(
+    course_id: str,
+    actor: CurrentUser,
+    service: ReviewService,
+    outcome_id: str | None = None,
+    result: AssessmentResult | None = None,
+    result_state: ResultState | None = None,
+    review_flag: str | None = None,
+    minimum_age_hours: int | None = Query(default=None, ge=0),
+) -> list[AssessmentReviewDetailRead]:
+    try:
+        details = service.list_queue(
+            actor,
+            filters=AssessmentReviewFilters(
+                course_id=course_id,
+                outcome_id=outcome_id,
+                result=result,
+                result_state=result_state,
+                review_flag=review_flag,
+                minimum_age_hours=minimum_age_hours,
+            ),
+        )
+    except Exception as error:
+        _raise_review_http_error(error)
+        raise
+    return [_review_detail_read(detail) for detail in details]
+
+
+@router.get("/decisions/{decision_id}/review", response_model=AssessmentReviewDetailRead)
+def assessment_review_detail(
+    decision_id: str,
+    actor: CurrentUser,
+    service: ReviewService,
+) -> AssessmentReviewDetailRead:
+    try:
+        detail = service.get_detail(actor, decision_id=decision_id)
+    except Exception as error:
+        _raise_review_http_error(error)
+        raise
+    return _review_detail_read(detail)
+
+
+@router.post(
+    "/decisions/{decision_id}/review",
+    response_model=AssessmentReviewActionRead,
+)
+def record_assessment_review_action(
+    decision_id: str,
+    payload: AssessmentReviewActionCreate,
+    actor: CurrentUser,
+    service: ReviewService,
+) -> AssessmentReviewActionRead:
+    try:
+        result = service.act(
+            actor,
+            decision_id=decision_id,
+            request=AssessmentReviewActionRequest(**payload.model_dump()),
+        )
+    except Exception as error:
+        _raise_review_http_error(error)
+        raise
+    return AssessmentReviewActionRead(**result.__dict__)
+
+
 def _definition_draft(
     payload: AssessmentDefinitionDraftCreate,
     outcome_version_id: str,
@@ -214,6 +375,40 @@ def _definition_draft(
         pass_rule_expression=payload.pass_rule_expression,
         task_forms=[TaskFormDraft(**form.model_dump()) for form in payload.task_forms],
     )
+
+
+def _review_detail_read(detail: AssessmentReviewDetail) -> AssessmentReviewDetailRead:
+    return AssessmentReviewDetailRead(
+        decision_id=detail.decision_id,
+        course_id=detail.course_id,
+        outcome_id=detail.outcome_id,
+        response_text=detail.response_text,
+        response_conditions=detail.response_conditions,
+        result=detail.result,
+        result_state=detail.result_state,
+        system_reason=detail.system_reason,
+        review_revision=detail.review_revision,
+        quality_review_status=detail.quality_review_status,
+        versions=detail.versions,
+        criteria=[AssessmentReviewCriterionRead(**item.__dict__) for item in detail.criteria],
+        missing_criterion_version_ids=list(detail.missing_criterion_version_ids),
+        history=[AssessmentReviewHistoryRead(**item.__dict__) for item in detail.history],
+        created_at=detail.created_at,
+    )
+
+
+def _raise_review_http_error(error: Exception) -> None:
+    if isinstance(error, (AssessmentReviewNotFoundError, ScopedRoleAccessDeniedError)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment review not found"
+        ) from error
+    if isinstance(error, AssessmentReviewConflictError):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from error
+    if isinstance(error, AssessmentReviewValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(error)
+        ) from error
+    raise error
 
 
 def _definition_read(version: AssessmentDefinitionVersion) -> AssessmentDefinitionRead:
