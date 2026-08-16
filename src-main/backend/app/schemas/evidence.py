@@ -72,6 +72,7 @@ class EvidenceRecord(FrozenEvidenceContract):
     task_id: OpaqueId
     response_version_id: OpaqueId | None = None
     source_interaction_id: OpaqueId | None = None
+    source_version: ContractVersion | None
     task_conditions_version: VersionNumber | None = None
     evidence_type: EvidenceType
     provenance: EvidenceProvenance
@@ -79,8 +80,10 @@ class EvidenceRecord(FrozenEvidenceContract):
     instructional_support_level: InstructionalSupportLevel
     access_support_state: AccessSupportState
     artifact_id: OpaqueId | None = None
+    content_digest: ContentDigest
     actor_reference: OpaqueId
     agent_reference: OpaqueId | None = None
+    correlation_id: OpaqueId
     schema_version: ContractVersion
     record_version: VersionNumber
     idempotency_key: OpaqueId
@@ -100,6 +103,7 @@ class EvidenceLink(FrozenEvidenceContract):
     linked_evidence_id: OpaqueId
     relation: EvidenceLinkRelation
     actor_reference: OpaqueId
+    correlation_id: OpaqueId
     occurred_at: datetime
 
     @field_validator("occurred_at")

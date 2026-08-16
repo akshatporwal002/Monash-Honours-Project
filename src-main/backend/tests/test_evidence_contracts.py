@@ -42,6 +42,7 @@ def record(**overrides: object) -> EvidenceRecord:
         "task_id": "task-1",
         "response_version_id": "response-1",
         "source_interaction_id": "source-1",
+        "source_version": "source.v1",
         "task_conditions_version": 1,
         "evidence_type": EvidenceType.REASONING,
         "provenance": "LEARNER",
@@ -49,8 +50,10 @@ def record(**overrides: object) -> EvidenceRecord:
         "instructional_support_level": InstructionalSupportLevel.CONCEPT_CUE,
         "access_support_state": AccessSupportState.PROVIDED,
         "artifact_id": "artifact-1",
+        "content_digest": f"sha256:{'a' * 64}",
         "actor_reference": "learner-1",
         "agent_reference": "evidence-agent.v1",
+        "correlation_id": "correlation-1",
         "schema_version": "evidence-record.v1",
         "record_version": 1,
         "idempotency_key": "event-1",
@@ -112,6 +115,7 @@ def test_contradicting_evidence_is_a_valid_link_not_a_learner_result() -> None:
         linked_evidence_id="evidence-2",
         relation=EvidenceLinkRelation.CONTRADICTS,
         actor_reference="evidence-agent.v1",
+        correlation_id="correlation-1",
         occurred_at=datetime(2026, 8, 16, 1, 2, 3, tzinfo=UTC),
     )
 
@@ -149,3 +153,20 @@ def test_reference_creation_fails_closed_when_artifact_scope_or_id_differs() -> 
         reference_from_record(record(), artifact=artifact(course_id="course-2"))
     with pytest.raises(ValueError, match="ID"):
         reference_from_record(record(), artifact=artifact(artifact_id="artifact-2"))
+    with pytest.raises(ValueError, match="digest"):
+        reference_from_record(record(), artifact=artifact(content_digest=f"sha256:{'b' * 64}"))
+
+
+def test_reference_can_use_a_response_version_digest_without_an_artifact() -> None:
+    reference = reference_from_record(record(artifact_id=None))
+
+    assert reference.content_digest == f"sha256:{'a' * 64}"
+
+
+@pytest.mark.parametrize("field", ("content_digest", "source_version", "correlation_id"))
+def test_storage_and_audit_fields_are_required_by_evidence_records(field: str) -> None:
+    values = record().model_dump()
+    values.pop(field)
+
+    with pytest.raises(ValidationError):
+        EvidenceRecord.model_validate(values)

@@ -494,21 +494,24 @@ Requirements: FR19, FR26, FR29, NFR17, NFR20, AC11, AC15.
 
 Files:
 
+- `src-main/backend/app/schemas/evidence.py`
 - New `src-main/backend/app/services/evidence/repository.py`
 - New `src-main/backend/app/services/evidence/service.py`
 - New `src-main/backend/app/services/evidence/safety.py`
 - New `src-main/backend/tests/test_evidence_repository.py`
 - New `src-main/backend/tests/test_evidence_privacy.py`
+- `src-main/backend/tests/test_evidence_contracts.py`
 
 Changes:
 
-- [ ] Validate role/course/learner scope before content reads and writes through injected access-policy ports.
-- [ ] Persist artefact, evidence, and links transactionally and return only an opaque reference by default.
-- [ ] Implement exact replay, conflicting replay, concurrent duplicate, and out-of-order event handling.
-- [ ] Provide an append-only chronological query with stable `(occurred_at, created_at, id)` ordering.
-- [ ] Redact direct IDs, full answers, prompts, source chunks, access details, and exception text from operational logs and audit metadata.
-- [ ] Validate content digests and reject dangling or cross-course evidence links.
-- [ ] Emit bounded audit events for evidence creation, learner annotation, educator correction, retry, and fallback.
+- [x] Complete the frozen evidence-record/link input contracts with the already-persisted content digest, source version, and correlation ID; add no formal-result or research fields.
+- [x] Validate role/course/learner scope before content reads and writes through injected access-policy ports.
+- [x] Persist artefact, evidence, and links transactionally and return only an opaque reference by default.
+- [x] Implement exact replay, conflicting replay, concurrent duplicate, and out-of-order event handling.
+- [x] Provide an append-only chronological query with stable `(occurred_at, created_at, id)` ordering.
+- [x] Redact direct IDs, full answers, prompts, source chunks, access details, and exception text from operational logs and audit metadata.
+- [x] Validate content digests and reject dangling or cross-course evidence links.
+- [x] Emit bounded audit events for evidence creation, learner annotation, educator correction, retry, and fallback.
 
 Edge and failure cases:
 
@@ -517,6 +520,27 @@ Edge and failure cases:
 - Course mismatch returns non-enumerating `404` behaviour at the API layer.
 
 **Acceptance:** Repository and privacy tests prove exact replay, conflict, concurrency, append-only history, cross-course denial, and absence of privacy sentinels from logs/audit responses.
+
+Verification (2026-08-16): `PASS`. The evidence record and link contracts now carry the source
+version, digest, and correlation required by the already-migrated tables, with no formal-result or
+research field. `EvidenceService` requires an injected role/course/learner policy and confirms the
+authorized write scope matches the immutable record; a denied or absent resource follows the same
+safe `EvidenceNotFoundError` path for a future non-enumerating API mapping. The repository verifies
+the course/outcome/task graph, protects artefact reads separately, commits artefact/evidence/links
+together, distinguishes exact idempotent replay from conflict (including concurrent writers), and
+sorts metadata-only history by `(occurred_at, created_at, id)`. Links across learners/courses or to
+dangling evidence are rejected. Bounded audit events retain only hashed actor/resource references,
+agent, schema version, correlation, action, time, outcome, and a fixed failure category; they never
+hold content, prompts, source chunks, direct learner IDs, access state, or exception text. A storage
+failure returns `PENDING_RECONCILIATION` so its caller can reconcile without rolling back a
+caller-owned accepted response, while an audit failure leaves the durable evidence result intact.
+`pytest -q tests/test_evidence_contracts.py
+tests/test_evidence_models.py tests/test_evidence_repository.py tests/test_evidence_privacy.py
+tests/test_assessment_evidence_port.py tests/test_assessment_contracts.py tests/test_criterion_evaluation.py`
+reported 57 passed; `pytest -q tests/test_migrations.py` reported 22 passed. Targeted Ruff/format,
+OpenAPI, generated frontend-contract, and `git diff --check` checks passed. No HTTP route is added
+in this step; Person A retains shared router integration and the separate API mapping remains later
+work.
 
 Requirements: FR19, FR20, FR26, FR29, NFR16, NFR17, NFR20, NFR23, AC6, AC11.
 
