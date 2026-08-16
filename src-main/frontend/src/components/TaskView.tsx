@@ -78,6 +78,17 @@ function circuitOperations(circuit: unknown): GateOperation[] {
   return Array.isArray(operations) ? operations.filter(isGateOperation) : []
 }
 
+function submissionKey(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID()
+  return `submission-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function readableConditions(value: Record<string, unknown> | unknown[]): string {
+  if (Array.isArray(value)) return value.map(String).join(', ') || 'None declared'
+  const values = Object.values(value).flatMap((item) => Array.isArray(item) ? item : [item])
+  return values.map(String).join(', ') || 'None declared'
+}
+
 export function TaskView({
   task,
   onClose,
@@ -89,6 +100,7 @@ export function TaskView({
 }) {
   const mode = taskMode(task)
   const workspaceRef = useRef<HTMLElement>(null)
+  const idempotencyKeyRef = useRef<string | null>(null)
   const feedbackClient = useMemo(
     () => createFeedbackApiClient({ getCsrfToken: csrfToken }),
     [],
@@ -235,6 +247,10 @@ export function TaskView({
     setBusy(true)
     setStatusMessage('')
     try {
+      await api.student.saveDraft(task.id, {
+        answer: '',
+        circuit: { qubits: 2, operations },
+      })
       setSimulation(await api.student.simulate(operations))
       setStatusMessage('Simulation completed with 1,024 shots.')
     } catch (error) {
@@ -249,7 +265,11 @@ export function TaskView({
     setStatusMessage('')
     try {
       if (submit) {
-        const result = await api.student.submit(task.id, payload)
+        const idempotency_key = task.assessment
+          ? (idempotencyKeyRef.current ??= submissionKey())
+          : undefined
+        const result = await api.student.submit(task.id, { ...payload, idempotency_key })
+        idempotencyKeyRef.current = null
         setSubmission(result)
         setAttempts((current) => [
           result,
@@ -288,8 +308,28 @@ export function TaskView({
             <p>{task.instructions}</p>
             <div className="learning-note">
               <Icon name="spark" size={18} />
-              <p>Try an answer first. Your feedback will explain the next useful step, not just the score.</p>
+              <p>{task.assessment
+                ? 'Read the assessment conditions before you submit. Your response will be saved as evidence.'
+                : 'Try an answer first. Your feedback will explain the next useful step, not just the score.'}</p>
             </div>
+            {task.assessment && (
+              <section className="source-list" aria-labelledby="assessment-conditions-title">
+                <strong id="assessment-conditions-title">Assessment conditions</strong>
+                <span>Purpose: {task.assessment.purpose.replace('_', ' ')}</span>
+                <span>Target: {task.assessment.bloom_process} ({task.assessment.knowledge_dimension})</span>
+                <span>Claim: {task.assessment.claim}</span>
+                <span>Task conditions: {readableConditions(task.assessment.task_conditions)}</span>
+                <span>Permitted tools: {readableConditions(task.assessment.permitted_tools)}</span>
+                <span>Access conditions: {readableConditions(task.assessment.access_conditions)}</span>
+                <span>Review: {task.assessment.review_rule}</span>
+                <strong>Evidence criteria</strong>
+                {task.assessment.criteria.map((criterion) => (
+                  <span key={criterion.description}>
+                    {criterion.mandatory ? 'Required: ' : 'Supporting: '}{criterion.description}
+                  </span>
+                ))}
+              </section>
+            )}
             {task.source_references && task.source_references.length > 0 && (
               <div className="source-list">
                 <strong>Grounded in</strong>
@@ -382,6 +422,7 @@ export function TaskView({
               <label className="field">
                 <span>Your response</span>
                 <textarea
+                  aria-label="Your response"
                   rows={12}
                   value={answer}
                   onChange={(event) => setAnswer(event.target.value)}
@@ -473,12 +514,17 @@ export function TaskView({
             )}
 
             {submission && (
-              <div className={`submission-result ${submission.score >= 70 ? 'submission-result--success' : ''}`} role="status">
+              <div className={`submission-result ${submission.score !== null && submission.score >= 70 ? 'submission-result--success' : ''}`} role="status">
                 <div>
-                  <span><Icon name={submission.score >= 70 ? 'check' : 'spark'} /></span>
-                  <div><p className="eyebrow">Attempt recorded</p><h2>{submission.score}%</h2></div>
+                  <span><Icon name={submission.score !== null && submission.score >= 70 ? 'check' : 'spark'} /></span>
+                  <div>
+                    <p className="eyebrow">Attempt recorded</p>
+                    <h2>{submission.score === null ? 'Assessment response saved' : `${submission.score}%`}</h2>
+                  </div>
                 </div>
-                <p>Your response is saved. Validated AI feedback is prepared separately below.</p>
+                <p>{submission.score === null
+                  ? 'Your response is saved for assessment and review.'
+                  : 'Your response is saved. Validated AI feedback is prepared separately below.'}</p>
               </div>
             )}
             {latestFeedbackReference && (
@@ -504,7 +550,7 @@ export function TaskView({
                     <li key={item.id ?? `${item.attempt_number}-${item.submitted_at}`}>
                       <span className="attempt-number">#{item.attempt_number ?? attempts.length - index}</span>
                       <div>
-                        <strong>{item.score}%</strong>
+                        <strong>{item.score === null ? 'Assessment response saved' : `${item.score}%`}</strong>
                         <small>{item.status.replace('_', ' ')}</small>
                       </div>
                       {item.submitted_at ? (

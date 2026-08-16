@@ -717,17 +717,23 @@ Files:
 - New `src-main/backend/app/services/assessment/submissions.py`
 - New `src-main/backend/tests/test_assessment_submissions.py`
 - `src-main/backend/tests/test_lms_core_api.py`
+- `src-main/contracts/openapi.json`
+- `src-main/frontend/src/api/generated.ts`
+- `src-main/frontend/src/app/api.ts`
+- `src-main/frontend/src/app/types.ts`
+- `src-main/frontend/src/components/TaskView.tsx`
+- `src-main/frontend/src/test/App.test.tsx`
 
 Changes:
 
-- [ ] Show the declared purpose, target, criteria, conditions, tools, and review rule before start.
-- [ ] Require a client idempotency key for accepted submission writes.
-- [ ] Freeze the approved versions when the learner starts the attempt.
-- [ ] Save the response version before feedback, evidence, evaluator, or simulation calls.
-- [ ] Create an `AssessmentAttempt` only for a task declared result-eligible before start.
-- [ ] Keep formative and diagnostic attempts outside formal results.
-- [ ] Preserve the existing feedback workflow through a response-version reference.
-- [ ] Treat task, access, source, or simulation faults as review or void states, not `INCOMPLETE`.
+- [x] Show the declared purpose, target, criteria, conditions, tools, and review rule before start.
+- [x] Require a client idempotency key for accepted submission writes.
+- [x] Freeze the approved versions when the learner starts the attempt.
+- [x] Save the response version before feedback, evidence, evaluator, or simulation calls.
+- [x] Create an `AssessmentAttempt` only for a task declared result-eligible before start.
+- [x] Keep formative and diagnostic attempts outside formal results.
+- [x] Preserve the existing feedback workflow through a response-version reference.
+- [x] Treat task, access, source, or simulation faults as review or void states, not `INCOMPLETE`.
 
 Edge and failure cases:
 
@@ -749,6 +755,22 @@ Named tests:
 evidence failures. Identical retries create one response version. Unassessed work creates no formal
 decision.
 
+Verification on 2026-08-16:
+
+- `uv run --frozen pytest --basetemp .tmp-step9-pytest-final2 tests/test_assessment_submissions.py tests/test_lms_core_api.py tests/test_assessment_attempt_models.py`: 26 passed.
+- Focused Ruff check and format check: passed.
+- `uv run --frozen python scripts/export_openapi.py --check` and
+  `uv run --frozen python scripts/generate_frontend_contracts.py --check`: passed.
+- `npm.cmd test -- App.test.tsx` (18 passed), `npm.cmd run lint`, and `npm.cmd run build`: passed.
+- `test_changed_task_form_blocks_finalisation` rejects an assessment attempt whose task form was
+  replaced after the response was recorded. `test_system_fault_creates_no_incomplete_result` keeps
+  the response, changes the formal attempt to `FAULTED`, and creates no decision. Simulation,
+  access, and source errors occur before accepted submission, so they cannot create an assessment
+  result through this route. `test_formative_and_diagnostic_tasks_cannot_create_formal_result`
+  proves that these purposes cannot enter the formal-result path even if an eligibility flag exists.
+  The circuit UI saves its draft before calling the simulator, and
+  `saves a circuit draft before a simulation fault` proves that order.
+
 Requirements: A2, A4, FR12, FR19, FR31, BP1, BP5, BP8, BP15, NFR5, NFR17, NFR23, AC5, AC8,
 AT10, AT21, AT22.
 
@@ -763,13 +785,13 @@ Files:
 
 Changes:
 
-- [ ] Add rule, human, validated-AI, and mixed evaluator adapters.
-- [ ] Return `MET`, `NOT_MET`, or `NOT_EVALUABLE` for each criterion.
-- [ ] Require evidence references and a short reason for each decision.
+- [x] Add rule, human, validated-AI, and mixed evaluator adapters.
+- [x] Return `MET`, `NOT_MET`, or `NOT_EVALUABLE` for each criterion.
+- [x] Require evidence references and a short reason for each decision.
 - [ ] Validate every evidence reference through the frozen Person B port.
-- [ ] Reject stale, cross-course, unauthorised, mismatched, or forbidden evidence fields.
-- [ ] Keep AI output advisory until the separate release gate passes.
-- [ ] Test concise, unusual, alternate-format, and accessible valid answers.
+- [x] Reject stale, cross-course, unauthorised, mismatched, or forbidden evidence fields.
+- [x] Keep AI output advisory until the separate release gate passes.
+- [x] Test concise, unusual, alternate-format, and accessible valid answers.
 
 Edge and failure cases:
 
@@ -789,6 +811,19 @@ Named tests:
 
 **Acceptance:** Evaluator tests pass across rule, human, mixed, and advisory AI cases. Every saved
 decision has valid evidence and versions. Faulted evaluation creates no learner result.
+
+Partial verification on 2026-08-16:
+
+- `uv run --frozen pytest --basetemp .tmp-step10-pytest-final tests/test_criterion_evaluation.py tests/test_assessment_contracts.py`: 16 passed.
+- Focused Ruff check and format check: passed.
+- The evaluator validates only the frozen typed resolution values from the Person B boundary. It
+  fails closed for missing, stale, conflicting, denied, invalid, mismatched, and unapproved
+  evidence. It does not substitute an ORM resolver.
+
+The live Person B `assessment_port.py` is not implemented and its approval remains pending in
+`docs/learnlens/person-a-person-b-contract.md`. That missing owner-controlled port blocks the
+unchecked integration item and the Step 10 acceptance line. No formal result is created by these
+adapters.
 
 Requirements: A4, FR17, FR19, FR31, FR38, BP2-BP6, BP8-BP11, AC20, AT6, AT7, AT10-AT14,
 AT20, AT23.

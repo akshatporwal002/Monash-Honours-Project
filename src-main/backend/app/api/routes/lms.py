@@ -497,10 +497,17 @@ async def submit_student_task(
     attempt = service.submit(student, task_id, payload)
     request_correlation_id = getattr(request.state, "correlation_id", None)
     correlation_id = request_correlation_id if isinstance(request_correlation_id, str) else None
-    claim = feedback_application.start(
-        attempt.id,
-        correlation_id=correlation_id,
-    )
+    try:
+        claim = feedback_application.start(
+            attempt.id,
+            correlation_id=correlation_id,
+        )
+    except Exception:
+        service.mark_assessment_fault(
+            attempt.id,
+            "The feedback workflow could not start. The response is saved for review.",
+        )
+        raise
     if claim.should_start:
         background_tasks.add_task(
             feedback_executor.execute,

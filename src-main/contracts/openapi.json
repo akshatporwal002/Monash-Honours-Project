@@ -399,6 +399,115 @@
         "title": "AssessmentApprovalState",
         "type": "string"
       },
+      "AssessmentConditionsRead": {
+        "additionalProperties": false,
+        "properties": {
+          "access_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Access Conditions"
+          },
+          "bloom_process": {
+            "$ref": "#/components/schemas/BloomProcess"
+          },
+          "claim": {
+            "title": "Claim",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "instructional_support": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Instructional Support"
+          },
+          "knowledge_dimension": {
+            "$ref": "#/components/schemas/BloomKnowledge"
+          },
+          "permitted_tools": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Permitted Tools"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AssessmentPurpose"
+          },
+          "review_rule": {
+            "title": "Review Rule",
+            "type": "string"
+          },
+          "task_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Task Conditions"
+          },
+          "transfer_rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Transfer Rule"
+          }
+        },
+        "required": [
+          "purpose",
+          "bloom_process",
+          "knowledge_dimension",
+          "claim",
+          "criteria",
+          "task_conditions",
+          "permitted_tools",
+          "instructional_support",
+          "access_conditions",
+          "transfer_rule",
+          "review_rule"
+        ],
+        "title": "AssessmentConditionsRead",
+        "type": "object"
+      },
       "AssessmentCriterionDraft": {
         "additionalProperties": false,
         "properties": {
@@ -494,65 +603,18 @@
       "AssessmentCriterionRead": {
         "additionalProperties": false,
         "properties": {
-          "evaluator_type": {
-            "$ref": "#/components/schemas/CriterionEvaluatorType"
-          },
-          "evidence_description": {
-            "title": "Evidence Description",
-            "type": "string"
-          },
-          "evidence_source_types": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Evidence Source Types",
-            "type": "array"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "learner_description": {
-            "title": "Learner Description",
+          "description": {
+            "title": "Description",
             "type": "string"
           },
           "mandatory": {
             "title": "Mandatory",
             "type": "boolean"
-          },
-          "met_rule": {
-            "title": "Met Rule",
-            "type": "string"
-          },
-          "not_evaluable_rule": {
-            "title": "Not Evaluable Rule",
-            "type": "string"
-          },
-          "not_met_rule": {
-            "title": "Not Met Rule",
-            "type": "string"
-          },
-          "stable_key": {
-            "title": "Stable Key",
-            "type": "string"
-          },
-          "version": {
-            "title": "Version",
-            "type": "integer"
           }
         },
         "required": [
-          "id",
-          "stable_key",
-          "version",
-          "learner_description",
-          "evidence_description",
-          "mandatory",
-          "evidence_source_types",
-          "met_rule",
-          "not_met_rule",
-          "not_evaluable_rule",
-          "evaluator_type"
+          "description",
+          "mandatory"
         ],
         "title": "AssessmentCriterionRead",
         "type": "object"
@@ -845,7 +907,7 @@
           },
           "criteria": {
             "items": {
-              "$ref": "#/components/schemas/AssessmentCriterionRead"
+              "$ref": "#/components/schemas/AssessmentTaskCriterionRead"
             },
             "title": "Criteria",
             "type": "array"
@@ -1045,6 +1107,72 @@
         ],
         "title": "AssessmentResult",
         "type": "string"
+      },
+      "AssessmentTaskCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluator_type": {
+            "$ref": "#/components/schemas/CriterionEvaluatorType"
+          },
+          "evidence_description": {
+            "title": "Evidence Description",
+            "type": "string"
+          },
+          "evidence_source_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Source Types",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "learner_description": {
+            "title": "Learner Description",
+            "type": "string"
+          },
+          "mandatory": {
+            "title": "Mandatory",
+            "type": "boolean"
+          },
+          "met_rule": {
+            "title": "Met Rule",
+            "type": "string"
+          },
+          "not_evaluable_rule": {
+            "title": "Not Evaluable Rule",
+            "type": "string"
+          },
+          "not_met_rule": {
+            "title": "Not Met Rule",
+            "type": "string"
+          },
+          "stable_key": {
+            "title": "Stable Key",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "stable_key",
+          "version",
+          "learner_description",
+          "evidence_description",
+          "mandatory",
+          "evidence_source_types",
+          "met_rule",
+          "not_met_rule",
+          "not_evaluable_rule",
+          "evaluator_type"
+        ],
+        "title": "AssessmentTaskCriterionRead",
+        "type": "object"
       },
       "AssessmentTaskFormDraft": {
         "additionalProperties": false,
@@ -1359,8 +1487,15 @@
             "type": "integer"
           },
           "score": {
-            "title": "Score",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
           },
           "status": {
             "$ref": "#/components/schemas/AttemptStatus"
@@ -4965,6 +5100,19 @@
               }
             ],
             "title": "Code"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "title": "SubmissionCreate",
@@ -5177,6 +5325,16 @@
             ],
             "title": "Access Status",
             "type": "string"
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentConditionsRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "attempt_count": {
             "default": 0,

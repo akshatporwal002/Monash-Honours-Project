@@ -368,6 +368,62 @@ test('submits an MCQ and renders only validated feedback from the feedback workf
   expect(feedbackCall?.[1]).toEqual(expect.objectContaining({ method: 'POST', credentials: 'include' }))
 })
 
+test('shows formal assessment conditions and saves a response without a numeric result', async () => {
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/draft')) return response(null)
+    if ((init?.method ?? 'GET') === 'GET') return response([])
+    return response({
+      id: 'formal-attempt-1',
+      status: 'submitted',
+      score: null,
+      feedback_reference: null,
+    })
+  })
+  const task: LearningTask = {
+    id: 'formal-task',
+    title: 'Explain interference evidence',
+    module: 'Module 2',
+    description: 'Explain how the observed pattern supports the claim.',
+    instructions: 'Use your own words.',
+    task_type: 'short_answer',
+    difficulty: 'intermediate',
+    points: 0,
+    position: 2,
+    status: 'in_progress',
+    score: null,
+    assessment: {
+      purpose: 'SUMMATIVE',
+      bloom_process: 'ANALYSE',
+      knowledge_dimension: 'CONCEPTUAL',
+      claim: 'The learner can explain how the observed pattern supports the claim.',
+      criteria: [{ description: 'Explain the evidence-to-claim relationship.', mandatory: true }],
+      task_conditions: { response_mode: 'written' },
+      permitted_tools: { allowed: ['notes'] },
+      instructional_support: { maximum_level: 1 },
+      access_conditions: { equivalent_modes: ['screen reader'] },
+      transfer_rule: { required: true },
+      review_rule: 'A formal result remains subject to assessor confirmation, correction, or override.',
+    },
+  }
+  render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
+  const user = userEvent.setup()
+
+  expect(await screen.findByText('Assessment conditions')).toBeInTheDocument()
+  expect(screen.getByText(/Purpose: SUMMATIVE/)).toBeInTheDocument()
+  expect(screen.getByText(/Required: Explain the evidence-to-claim relationship/)).toBeInTheDocument()
+  expect(screen.getByText(/Permitted tools: notes/)).toBeInTheDocument()
+  await user.type(screen.getByLabelText('Your response'), 'The evidence supports the claim.')
+  await user.click(screen.getByRole('button', { name: /Submit activity/ }))
+
+  expect(await screen.findByRole('heading', { name: 'Assessment response saved' })).toBeInTheDocument()
+  const submissionCall = fetchMock.mock.calls.find(([input, init]) =>
+    String(input).endsWith('/students/me/tasks/formal-task/submissions') && init?.method === 'POST')
+  const payload = JSON.parse(String(submissionCall?.[1]?.body)) as { idempotency_key?: string }
+  expect(payload.idempotency_key).toEqual(expect.any(String))
+  expect(screen.queryByText('0%')).not.toBeInTheDocument()
+})
+
 test('submits multiple-answer choice identifiers as a JSON set', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
@@ -699,6 +755,53 @@ test('restores a saved quantum circuit', async () => {
   await screen.findByText('Saved draft restored.')
   expect(screen.getAllByTitle('Remove gate')).toHaveLength(3)
   expect(screen.getByRole('button', { name: 'Run 1,024 shots' })).toBeEnabled()
+})
+
+test('saves a circuit draft before a simulation fault', async () => {
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/draft') && (init?.method ?? 'GET') === 'GET') return response(null)
+    if (url.endsWith('/draft')) return response({
+      id: 'draft-simulation',
+      task_id: 'task-simulation',
+      answer: '',
+      code: null,
+      circuit: { qubits: 2, operations: [{ gate: 'h', targets: [0] }] },
+      updated_at: '2026-08-16T08:00:00Z',
+    })
+    if (url.endsWith('/simulate')) return response({ detail: 'Simulator unavailable.' }, 503)
+    return response([])
+  })
+  const task: LearningTask = {
+    id: 'task-simulation',
+    title: 'Check a circuit',
+    module: 'Module 3',
+    description: 'Build a circuit and inspect its result.',
+    instructions: 'Add a gate, then run the simulator.',
+    task_type: 'quantum_circuit',
+    difficulty: 'intermediate',
+    points: 100,
+    position: 1,
+    status: 'in_progress',
+    score: null,
+  }
+  render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
+  const user = userEvent.setup()
+
+  await user.click(await screen.findByRole('button', { name: 'Add H gate' }))
+  await user.click(screen.getByRole('button', { name: 'Run 1,024 shots' }))
+
+  await screen.findByText('Simulator unavailable.')
+  const calls = fetchMock.mock.calls.map(([input, init]) => ({ url: String(input), init }))
+  const draftIndex = calls.findIndex(({ url, init }) =>
+    url.endsWith('/draft') && init?.method === 'PUT')
+  const simulationIndex = calls.findIndex(({ url }) => url.endsWith('/simulate'))
+  expect(draftIndex).toBeGreaterThanOrEqual(0)
+  expect(simulationIndex).toBeGreaterThan(draftIndex)
+  const draftPayload = JSON.parse(String(calls[draftIndex]?.init?.body)) as {
+    circuit: { operations: Array<{ gate: string }> }
+  }
+  expect(draftPayload.circuit.operations).toEqual([{ gate: 'h', targets: [0] }])
 })
 
 test('has no detectable axe violations on the role selection and sign-in screen', async () => {

@@ -63,6 +63,19 @@ export type ApiSchemas = {
     "task_types"?: Array<string>
   }
   "AssessmentApprovalState": "DRAFT" | "APPROVED" | "RETIRED"
+  "AssessmentConditionsRead": {
+    "access_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "bloom_process": ApiSchemas["BloomProcess"]
+    "claim": string
+    "criteria": Array<ApiSchemas["AssessmentCriterionRead"]>
+    "instructional_support": (Record<string, unknown>) | (Array<unknown>)
+    "knowledge_dimension": ApiSchemas["BloomKnowledge"]
+    "permitted_tools": (Record<string, unknown>) | (Array<unknown>)
+    "purpose": ApiSchemas["AssessmentPurpose"]
+    "review_rule": string
+    "task_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
+  }
   "AssessmentCriterionDraft": {
     "approved_anchors": (Record<string, unknown>) | (Array<unknown>)
     "critical_error_rules": (Record<string, unknown>) | (Array<unknown>)
@@ -77,17 +90,8 @@ export type ApiSchemas = {
     "stable_key": string
   }
   "AssessmentCriterionRead": {
-    "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
-    "evidence_description": string
-    "evidence_source_types": Array<string>
-    "id": string
-    "learner_description": string
+    "description": string
     "mandatory": boolean
-    "met_rule": string
-    "not_evaluable_rule": string
-    "not_met_rule": string
-    "stable_key": string
-    "version": number
   }
   "AssessmentDefinitionApproval": {
     "expected_version": number
@@ -123,7 +127,7 @@ export type ApiSchemas = {
     "claim": string
     "contradicting_evidence": (Record<string, unknown>) | (Array<unknown>)
     "course_id": string
-    "criteria": Array<ApiSchemas["AssessmentCriterionRead"]>
+    "criteria": Array<ApiSchemas["AssessmentTaskCriterionRead"]>
     "evidence_sufficiency": (Record<string, unknown>) | (Array<unknown>)
     "formal_result_eligible": (boolean) | (null)
     "id": string
@@ -143,6 +147,19 @@ export type ApiSchemas = {
   }
   "AssessmentPurpose": "DIAGNOSTIC" | "FORMATIVE" | "AS_LEARNING" | "SUMMATIVE" | "RESEARCH"
   "AssessmentResult": "PASS" | "INCOMPLETE"
+  "AssessmentTaskCriterionRead": {
+    "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
+    "evidence_description": string
+    "evidence_source_types": Array<string>
+    "id": string
+    "learner_description": string
+    "mandatory": boolean
+    "met_rule": string
+    "not_evaluable_rule": string
+    "not_met_rule": string
+    "stable_key": string
+    "version": number
+  }
   "AssessmentTaskFormDraft": {
     "constraints": (Record<string, unknown>) | (Array<unknown>)
     "context": (Record<string, unknown>) | (Array<unknown>)
@@ -187,7 +204,7 @@ export type ApiSchemas = {
     "feedback_reference": (string) | (null)
     "id": string
     "points_awarded": number
-    "score": number
+    "score": (number) | (null)
     "status": ApiSchemas["AttemptStatus"]
     "submitted_at": string
     "task_id": string
@@ -761,6 +778,7 @@ export type ApiSchemas = {
     "answer"?: string
     "circuit"?: (Record<string, unknown>) | (null)
     "code"?: (string) | (null)
+    "idempotency_key"?: (string) | (null)
   }
   "SubmissionState": "NOT_STARTED" | "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "RETURNED" | "COMPLETED"
   "TaskChoice": {
@@ -792,6 +810,7 @@ export type ApiSchemas = {
   }
   "TaskRead": {
     "access_status": "locked" | "available" | "in_progress" | "completed"
+    "assessment"?: (ApiSchemas["AssessmentConditionsRead"]) | (null)
     "attempt_count"?: number
     "choices"?: Array<ApiSchemas["TaskChoice"]>
     "course_id": string

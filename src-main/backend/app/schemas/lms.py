@@ -235,7 +235,7 @@ class AssessmentDefinitionApproval(LmsSchema):
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2_000)]
 
 
-class AssessmentCriterionRead(LmsSchema):
+class AssessmentTaskCriterionRead(LmsSchema):
     id: str
     stable_key: str
     version: int
@@ -281,7 +281,7 @@ class AssessmentDefinitionRead(LmsSchema):
     access_conditions: dict[str, Any] | list[Any]
     transfer_rule: dict[str, Any] | list[Any]
     evidence_sufficiency: dict[str, Any] | list[Any]
-    criteria: list[AssessmentCriterionRead]
+    criteria: list[AssessmentTaskCriterionRead]
     pass_rule_expression: dict[str, Any]
     task_forms: list[AssessmentTaskFormRead]
     formal_result_eligible: bool | None
@@ -383,6 +383,25 @@ class LatestAttemptSummary(LmsSchema):
     submitted_at: datetime
 
 
+class AssessmentCriterionRead(LmsSchema):
+    description: str
+    mandatory: bool
+
+
+class AssessmentConditionsRead(LmsSchema):
+    purpose: AssessmentPurpose
+    bloom_process: BloomProcess
+    knowledge_dimension: BloomKnowledge
+    claim: str
+    criteria: list[AssessmentCriterionRead]
+    task_conditions: dict[str, Any] | list[Any]
+    permitted_tools: dict[str, Any] | list[Any]
+    instructional_support: dict[str, Any] | list[Any]
+    access_conditions: dict[str, Any] | list[Any]
+    transfer_rule: dict[str, Any] | list[Any]
+    review_rule: str
+
+
 class TaskRead(LmsSchema):
     id: str
     title: str
@@ -406,6 +425,7 @@ class TaskRead(LmsSchema):
     attempt_count: int = 0
     latest_score: int | None = None
     latest_attempt: LatestAttemptSummary | None = None
+    assessment: AssessmentConditionsRead | None = None
 
 
 class DraftWrite(LmsSchema):
@@ -424,7 +444,7 @@ class DraftRead(LmsSchema):
 
 
 class SubmissionCreate(DraftWrite):
-    pass
+    idempotency_key: Annotated[str | None, Field(min_length=1, max_length=255)] = None
 
 
 class AttemptRead(LmsSchema):
@@ -432,7 +452,7 @@ class AttemptRead(LmsSchema):
     task_id: str
     attempt_number: int
     status: AttemptStatus
-    score: int
+    score: int | None
     answer: str
     code: str | None
     circuit: dict[str, Any] | None

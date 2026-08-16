@@ -49,6 +49,21 @@ export interface LearningTask {
   source_references?: string[]
   prerequisite_task_ids?: string[]
   attempt_count?: number
+  assessment?: AssessmentConditions | null
+}
+
+export interface AssessmentConditions {
+  purpose: 'DIAGNOSTIC' | 'FORMATIVE' | 'AS_LEARNING' | 'SUMMATIVE' | 'RESEARCH'
+  bloom_process: 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYSE' | 'EVALUATE' | 'CREATE'
+  knowledge_dimension: 'FACTUAL' | 'CONCEPTUAL' | 'PROCEDURAL' | 'METACOGNITIVE'
+  claim: string
+  criteria: Array<{ description: string; mandatory: boolean }>
+  task_conditions: Record<string, unknown> | unknown[]
+  permitted_tools: Record<string, unknown> | unknown[]
+  instructional_support: Record<string, unknown> | unknown[]
+  access_conditions: Record<string, unknown> | unknown[]
+  transfer_rule: Record<string, unknown> | unknown[]
+  review_rule: string
 }
 
 export interface Achievement {
@@ -112,7 +127,7 @@ export interface TaskDraft {
 
 export interface TaskSubmission {
   id?: string
-  score: number
+  score: number | null
   feedback: string | null
   feedback_reference?: string | null
   status: LearningState

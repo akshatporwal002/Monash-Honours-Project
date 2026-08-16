@@ -6,6 +6,7 @@ import type {
   EducatorDashboardData,
   EducatorStudent,
   GateOperation,
+  AssessmentConditions,
   GeneratedTaskPreview,
   LearningOutcome,
   LearningState,
@@ -108,6 +109,7 @@ interface RawTask {
   access_status?: 'locked' | 'available' | 'in_progress' | 'completed'
   attempt_count?: number
   latest_score?: number | null
+  assessment?: AssessmentConditions | null
 }
 
 interface RawStudentDashboard {
@@ -186,7 +188,7 @@ interface RawEducatorStudent {
 
 interface RawSubmission {
   id?: string
-  score?: number
+  score?: number | null
   feedback?: string | null
   feedback_reference?: string | null
   status?: string
@@ -271,6 +273,7 @@ function normalizeTask(task: RawTask): LearningTask {
     source_references: task.source_references ?? [],
     prerequisite_task_ids: task.prerequisite_task_ids ?? [],
     attempt_count: task.attempt_count ?? 0,
+    assessment: task.assessment ?? null,
   }
 }
 
@@ -354,7 +357,7 @@ function normalizeStudent(student: RawEducatorStudent): EducatorStudent {
 function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   return {
     id: raw.id,
-    score: raw.score ?? 0,
+    score: raw.score ?? null,
     feedback: raw.feedback ?? null,
     feedback_reference: raw.feedback_reference ?? null,
     status: (raw.status as LearningState | undefined) ?? 'draft',
@@ -428,14 +431,23 @@ export const api = {
       ),
     saveDraft: (
       taskId: string,
-      payload: { answer: string; code?: string; circuit?: { qubits: number; operations: GateOperation[] } },
+      payload: {
+        answer: string
+        code?: string
+        circuit?: { qubits: number; operations: GateOperation[] }
+      },
     ) => request<RawDraft>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/draft`,
       json('PUT', payload),
     ),
     submit: async (
       taskId: string,
-      payload: { answer: string; code?: string; circuit?: { qubits: number; operations: GateOperation[] } },
+      payload: {
+        answer: string
+        code?: string
+        circuit?: { qubits: number; operations: GateOperation[] }
+        idempotency_key?: string
+      },
     ) => normalizeSubmission(await request<RawSubmission>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/submissions`,
       json('POST', payload),

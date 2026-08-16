@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -51,6 +52,8 @@ from app.schemas.lms import (
     AdminUserCreate,
     AdminUserRead,
     AdminUserUpdate,
+    AssessmentConditionsRead,
+    AssessmentTaskCriterionRead,
     AttemptRead,
     BulkReminderCreate,
     CourseCreate,
@@ -85,6 +88,11 @@ from app.schemas.lms import (
     TaskRead,
     TaskUpdate,
     WeeklyEngagementRead,
+)
+from app.services.assessment.submissions import (
+    AssessmentSubmissionService,
+    AssessmentTaskDeclaration,
+    FrozenAssessmentVersions,
 )
 from app.services.authentication import normalize_email
 from app.services.gamification import GamificationService, ensure_default_achievements
@@ -628,6 +636,23 @@ class LmsService:
         self._acquire_submission_sequence_lock(student.id)
         task = self._require_student_task(student, task_id)
         self._require_unlocked(student, task)
+        assessment_submissions = AssessmentSubmissionService(self.session)
+        frozen_versions = assessment_submissions.frozen_versions_for_task(task)
+        payload_digest = self._submission_digest(payload)
+        if frozen_versions is not None and not payload.idempotency_key:
+            raise _unprocessable("An idempotency key is required for an assessed submission")
+        if payload.idempotency_key:
+            existing = self.session.scalar(
+                select(SubmissionAttempt).where(
+                    SubmissionAttempt.student_id == student.id,
+                    SubmissionAttempt.task_id == task.id,
+                    SubmissionAttempt.idempotency_key == payload.idempotency_key,
+                )
+            )
+            if existing is not None:
+                if existing.content_digest == payload_digest:
+                    return self._attempt_read(existing)
+                raise _conflict("This idempotency key was already used for different content")
         previous = list(
             self.session.scalars(
                 select(SubmissionAttempt)
@@ -645,7 +670,7 @@ class LmsService:
         draft.answer = payload.answer
         draft.code = payload.code
         draft.circuit = payload.circuit
-        score, _ = self._grade(task, payload)
+        score, _ = self._grade(task, payload) if frozen_versions is None else (None, "")
         passing_score = int(self._setting_value("passing_score"))
         attempt_id = self._uuid()
         attempt = SubmissionAttempt(
@@ -654,16 +679,36 @@ class LmsService:
             student_id=student.id,
             task_id=task.id,
             attempt_number=len(previous) + 1,
-            status=(AttemptStatus.COMPLETED if score >= passing_score else AttemptStatus.SUBMITTED),
+            status=(
+                AttemptStatus.COMPLETED
+                if score is not None and score >= passing_score
+                else AttemptStatus.SUBMITTED
+            ),
             answer=payload.answer,
             code=payload.code,
             circuit=payload.circuit,
             score=score,
             feedback="Submission recorded. Validated feedback is being prepared.",
             feedback_reference=attempt_id,
+            task_form_version_id=(
+                frozen_versions.task_form_version_id if frozen_versions else None
+            ),
+            response_schema_version=("assessment.response.v1" if frozen_versions else None),
+            content_digest=(payload_digest if payload.idempotency_key else None),
+            idempotency_key=payload.idempotency_key,
+            declared_conditions=(
+                self._declared_conditions(task, frozen_versions) if frozen_versions else None
+            ),
         )
         self.session.add(attempt)
         self.session.flush()
+        if frozen_versions is not None:
+            assessment_submissions.create_attempt(
+                task=task,
+                student_id=student.id,
+                response=attempt,
+                versions=frozen_versions,
+            )
         self.session.add(
             WorkflowRun(
                 id=self._uuid(),
@@ -698,7 +743,10 @@ class LmsService:
             student,
             task,
             LearningEventType.SUBMISSION,
-            {"attempt_number": attempt.attempt_number, "score": float(score)},
+            {
+                "attempt_number": attempt.attempt_number,
+                "score": float(score) if score is not None else None,
+            },
             correlation_id=correlation_id,
         )
         if attempt.status is AttemptStatus.COMPLETED:
@@ -741,6 +789,12 @@ class LmsService:
             ).all()
         )
         return [self._attempt_read(attempt) for attempt in attempts]
+
+    def mark_assessment_fault(self, response_version_id: str, reason: str) -> None:
+        if AssessmentSubmissionService(self.session).mark_fault_for_response(
+            response_version_id, reason
+        ):
+            self._commit()
 
     def student_dashboard(self, student: User) -> StudentDashboardRead:
         profile = self._require_profile(student)
@@ -1640,6 +1694,7 @@ class LmsService:
                 access_status = "in_progress"
         if not task.course_id or not task.module_id or not task.learning_outcome_id:
             raise _not_found("Task")
+        assessment = AssessmentSubmissionService(self.session).declaration_for_task(task)
         return TaskRead(
             id=task.id,
             title=task.title,
@@ -1663,6 +1718,32 @@ class LmsService:
             attempt_count=attempt_count,
             latest_score=latest.score if latest else None,
             latest_attempt=LatestAttemptSummary.model_validate(latest) if latest else None,
+            assessment=self._assessment_conditions_read(assessment),
+        )
+
+    @staticmethod
+    def _assessment_conditions_read(
+        declaration: AssessmentTaskDeclaration | None,
+    ) -> AssessmentConditionsRead | None:
+        if declaration is None:
+            return None
+        return AssessmentConditionsRead(
+            purpose=declaration.purpose,
+            bloom_process=declaration.bloom_process,
+            knowledge_dimension=declaration.knowledge_dimension,
+            claim=declaration.claim,
+            criteria=[
+                AssessmentTaskCriterionRead(description=description, mandatory=mandatory)
+                for description, mandatory in declaration.criteria
+            ],
+            task_conditions=declaration.task_conditions,
+            permitted_tools=declaration.permitted_tools,
+            instructional_support=declaration.instructional_support,
+            access_conditions=declaration.access_conditions,
+            transfer_rule=declaration.transfer_rule,
+            review_rule=(
+                "A formal result remains subject to assessor confirmation, correction, or override."
+            ),
         )
 
     def _grade(
@@ -1680,6 +1761,26 @@ class LmsService:
             40,
             "Review the learning outcome, correct the highlighted concept, and try again.",
         )
+
+    @staticmethod
+    def _submission_digest(payload: SubmissionCreate) -> str:
+        canonical = json.dumps(
+            {"answer": payload.answer, "code": payload.code, "circuit": payload.circuit},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _declared_conditions(
+        task: LearningTask,
+        versions: FrozenAssessmentVersions,
+    ) -> dict[str, Any]:
+        return {
+            "course_id": task.course_id,
+            "task_form_version_id": versions.task_form_version_id,
+            "response_schema_version": "assessment.response.v1",
+        }
 
     def _attempt_read(
         self,
