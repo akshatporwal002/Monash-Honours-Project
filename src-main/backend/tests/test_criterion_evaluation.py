@@ -28,6 +28,7 @@ from app.services.assessment.evaluators import (
     ValidatedAiCriterionEvaluator,
 )
 from app.services.assessment.evidence import EvidenceValidationError, FrozenEvidenceValidator
+from app.services.evidence.assessment_port import AssessmentEvidencePort
 
 
 @pytest.fixture
@@ -47,10 +48,36 @@ def _resolved(cases: dict[str, object]) -> ResolvedEvidenceReference:
     return ResolvedEvidenceReference(reference=reference)
 
 
+class StubResolver:
+    def __init__(self, resolutions: dict[str, EvidenceReferenceResolution]) -> None:
+        self.resolutions = resolutions
+        self.calls: list[tuple[AssessmentVersionReference, str]] = []
+
+    def resolve(
+        self,
+        *,
+        assessment: AssessmentVersionReference,
+        evidence_id: str,
+    ) -> EvidenceReferenceResolution:
+        self.calls.append((assessment, evidence_id))
+        return self.resolutions[evidence_id]
+
+
+def _port(
+    cases: dict[str, object],
+    resolution: EvidenceReferenceResolution | None = None,
+) -> tuple[AssessmentEvidencePort, StubResolver]:
+    resolved = resolution or _resolved(cases)
+    resolver = StubResolver({"evidence-1": resolved})
+    return AssessmentEvidencePort(resolver), resolver
+
+
 def _request(cases: dict[str, object], response: str) -> CriterionEvaluationRequest:
-    evidence = FrozenEvidenceValidator().validate(
-        (_resolved(cases),),
+    port, _ = _port(cases)
+    evidence = FrozenEvidenceValidator().resolve_and_validate(
+        port,
         assessment=_assessment(cases),
+        evidence_ids=("evidence-1",),
         allowed_types=("learner_response",),
     )
     return CriterionEvaluationRequest(
@@ -59,6 +86,23 @@ def _request(cases: dict[str, object], response: str) -> CriterionEvaluationRequ
         approved_anchors=dict(cases["anchors"]),
         evidence=evidence,
     )
+
+
+def test_validator_resolves_every_evidence_id_through_person_b_port(
+    cases: dict[str, object],
+) -> None:
+    assessment = _assessment(cases)
+    port, resolver = _port(cases)
+
+    evidence = FrozenEvidenceValidator().resolve_and_validate(
+        port,
+        assessment=assessment,
+        evidence_ids=("evidence-1",),
+        allowed_types=("learner_response",),
+    )
+
+    assert evidence == (_resolved(cases).reference,)
+    assert resolver.calls == [(assessment, "evidence-1")]
 
 
 def test_each_criterion_decision_keeps_exact_evidence_and_reason(cases: dict[str, object]) -> None:
@@ -87,16 +131,27 @@ def test_stale_and_cross_course_evidence_is_rejected(cases: dict[str, object]) -
         mismatched_fields=("record_version",),
         reason_code="VERSION_MISMATCH",
     )
+    stale_port, _ = _port(cases, stale)
     with pytest.raises(EvidenceValidationError, match="stale"):
-        validator.validate((stale,), assessment=assessment, allowed_types=("learner_response",))
+        validator.resolve_and_validate(
+            stale_port,
+            assessment=assessment,
+            evidence_ids=("evidence-1",),
+            allowed_types=("learner_response",),
+        )
 
     cross_course = _resolved(cases).reference.model_copy(
         update={"assessment": assessment.model_copy(update={"course_id": "course-2"})}
     )
-    with pytest.raises(EvidenceValidationError, match="course_id"):
-        validator.validate(
-            (ResolvedEvidenceReference(reference=cross_course),),
+    cross_course_port, _ = _port(
+        cases,
+        ResolvedEvidenceReference(reference=cross_course),
+    )
+    with pytest.raises(EvidenceValidationError, match="access is denied"):
+        validator.resolve_and_validate(
+            cross_course_port,
             assessment=assessment,
+            evidence_ids=("evidence-1",),
             allowed_types=("learner_response",),
         )
 
@@ -121,6 +176,14 @@ def test_recall_only_response_does_not_meet_analyse_criterion(cases: dict[str, o
 
     assert outcome.decision is CriterionDecision.NOT_MET
     assert "relationship" in outcome.reason
+
+
+def test_missing_learner_response_is_not_evaluable_after_valid_resolution(
+    cases: dict[str, object],
+) -> None:
+    outcome = RuleCriterionEvaluator().evaluate(_request(cases, ""))
+
+    assert outcome.decision is CriterionDecision.NOT_EVALUABLE
 
 
 def test_concise_unusual_and_accessible_valid_answers_are_supported(

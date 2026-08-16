@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.routes import (
     analytics,
     assessment,
+    assessment_evaluation,
     authentication,
     feedback,
     health,
@@ -19,6 +20,7 @@ api_router.include_router(health.router, tags=["health"])
 api_router.include_router(authentication.router, tags=["authentication"])
 api_router.include_router(lms.router, tags=["learning management"])
 api_router.include_router(assessment.router, tags=["assessment"])
+api_router.include_router(assessment_evaluation.router, tags=["assessment"])
 api_router.include_router(materials.router, tags=["learning materials"])
 api_router.include_router(retrieval.router, tags=["retrieval"])
 api_router.include_router(task_generation.router, tags=["task generation"])

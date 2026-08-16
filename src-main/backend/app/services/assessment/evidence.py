@@ -15,6 +15,7 @@ from app.schemas.assessment import (
     ResolvedEvidenceReference,
     StaleEvidenceReference,
 )
+from app.services.evidence.assessment_port import AssessmentEvidencePort
 
 
 class EvidenceValidationError(ValueError):
@@ -23,6 +24,25 @@ class EvidenceValidationError(ValueError):
 
 class FrozenEvidenceValidator:
     """Accept only resolved, course-scoped evidence from the Person B boundary."""
+
+    def resolve_and_validate(
+        self,
+        evidence_port: AssessmentEvidencePort,
+        *,
+        assessment: AssessmentVersionReference,
+        evidence_ids: Iterable[str],
+        allowed_types: Iterable[str],
+    ) -> tuple[EvidenceReference, ...]:
+        """Resolve every opaque ID through Person B before accepting it as evidence."""
+
+        return self.validate(
+            (
+                evidence_port.resolve(assessment=assessment, evidence_id=evidence_id)
+                for evidence_id in evidence_ids
+            ),
+            assessment=assessment,
+            allowed_types=allowed_types,
+        )
 
     def validate(
         self,

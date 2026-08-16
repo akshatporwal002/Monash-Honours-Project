@@ -145,6 +145,16 @@ export type ApiSchemas = {
     "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
     "version": number
   }
+  "AssessmentEvaluationCreate": {
+    "evaluation_idempotency_key": string
+  }
+  "AssessmentEvaluationRead": {
+    "decision_id": string
+    "reason_code": string
+    "replayed": boolean
+    "result": ApiSchemas["AssessmentResult"]
+    "result_state": ApiSchemas["ResultState"]
+  }
   "AssessmentPurpose": "DIAGNOSTIC" | "FORMATIVE" | "AS_LEARNING" | "SUMMATIVE" | "RESEARCH"
   "AssessmentResult": "PASS" | "INCOMPLETE"
   "AssessmentTaskCriterionRead": {

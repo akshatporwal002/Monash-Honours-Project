@@ -788,7 +788,7 @@ Changes:
 - [x] Add rule, human, validated-AI, and mixed evaluator adapters.
 - [x] Return `MET`, `NOT_MET`, or `NOT_EVALUABLE` for each criterion.
 - [x] Require evidence references and a short reason for each decision.
-- [ ] Validate every evidence reference through the frozen Person B port.
+- [x] Validate every evidence reference through the frozen Person B port.
 - [x] Reject stale, cross-course, unauthorised, mismatched, or forbidden evidence fields.
 - [x] Keep AI output advisory until the separate release gate passes.
 - [x] Test concise, unusual, alternate-format, and accessible valid answers.
@@ -812,18 +812,18 @@ Named tests:
 **Acceptance:** Evaluator tests pass across rule, human, mixed, and advisory AI cases. Every saved
 decision has valid evidence and versions. Faulted evaluation creates no learner result.
 
-Partial verification on 2026-08-16:
+Verification on 2026-08-16:
 
-- `uv run --frozen pytest --basetemp .tmp-step10-pytest-final tests/test_criterion_evaluation.py tests/test_assessment_contracts.py`: 16 passed.
-- Focused Ruff check and format check: passed.
-- The evaluator validates only the frozen typed resolution values from the Person B boundary. It
-  fails closed for missing, stale, conflicting, denied, invalid, mismatched, and unapproved
-  evidence. It does not substitute an ORM resolver.
-
-The live Person B `assessment_port.py` is not implemented and its approval remains pending in
-`docs/learnlens/person-a-person-b-contract.md`. That missing owner-controlled port blocks the
-unchecked integration item and the Step 10 acceptance line. No formal result is created by these
-adapters.
+- `FrozenEvidenceValidator.resolve_and_validate` resolves every opaque evidence ID through
+  Person B's ORM-free `AssessmentEvidencePort` before it accepts the typed result.
+- `uv run --frozen pytest --basetemp .tmp-step10-pytest-final
+  tests/test_criterion_evaluation.py tests/test_assessment_contracts.py
+  tests/test_assessment_evidence_port.py`: 25 passed.
+- `uv run --frozen ruff check app/services/assessment/evidence.py
+  tests/test_criterion_evaluation.py` and `uv run --frozen ruff format --check
+  app/services/assessment/evidence.py tests/test_criterion_evaluation.py`: passed.
+- The evaluator fails closed for missing, stale, conflicting, denied, invalid, mismatched, and
+  unapproved evidence. It does not substitute an ORM resolver or create a formal learner result.
 
 Requirements: A4, FR17, FR19, FR31, FR38, BP2-BP6, BP8-BP11, AC20, AT6, AT7, AT10-AT14,
 AT20, AT23.
@@ -837,13 +837,13 @@ Files:
 
 Changes:
 
-- [ ] Parse and validate the frozen `ALL_OF`, `ANY_OF`, and `NOT` expression tree.
-- [ ] Resolve leaves only from criterion-version IDs in the approved definition.
-- [ ] Return `PASS` only when the full approved rule is true.
-- [ ] Return `INCOMPLETE` for a valid complete evaluation that does not meet the rule.
-- [ ] List met, missing, conflicting, and not-evaluable evidence.
-- [ ] Reject scores, weights, thresholds, research, confidence, time, hints, points, access support, model estimates, and progress inputs.
-- [ ] Make repeated evaluation deterministic under the same versions.
+- [x] Parse and validate the frozen `ALL_OF`, `ANY_OF`, and `NOT` expression tree.
+- [x] Resolve leaves only from criterion-version IDs in the approved definition.
+- [x] Return `PASS` only when the full approved rule is true.
+- [x] Return `INCOMPLETE` for a valid complete evaluation that does not meet the rule.
+- [x] List met, missing, conflicting, and not-evaluable evidence.
+- [x] Reject scores, weights, thresholds, research, confidence, time, hints, points, access support, model estimates, and progress inputs.
+- [x] Make repeated evaluation deterministic under the same versions.
 
 Edge and failure cases:
 
@@ -864,6 +864,20 @@ Named tests:
 **Acceptance:** Pass-rule tests pass. The engine emits only `PASS` or `INCOMPLETE`, contains no
 numeric grade path, and produces identical output for identical versioned input.
 
+Verification on 2026-08-16:
+
+- `PassRuleEngine` evaluates only a bounded, stored Boolean tree and typed criterion-version
+  decisions. It rejects unknown criteria, operators, fields, unbounded payloads, and cyclic rules.
+- `uv run --frozen pytest --basetemp .tmp-step11-pytest-final
+  tests/test_pass_rule_engine.py tests/test_criterion_evaluation.py
+  tests/test_assessment_models.py tests/test_assessment_definitions.py
+  tests/test_assessment_contracts.py`: 58 passed.
+- `uv run --frozen ruff check app/services/assessment/pass_rules.py
+  tests/test_pass_rule_engine.py` and `uv run --frozen ruff format --check
+  app/services/assessment/pass_rules.py tests/test_pass_rule_engine.py`: passed.
+- This engine creates no decision rows. Step 12 will persist a provisional result only after its
+  complete evaluator, version, task, and fault checks pass.
+
 Requirements: A4, FR17, FR19, FR38, BP2-BP6, BP8, BP10, BP11, BP13, AC19, AC20, AT1, AT7-AT9,
 AT11-AT14, AT23.
 
@@ -872,20 +886,23 @@ AT11-AT14, AT23.
 Files:
 
 - New `src-main/backend/app/services/assessment/evaluation.py`
+- `src-main/backend/app/services/assessment/pass_rules.py`
 - New `src-main/backend/app/api/routes/assessment_evaluation.py`
 - `src-main/backend/app/api/router.py`
 - New `src-main/backend/tests/test_assessment_evaluation_api.py`
+- `src-main/contracts/openapi.json`
+- `src-main/frontend/src/api/generated.ts`
 
 Changes:
 
 - [ ] Load the exact response, definition, outcome, Bloom, criterion, pass-rule, task-form, source, model, and prompt versions.
 - [ ] Check result eligibility, assignment, tools, support, access, and independence conditions.
-- [ ] Run criterion evaluation, then the deterministic pass rule.
-- [ ] Create one provisional decision for one evaluation idempotency key.
-- [ ] Send the reason and evidence references through the separate Quality Review port.
-- [ ] Keep rejected, missing, or unavailable quality review under human review.
-- [ ] Create no result after evaluator, task, source, version, or system failure.
-- [ ] Audit request, replay, provisional decision, review flag, and failure without full answer text.
+- [x] Run criterion evaluation, then the deterministic pass rule.
+- [x] Create one provisional decision for one evaluation idempotency key.
+- [x] Send the reason and evidence references through the separate Quality Review port.
+- [x] Keep rejected, missing, or unavailable quality review under human review.
+- [x] Create no result after evaluator, task, source, version, or system failure.
+- [x] Audit request, replay, provisional decision, review flag, and failure without full answer text.
 
 Edge and failure cases:
 
@@ -906,6 +923,24 @@ Named tests:
 
 **Acceptance:** AT1 to AT14 and AT20 to AT23 pass at service or API level. No result response has a
 numeric grade. Faulted runs retain accepted work and create no learner result.
+
+Partial verification on 2026-08-16:
+
+- `AssessmentEvaluationService` loads and checks the frozen attempt bundle, runs typed criterion
+  providers and the Boolean rule, writes one provisional decision, and records only safe audit
+  metadata. It accepts no score, research, confidence, time, hint, points, access, or model input.
+- The quality boundary accepts only a reason code and frozen evidence references. It receives no
+  learner result. A `REJECTED` or unavailable review remains a provisional decision for human
+  review. A quality-provider fault creates no decision and faults the retained attempt.
+- `uv run --frozen pytest --basetemp .tmp-step12-pytest-final
+  tests/test_assessment_evaluation_api.py tests/test_pass_rule_engine.py
+  tests/test_criterion_evaluation.py tests/test_assessment_attempt_models.py
+  tests/test_assessment_submissions.py tests/test_assessment_contracts.py`: 61 passed.
+- Focused Ruff check and format check, OpenAPI and TypeScript contract drift checks, frontend lint,
+  and frontend production build: passed.
+- `CriterionEvaluationPort` and `QualityReviewPort` are explicit dependency boundaries. No live
+  Person B provider is configured yet, so the default endpoint fails closed and retains the attempt
+  without a learner result. Live provider integration and the remaining AT coverage are `UNVERIFIED`.
 
 Requirements: A4, FR17, FR19, FR31, FR38, BP2-BP6, BP8-BP11, BP13, BP15, NFR16, NFR20, NFR23,
 AC19, AC20, AC22, AT1-AT14, AT20-AT23.
