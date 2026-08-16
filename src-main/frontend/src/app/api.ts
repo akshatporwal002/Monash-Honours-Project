@@ -18,6 +18,7 @@ import type {
   TaskType,
   UserRole,
 } from './types'
+import type { ApiSchemas } from '../api/generated'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '')
 
@@ -227,6 +228,7 @@ interface RawAuthUser {
   email: string
   full_name: string
   role: 'student' | 'educator' | 'administrator'
+  scoped_assignments?: AuthUser['scoped_assignments']
 }
 
 interface RawAdminUser extends Omit<AdminUser, 'role'> {
@@ -238,7 +240,7 @@ function normalizeRole(role: RawAuthUser['role']): UserRole {
 }
 
 function normalizeAuthUser(user: RawAuthUser): AuthUser {
-  return { ...user, role: normalizeRole(user.role) }
+  return { ...user, role: normalizeRole(user.role), scoped_assignments: user.scoped_assignments ?? [] }
 }
 
 function normalizeAdminUser(user: RawAdminUser): AdminUser {
@@ -391,6 +393,28 @@ export const api = {
     login: async (email: string, password: string) =>
       normalizeAuthUser(await request<RawAuthUser>('/auth/login', json('POST', { email, password }))),
     logout: () => request<void>('/auth/logout', { method: 'POST' }),
+  },
+  assessment: {
+    createDefinition: (
+      courseId: string,
+      outcomeId: string,
+      payload: ApiSchemas['AssessmentDefinitionDraftCreate'],
+    ) => request<ApiSchemas['AssessmentDefinitionRead']>(
+      `/assessment/courses/${encodeURIComponent(courseId)}/outcomes/${encodeURIComponent(outcomeId)}/definitions`,
+      json('POST', payload),
+    ),
+    history: (courseId: string, assessmentDefinitionId: string) =>
+      request<ApiSchemas['AssessmentDefinitionRead'][]>(
+        `/assessment/courses/${encodeURIComponent(courseId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}/history`,
+      ),
+    publish: (
+      courseId: string,
+      assessmentDefinitionId: string,
+      payload: ApiSchemas['AssessmentDefinitionApproval'],
+    ) => request<ApiSchemas['AssessmentDefinitionRead']>(
+      `/assessment/courses/${encodeURIComponent(courseId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}/publish`,
+      json('POST', payload),
+    ),
   },
   student: {
     dashboard: async (signal?: AbortSignal) =>

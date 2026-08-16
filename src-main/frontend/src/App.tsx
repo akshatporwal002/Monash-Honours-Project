@@ -12,6 +12,7 @@ import { ScreenState } from './components/ScreenPrimitives'
 import { StudentDashboard } from './components/StudentDashboard'
 import { StudentsView } from './components/StudentsView'
 import { TaskView } from './components/TaskView'
+import { AssessorSetup } from './features/assessment/AssessorSetup'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
 
@@ -19,6 +20,10 @@ function defaultScreen(role: UserRole): ScreenId {
   if (role === 'educator') return 'educator-dashboard'
   if (role === 'admin') return 'admin-overview'
   return 'student-dashboard'
+}
+
+function hasActiveAssessorAssignment(user: AuthUser): boolean {
+  return user.role === 'educator' && user.scoped_assignments.some((assignment) => assignment.role === 'assessor')
 }
 
 function loginError(error: unknown): string {
@@ -148,6 +153,14 @@ function App() {
     }
   }
 
+  const refreshAssessorAccess = async (): Promise<boolean> => {
+    const refreshedUser = await api.auth.me()
+    const active = hasActiveAssessorAssignment(refreshedUser)
+    setUser(refreshedUser)
+    if (!active && activeScreen === 'assessor-setup') setActiveScreen(defaultScreen(refreshedUser.role))
+    return active
+  }
+
   const openStudentTask = async (task: LearningTask) => {
     const requestId = taskRequestId.current + 1
     taskRequestId.current = requestId
@@ -227,7 +240,15 @@ function App() {
       )
     }
   } else if (user.role === 'educator') {
-    if (activeScreen === 'course-editor') content = <CourseEditor />
+    if (activeScreen === 'assessor-setup' && hasActiveAssessorAssignment(user)) {
+      content = (
+        <AssessorSetup
+          assignments={user.scoped_assignments}
+          onCheckAccess={refreshAssessorAccess}
+          onAccessRevoked={() => setActiveScreen(defaultScreen(user.role))}
+        />
+      )
+    } else if (activeScreen === 'course-editor') content = <CourseEditor />
     else if (activeScreen === 'students') content = <StudentsView />
     else if (activeScreen === 'analytics') content = <AnalyticsView />
     else {
@@ -252,6 +273,7 @@ function App() {
   return (
     <AppShell
       user={user}
+      hasAssessorAccess={hasActiveAssessorAssignment(user)}
       activeScreen={activeScreen}
       onNavigate={setActiveScreen}
       onLogout={logout}

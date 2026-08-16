@@ -10,6 +10,7 @@ export type ScreenId =
   | 'course-editor'
   | 'students'
   | 'analytics'
+  | 'assessor-setup'
   | 'admin-overview'
   | 'admin-users'
   | 'admin-courses'
@@ -39,18 +40,25 @@ const navigation: Record<UserRole, NavigationItem[]> = {
   ],
 }
 
+function navigationFor(role: UserRole, hasAssessorAccess: boolean): NavigationItem[] {
+  if (role !== 'educator' || !hasAssessorAccess) return navigation[role]
+  return [...navigation.educator, { id: 'assessor-setup', label: 'Assessment setup', icon: 'check' }]
+}
+
 function defaultScreen(role: UserRole): ScreenId {
   return navigation[role][0].id
 }
 
 export function AppShell({
   user,
+  hasAssessorAccess,
   activeScreen,
   onNavigate,
   onLogout,
   children,
 }: {
   user: AuthUser
+  hasAssessorAccess: boolean
   activeScreen: ScreenId
   onNavigate: (screen: ScreenId) => void
   onLogout: () => Promise<void>
@@ -68,6 +76,7 @@ export function AppShell({
     onNavigate(screen)
     setMobileOpen(false)
   }
+  const visibleNavigation = navigationFor(user.role, hasAssessorAccess)
 
   return (
     <div className="app-shell">
@@ -79,7 +88,7 @@ export function AppShell({
         </a>
         <p className="workspace-label">{user.role} workspace</p>
         <nav aria-label={`${user.role} navigation`}>
-          {navigation[user.role].map((item) => (
+          {visibleNavigation.map((item) => (
             <button
               key={item.id}
               className={activeScreen === item.id ? 'active' : ''}

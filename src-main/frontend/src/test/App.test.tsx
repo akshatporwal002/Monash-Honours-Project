@@ -91,6 +91,7 @@ test('signs an educator into the server-authorised workspace with credentialed r
     }
     if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
     if (url.endsWith('/educator/students')) return response([])
+    if (url.endsWith('/educator/students')) return response([])
     throw new Error(`Unexpected request: ${url}`)
   })
 
@@ -106,6 +107,38 @@ test('signs an educator into the server-authorised workspace with credentialed r
   const loginCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/auth/login'))
   expect(loginCall?.[1]).toEqual(expect.objectContaining({ credentials: 'include' }))
   expect(new Headers(loginCall?.[1]?.headers).get('Content-Type')).toBe('application/json')
+})
+
+test('assessor navigation follows active server assignments', async () => {
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) {
+      return response({
+        id: 2, email: 'educator@example.edu', full_name: 'Avery Educator', role: 'educator',
+        scoped_assignments: [{ id: 'assignment-1', course_id: 'course-1', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null }],
+      })
+    }
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    if (url.endsWith('/educator/students')) return response([])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Assessment setup' }))
+  expect(await screen.findByRole('heading', { name: 'Assessment setup' })).toBeInTheDocument()
+
+  fetchMock.mockRestore()
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) return response({ id: 2, email: 'educator@example.edu', full_name: 'Avery Educator', role: 'educator', scoped_assignments: [] })
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    throw new Error(`Unexpected request: ${url}`)
+  })
+  await user.click(screen.getByRole('button', { name: 'Check assessor access' }))
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Assessment setup' })).not.toBeInTheDocument())
+  expect(screen.queryByRole('button', { name: 'Assessment setup' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Approve and publish' })).not.toBeInTheDocument()
 })
 
 test('maps the backend administrator role to the Admin workspace', async () => {

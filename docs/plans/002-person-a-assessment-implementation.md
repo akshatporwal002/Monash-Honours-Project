@@ -670,13 +670,13 @@ Files:
 
 Changes:
 
-- [ ] Show assessor navigation only for an active assignment.
-- [ ] Show outcome, source, Bloom, knowledge, claim, evidence, criteria, pass rule, task form, tools, support, access, transfer, and approval history.
-- [ ] Render the pass-rule preview in plain language.
-- [ ] Warn that Bloom is not a score.
-- [ ] Show validation faults before approval.
-- [ ] Preserve server errors without exposing private response detail.
-- [ ] Support keyboard, focus, zoom, reflow, labels, errors, and non-colour status meaning.
+- [x] Show assessor navigation only for an active assignment.
+- [x] Show outcome, source, Bloom, knowledge, claim, evidence, criteria, pass rule, task form, tools, support, access, transfer, and approval history.
+- [x] Render the pass-rule preview in plain language.
+- [x] Warn that Bloom is not a score.
+- [x] Show validation faults before approval.
+- [x] Preserve server errors without exposing private response detail.
+- [x] Support keyboard, focus, zoom, reflow, labels, errors, and non-colour status meaning.
 
 Edge and failure cases:
 
@@ -694,6 +694,16 @@ Named tests:
 
 **Acceptance:** Frontend tests pass. An assigned assessor completes the setup path by keyboard. An
 educator-only user cannot see or call approval controls. Axe finds no detectable violation.
+
+Verification on 2026-08-16:
+
+- `npm.cmd test -- --run src/features/assessment/AssessorSetup.test.tsx src/test/App.test.tsx`: 20 passed.
+- `npm.cmd test`: 65 passed.
+- `npm.cmd run lint` and `npm.cmd run build`: passed.
+
+The component-level axe check passed. The test environment reports jsdom canvas warnings from axe-core;
+they did not produce violations or test failures. Browser, zoom, and screen-reader testing remain
+unverified in a real browser.
 
 Requirements: A3, FR6, FR8, FR38, BP3, BP6, AC2, AC16, AC17, AT4-AT6, AT17.
 

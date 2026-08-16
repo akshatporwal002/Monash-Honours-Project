@@ -5,6 +5,16 @@ export interface AuthUser {
   email: string
   full_name: string
   role: UserRole
+  scoped_assignments: ScopedRoleAssignment[]
+}
+
+export interface ScopedRoleAssignment {
+  id: string
+  course_id: string
+  role: 'assessor' | 'research'
+  version: number
+  valid_from: string
+  valid_until: string | null
 }
 
 export type TaskType =
