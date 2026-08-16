@@ -1,6 +1,6 @@
 # LearnLens Person A / Person B assessment handoff contract
 
-Status: `PERSON A APPROVED`, pending Person B approval
+Status: `PERSON A APPROVED; PERSON B APPROVED`
 
 Recorded: 2026-08-15
 
@@ -30,9 +30,12 @@ The A1 contract is implemented on the local Person A branch:
 - Backend contract tests pass: `9 passed` in `tests/test_assessment_contracts.py`.
 - The frontend contract test, production build, and lint checks pass.
 
-This handoff is not yet approved for Person B integration. The Test Judge, Code Reviewer, and Code
-Quality Reviewer approved the local implementation on 2026-08-15. Person A approved contract
-commit `fe7c168af1397e65176ccccdb63343c0c8691bf2`. Person B must approve that contract commit.
+The Test Judge, Code Reviewer, and Code Quality Reviewer approved the local implementation on
+2026-08-15. Person A approved contract commit `fe7c168af1397e65176ccccdb63343c0c8691bf2`.
+Person B reviewed that frozen contract after integrating the Person A branch and approved its
+read-only dependency direction on 2026-08-16. The current-head contract test run reported
+`9 passed`; the Person B port and its dependency tests remain the next required implementation
+work before Handoff 1 can be marked complete.
 
 ## Facts fixed by the controlling specifications
 
@@ -139,7 +142,7 @@ The future `assessment_port.py` must:
 | Workstream | Required approval | Status |
 | --- | --- | --- |
 | Person A | Confirms DTO paths, enums, version fields, error shapes, and compatibility policy | `APPROVED: fe7c168af1397e65176ccccdb63343c0c8691bf2` |
-| Person B | Confirms the port can only import the read-only DTO contract | `PENDING REVIEW OF PERSON A COMMIT` |
+| Person B | Confirms the port can only import the read-only DTO contract | `APPROVED: fe7c168af1397e65176ccccdb63343c0c8691bf2 reviewed after integration on 2026-08-16` |
 
 Chat agreement does not satisfy this record. Both approvals must name one checked-in contract
 commit. The contract and dependency tests must pass on the integrated head.

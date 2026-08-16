@@ -357,11 +357,11 @@ Files:
 
 Changes:
 
-- [ ] Record the exact Person A DTO import path, assessment definition/version IDs, response-version ID, task-form version, evidence-reference fields, and compatibility policy.
-- [ ] Define a Person B port that accepts response/task/version references and returns immutable `EvidenceReference` values.
-- [ ] Define a read-only formal-result summary provider for progress projection; it cannot be imported by adaptation, learner-model, research, feedback-generation, or gamification code.
+- [x] Record the exact Person A DTO import path, assessment definition/version IDs, response-version ID, task-form version, evidence-reference fields, and compatibility policy.
+- [x] Define a Person B port that accepts response/task/version references and returns immutable `EvidenceReference` values.
+- [x] Define a read-only formal-result summary provider for progress projection; it cannot be imported by adaptation, learner-model, research, feedback-generation, or gamification code.
 - [x] Enumerate forbidden formal-result inputs: research condition/consent, demographics, confidence, time, retries, hints, points, access support, learner-model estimates, and progress state.
-- [ ] Add import/dependency tests proving Person B modules do not import Person A ORM models or result services.
+- [x] Add import/dependency tests proving Person B modules do not import Person A ORM models or result services.
 - [x] Stop dependent steps if A1 has not frozen the DTOs; do not invent temporary assessment enums.
 
 Edge and failure cases:
@@ -378,8 +378,29 @@ A1 branch. The repository has no `app/schemas/assessment.py`, frozen evidence-re
 assessment/version-field contract, or approved Quality Judge compatibility policy. The durable
 handoff record now enumerates the specification-fixed isolation rules, forbidden inputs, exact A1
 deliverables, dependency tests, approval requirements, and unblock procedure. No temporary DTO,
-assessment enum, evidence port, or dependent Step 5 source has been created. The acceptance line
-remains unproved until Person A publishes and approves A1 and the port tests pass.
+assessment enum, evidence port, or dependent Step 5 source has been created.
+
+Gate update (2026-08-16): `UNBLOCKED FOR PORT IMPLEMENTATION`. `codex/person-b-platform` was
+fast-forwarded to Person A's `origin/arv-person-a-assessment` head `122eec9`, which includes the
+frozen `app.domain.assessment` enums and `app.schemas.assessment` DTOs introduced by Person A's
+A1 contract commit `fe7c168af1397e65176ccccdb63343c0c8691bf2`. Person B reviewed and approved
+that checked-in contract; `tests/test_assessment_contracts.py` passed 9/9 on the integrated head.
+The remaining Step 4 work is deliberately limited to the isolated Person B `assessment_port.py`
+and its dependency tests. No Person A ORM model, result mutation service, shared router, LMS
+service, generated contract, or frontend shared file may be edited.
+
+Implementation verification (2026-08-16): `PASS`. The new isolated
+`app/services/evidence/assessment_port.py` creates frozen `EvidenceReference` values only from
+the versioned `AssessmentVersionReference`, resolves references through an injected narrow
+protocol, rejects a resolver's wrong ID or cross-course reference, and converts a non-course
+version mismatch to the frozen `STALE` state. Its only formal-result exposure is the read-only
+`ProgressFormalResultSummaryProvider` protocol; it has no mutation method. The new dependency
+tests prove the port has no ORM or `app.services.assessment` import, preserves typed `MISSING`,
+and keeps forbidden grade/research/confidence/access-support inputs outside its signature. On the
+integrated worktree: `pytest tests/test_assessment_evidence_port.py tests/test_assessment_contracts.py tests/test_criterion_evaluation.py` reported 23 passed; targeted Ruff and format checks
+passed; `scripts/export_openapi.py --check` and `scripts/generate_frontend_contracts.py --check`
+reported no drift; and `git diff --check` passed. Full release, independent-review, and current-head
+GitHub evidence remain required before any PR is ready.
 
 Requirements: Handoff 1, FR17, FR19, BP13, BP15, AT20, AT21, AT23.
 
