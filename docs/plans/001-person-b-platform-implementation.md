@@ -456,22 +456,37 @@ Files:
 
 Changes:
 
-- [ ] Add protected `evidence_artifacts`, append-only `learning_evidence`, and append-only `evidence_links` tables.
-- [ ] Store protected learner content only in the authorised artefact table when a Person A response-version reference cannot be used; other records store reference/digest/approved features.
-- [ ] Add course, learner, outcome, task/activity, response-version, source-version, task-condition-version, actor/agent, correlation, schema, occurred-at, created-at, and idempotency fields.
-- [ ] Add foreign keys to stable existing course/task/user records where ownership permits; defer the Person A response-version FK to the agreed integration revision.
-- [ ] Add unique idempotency constraints and append-only update/delete triggers.
-- [ ] Add indexes for learner/outcome timeline, course/outcome projection, response reference, evidence type/time, and correlation ID.
-- [ ] Test clean upgrade, legacy upgrade, repeated upgrade, downgrade/recovery policy, trigger enforcement, record counts, and FK integrity.
+- [x] Add protected `evidence_artifacts`, append-only `learning_evidence`, and append-only `evidence_links` tables.
+- [x] Store protected learner content only in the authorised artefact table when a Person A response-version reference cannot be used; other records store reference/digest/approved features.
+- [x] Add course, learner, outcome, task/activity, response-version, source-version, task-condition-version, actor/agent, correlation, schema, occurred-at, created-at, and idempotency fields.
+- [x] Add foreign keys to stable existing course/task/user records where ownership permits; defer the Person A response-version FK to the agreed integration revision.
+- [x] Add unique idempotency constraints and append-only update/delete triggers.
+- [x] Add indexes for learner/outcome timeline, course/outcome projection, response reference, evidence type/time, and correlation ID.
+- [x] Test clean upgrade, legacy upgrade, repeated upgrade, downgrade/recovery policy, trigger enforcement, record counts, and FK integrity.
 
 Edge and failure cases:
 
 - Migration creates no evidence from legacy scores.
 - Old learning events remain readable and are not rewritten.
-- Duplicate writes with identical content replay; reused idempotency keys with different content conflict.
+- Storage-level duplicate idempotency keys conflict. Exact replay and reused-key content-conflict classification are deferred to Step 7's repository transaction because only that layer can compare an incoming payload with the stored immutable record.
 - Failed migrations leave the source database recoverable from a verified backup.
 
-**Acceptance:** Clean and legacy fixtures reach the new head; direct SQL updates/deletes of append-only rows fail; duplicate/replay tests pass; existing attempt, feedback, research, and learning-event record counts remain unchanged.
+**Acceptance:** Clean and legacy fixtures reach the new head; direct SQL updates/deletes of every append-only table fail; duplicate idempotency keys conflict; repeated migration runs and safe restore/downgrade proof preserve existing attempt, feedback, research, and learning-event record counts. Exact replay remains Step 7's repository acceptance.
+
+Verification (2026-08-16): `PASS`. Revision `20260816_0019` adds the isolated Person B
+evidence tables from assessment head `20260815_0018`, with only the protected artefact storing
+learner content. Evidence metadata has stable course/user/outcome/task foreign keys, while
+`response_version_id` intentionally remains an opaque reference for the Person A integration
+revision. The revision is repeat-safe after an interrupted version stamp, recreates immutable
+triggers, and blocks a populated downgrade before it can discard either evidence or the preceding
+assessment legacy history; a verified SQLite backup then proves recovery followed by an empty-table
+downgrade. `tests/test_evidence_models.py` reported 2 passed and the full migration suite reported
+22 passed. The combined Steps 4-6 suite (`test_evidence_models`, `test_migrations`,
+`test_evidence_contracts`, `test_assessment_evidence_port`, `test_assessment_contracts`, and
+`test_criterion_evaluation`) reported 58 passed. Targeted Ruff and format checks passed;
+`scripts/export_openapi.py --check` and `scripts/generate_frontend_contracts.py --check` reported
+no drift. Exact duplicate-replay classification, course-scope validation across references, and
+privacy-authorised reads/writes remain Step 7 work; no formal result is stored or derived.
 
 Requirements: FR19, FR26, FR29, NFR17, NFR20, AC11, AC15.
 

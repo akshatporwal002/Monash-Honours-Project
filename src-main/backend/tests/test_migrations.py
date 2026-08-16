@@ -17,6 +17,7 @@ from app.domain.assessment import (
     QualityReviewDecision,
     ResultState,
 )
+from app.models import learning_evidence  # noqa: F401
 from app.models.assessment import AssessmentAttempt, AssessmentDecision
 from app.models.lms import AttemptStatus, SubmissionAttempt, SubmissionDraft
 from app.models.user import User, UserRole
@@ -29,6 +30,8 @@ EXPECTED_TABLES = {
     "assessment_definition_versions",
     "assessment_definitions",
     "assessment_legacy_history",
+    "evidence_artifacts",
+    "evidence_links",
     "assessment_attempts",
     "assessment_decisions",
     "appeals_or_corrections",
@@ -49,6 +52,7 @@ EXPECTED_TABLES = {
     "feedback_reports",
     "judge_evaluations",
     "learning_events",
+    "learning_evidence",
     "learning_materials",
     "learning_outcomes",
     "learning_tasks",
