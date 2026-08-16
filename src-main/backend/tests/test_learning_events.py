@@ -7,7 +7,7 @@ from threading import Barrier
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -15,7 +15,10 @@ from app.core.config import Settings
 from app.db.base import Base
 from app.db.session import create_db_engine, create_session_factory
 from app.models import LearningEvent, LearningEventType, WorkflowRun
-from app.schemas.learning_events import validate_learning_event_metadata
+from app.schemas.learning_events import (
+    BrowserLearningEventRequest,
+    validate_learning_event_metadata,
+)
 from app.services.learning_events import (
     BestEffortFeedbackViewTracker,
     BestEffortLearningEventSink,
@@ -321,7 +324,7 @@ def test_workflow_reference_is_required_only_for_trusted_feedback_views(
         )
 
 
-def test_trusted_submission_and_completion_hooks_use_typed_metadata(
+def test_legacy_score_metadata_remains_readable_but_trusted_hooks_emit_no_scores(
     event_session_factory: sessionmaker[Session],
 ) -> None:
     hooks = TrustedLearningEventHooks(recorder(event_session_factory))
@@ -351,12 +354,39 @@ def test_trusted_submission_and_completion_hooks_use_typed_metadata(
             for event in session.scalars(select(LearningEvent))
         }
     assert stored == {
-        LearningEventType.SUBMISSION: {"attempt_number": 2, "score": 75.0},
+        LearningEventType.SUBMISSION: {"attempt_number": 2},
         LearningEventType.COMPLETION: {
-            "completion_status": "passed",
-            "score": 75.0,
+            "completion_status": "completed",
         },
     }
+    assert validate_learning_event_metadata(
+        LearningEventType.SUBMISSION,
+        {"attempt_number": 2, "score": 75.0},
+    ) == {"attempt_number": 2, "score": 75.0}
+    assert validate_learning_event_metadata(
+        LearningEventType.COMPLETION,
+        {"completion_status": "passed", "score": 75.0},
+    ) == {"completion_status": "passed", "score": 75.0}
+
+
+def test_browser_contract_rejects_server_owned_submission_and_completion_events() -> None:
+    adapter = TypeAdapter(BrowserLearningEventRequest)
+
+    for event_type, metadata in (
+        ("submission", {"attempt_number": 1}),
+        ("completion", {"completion_status": "completed"}),
+        ("support", {}),
+        ("assessment_linked", {}),
+    ):
+        with pytest.raises(ValidationError):
+            adapter.validate_python(
+                {
+                    "event_id": str(uuid4()),
+                    "event_type": event_type,
+                    "task_id": "task-1",
+                    "metadata": metadata,
+                }
+            )
 
 
 def test_feedback_view_tracker_is_best_effort_and_omits_private_failures(

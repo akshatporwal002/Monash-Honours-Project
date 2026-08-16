@@ -15,6 +15,7 @@ from pydantic import (
     TypeAdapter,
 )
 
+from app.domain.platform_enums import EvidenceType
 from app.models.enums import LearningEventType
 
 MAX_LEARNING_EVENT_METADATA_BYTES = 1024
@@ -87,6 +88,12 @@ class DraftSaveMetadata(LearningEventContract):
 
 
 class SubmissionMetadata(LearningEventContract):
+    """Historical submission metadata kept readable for existing event rows.
+
+    New Person B evidence capture does not use this score field.  It writes an
+    opaque :class:`TrustedEvidenceAnalyticsMetadata` record instead.
+    """
+
     attempt_number: Annotated[int, Field(ge=1, le=10_000)]
     score: Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)] | None = None
 
@@ -96,8 +103,35 @@ class FeedbackViewMetadata(LearningEventContract):
 
 
 class CompletionMetadata(LearningEventContract):
+    """Historical completion metadata kept readable, including old pass states.
+
+    ``passed`` and ``failed`` remain compatibility values only.  They are not
+    formal assessment results and are not emitted by new trusted hooks.
+    """
+
     completion_status: Literal["completed", "passed", "failed"]
     score: Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)] | None = None
+
+
+class TrustedEvidenceAnalyticsMetadata(LearningEventContract):
+    """Flat, content-free metadata emitted after protected evidence is durable.
+
+    This deliberately contains an opaque evidence reference and versions, but
+    never learner identity, protected response text, a score, or a formal result.
+    """
+
+    event_schema_version: Literal["learnlens.trusted-evidence-event.v1"] = (
+        "learnlens.trusted-evidence-event.v1"
+    )
+    evidence_id: ExternalId
+    evidence_type: EvidenceType
+    evidence_schema_version: SourceSlug
+    evidence_record_version: Annotated[int, Field(ge=1, le=2_147_483_647)]
+    content_digest: Annotated[
+        str,
+        StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$"),
+    ]
+    source_version: SourceSlug | None = None
 
 
 LearningEventMetadata: TypeAlias = (

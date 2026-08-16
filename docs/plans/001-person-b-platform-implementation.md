@@ -568,12 +568,12 @@ Files:
 
 Changes:
 
-- [ ] Keep browser-originated event types low-risk and server-verified.
-- [ ] Add trusted adapters for prediction, response/revision, reasoning, confidence, support, reflection, simulation reference, transfer, and misconception-check events.
-- [ ] Route rich protected content to the evidence service; keep analytics events metadata-only.
-- [ ] Mark score-bearing submission/completion metadata as legacy-read compatibility and stop emitting it from new Person B hooks.
-- [ ] Add schema/version and evidence-reference fields to new trusted events without adding a learner result.
-- [ ] Ensure evidence persistence and analytics-event persistence have explicit failure semantics and cannot erase accepted work.
+- [x] Keep browser-originated event types low-risk and server-verified.
+- [x] Add trusted adapters for prediction, response/revision, reasoning, confidence, support, reflection, simulation reference, transfer, and misconception-check events.
+- [x] Route rich protected content to the evidence service; keep analytics events metadata-only.
+- [x] Mark score-bearing submission/completion metadata as legacy-read compatibility and stop emitting it from new Person B hooks.
+- [x] Add schema/version and evidence-reference fields to new trusted events without adding a learner result.
+- [x] Ensure evidence persistence and analytics-event persistence have explicit failure semantics and cannot erase accepted work.
 
 Edge and failure cases:
 
@@ -582,6 +582,25 @@ Edge and failure cases:
 - Legacy `completion_status="passed"` remains readable but is not projected as a formal result.
 
 **Acceptance:** Capture-adapter tests produce a complete chronological episode with no score in new event payloads; legacy fixtures remain readable; browser forgery, duplicate IDs, oversized metadata, and privacy keys are rejected.
+
+Verification (2026-08-16): `PASS`. Browser request models still admit only `task_view` and
+`draft_save`, rejecting every server-owned submission, completion, support, and assessment-linked
+shape. `TrustedLearningEventHooks` continues to accept validated legacy score/pass inputs for
+call-site compatibility, but emits only an attempt number and the non-result `completed` occurrence;
+the legacy score-bearing payloads remain parseable for existing rows. The new server-constructed
+`TrustedEvidenceCaptureAdapter` covers prediction, response, revision, reasoning, confidence, hint,
+scaffold, reflection, simulation, transfer, and misconception-check records. It stores rich content
+only through `EvidenceService`, emits no second analytics event on exact replay, rejects a conflicting
+idempotency key, and projects only versioned opaque reference metadata (no learner identity, content,
+or score) to its best-effort analytics port. A protected-evidence failure returns the existing
+`PENDING_RECONCILIATION` state without attempting analytics; an analytics failure returns the
+separate bounded `unavailable` state after evidence is already durable.
+
+`pytest -q tests/test_learning_events.py tests/test_evidence_capture_adapters.py` reported 23
+passed. Cross-area checks reported 10 passed for Person 4 end-to-end/scenario coverage, 14 passed
+for deployment/worker readiness, and 22 passed for the migration suite. Targeted Ruff and format,
+OpenAPI, generated frontend-contract, and `git diff --check` checks passed. The generated artifacts
+were already current; no shared LMS, router, frontend, or generated-contract file was modified.
 
 Requirements: FR19, FR20, FR29, FR31, NFR16, NFR20, AC11.
 

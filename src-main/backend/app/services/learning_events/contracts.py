@@ -6,7 +6,7 @@ from typing import Mapping, Protocol
 
 from app.models.enums import LearningEventType
 from app.schemas.feedback_api import AuthenticatedActor
-from app.schemas.learning_events import LearningEventReceipt
+from app.schemas.learning_events import LearningEventReceipt, TrustedEvidenceAnalyticsMetadata
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,6 +47,25 @@ class LearningEventRecordResult:
     created: bool
 
 
+@dataclass(frozen=True, slots=True)
+class TrustedEvidenceAnalyticsEvent:
+    """Content-free event sent only after an evidence record is durable.
+
+    ``event_id`` is the globally unique append-only evidence ID.  It lets an
+    analytics persistence adapter deduplicate without receiving a learner ID or
+    the protected artefact content.
+    """
+
+    event_id: str
+    course_id: str
+    outcome_id: str | None
+    activity_id: str
+    task_id: str
+    occurred_at: datetime
+    correlation_id: str
+    metadata: TrustedEvidenceAnalyticsMetadata
+
+
 class LearningEventAccessPolicy(Protocol):
     async def resolve_task_scope(
         self,
@@ -58,6 +77,12 @@ class LearningEventAccessPolicy(Protocol):
 
 class LearningEventSink(Protocol):
     def record(self, command: LearningEventCommand) -> LearningEventRecordResult | None: ...
+
+
+class EvidenceAnalyticsSink(Protocol):
+    """Best-effort persistence port for metadata-only trusted evidence events."""
+
+    def record(self, event: TrustedEvidenceAnalyticsEvent) -> None: ...
 
 
 class FeedbackViewTracker(Protocol):
