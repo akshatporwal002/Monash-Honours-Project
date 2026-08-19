@@ -38,3 +38,15 @@ Thumbs.db
 
 # Local RAG data
 /data/
+
+# Claude Code per-user overrides (project settings.json is shared)
+.claude/settings.local.json
+
+# Agent scratch roots (pytest/uv temp dirs; unreadable, and they made every
+# untracked `git status` emit ~50 permission warnings into agent context)
+.tmp-*/
+
+# Claude Code local session state (see .claude/README.md)
+.claude/.verdict-ledger.jsonl
+.claude/.delivery-state.md
+.claude/.plan-gate-cache

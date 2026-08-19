@@ -1,0 +1,73 @@
+# Cases for scripts/test-guard-bash.ps1 -> .claude/hooks/guard-bash.ps1
+# Format: EXPECT_ALLOW | EXPECT_DENY | EXPECT_ASK, then '|', then the command.
+# ALLOW means the hook stays silent and the normal permission flow applies.
+# Every destructive rule needs a DENY case AND, where a safe sibling exists, an ALLOW case.
+
+# --- history rewrites and published-history damage ---
+EXPECT_DENY|git push --force origin main
+EXPECT_DENY|npm test && git push -f
+EXPECT_DENY|git push origin --delete feature-branch
+EXPECT_DENY|git rebase -i HEAD~3
+EXPECT_ALLOW|git push origin arv-person-a-assessment
+
+# --- discarding user-owned worktree changes ---
+EXPECT_DENY|git reset --hard HEAD
+EXPECT_DENY|git clean -fd
+EXPECT_DENY|git checkout -- src-main/backend/app/main.py
+EXPECT_DENY|git restore src-main/backend/app/main.py
+EXPECT_DENY|git restore --worktree --staged src-main
+EXPECT_DENY|git switch --discard-changes main
+EXPECT_ALLOW|git restore --staged src-main/backend/app/main.py
+EXPECT_ALLOW|git checkout arv-person-a-assessment
+
+# --- stash and branch/ref destruction ---
+EXPECT_DENY|git stash drop
+EXPECT_DENY|git stash clear
+EXPECT_DENY|git branch -D arv-person-a-assessment
+EXPECT_DENY|git worktree remove --force ../wt
+EXPECT_DENY|git update-ref -d refs/heads/tmp
+EXPECT_ALLOW|git stash list
+EXPECT_ALLOW|git branch --show-current
+EXPECT_ALLOW|git branch -a
+
+# --- recursive force deletes ---
+EXPECT_DENY|rm -rf src-main/backend
+EXPECT_DENY|cd /tmp && rm -fr build
+EXPECT_DENY|sudo rm -rf /
+EXPECT_DENY|Remove-Item -Recurse -Force src-main
+EXPECT_DENY|Remove-Item -Force -Recurse src-main
+EXPECT_ALLOW|rm src-main/backend/.tmp-scratch/one.txt
+EXPECT_ALLOW|npm run build -- --force
+
+# --- GitHub authority boundaries ---
+EXPECT_DENY|gh pr merge 12
+EXPECT_DENY|gh pr close 12
+EXPECT_DENY|gh pr review 12 --approve
+EXPECT_DENY|gh pr review 12 --dismiss
+EXPECT_DENY|gh api repos/o/r/branches/main/protection -X PUT -f required_status_checks=null
+EXPECT_ALLOW|gh pr view 12
+EXPECT_ALLOW|gh pr checks 12
+
+# --- secret reads: settings.json denies these for Read, so Bash must deny them too ---
+EXPECT_DENY|cat .env
+EXPECT_DENY|head -5 src-main/backend/.env.local
+EXPECT_DENY|grep SECRET .env
+EXPECT_DENY|rg API_KEY src-main/backend/.env.production
+EXPECT_DENY|cat deploy/server.pem
+EXPECT_DENY|cat ~/.ssh/id_rsa
+EXPECT_DENY|cp src-main/backend/.env /tmp/leak
+EXPECT_ALLOW|cat .env.example
+EXPECT_ALLOW|cat src-main/backend/app/main.py
+EXPECT_ALLOW|rg "assessment" src-main/backend
+EXPECT_ALLOW|ls -la
+
+# --- readiness gate: ask, never deny (an earlier-session verdict is legitimate) ---
+EXPECT_ASK|gh pr ready 12
+
+# --- ordinary work must stay silent ---
+EXPECT_ALLOW|git status --porcelain
+EXPECT_ALLOW|git diff --stat origin/main...HEAD
+EXPECT_ALLOW|uv run --frozen pytest tests/test_migrations.py
+EXPECT_ALLOW|uv run --frozen ruff check .
+EXPECT_ALLOW|npm run lint
+EXPECT_ALLOW|git commit -m "feat(assessment): add pass rule"
