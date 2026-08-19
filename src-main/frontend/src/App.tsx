@@ -12,6 +12,8 @@ import { ScreenState } from './components/ScreenPrimitives'
 import { StudentDashboard } from './components/StudentDashboard'
 import { StudentsView } from './components/StudentsView'
 import { TaskView } from './components/TaskView'
+import { AssessorSetup } from './features/assessment/AssessorSetup'
+import { AssessorReviewQueue } from './features/assessment/AssessorReviewQueue'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
 
@@ -19,6 +21,12 @@ function defaultScreen(role: UserRole): ScreenId {
   if (role === 'educator') return 'educator-dashboard'
   if (role === 'admin') return 'admin-overview'
   return 'student-dashboard'
+}
+
+function hasActiveAssessorAssignment(user: AuthUser, courseId?: string): boolean {
+  return user.role === 'educator' && user.scoped_assignments.some((assignment) => (
+    assignment.role === 'assessor' && (!courseId || assignment.course_id === courseId)
+  ))
 }
 
 function loginError(error: unknown): string {
@@ -148,6 +156,22 @@ function App() {
     }
   }
 
+  const refreshAssessorAccess = useCallback(async (courseId: string): Promise<boolean> => {
+    const refreshedUser = await api.auth.me()
+    const active = hasActiveAssessorAssignment(refreshedUser, courseId)
+    setUser(refreshedUser)
+    if (!active) {
+      setActiveScreen((current) => (current === 'assessor-setup' || current === 'assessor-review')
+        ? defaultScreen(refreshedUser.role)
+        : current)
+    }
+    return active
+  }, [])
+
+  const leaveAssessorWorkspace = useCallback(() => {
+    setActiveScreen(defaultScreen('educator'))
+  }, [])
+
   const openStudentTask = async (task: LearningTask) => {
     const requestId = taskRequestId.current + 1
     taskRequestId.current = requestId
@@ -227,7 +251,23 @@ function App() {
       )
     }
   } else if (user.role === 'educator') {
-    if (activeScreen === 'course-editor') content = <CourseEditor />
+    if (activeScreen === 'assessor-setup' && hasActiveAssessorAssignment(user)) {
+      content = (
+        <AssessorSetup
+          assignments={user.scoped_assignments}
+          onCheckAccess={refreshAssessorAccess}
+          onAccessRevoked={leaveAssessorWorkspace}
+        />
+      )
+    } else if (activeScreen === 'assessor-review' && hasActiveAssessorAssignment(user)) {
+      content = (
+        <AssessorReviewQueue
+          assignments={user.scoped_assignments}
+          onCheckAccess={refreshAssessorAccess}
+          onAccessRevoked={leaveAssessorWorkspace}
+        />
+      )
+    } else if (activeScreen === 'course-editor') content = <CourseEditor />
     else if (activeScreen === 'students') content = <StudentsView />
     else if (activeScreen === 'analytics') content = <AnalyticsView />
     else {
@@ -252,6 +292,7 @@ function App() {
   return (
     <AppShell
       user={user}
+      hasAssessorAccess={hasActiveAssessorAssignment(user)}
       activeScreen={activeScreen}
       onNavigate={setActiveScreen}
       onLogout={logout}

@@ -1,0 +1,39 @@
+{
+  "assessment": {
+    "course_id": "course-1",
+    "assessment_definition_id": "assessment-1",
+    "assessment_definition_version": 1,
+    "outcome_id": "outcome-1",
+    "outcome_version": 1,
+    "bloom_target_id": "bloom-1",
+    "bloom_target_version": 1,
+    "criterion_set_id": "assessment-1",
+    "criterion_set_version": 1,
+    "pass_rule_id": "pass-rule-1",
+    "pass_rule_version": 1,
+    "task_id": "task-1",
+    "task_form_version": 1,
+    "assessment_attempt_id": "attempt-1",
+    "response_version_id": "response-1"
+  },
+  "evidence": {
+    "evidence_id": "evidence-1",
+    "evidence_type": "learner_response",
+    "schema_version": "learner-response.v1",
+    "record_version": 1,
+    "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_record_id": "response-1",
+    "source_record_version": 1,
+    "occurred_at": "2026-08-16T10:00:00Z"
+  },
+  "anchors": {
+    "all_of": ["phase", "interference"],
+    "relation_markers": ["because", "causes", "links", "therefore"]
+  },
+  "valid_responses": [
+    "Phase changes interference because it shifts the amplitudes.",
+    "A phase shift causes the interference pattern to change.",
+    "The semantic circuit description links phase to the interference output."
+  ],
+  "recall_only_response": "Phase and interference are quantum concepts."
+}

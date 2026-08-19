@@ -6,6 +6,7 @@ import type {
   EducatorDashboardData,
   EducatorStudent,
   GateOperation,
+  AssessmentConditions,
   GeneratedTaskPreview,
   LearningOutcome,
   LearningState,
@@ -18,6 +19,7 @@ import type {
   TaskType,
   UserRole,
 } from './types'
+import type { ApiSchemas } from '../api/generated'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '')
 
@@ -107,6 +109,7 @@ interface RawTask {
   access_status?: 'locked' | 'available' | 'in_progress' | 'completed'
   attempt_count?: number
   latest_score?: number | null
+  assessment?: AssessmentConditions | null
 }
 
 interface RawStudentDashboard {
@@ -185,7 +188,7 @@ interface RawEducatorStudent {
 
 interface RawSubmission {
   id?: string
-  score?: number
+  score?: number | null
   feedback?: string | null
   feedback_reference?: string | null
   status?: string
@@ -227,6 +230,7 @@ interface RawAuthUser {
   email: string
   full_name: string
   role: 'student' | 'educator' | 'administrator'
+  scoped_assignments?: AuthUser['scoped_assignments']
 }
 
 interface RawAdminUser extends Omit<AdminUser, 'role'> {
@@ -238,7 +242,7 @@ function normalizeRole(role: RawAuthUser['role']): UserRole {
 }
 
 function normalizeAuthUser(user: RawAuthUser): AuthUser {
-  return { ...user, role: normalizeRole(user.role) }
+  return { ...user, role: normalizeRole(user.role), scoped_assignments: user.scoped_assignments ?? [] }
 }
 
 function normalizeAdminUser(user: RawAdminUser): AdminUser {
@@ -269,6 +273,7 @@ function normalizeTask(task: RawTask): LearningTask {
     source_references: task.source_references ?? [],
     prerequisite_task_ids: task.prerequisite_task_ids ?? [],
     attempt_count: task.attempt_count ?? 0,
+    assessment: task.assessment ?? null,
   }
 }
 
@@ -352,7 +357,7 @@ function normalizeStudent(student: RawEducatorStudent): EducatorStudent {
 function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   return {
     id: raw.id,
-    score: raw.score ?? 0,
+    score: raw.score ?? null,
     feedback: raw.feedback ?? null,
     feedback_reference: raw.feedback_reference ?? null,
     status: (raw.status as LearningState | undefined) ?? 'draft',
@@ -392,6 +397,64 @@ export const api = {
       normalizeAuthUser(await request<RawAuthUser>('/auth/login', json('POST', { email, password }))),
     logout: () => request<void>('/auth/logout', { method: 'POST' }),
   },
+  assessment: {
+    createDefinition: (
+      courseId: string,
+      outcomeId: string,
+      payload: ApiSchemas['AssessmentDefinitionDraftCreate'],
+    ) => request<ApiSchemas['AssessmentDefinitionRead']>(
+      `/assessment/courses/${encodeURIComponent(courseId)}/outcomes/${encodeURIComponent(outcomeId)}/definitions`,
+      json('POST', payload),
+    ),
+    updateDefinition: (
+      courseId: string,
+      outcomeId: string,
+      assessmentDefinitionId: string,
+      payload: ApiSchemas['AssessmentDefinitionDraftUpdate'],
+    ) => request<ApiSchemas['AssessmentDefinitionRead']>(
+      `/assessment/courses/${encodeURIComponent(courseId)}/outcomes/${encodeURIComponent(outcomeId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}`,
+      json('PUT', payload),
+    ),
+    history: (courseId: string, assessmentDefinitionId: string) =>
+      request<ApiSchemas['AssessmentDefinitionRead'][]>(
+        `/assessment/courses/${encodeURIComponent(courseId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}/history`,
+      ),
+    publish: (
+      courseId: string,
+      assessmentDefinitionId: string,
+      payload: ApiSchemas['AssessmentDefinitionApproval'],
+    ) => request<ApiSchemas['AssessmentDefinitionRead']>(
+      `/assessment/courses/${encodeURIComponent(courseId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}/publish`,
+      json('POST', payload),
+    ),
+    reviewQueue: (
+      courseId: string,
+      filters: {
+        outcome_id?: string
+        result?: ApiSchemas['AssessmentResult']
+        result_state?: ApiSchemas['ResultState']
+        review_flag?: string
+        minimum_age_hours?: number
+      } = {},
+    ) => {
+      const query = new URLSearchParams()
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') query.set(key, String(value))
+      })
+      const suffix = query.size ? `?${query.toString()}` : ''
+      return request<ApiSchemas['AssessmentReviewDetailRead'][]>(
+        `/assessment/courses/${encodeURIComponent(courseId)}/review-queue${suffix}`,
+      )
+    },
+    reviewDetail: (decisionId: string) => request<ApiSchemas['AssessmentReviewDetailRead']>(
+      `/assessment/decisions/${encodeURIComponent(decisionId)}/review`,
+    ),
+    reviewAction: (decisionId: string, payload: ApiSchemas['AssessmentReviewActionCreate']) =>
+      request<ApiSchemas['AssessmentReviewActionRead']>(
+        `/assessment/decisions/${encodeURIComponent(decisionId)}/review`,
+        json('POST', payload),
+      ),
+  },
   student: {
     dashboard: async (signal?: AbortSignal) =>
       normalizeStudentDashboard(await request<RawStudentDashboard>('/students/me/dashboard', { signal })),
@@ -404,14 +467,23 @@ export const api = {
       ),
     saveDraft: (
       taskId: string,
-      payload: { answer: string; code?: string; circuit?: { qubits: number; operations: GateOperation[] } },
+      payload: {
+        answer: string
+        code?: string
+        circuit?: { qubits: number; operations: GateOperation[] }
+      },
     ) => request<RawDraft>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/draft`,
       json('PUT', payload),
     ),
     submit: async (
       taskId: string,
-      payload: { answer: string; code?: string; circuit?: { qubits: number; operations: GateOperation[] } },
+      payload: {
+        answer: string
+        code?: string
+        circuit?: { qubits: number; operations: GateOperation[] }
+        idempotency_key?: string
+      },
     ) => normalizeSubmission(await request<RawSubmission>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/submissions`,
       json('POST', payload),

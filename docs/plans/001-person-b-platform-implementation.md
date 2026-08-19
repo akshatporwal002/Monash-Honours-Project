@@ -357,11 +357,11 @@ Files:
 
 Changes:
 
-- [ ] Record the exact Person A DTO import path, assessment definition/version IDs, response-version ID, task-form version, evidence-reference fields, and compatibility policy.
-- [ ] Define a Person B port that accepts response/task/version references and returns immutable `EvidenceReference` values.
-- [ ] Define a read-only formal-result summary provider for progress projection; it cannot be imported by adaptation, learner-model, research, feedback-generation, or gamification code.
+- [x] Record the exact Person A DTO import path, assessment definition/version IDs, response-version ID, task-form version, evidence-reference fields, and compatibility policy.
+- [x] Define a Person B port that accepts response/task/version references and returns immutable `EvidenceReference` values.
+- [x] Define a read-only formal-result summary provider for progress projection; it cannot be imported by adaptation, learner-model, research, feedback-generation, or gamification code.
 - [x] Enumerate forbidden formal-result inputs: research condition/consent, demographics, confidence, time, retries, hints, points, access support, learner-model estimates, and progress state.
-- [ ] Add import/dependency tests proving Person B modules do not import Person A ORM models or result services.
+- [x] Add import/dependency tests proving Person B modules do not import Person A ORM models or result services.
 - [x] Stop dependent steps if A1 has not frozen the DTOs; do not invent temporary assessment enums.
 
 Edge and failure cases:
@@ -378,8 +378,29 @@ A1 branch. The repository has no `app/schemas/assessment.py`, frozen evidence-re
 assessment/version-field contract, or approved Quality Judge compatibility policy. The durable
 handoff record now enumerates the specification-fixed isolation rules, forbidden inputs, exact A1
 deliverables, dependency tests, approval requirements, and unblock procedure. No temporary DTO,
-assessment enum, evidence port, or dependent Step 5 source has been created. The acceptance line
-remains unproved until Person A publishes and approves A1 and the port tests pass.
+assessment enum, evidence port, or dependent Step 5 source has been created.
+
+Gate update (2026-08-16): `UNBLOCKED FOR PORT IMPLEMENTATION`. `codex/person-b-platform` was
+fast-forwarded to Person A's `origin/arv-person-a-assessment` head `122eec9`, which includes the
+frozen `app.domain.assessment` enums and `app.schemas.assessment` DTOs introduced by Person A's
+A1 contract commit `fe7c168af1397e65176ccccdb63343c0c8691bf2`. Person B reviewed and approved
+that checked-in contract; `tests/test_assessment_contracts.py` passed 9/9 on the integrated head.
+The remaining Step 4 work is deliberately limited to the isolated Person B `assessment_port.py`
+and its dependency tests. No Person A ORM model, result mutation service, shared router, LMS
+service, generated contract, or frontend shared file may be edited.
+
+Implementation verification (2026-08-16): `PASS`. The new isolated
+`app/services/evidence/assessment_port.py` creates frozen `EvidenceReference` values only from
+the versioned `AssessmentVersionReference`, resolves references through an injected narrow
+protocol, rejects a resolver's wrong ID or cross-course reference, and converts a non-course
+version mismatch to the frozen `STALE` state. Its only formal-result exposure is the read-only
+`ProgressFormalResultSummaryProvider` protocol; it has no mutation method. The new dependency
+tests prove the port has no ORM or `app.services.assessment` import, preserves typed `MISSING`,
+and keeps forbidden grade/research/confidence/access-support inputs outside its signature. On the
+integrated worktree: `pytest tests/test_assessment_evidence_port.py tests/test_assessment_contracts.py tests/test_criterion_evaluation.py` reported 23 passed; targeted Ruff and format checks
+passed; `scripts/export_openapi.py --check` and `scripts/generate_frontend_contracts.py --check`
+reported no drift; and `git diff --check` passed. Full release, independent-review, and current-head
+GitHub evidence remain required before any PR is ready.
 
 Requirements: Handoff 1, FR17, FR19, BP13, BP15, AT20, AT21, AT23.
 
@@ -394,12 +415,12 @@ Files:
 
 Changes:
 
-- [ ] Define separate enum namespaces for evidence type, evidence provenance, instructional-support level, access-support state, observation type, inference status, correction action, and model source.
-- [ ] Define strict, versioned Pydantic contracts for evidence artefacts, evidence records, evidence links, and opaque evidence references.
-- [ ] Cover prediction, explanation, reasoning, response/revision, confidence, hint, scaffold, feedback interaction, reflection, simulation, misconception check, transfer, and diagnostic evidence.
-- [ ] Require course, learner, outcome, activity/task, response version where applicable, source interaction, task conditions, occurred-at time, actor/agent, schema version, and idempotency key.
-- [ ] Keep access support distinct from instructional support in both type and field name.
-- [ ] Reject unknown fields, numeric formal-grade fields, research assignment fields, diagnosis/demographic fields, and oversized payloads.
+- [x] Define separate enum namespaces for evidence type, evidence provenance, instructional-support level, access-support state, observation type, inference status, correction action, and model source.
+- [x] Define strict, versioned Pydantic contracts for evidence artefacts, evidence records, evidence links, and opaque evidence references.
+- [x] Cover prediction, explanation, reasoning, response/revision, confidence, hint, scaffold, feedback interaction, reflection, simulation, misconception check, transfer, and diagnostic evidence.
+- [x] Require course, learner, outcome, activity/task, response version where applicable, source interaction, task conditions, occurred-at time, actor/agent, schema version, and idempotency key.
+- [x] Keep access support distinct from instructional support in both type and field name.
+- [x] Reject unknown fields, numeric formal-grade fields, research assignment fields, diagnosis/demographic fields, and oversized payloads.
 
 Edge and failure cases:
 
@@ -409,6 +430,19 @@ Edge and failure cases:
 
 **Acceptance:** Contract tests accept every required evidence kind, reject forbidden/cross-namespace fields, and serialize a stable `evidence.v1` reference without a formal result.
 
+Verification (2026-08-16): `PASS`. `app.domain.platform_enums` introduces only Person B evidence,
+support, inference, correction, and model-source namespaces; it does not reuse Person A's formal
+assessment enums. `app.schemas.evidence` supplies frozen `evidence-artifact.v1`,
+`evidence-record.v1`, `evidence-link.v1`, and opaque `evidence.v1` contracts. Protected artefact
+content is bounded at 65,536 characters at this API boundary, while references intentionally omit
+both protected content and learner identity. `reference_from_record` rejects an artifact whose ID
+or learner/course scope differs from the metadata record. `tests/test_evidence_contracts.py`
+reported 11 passed, and the combined Step 4/5 suite (`test_evidence_contracts`,
+`test_assessment_evidence_port`, `test_assessment_contracts`, and `test_criterion_evaluation`)
+reported 34 passed. Targeted Ruff and format checks passed, as did `git diff --check`. Evidence
+persistence, append-only storage, access-policy enforcement, and learner-model inference remain
+Step 6 onward work and are not claimed by these contracts.
+
 Requirements: FR19, FR20, FR29, BP5, BP6, NFR16, NFR27, NFR31, AC11, AC15.
 
 ## Step 6: Add append-only evidence storage and a forward migration (B2.2)
@@ -417,27 +451,53 @@ Files:
 
 - New `src-main/backend/app/models/learning_evidence.py`
 - New Alembic revision from the then-current head
+- `src-main/backend/app/core/readiness.py`
 - New `src-main/backend/tests/test_evidence_models.py`
 - `src-main/backend/tests/test_migrations.py`
+- `src-main/backend/tests/test_deployment_runtime.py`
 
 Changes:
 
-- [ ] Add protected `evidence_artifacts`, append-only `learning_evidence`, and append-only `evidence_links` tables.
-- [ ] Store protected learner content only in the authorised artefact table when a Person A response-version reference cannot be used; other records store reference/digest/approved features.
-- [ ] Add course, learner, outcome, task/activity, response-version, source-version, task-condition-version, actor/agent, correlation, schema, occurred-at, created-at, and idempotency fields.
-- [ ] Add foreign keys to stable existing course/task/user records where ownership permits; defer the Person A response-version FK to the agreed integration revision.
-- [ ] Add unique idempotency constraints and append-only update/delete triggers.
-- [ ] Add indexes for learner/outcome timeline, course/outcome projection, response reference, evidence type/time, and correlation ID.
-- [ ] Test clean upgrade, legacy upgrade, repeated upgrade, downgrade/recovery policy, trigger enforcement, record counts, and FK integrity.
+- [x] Add protected `evidence_artifacts`, append-only `learning_evidence`, and append-only `evidence_links` tables.
+- [x] Store protected learner content only in the authorised artefact table when a Person A response-version reference cannot be used; other records store reference/digest/approved features.
+- [x] Add course, learner, outcome, task/activity, response-version, source-version, task-condition-version, actor/agent, correlation, schema, occurred-at, created-at, and idempotency fields.
+- [x] Add foreign keys to stable existing course/task/user records where ownership permits; defer the Person A response-version FK to the agreed integration revision.
+- [x] Add unique idempotency constraints and append-only update/delete triggers.
+- [x] Add indexes for learner/outcome timeline, course/outcome projection, response reference, evidence type/time, and correlation ID.
+- [x] Test clean upgrade, legacy upgrade, repeated upgrade, downgrade/recovery policy, trigger enforcement, record counts, and FK integrity.
+- [x] Keep the readiness migration pin synchronized with the forward-migration head and prove it
+  cannot drift again.
 
 Edge and failure cases:
 
 - Migration creates no evidence from legacy scores.
 - Old learning events remain readable and are not rewritten.
-- Duplicate writes with identical content replay; reused idempotency keys with different content conflict.
+- Storage-level duplicate idempotency keys conflict. Exact replay and reused-key content-conflict classification are deferred to Step 7's repository transaction because only that layer can compare an incoming payload with the stored immutable record.
 - Failed migrations leave the source database recoverable from a verified backup.
 
-**Acceptance:** Clean and legacy fixtures reach the new head; direct SQL updates/deletes of append-only rows fail; duplicate/replay tests pass; existing attempt, feedback, research, and learning-event record counts remain unchanged.
+**Acceptance:** Clean and legacy fixtures reach the new head; direct SQL updates/deletes of every append-only table fail; duplicate idempotency keys conflict; repeated migration runs and safe restore/downgrade proof preserve existing attempt, feedback, research, and learning-event record counts. Exact replay remains Step 7's repository acceptance.
+
+Verification (2026-08-16): `PASS`. Revision `20260816_0019` adds the isolated Person B
+evidence tables from assessment head `20260815_0018`, with only the protected artefact storing
+learner content. Evidence metadata has stable course/user/outcome/task foreign keys, while
+`response_version_id` intentionally remains an opaque reference for the Person A integration
+revision. The revision is repeat-safe after an interrupted version stamp, recreates immutable
+triggers, and blocks a populated downgrade before it can discard either evidence or the preceding
+assessment legacy history; a verified SQLite backup then proves recovery followed by an empty-table
+downgrade. `tests/test_evidence_models.py` reported 2 passed and the full migration suite reported
+22 passed. The combined Steps 4-6 suite (`test_evidence_models`, `test_migrations`,
+`test_evidence_contracts`, `test_assessment_evidence_port`, `test_assessment_contracts`, and
+`test_criterion_evaluation`) reported 58 passed. Targeted Ruff and format checks passed;
+`scripts/export_openapi.py --check` and `scripts/generate_frontend_contracts.py --check` reported
+no drift. Exact duplicate-replay classification, course-scope validation across references, and
+privacy-authorised reads/writes remain Step 7 work; no formal result is stored or derived.
+
+Readiness follow-up verification (2026-08-16): The evidence migration initially advanced Alembic
+without advancing `app.core.readiness.MIGRATION_HEAD`, which made an otherwise healthy upgraded
+database return `/ready` as `503`. The pin now names `20260816_0019`; a deployment-runtime test
+compares it directly with Alembic's script-directory head, and the existing Person 4 end-to-end
+readiness assertion passes again after a full upgrade. This change does not alter any LMS,
+assessment, router, or generated-contract file.
 
 Requirements: FR19, FR26, FR29, NFR17, NFR20, AC11, AC15.
 
@@ -445,21 +505,24 @@ Requirements: FR19, FR26, FR29, NFR17, NFR20, AC11, AC15.
 
 Files:
 
+- `src-main/backend/app/schemas/evidence.py`
 - New `src-main/backend/app/services/evidence/repository.py`
 - New `src-main/backend/app/services/evidence/service.py`
 - New `src-main/backend/app/services/evidence/safety.py`
 - New `src-main/backend/tests/test_evidence_repository.py`
 - New `src-main/backend/tests/test_evidence_privacy.py`
+- `src-main/backend/tests/test_evidence_contracts.py`
 
 Changes:
 
-- [ ] Validate role/course/learner scope before content reads and writes through injected access-policy ports.
-- [ ] Persist artefact, evidence, and links transactionally and return only an opaque reference by default.
-- [ ] Implement exact replay, conflicting replay, concurrent duplicate, and out-of-order event handling.
-- [ ] Provide an append-only chronological query with stable `(occurred_at, created_at, id)` ordering.
-- [ ] Redact direct IDs, full answers, prompts, source chunks, access details, and exception text from operational logs and audit metadata.
-- [ ] Validate content digests and reject dangling or cross-course evidence links.
-- [ ] Emit bounded audit events for evidence creation, learner annotation, educator correction, retry, and fallback.
+- [x] Complete the frozen evidence-record/link input contracts with the already-persisted content digest, source version, and correlation ID; add no formal-result or research fields.
+- [x] Validate role/course/learner scope before content reads and writes through injected access-policy ports.
+- [x] Persist artefact, evidence, and links transactionally and return only an opaque reference by default.
+- [x] Implement exact replay, conflicting replay, concurrent duplicate, and out-of-order event handling.
+- [x] Provide an append-only chronological query with stable `(occurred_at, created_at, id)` ordering.
+- [x] Redact direct IDs, full answers, prompts, source chunks, access details, and exception text from operational logs and audit metadata.
+- [x] Validate content digests and reject dangling or cross-course evidence links.
+- [x] Emit bounded audit events for evidence creation, learner annotation, educator correction, retry, and fallback.
 
 Edge and failure cases:
 
@@ -468,6 +531,27 @@ Edge and failure cases:
 - Course mismatch returns non-enumerating `404` behaviour at the API layer.
 
 **Acceptance:** Repository and privacy tests prove exact replay, conflict, concurrency, append-only history, cross-course denial, and absence of privacy sentinels from logs/audit responses.
+
+Verification (2026-08-16): `PASS`. The evidence record and link contracts now carry the source
+version, digest, and correlation required by the already-migrated tables, with no formal-result or
+research field. `EvidenceService` requires an injected role/course/learner policy and confirms the
+authorized write scope matches the immutable record; a denied or absent resource follows the same
+safe `EvidenceNotFoundError` path for a future non-enumerating API mapping. The repository verifies
+the course/outcome/task graph, protects artefact reads separately, commits artefact/evidence/links
+together, distinguishes exact idempotent replay from conflict (including concurrent writers), and
+sorts metadata-only history by `(occurred_at, created_at, id)`. Links across learners/courses or to
+dangling evidence are rejected. Bounded audit events retain only hashed actor/resource references,
+agent, schema version, correlation, action, time, outcome, and a fixed failure category; they never
+hold content, prompts, source chunks, direct learner IDs, access state, or exception text. A storage
+failure returns `PENDING_RECONCILIATION` so its caller can reconcile without rolling back a
+caller-owned accepted response, while an audit failure leaves the durable evidence result intact.
+`pytest -q tests/test_evidence_contracts.py
+tests/test_evidence_models.py tests/test_evidence_repository.py tests/test_evidence_privacy.py
+tests/test_assessment_evidence_port.py tests/test_assessment_contracts.py tests/test_criterion_evaluation.py`
+reported 57 passed; `pytest -q tests/test_migrations.py` reported 22 passed. Targeted Ruff/format,
+OpenAPI, generated frontend-contract, and `git diff --check` checks passed. No HTTP route is added
+in this step; Person A retains shared router integration and the separate API mapping remains later
+work.
 
 Requirements: FR19, FR20, FR26, FR29, NFR16, NFR17, NFR20, NFR23, AC6, AC11.
 
@@ -484,12 +568,12 @@ Files:
 
 Changes:
 
-- [ ] Keep browser-originated event types low-risk and server-verified.
-- [ ] Add trusted adapters for prediction, response/revision, reasoning, confidence, support, reflection, simulation reference, transfer, and misconception-check events.
-- [ ] Route rich protected content to the evidence service; keep analytics events metadata-only.
-- [ ] Mark score-bearing submission/completion metadata as legacy-read compatibility and stop emitting it from new Person B hooks.
-- [ ] Add schema/version and evidence-reference fields to new trusted events without adding a learner result.
-- [ ] Ensure evidence persistence and analytics-event persistence have explicit failure semantics and cannot erase accepted work.
+- [x] Keep browser-originated event types low-risk and server-verified.
+- [x] Add trusted adapters for prediction, response/revision, reasoning, confidence, support, reflection, simulation reference, transfer, and misconception-check events.
+- [x] Route rich protected content to the evidence service; keep analytics events metadata-only.
+- [x] Mark score-bearing submission/completion metadata as legacy-read compatibility and stop emitting it from new Person B hooks.
+- [x] Add schema/version and evidence-reference fields to new trusted events without adding a learner result.
+- [x] Ensure evidence persistence and analytics-event persistence have explicit failure semantics and cannot erase accepted work.
 
 Edge and failure cases:
 
@@ -499,29 +583,54 @@ Edge and failure cases:
 
 **Acceptance:** Capture-adapter tests produce a complete chronological episode with no score in new event payloads; legacy fixtures remain readable; browser forgery, duplicate IDs, oversized metadata, and privacy keys are rejected.
 
+Verification (2026-08-16): `PASS`. Browser request models still admit only `task_view` and
+`draft_save`, rejecting every server-owned submission, completion, support, and assessment-linked
+shape. `TrustedLearningEventHooks` continues to accept validated legacy score/pass inputs for
+call-site compatibility, but emits only an attempt number and the non-result `completed` occurrence;
+the legacy score-bearing payloads remain parseable for existing rows. The new server-constructed
+`TrustedEvidenceCaptureAdapter` covers prediction, response, revision, reasoning, confidence, hint,
+scaffold, reflection, simulation, transfer, and misconception-check records. It stores rich content
+only through `EvidenceService`, emits no second analytics event on exact replay, rejects a conflicting
+idempotency key, and projects only versioned opaque reference metadata (no learner identity, content,
+or score) to its best-effort analytics port. A protected-evidence failure returns the existing
+`PENDING_RECONCILIATION` state without attempting analytics; an analytics failure returns the
+separate bounded `unavailable` state after evidence is already durable.
+
+`pytest -q tests/test_learning_events.py tests/test_evidence_capture_adapters.py` reported 23
+passed. Cross-area checks reported 10 passed for Person 4 end-to-end/scenario coverage, 14 passed
+for deployment/worker readiness, and 22 passed for the migration suite. Targeted Ruff and format,
+OpenAPI, generated frontend-contract, and `git diff --check` checks passed. The generated artifacts
+were already current; no shared LMS, router, frontend, or generated-contract file was modified.
+
 Requirements: FR19, FR20, FR29, FR31, NFR16, NFR20, AC11.
 
 ## Step 9: Add versioned learner-model snapshots and outcome estimates (B2.5)
 
 Files:
 
+- `src-main/backend/app/domain/platform_enums.py`
 - New `src-main/backend/app/models/learner_model.py`
 - New Alembic revision from the then-current head
+- `src-main/backend/app/core/readiness.py`
+- `src-main/backend/migrations/env.py`
 - New `src-main/backend/app/services/learner_model/contracts.py`
 - New `src-main/backend/app/services/learner_model/repository.py`
 - New `src-main/backend/app/services/learner_model/builder.py`
 - New `src-main/backend/app/services/learner_model/safety.py`
 - New `src-main/backend/tests/test_learner_model.py`
 - New `src-main/backend/tests/test_learner_model_safety.py`
+- `src-main/backend/tests/test_migrations.py`
 
 Changes:
 
-- [ ] Add append-only snapshots and outcome estimates with prior snapshot, evidence links, supporting/contradicting classification, uncertainty, recency, rule/model version, actor/agent, and time.
-- [ ] Represent observed prior knowledge, reasoning strengths/gaps, possible misconceptions, confidence calibration, feedback use, scaffold dependence, independence, transfer, and explicit preferences without fixed labels.
-- [ ] Build deterministic rule-based snapshots first; keep any model adapter behind a versioned interface and human-review threshold.
-- [ ] Require more than one weak signal for broad independence/mastery or persistent-misconception inferences.
-- [ ] Reject diagnosis, disability, neurodivergence, medical, demographic, psychological, motivation, fixed-ability, and learning-style fields or generated claims.
-- [ ] Store uncertainty as inference metadata, never a learner result or numeric mark.
+- [x] Add append-only snapshots and outcome estimates with prior snapshot, evidence links, supporting/contradicting classification, uncertainty, recency, rule/model version, actor/agent, and time.
+- [x] Represent observed prior knowledge, reasoning strengths/gaps, possible misconceptions, confidence calibration, feedback use, scaffold dependence, independence, transfer, and explicit preferences without fixed labels.
+- [x] Build deterministic rule-based snapshots first; keep any model adapter behind a versioned interface and human-review threshold.
+- [x] Require more than one weak signal for broad independence/mastery or persistent-misconception inferences.
+- [x] Reject diagnosis, disability, neurodivergence, medical, demographic, psychological, motivation, fixed-ability, and learning-style fields or generated claims.
+- [x] Store uncertainty as inference metadata, never a learner result or numeric mark.
+- [x] Advance the readiness migration pin with the forward migration; the existing deployment
+  regression test must continue to compare it with Alembic's current head.
 
 Edge and failure cases:
 
@@ -530,6 +639,31 @@ Edge and failure cases:
 - A model/provider failure leaves evidence stored and creates no new inference.
 
 **Acceptance:** Seeded evidence produces a reproducible snapshot with linked evidence and uncertainty; safety fixtures reject every banned claim; old snapshots remain queryable after new or contradicting evidence.
+
+Verification (2026-08-16): `PASS`. `learner_model_snapshots`, outcome-specific estimates, and
+per-estimate support/contradiction links are isolated Person B tables with immutable update/delete
+triggers, forward migration `20260816_0020`, scope-checked predecessor references, a unique
+idempotency key, and stable `(occurred_at, created_at, id)` history. The migration loader adds
+imports for only the two isolated Person B model modules, leaving Person A's shared model barrel
+unchanged.
+The migration refuses a populated learner-model, evidence, or assessment downgrade before it can
+remove any table, and the readiness pin now advances with Alembic head.
+
+The deterministic builder creates controlled, outcome-specific dimension estimates only from
+selected immutable evidence. Every estimate records the precise evidence links, relation,
+uncertainty, latest evidence time, reason code, and rule/model version. A single possible-
+misconception signal remains `UNCERTAIN`; two supporting signals are required before it becomes
+`SUPPORTED`, and conflicting evidence produces a later immutable snapshot rather than modifying
+the earlier one. A future non-rule adapter is a versioned protocol and cannot run without explicit
+human review; an unavailable provider leaves the existing evidence and snapshot history unchanged.
+Strict contracts and safety checks reject diagnostic, disability, neurodivergence, medical,
+demographic, psychological, motivation, fixed-ability, learning-style, numeric-score, and formal-
+result inputs. No learner result is calculated or stored.
+
+`pytest -q tests/test_learner_model.py tests/test_learner_model_safety.py tests/test_deployment_runtime.py tests/test_worker_health.py tests/test_person4_e2e.py::test_person4_deterministic_end_to_end` reported 32 passed; the full
+`pytest -q tests/test_migrations.py` suite reported 22 passed. Targeted Ruff and format, OpenAPI,
+generated frontend-contract, and `git diff --check` checks passed. No shared LMS, router,
+frontend, generated-contract, or Person A model-barrel file was modified.
 
 Requirements: FR30, PD3, BP4, NFR27, NFR31, AC12, AC15.
 

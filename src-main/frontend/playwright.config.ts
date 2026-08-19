@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const inCi = Boolean(process.env.CI)
+const localWindowsFirefoxHeaded = process.platform === 'win32'
+  && !inCi
+  && process.env.QUANTUMLEARN_FIREFOX_HEADLESS !== '1'
 
 export default defineConfig({
   testDir: './e2e',
@@ -37,6 +40,7 @@ export default defineConfig({
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
+        headless: !localWindowsFirefoxHeaded,
       },
     },
     {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -22,6 +22,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.assessment import AssessmentAttempt, AssessmentDefinition, TaskFormVersion
 
 
 def new_uuid() -> str:
@@ -191,6 +194,10 @@ class LearningOutcome(Base):
     )
 
     module: Mapped[CourseModule] = relationship(back_populates="outcomes")
+    assessment_definitions: Mapped[list["AssessmentDefinition"]] = relationship(
+        "AssessmentDefinition",
+        back_populates="learning_outcome",
+    )
 
 
 class Enrollment(Base):
@@ -265,9 +272,19 @@ class SubmissionAttempt(Base):
             name="uq_submission_attempts_student_task_number",
         ),
         CheckConstraint("attempt_number > 0", name="submission_attempt_number"),
-        CheckConstraint("score BETWEEN 0 AND 100", name="submission_attempt_score"),
+        CheckConstraint(
+            "score IS NULL OR score BETWEEN 0 AND 100", name="submission_attempt_legacy_score"
+        ),
+        CheckConstraint(
+            "content_digest IS NULL OR (length(content_digest) = 71 AND "
+            "content_digest GLOB 'sha256:*' AND content_digest NOT GLOB 'sha256:*[^0-9a-f]*')",
+            name="submission_attempt_content_digest",
+        ),
         Index("ix_submission_attempts_student_time", "student_id", "submitted_at"),
         Index("ix_submission_attempts_task_status", "task_id", "status"),
+        UniqueConstraint(
+            "student_id", "task_id", "idempotency_key", name="uq_submission_attempts_idempotency"
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
@@ -291,9 +308,22 @@ class SubmissionAttempt(Base):
     answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
     circuit: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    score: Mapped[int] = mapped_column(Integer, nullable=False)
+    score: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Legacy numeric value. Formal assessment results never read this column.",
+    )
     feedback: Mapped[str] = mapped_column(Text, nullable=False)
     feedback_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    task_form_version_id: Mapped[str | None] = mapped_column(
+        ForeignKey("task_form_versions.id", ondelete="RESTRICT"), nullable=True
+    )
+    response_schema_version: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    content_digest: Mapped[str | None] = mapped_column(String(71), nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    declared_conditions: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -305,6 +335,10 @@ class SubmissionAttempt(Base):
         back_populates="attempt",
         uselist=False,
     )
+    assessment_attempt: Mapped["AssessmentAttempt | None"] = relationship(
+        "AssessmentAttempt", back_populates="response_version", uselist=False
+    )
+    task_form_version: Mapped["TaskFormVersion | None"] = relationship()
 
 
 @event.listens_for(SubmissionAttempt, "before_update", propagate=True)

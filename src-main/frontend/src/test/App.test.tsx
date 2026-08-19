@@ -91,6 +91,7 @@ test('signs an educator into the server-authorised workspace with credentialed r
     }
     if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
     if (url.endsWith('/educator/students')) return response([])
+    if (url.endsWith('/educator/students')) return response([])
     throw new Error(`Unexpected request: ${url}`)
   })
 
@@ -106,6 +107,109 @@ test('signs an educator into the server-authorised workspace with credentialed r
   const loginCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/auth/login'))
   expect(loginCall?.[1]).toEqual(expect.objectContaining({ credentials: 'include' }))
   expect(new Headers(loginCall?.[1]?.headers).get('Content-Type')).toBe('application/json')
+})
+
+test('assessor navigation follows active server assignments', async () => {
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) {
+      return response({
+        id: 2, email: 'educator@example.edu', full_name: 'Avery Educator', role: 'educator',
+        scoped_assignments: [{ id: 'assignment-1', course_id: 'course-1', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null }],
+      })
+    }
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    if (url.endsWith('/educator/students')) return response([])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Assessment setup' }))
+  expect(await screen.findByRole('heading', { name: 'Assessment setup' })).toBeInTheDocument()
+
+  fetchMock.mockRestore()
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) return response({ id: 2, email: 'educator@example.edu', full_name: 'Avery Educator', role: 'educator', scoped_assignments: [] })
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    throw new Error(`Unexpected request: ${url}`)
+  })
+  await user.click(screen.getByRole('button', { name: 'Check assessor access' }))
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Assessment setup' })).not.toBeInTheDocument())
+  expect(screen.queryByRole('button', { name: 'Assessment setup' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Approve and publish' })).not.toBeInTheDocument()
+})
+
+test('selected course revocation closes the workspace when another assignment remains', async () => {
+  let accessRefreshes = 0
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) {
+      accessRefreshes += 1
+      const assignments = accessRefreshes === 1
+        ? [
+          { id: 'assignment-1', course_id: 'course-1', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null },
+          { id: 'assignment-2', course_id: 'course-2', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null },
+        ]
+        : [
+          { id: 'assignment-2', course_id: 'course-2', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null },
+        ]
+      return response({
+        id: 2,
+        email: 'educator@example.edu',
+        full_name: 'Avery Educator',
+        role: 'educator',
+        scoped_assignments: assignments,
+      })
+    }
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    if (url.endsWith('/educator/students')) return response([])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Assessment setup' }))
+  expect(await screen.findByRole('heading', { name: 'Assessment setup' })).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: 'Check assessor access' }))
+
+  expect(await screen.findByRole('heading', { name: 'Learning pulse' })).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Assessment setup' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Assessment setup' })).toBeInTheDocument()
+})
+
+test('assessment review loads its access check and queue once after navigation', async () => {
+  const reviewRecord = {
+    decision_id: 'decision-1', course_id: 'course-1', outcome_id: 'outcome-1', response_text: 'A response.',
+    response_conditions: {}, result: 'INCOMPLETE', result_state: 'PROVISIONAL', system_reason: 'MISSING_REQUIRED_EVIDENCE',
+    review_revision: 0, quality_review_status: 'APPROVED', versions: {}, criteria: [],
+    missing_criterion_version_ids: [], history: [], created_at: '2026-08-16T00:00:00Z',
+  }
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) {
+      return response({
+        id: 2, email: 'educator@example.edu', full_name: 'Avery Educator', role: 'educator',
+        scoped_assignments: [{ id: 'assignment-1', course_id: 'course-1', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null }],
+      })
+    }
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    if (url.includes('/assessment/courses/course-1/review-queue')) return response([reviewRecord])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Assessment review' }))
+  expect(await screen.findByRole('heading', { name: 'Assessment review queue' })).toBeInTheDocument()
+  await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) =>
+    String(input).includes('/assessment/courses/course-1/review-queue'))).toHaveLength(1))
+  await new Promise((resolve) => setTimeout(resolve, 25))
+  expect(fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/auth/me'))).toHaveLength(2)
+  expect(fetchMock.mock.calls.filter(([input]) =>
+    String(input).includes('/assessment/courses/course-1/review-queue'))).toHaveLength(1)
 })
 
 test('maps the backend administrator role to the Admin workspace', async () => {
@@ -335,6 +439,62 @@ test('submits an MCQ and renders only validated feedback from the feedback workf
   expect(feedbackCall?.[1]).toEqual(expect.objectContaining({ method: 'POST', credentials: 'include' }))
 })
 
+test('shows formal assessment conditions and saves a response without a numeric result', async () => {
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/draft')) return response(null)
+    if ((init?.method ?? 'GET') === 'GET') return response([])
+    return response({
+      id: 'formal-attempt-1',
+      status: 'submitted',
+      score: null,
+      feedback_reference: null,
+    })
+  })
+  const task: LearningTask = {
+    id: 'formal-task',
+    title: 'Explain interference evidence',
+    module: 'Module 2',
+    description: 'Explain how the observed pattern supports the claim.',
+    instructions: 'Use your own words.',
+    task_type: 'short_answer',
+    difficulty: 'intermediate',
+    points: 0,
+    position: 2,
+    status: 'in_progress',
+    score: null,
+    assessment: {
+      purpose: 'SUMMATIVE',
+      bloom_process: 'ANALYSE',
+      knowledge_dimension: 'CONCEPTUAL',
+      claim: 'The learner can explain how the observed pattern supports the claim.',
+      criteria: [{ description: 'Explain the evidence-to-claim relationship.', mandatory: true }],
+      task_conditions: { response_mode: 'written' },
+      permitted_tools: { allowed: ['notes'] },
+      instructional_support: { maximum_level: 1 },
+      access_conditions: { equivalent_modes: ['screen reader'] },
+      transfer_rule: { required: true },
+      review_rule: 'A formal result remains subject to assessor confirmation, correction, or override.',
+    },
+  }
+  render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
+  const user = userEvent.setup()
+
+  expect(await screen.findByText('Assessment conditions')).toBeInTheDocument()
+  expect(screen.getByText(/Purpose: SUMMATIVE/)).toBeInTheDocument()
+  expect(screen.getByText(/Required: Explain the evidence-to-claim relationship/)).toBeInTheDocument()
+  expect(screen.getByText(/Permitted tools: notes/)).toBeInTheDocument()
+  await user.type(screen.getByLabelText('Your response'), 'The evidence supports the claim.')
+  await user.click(screen.getByRole('button', { name: /Submit activity/ }))
+
+  expect(await screen.findByRole('heading', { name: 'Assessment response saved' })).toBeInTheDocument()
+  const submissionCall = fetchMock.mock.calls.find(([input, init]) =>
+    String(input).endsWith('/students/me/tasks/formal-task/submissions') && init?.method === 'POST')
+  const payload = JSON.parse(String(submissionCall?.[1]?.body)) as { idempotency_key?: string }
+  expect(payload.idempotency_key).toEqual(expect.any(String))
+  expect(screen.queryByText('0%')).not.toBeInTheDocument()
+})
+
 test('submits multiple-answer choice identifiers as a JSON set', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
@@ -416,6 +576,11 @@ test('allows code-completion tasks to edit and submit Qiskit code', async () => 
 })
 
 test('shows retained student attempt history and the latest existing feedback', async () => {
+  const latestSubmittedAt = '2026-07-26T08:30:00Z'
+  const latestSubmittedLabel = new Date(latestSubmittedAt).toLocaleString('en-AU', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
     if (url.endsWith('/draft')) return response(null)
@@ -451,7 +616,7 @@ test('shows retained student attempt history and the latest existing feedback', 
         feedback: 'Validated feedback',
         feedback_reference: 'attempt-2',
         points_awarded: 100,
-        submitted_at: '2026-07-26T08:30:00Z',
+        submitted_at: latestSubmittedAt,
       },
       {
         id: 'attempt-1',
@@ -485,7 +650,7 @@ test('shows retained student attempt history and the latest existing feedback', 
   expect(await screen.findByText('2 attempts')).toBeInTheDocument()
   expect(screen.getByText('#2')).toBeInTheDocument()
   expect(screen.getByText('90%')).toBeInTheDocument()
-  expect(screen.getByText('26 July 2026, 6:30 pm')).toBeInTheDocument()
+  expect(screen.getByText(latestSubmittedLabel)).toHaveAttribute('datetime', latestSubmittedAt)
   expect(screen.getByText('submitted')).toBeInTheDocument()
   expect(await screen.findByText('Review how relative phase changes interference.')).toBeInTheDocument()
   expect(fetchMock.mock.calls.some(([input]) =>
@@ -666,6 +831,53 @@ test('restores a saved quantum circuit', async () => {
   await screen.findByText('Saved draft restored.')
   expect(screen.getAllByTitle('Remove gate')).toHaveLength(3)
   expect(screen.getByRole('button', { name: 'Run 1,024 shots' })).toBeEnabled()
+})
+
+test('saves a circuit draft before a simulation fault', async () => {
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/draft') && (init?.method ?? 'GET') === 'GET') return response(null)
+    if (url.endsWith('/draft')) return response({
+      id: 'draft-simulation',
+      task_id: 'task-simulation',
+      answer: '',
+      code: null,
+      circuit: { qubits: 2, operations: [{ gate: 'h', targets: [0] }] },
+      updated_at: '2026-08-16T08:00:00Z',
+    })
+    if (url.endsWith('/simulate')) return response({ detail: 'Simulator unavailable.' }, 503)
+    return response([])
+  })
+  const task: LearningTask = {
+    id: 'task-simulation',
+    title: 'Check a circuit',
+    module: 'Module 3',
+    description: 'Build a circuit and inspect its result.',
+    instructions: 'Add a gate, then run the simulator.',
+    task_type: 'quantum_circuit',
+    difficulty: 'intermediate',
+    points: 100,
+    position: 1,
+    status: 'in_progress',
+    score: null,
+  }
+  render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
+  const user = userEvent.setup()
+
+  await user.click(await screen.findByRole('button', { name: 'Add H gate' }))
+  await user.click(screen.getByRole('button', { name: 'Run 1,024 shots' }))
+
+  await screen.findByText('Simulator unavailable.')
+  const calls = fetchMock.mock.calls.map(([input, init]) => ({ url: String(input), init }))
+  const draftIndex = calls.findIndex(({ url, init }) =>
+    url.endsWith('/draft') && init?.method === 'PUT')
+  const simulationIndex = calls.findIndex(({ url }) => url.endsWith('/simulate'))
+  expect(draftIndex).toBeGreaterThanOrEqual(0)
+  expect(simulationIndex).toBeGreaterThan(draftIndex)
+  const draftPayload = JSON.parse(String(calls[draftIndex]?.init?.body)) as {
+    circuit: { operations: Array<{ gate: string }> }
+  }
+  expect(draftPayload.circuit.operations).toEqual([{ gate: 'h', targets: [0] }])
 })
 
 test('has no detectable axe violations on the role selection and sign-in screen', async () => {

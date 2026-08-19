@@ -13,7 +13,8 @@ from alembic import command
 from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from test_person4_e2e import (
+from support.assessment import assign_assessor, seed_review_decision
+from support.person4 import (
     COURSE_ID,
     NOW,
     PSEUDONYM_SECRET,
@@ -26,9 +27,9 @@ from test_person4_e2e import (
     EligibleResearch,
     MemoryContinuationRepository,
     ResearchObserver,
-    _generated_feedback,
-    _judge_outcome,
-    _migration_config,
+    generated_feedback,
+    judge_outcome,
+    migration_config,
 )
 
 from app.api.analytics_dependencies import (
@@ -180,11 +181,11 @@ def _pipeline_factory(
             collector,
             FakeFeedbackGenerator(
                 [
-                    _generated_feedback("The first candidate needs revision."),
-                    _generated_feedback("The revised feedback is ready."),
+                    generated_feedback("The first candidate needs revision."),
+                    generated_feedback("The revised feedback is ready."),
                 ]
             ),
-            FakeFeedbackJudge([_judge_outcome("fail"), _judge_outcome("pass")]),
+            FakeFeedbackJudge([judge_outcome("fail"), judge_outcome("pass")]),
             repository,
             clock=lambda: next(clock),
             now=lambda: NOW,
@@ -245,11 +246,21 @@ def _seed_learning_events(
 
 
 def _build_app(database_url: str):
-    command.upgrade(_migration_config(database_url), "head")
+    command.upgrade(migration_config(database_url), "head")
     engine = create_db_engine(database_url)
     session_factory = create_session_factory(engine)
     with session_factory() as demo_session:
-        bootstrap_demo(demo_session)
+        demo_users, _ = bootstrap_demo(demo_session)
+        demo_educator = next(
+            user for user in demo_users if user.email == "educator@quantumlearn.demo"
+        )
+        assessment_attempt, _, _, assessment_owner = seed_review_decision(demo_session)
+        assign_assessor(
+            demo_session,
+            demo_educator,
+            assessment_attempt.course_id,
+            assessment_owner,
+        )
     pseudonymizer = HmacSha256Pseudonymizer(PSEUDONYM_SECRET)
     learning_recorder = LearningEventRecorder(
         session_factory,

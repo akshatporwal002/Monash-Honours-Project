@@ -3,6 +3,8 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from pydantic import ValidationError
 from sqlalchemy import text
 
@@ -16,6 +18,8 @@ from app.core.readiness import (
 from app.db.base import Base
 from app.db.session import create_db_engine
 from app.worker import WorkerConfigurationError, load_worker_adapters
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _production_settings(**overrides: object) -> Settings:
@@ -69,6 +73,13 @@ def test_builtin_worker_factory_is_offline_and_fails_if_research_is_enabled() ->
             BUILTIN_OFFLINE_WORKER_ADAPTER_FACTORY,
             Settings(_env_file=None, research_enabled=True),
         )
+
+
+def test_readiness_migration_pin_matches_the_alembic_head() -> None:
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
+
+    assert MIGRATION_HEAD == ScriptDirectory.from_config(config).get_current_head()
 
 
 def test_hosted_readiness_accepts_builtin_offline_worker_without_model_credentials(

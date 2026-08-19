@@ -172,6 +172,10 @@ class TrustedLearningEventHooks:
         attempt_number: int,
         score: float | None = None,
     ) -> LearningEventReceipt | None:
+        # Parse the old input shape so existing server callers fail consistently
+        # for invalid values, but never copy a numeric score into newly emitted
+        # metadata.  Formal assessment results remain Person A's responsibility.
+        SubmissionMetadata(attempt_number=attempt_number, score=score)
         return self._record(
             LearningEventCommand(
                 actor_reference=actor_reference,
@@ -180,10 +184,9 @@ class TrustedLearningEventHooks:
                 event_type=LearningEventType.SUBMISSION,
                 client_event_id=source_event_id,
                 correlation_id=correlation_id,
-                metadata=SubmissionMetadata(
-                    attempt_number=attempt_number,
-                    score=score,
-                ).model_dump(mode="json", exclude_none=True),
+                metadata=SubmissionMetadata(attempt_number=attempt_number).model_dump(
+                    mode="json", exclude_none=True
+                ),
             )
         )
 
@@ -198,6 +201,12 @@ class TrustedLearningEventHooks:
         completion_status: str,
         score: float | None = None,
     ) -> LearningEventReceipt | None:
+        # Old ``passed``/``failed`` values are accepted as legacy input, yet new
+        # event production records only a server-owned completion occurrence.
+        CompletionMetadata(
+            completion_status=CompletionStatus(completion_status).value,
+            score=score,
+        )
         return self._record(
             LearningEventCommand(
                 actor_reference=actor_reference,
@@ -207,8 +216,7 @@ class TrustedLearningEventHooks:
                 client_event_id=source_event_id,
                 correlation_id=correlation_id,
                 metadata=CompletionMetadata(
-                    completion_status=CompletionStatus(completion_status).value,
-                    score=score,
+                    completion_status=CompletionStatus.COMPLETED.value
                 ).model_dump(mode="json", exclude_none=True),
             )
         )

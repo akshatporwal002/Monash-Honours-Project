@@ -21,6 +21,12 @@ from app.db.base import Base
 
 
 class AuditAction(str, Enum):
+    ASSESSMENT_DEFINITION_CREATED = "assessment_definition_created"
+    ASSESSMENT_ATTEMPT_CREATED = "assessment_attempt_created"
+    ASSESSMENT_DECISION_CREATED = "assessment_decision_created"
+    ASSESSMENT_LEGACY_RESULT_MIGRATED = "assessment_legacy_result_migrated"
+    ASSESSOR_REVIEW_RECORDED = "assessor_review_recorded"
+    APPEAL_OR_CORRECTION_RECORDED = "appeal_or_correction_recorded"
     FEEDBACK_GENERATION_STARTED = "feedback_generation_started"
     FEEDBACK_GENERATION_COMPLETED = "feedback_generation_completed"
     FEEDBACK_JUDGED = "feedback_judged"

@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.api.feedback_dependencies import get_feedback_application
 from app.api.routes.lms import get_lms_material_storage
 from app.db.base import Base
 from app.db.session import create_db_engine, create_session_factory, get_db
@@ -553,6 +554,55 @@ def test_reminders_monitoring_and_admin_lifecycle(
         )
         == 1
     )
+
+
+def test_submission_idempotency_creates_one_response_version(
+    lms_context: tuple[TestClient, Session],
+) -> None:
+    client, session = lms_context
+    login(client, "student")
+    task = client.get("/api/v1/students/me/dashboard").json()["tasks"][0]
+    key = "submission-retry-key"
+    first = client.post(
+        f"/api/v1/students/me/tasks/{task['id']}/submissions",
+        json={"answer": "b", "idempotency_key": key},
+    )
+    assert first.status_code == 201
+    repeated = client.post(
+        f"/api/v1/students/me/tasks/{task['id']}/submissions",
+        json={"answer": "b", "idempotency_key": key},
+    )
+    assert repeated.status_code == 201
+    assert repeated.json()["id"] == first.json()["id"]
+    conflict = client.post(
+        f"/api/v1/students/me/tasks/{task['id']}/submissions",
+        json={"answer": "different", "idempotency_key": key},
+    )
+    assert conflict.status_code == 409
+    assert session.scalar(select(func.count()).select_from(SubmissionAttempt)) == 1
+
+
+def test_external_failure_preserves_response_and_draft(
+    lms_context: tuple[TestClient, Session],
+) -> None:
+    client, session = lms_context
+
+    class FailingFeedbackApplication:
+        def start(self, *_: object, **__: object) -> object:
+            raise RuntimeError("forced feedback outage")
+
+    client.app.dependency_overrides[get_feedback_application] = lambda: FailingFeedbackApplication()
+    login(client, "student")
+    task = client.get("/api/v1/students/me/dashboard").json()["tasks"][0]
+    response = client.post(
+        f"/api/v1/students/me/tasks/{task['id']}/submissions",
+        json={"answer": "b"},
+    )
+    assert response.status_code == 500
+    attempt = session.scalar(select(SubmissionAttempt))
+    assert attempt is not None
+    assert attempt.answer == "b"
+    assert attempt.feedback == "Submission recorded. Validated feedback is being prepared."
 
 
 def test_submission_attempts_are_immutable(

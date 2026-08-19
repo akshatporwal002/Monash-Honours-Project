@@ -1,6 +1,41 @@
 {
   "components": {
     "schemas": {
+      "AccessDeniedEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reference_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Reference Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "ACCESS_DENIED",
+            "default": "ACCESS_DENIED",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "reference_id",
+          "reason_code"
+        ],
+        "title": "AccessDeniedEvidenceReference",
+        "type": "object"
+      },
       "AchievementRead": {
         "additionalProperties": false,
         "properties": {
@@ -34,6 +69,52 @@
           "earned_at"
         ],
         "title": "AchievementRead",
+        "type": "object"
+      },
+      "ActiveScopedRoleAssignmentResponse": {
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ScopedRole"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "course_id",
+          "role",
+          "version",
+          "valid_from",
+          "valid_until"
+        ],
+        "title": "ActiveScopedRoleAssignmentResponse",
         "type": "object"
       },
       "AdminUserCreate": {
@@ -309,6 +390,1662 @@
         "title": "AnalyticsFilterSnapshot",
         "type": "object"
       },
+      "AssessmentApprovalState": {
+        "enum": [
+          "DRAFT",
+          "APPROVED",
+          "RETIRED"
+        ],
+        "title": "AssessmentApprovalState",
+        "type": "string"
+      },
+      "AssessmentConditionsRead": {
+        "additionalProperties": false,
+        "properties": {
+          "access_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Access Conditions"
+          },
+          "bloom_process": {
+            "$ref": "#/components/schemas/BloomProcess"
+          },
+          "claim": {
+            "title": "Claim",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "instructional_support": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Instructional Support"
+          },
+          "knowledge_dimension": {
+            "$ref": "#/components/schemas/BloomKnowledge"
+          },
+          "permitted_tools": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Permitted Tools"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AssessmentPurpose"
+          },
+          "review_rule": {
+            "title": "Review Rule",
+            "type": "string"
+          },
+          "task_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Task Conditions"
+          },
+          "transfer_rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Transfer Rule"
+          }
+        },
+        "required": [
+          "purpose",
+          "bloom_process",
+          "knowledge_dimension",
+          "claim",
+          "criteria",
+          "task_conditions",
+          "permitted_tools",
+          "instructional_support",
+          "access_conditions",
+          "transfer_rule",
+          "review_rule"
+        ],
+        "title": "AssessmentConditionsRead",
+        "type": "object"
+      },
+      "AssessmentCriterionDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_anchors": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Approved Anchors"
+          },
+          "critical_error_rules": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Critical Error Rules"
+          },
+          "evaluator_type": {
+            "$ref": "#/components/schemas/CriterionEvaluatorType",
+            "default": "rules"
+          },
+          "evidence_description": {
+            "minLength": 1,
+            "title": "Evidence Description",
+            "type": "string"
+          },
+          "evidence_source_types": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Evidence Source Types",
+            "type": "array"
+          },
+          "learner_description": {
+            "minLength": 1,
+            "title": "Learner Description",
+            "type": "string"
+          },
+          "mandatory": {
+            "title": "Mandatory",
+            "type": "boolean"
+          },
+          "met_rule": {
+            "minLength": 1,
+            "title": "Met Rule",
+            "type": "string"
+          },
+          "not_evaluable_rule": {
+            "minLength": 1,
+            "title": "Not Evaluable Rule",
+            "type": "string"
+          },
+          "not_met_rule": {
+            "minLength": 1,
+            "title": "Not Met Rule",
+            "type": "string"
+          },
+          "stable_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Stable Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stable_key",
+          "learner_description",
+          "evidence_description",
+          "mandatory",
+          "evidence_source_types",
+          "met_rule",
+          "not_met_rule",
+          "not_evaluable_rule",
+          "approved_anchors",
+          "critical_error_rules"
+        ],
+        "title": "AssessmentCriterionDraft",
+        "type": "object"
+      },
+      "AssessmentCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "mandatory": {
+            "title": "Mandatory",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "description",
+          "mandatory"
+        ],
+        "title": "AssessmentCriterionRead",
+        "type": "object"
+      },
+      "AssessmentDefinitionApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason"
+        ],
+        "title": "AssessmentDefinitionApproval",
+        "type": "object"
+      },
+      "AssessmentDefinitionDraftCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "access_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Access Conditions"
+          },
+          "bloom_process": {
+            "$ref": "#/components/schemas/BloomProcess"
+          },
+          "claim": {
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "contradicting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Contradicting Evidence"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentCriterionDraft"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "evidence_sufficiency": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Evidence Sufficiency"
+          },
+          "formal_result_eligible": {
+            "title": "Formal Result Eligible",
+            "type": "boolean"
+          },
+          "instructional_support": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Instructional Support"
+          },
+          "insufficient_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Insufficient Evidence"
+          },
+          "knowledge_dimension": {
+            "$ref": "#/components/schemas/BloomKnowledge"
+          },
+          "next_action_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Next Action Contract"
+          },
+          "pass_rule_expression": {
+            "additionalProperties": true,
+            "title": "Pass Rule Expression",
+            "type": "object"
+          },
+          "permitted_tools": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Permitted Tools"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AssessmentPurpose"
+          },
+          "supporting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Supporting Evidence"
+          },
+          "task_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Task Conditions"
+          },
+          "task_forms": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentTaskFormDraft"
+            },
+            "title": "Task Forms",
+            "type": "array"
+          },
+          "transfer_rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Transfer Rule"
+          }
+        },
+        "required": [
+          "claim",
+          "supporting_evidence",
+          "contradicting_evidence",
+          "insufficient_evidence",
+          "task_conditions",
+          "next_action_contract",
+          "purpose",
+          "permitted_tools",
+          "instructional_support",
+          "access_conditions",
+          "transfer_rule",
+          "evidence_sufficiency",
+          "formal_result_eligible",
+          "bloom_process",
+          "knowledge_dimension",
+          "criteria",
+          "pass_rule_expression",
+          "task_forms"
+        ],
+        "title": "AssessmentDefinitionDraftCreate",
+        "type": "object"
+      },
+      "AssessmentDefinitionDraftUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "access_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Access Conditions"
+          },
+          "bloom_process": {
+            "$ref": "#/components/schemas/BloomProcess"
+          },
+          "claim": {
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "contradicting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Contradicting Evidence"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentCriterionDraft"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "evidence_sufficiency": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Evidence Sufficiency"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "formal_result_eligible": {
+            "title": "Formal Result Eligible",
+            "type": "boolean"
+          },
+          "instructional_support": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Instructional Support"
+          },
+          "insufficient_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Insufficient Evidence"
+          },
+          "knowledge_dimension": {
+            "$ref": "#/components/schemas/BloomKnowledge"
+          },
+          "next_action_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Next Action Contract"
+          },
+          "pass_rule_expression": {
+            "additionalProperties": true,
+            "title": "Pass Rule Expression",
+            "type": "object"
+          },
+          "permitted_tools": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Permitted Tools"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AssessmentPurpose"
+          },
+          "supporting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Supporting Evidence"
+          },
+          "task_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Task Conditions"
+          },
+          "task_forms": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentTaskFormDraft"
+            },
+            "title": "Task Forms",
+            "type": "array"
+          },
+          "transfer_rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Transfer Rule"
+          }
+        },
+        "required": [
+          "claim",
+          "supporting_evidence",
+          "contradicting_evidence",
+          "insufficient_evidence",
+          "task_conditions",
+          "next_action_contract",
+          "purpose",
+          "permitted_tools",
+          "instructional_support",
+          "access_conditions",
+          "transfer_rule",
+          "evidence_sufficiency",
+          "formal_result_eligible",
+          "bloom_process",
+          "knowledge_dimension",
+          "criteria",
+          "pass_rule_expression",
+          "task_forms",
+          "expected_version"
+        ],
+        "title": "AssessmentDefinitionDraftUpdate",
+        "type": "object"
+      },
+      "AssessmentDefinitionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "access_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Access Conditions"
+          },
+          "approval_state": {
+            "$ref": "#/components/schemas/AssessmentApprovalState"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By User Id"
+          },
+          "assessment_definition_id": {
+            "title": "Assessment Definition Id",
+            "type": "string"
+          },
+          "bloom_process": {
+            "$ref": "#/components/schemas/BloomProcess"
+          },
+          "claim": {
+            "title": "Claim",
+            "type": "string"
+          },
+          "contradicting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Contradicting Evidence"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentTaskCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "evidence_sufficiency": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Evidence Sufficiency"
+          },
+          "formal_result_eligible": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formal Result Eligible"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "instructional_support": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Instructional Support"
+          },
+          "insufficient_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Insufficient Evidence"
+          },
+          "knowledge_dimension": {
+            "$ref": "#/components/schemas/BloomKnowledge"
+          },
+          "next_action_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Next Action Contract"
+          },
+          "outcome_version_id": {
+            "title": "Outcome Version Id",
+            "type": "string"
+          },
+          "pass_rule_expression": {
+            "additionalProperties": true,
+            "title": "Pass Rule Expression",
+            "type": "object"
+          },
+          "permitted_tools": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Permitted Tools"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AssessmentPurpose"
+          },
+          "supporting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Supporting Evidence"
+          },
+          "task_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Task Conditions"
+          },
+          "task_forms": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentTaskFormRead"
+            },
+            "title": "Task Forms",
+            "type": "array"
+          },
+          "transfer_rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Transfer Rule"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "assessment_definition_id",
+          "course_id",
+          "outcome_version_id",
+          "version",
+          "approval_state",
+          "purpose",
+          "bloom_process",
+          "knowledge_dimension",
+          "claim",
+          "supporting_evidence",
+          "contradicting_evidence",
+          "insufficient_evidence",
+          "task_conditions",
+          "next_action_contract",
+          "permitted_tools",
+          "instructional_support",
+          "access_conditions",
+          "transfer_rule",
+          "evidence_sufficiency",
+          "criteria",
+          "pass_rule_expression",
+          "task_forms",
+          "formal_result_eligible",
+          "approved_at",
+          "approved_by_user_id"
+        ],
+        "title": "AssessmentDefinitionRead",
+        "type": "object"
+      },
+      "AssessmentEvaluationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluation_idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Evaluation Idempotency Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evaluation_idempotency_key"
+        ],
+        "title": "AssessmentEvaluationCreate",
+        "type": "object"
+      },
+      "AssessmentEvaluationRead": {
+        "properties": {
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "reason_code": {
+            "$ref": "#/components/schemas/AssessmentReasonCode"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AssessmentResult"
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          }
+        },
+        "required": [
+          "decision_id",
+          "result",
+          "result_state",
+          "reason_code",
+          "replayed"
+        ],
+        "title": "AssessmentEvaluationRead",
+        "type": "object"
+      },
+      "AssessmentPurpose": {
+        "enum": [
+          "DIAGNOSTIC",
+          "FORMATIVE",
+          "AS_LEARNING",
+          "SUMMATIVE",
+          "RESEARCH"
+        ],
+        "title": "AssessmentPurpose",
+        "type": "string"
+      },
+      "AssessmentReasonCode": {
+        "enum": [
+          "TARGET_EVIDENCE_MET",
+          "MISSING_REQUIRED_EVIDENCE",
+          "CRITERIA_NOT_MET",
+          "TARGET_BLOOM_ACTION_NOT_SHOWN",
+          "CRITICAL_CONCEPT_GAP",
+          "INDEPENDENT_EVIDENCE_NOT_SHOWN",
+          "TRANSFER_EVIDENCE_NOT_SHOWN",
+          "UNRESOLVED_EVIDENCE_CONFLICT",
+          "TASK_UNDER_HUMAN_REVIEW"
+        ],
+        "title": "AssessmentReasonCode",
+        "type": "string"
+      },
+      "AssessmentResult": {
+        "enum": [
+          "PASS",
+          "INCOMPLETE"
+        ],
+        "title": "AssessmentResult",
+        "type": "string"
+      },
+      "AssessmentReviewActionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AssessorReviewAction"
+          },
+          "expected_result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "expected_review_revision": {
+            "minimum": 0.0,
+            "title": "Expected Review Revision",
+            "type": "integer"
+          },
+          "new_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "reason",
+          "expected_result_state",
+          "expected_review_revision"
+        ],
+        "title": "AssessmentReviewActionCreate",
+        "type": "object"
+      },
+      "AssessmentReviewActionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "string"
+          },
+          "review_revision": {
+            "title": "Review Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision_id",
+          "review_id",
+          "result",
+          "result_state",
+          "review_revision",
+          "replayed"
+        ],
+        "title": "AssessmentReviewActionRead",
+        "type": "object"
+      },
+      "AssessmentReviewCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion_version": {
+            "title": "Criterion Version",
+            "type": "integer"
+          },
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CriterionDecision"
+          },
+          "evaluator_reference": {
+            "title": "Evaluator Reference",
+            "type": "string"
+          },
+          "evidence_references": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Evidence References"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "retrieval_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retrieval Version"
+          }
+        },
+        "required": [
+          "criterion_version_id",
+          "criterion_version",
+          "decision",
+          "reason",
+          "evidence_references",
+          "evaluator_reference",
+          "model_version",
+          "prompt_version",
+          "retrieval_version"
+        ],
+        "title": "AssessmentReviewCriterionRead",
+        "type": "object"
+      },
+      "AssessmentReviewDetailRead": {
+        "additionalProperties": false,
+        "properties": {
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentReviewCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentReviewHistoryRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "missing_criterion_version_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Criterion Version Ids",
+            "type": "array"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "quality_review_status": {
+            "title": "Quality Review Status",
+            "type": "string"
+          },
+          "response_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Response Conditions"
+          },
+          "response_text": {
+            "title": "Response Text",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "review_revision": {
+            "title": "Review Revision",
+            "type": "integer"
+          },
+          "system_reason": {
+            "$ref": "#/components/schemas/AssessmentReasonCode"
+          },
+          "versions": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Versions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "decision_id",
+          "course_id",
+          "outcome_id",
+          "response_text",
+          "response_conditions",
+          "result",
+          "result_state",
+          "system_reason",
+          "review_revision",
+          "quality_review_status",
+          "versions",
+          "criteria",
+          "missing_criterion_version_ids",
+          "history",
+          "created_at"
+        ],
+        "title": "AssessmentReviewDetailRead",
+        "type": "object"
+      },
+      "AssessmentReviewHistoryRead": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AssessorReviewAction"
+          },
+          "assessor_user_id": {
+            "title": "Assessor User Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "new_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prior_result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "review_revision": {
+            "title": "Review Revision",
+            "type": "integer"
+          },
+          "reviewed_at": {
+            "format": "date-time",
+            "title": "Reviewed At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "review_revision",
+          "assessor_user_id",
+          "action",
+          "prior_result",
+          "new_result",
+          "reason",
+          "reviewed_at"
+        ],
+        "title": "AssessmentReviewHistoryRead",
+        "type": "object"
+      },
+      "AssessmentTaskCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluator_type": {
+            "$ref": "#/components/schemas/CriterionEvaluatorType"
+          },
+          "evidence_description": {
+            "title": "Evidence Description",
+            "type": "string"
+          },
+          "evidence_source_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Source Types",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "learner_description": {
+            "title": "Learner Description",
+            "type": "string"
+          },
+          "mandatory": {
+            "title": "Mandatory",
+            "type": "boolean"
+          },
+          "met_rule": {
+            "title": "Met Rule",
+            "type": "string"
+          },
+          "not_evaluable_rule": {
+            "title": "Not Evaluable Rule",
+            "type": "string"
+          },
+          "not_met_rule": {
+            "title": "Not Met Rule",
+            "type": "string"
+          },
+          "stable_key": {
+            "title": "Stable Key",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "stable_key",
+          "version",
+          "learner_description",
+          "evidence_description",
+          "mandatory",
+          "evidence_source_types",
+          "met_rule",
+          "not_met_rule",
+          "not_evaluable_rule",
+          "evaluator_type"
+        ],
+        "title": "AssessmentTaskCriterionRead",
+        "type": "object"
+      },
+      "AssessmentTaskFormDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "constraints": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Constraints"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Context"
+          },
+          "learning_task_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "title": "Learning Task Id",
+            "type": "string"
+          },
+          "source_digest": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_version": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Source Version",
+            "type": "string"
+          },
+          "task_family": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Task Family",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learning_task_id",
+          "source_version",
+          "source_digest",
+          "task_family",
+          "context",
+          "constraints"
+        ],
+        "title": "AssessmentTaskFormDraft",
+        "type": "object"
+      },
+      "AssessmentTaskFormRead": {
+        "additionalProperties": false,
+        "properties": {
+          "constraints": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Constraints"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Context"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "learning_task_id": {
+            "title": "Learning Task Id",
+            "type": "string"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_version": {
+            "title": "Source Version",
+            "type": "string"
+          },
+          "task_family": {
+            "title": "Task Family",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "learning_task_id",
+          "version",
+          "source_version",
+          "source_digest",
+          "task_family",
+          "context",
+          "constraints"
+        ],
+        "title": "AssessmentTaskFormRead",
+        "type": "object"
+      },
+      "AssessmentVersionReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_attempt_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "assessment_definition_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Definition Id",
+            "type": "string"
+          },
+          "assessment_definition_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Assessment Definition Version",
+            "type": "integer"
+          },
+          "bloom_target_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Bloom Target Id",
+            "type": "string"
+          },
+          "bloom_target_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Bloom Target Version",
+            "type": "integer"
+          },
+          "course_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "criterion_set_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Criterion Set Id",
+            "type": "string"
+          },
+          "criterion_set_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Criterion Set Version",
+            "type": "integer"
+          },
+          "outcome_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "outcome_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Outcome Version",
+            "type": "integer"
+          },
+          "pass_rule_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Pass Rule Id",
+            "type": "string"
+          },
+          "pass_rule_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Pass Rule Version",
+            "type": "integer"
+          },
+          "response_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "task_form_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Task Form Version",
+            "type": "integer"
+          },
+          "task_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_id",
+          "assessment_definition_id",
+          "assessment_definition_version",
+          "outcome_id",
+          "outcome_version",
+          "bloom_target_id",
+          "bloom_target_version",
+          "criterion_set_id",
+          "criterion_set_version",
+          "pass_rule_id",
+          "pass_rule_version",
+          "task_id",
+          "task_form_version",
+          "assessment_attempt_id",
+          "response_version_id"
+        ],
+        "title": "AssessmentVersionReference",
+        "type": "object"
+      },
+      "AssessorReviewAction": {
+        "enum": [
+          "CONFIRM",
+          "OVERRIDE",
+          "WITHHOLD",
+          "VOID",
+          "RETURN"
+        ],
+        "title": "AssessorReviewAction",
+        "type": "string"
+      },
       "AttemptRead": {
         "additionalProperties": false,
         "properties": {
@@ -367,8 +2104,15 @@
             "type": "integer"
           },
           "score": {
-            "title": "Score",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
           },
           "status": {
             "$ref": "#/components/schemas/AttemptStatus"
@@ -425,16 +2169,46 @@
           },
           "role": {
             "$ref": "#/components/schemas/UserRole"
+          },
+          "scoped_assignments": {
+            "items": {
+              "$ref": "#/components/schemas/ActiveScopedRoleAssignmentResponse"
+            },
+            "title": "Scoped Assignments",
+            "type": "array"
           }
         },
         "required": [
           "id",
           "email",
           "full_name",
-          "role"
+          "role",
+          "scoped_assignments"
         ],
         "title": "AuthenticatedUserResponse",
         "type": "object"
+      },
+      "BloomKnowledge": {
+        "enum": [
+          "FACTUAL",
+          "CONCEPTUAL",
+          "PROCEDURAL",
+          "METACOGNITIVE"
+        ],
+        "title": "BloomKnowledge",
+        "type": "string"
+      },
+      "BloomProcess": {
+        "enum": [
+          "REMEMBER",
+          "UNDERSTAND",
+          "APPLY",
+          "ANALYSE",
+          "EVALUATE",
+          "CREATE"
+        ],
+        "title": "BloomProcess",
+        "type": "string"
       },
       "Body_upload_course_material_api_v1_courses__course_id__materials_upload_post": {
         "properties": {
@@ -564,6 +2338,46 @@
           "fallback_rate"
         ],
         "title": "ConditionMetrics",
+        "type": "object"
+      },
+      "ConflictingEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "evidence_ids": {
+            "items": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 2,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "status": {
+            "const": "CONFLICT",
+            "default": "CONFLICT",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "evidence_ids",
+          "reason_code"
+        ],
+        "title": "ConflictingEvidenceReference",
         "type": "object"
       },
       "CourseCreate": {
@@ -780,6 +2594,25 @@
         },
         "title": "CourseUpdate",
         "type": "object"
+      },
+      "CriterionDecision": {
+        "enum": [
+          "MET",
+          "NOT_MET",
+          "NOT_EVALUABLE"
+        ],
+        "title": "CriterionDecision",
+        "type": "string"
+      },
+      "CriterionEvaluatorType": {
+        "enum": [
+          "rules",
+          "human",
+          "validated_ai",
+          "mixed"
+        ],
+        "title": "CriterionEvaluatorType",
+        "type": "string"
       },
       "DraftRead": {
         "additionalProperties": false,
@@ -1146,6 +2979,127 @@
         "title": "EnrollmentStatus",
         "type": "string"
       },
+      "EvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "content_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "learnlens.assessment-evidence.v1",
+            "default": "learnlens.assessment-evidence.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "evidence_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "evidence_type": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9._-]*$",
+            "title": "Evidence Type",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "record_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Record Version",
+            "type": "integer"
+          },
+          "schema_version": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "source_record_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Source Record Id",
+            "type": "string"
+          },
+          "source_record_version": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "Source Record Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assessment",
+          "evidence_id",
+          "evidence_type",
+          "schema_version",
+          "record_version",
+          "content_digest",
+          "source_record_id",
+          "source_record_version",
+          "occurred_at"
+        ],
+        "title": "EvidenceReference",
+        "type": "object"
+      },
+      "EvidenceReferenceResolutionEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "resolution": {
+            "discriminator": {
+              "mapping": {
+                "ACCESS_DENIED": "#/components/schemas/AccessDeniedEvidenceReference",
+                "CONFLICT": "#/components/schemas/ConflictingEvidenceReference",
+                "INVALID": "#/components/schemas/InvalidEvidenceReference",
+                "MISSING": "#/components/schemas/MissingEvidenceReference",
+                "RESOLVED": "#/components/schemas/ResolvedEvidenceReference",
+                "STALE": "#/components/schemas/StaleEvidenceReference"
+              },
+              "propertyName": "status"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ResolvedEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/MissingEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/StaleEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/ConflictingEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/AccessDeniedEvidenceReference"
+              },
+              {
+                "$ref": "#/components/schemas/InvalidEvidenceReference"
+              }
+            ],
+            "title": "Resolution"
+          }
+        },
+        "required": [
+          "resolution"
+        ],
+        "title": "EvidenceReferenceResolutionEnvelope",
+        "type": "object"
+      },
       "ExperimentalCondition": {
         "enum": [
           "agentic_rag",
@@ -1377,6 +3331,120 @@
         ],
         "title": "FeedbackWorkflowStatus",
         "type": "string"
+      },
+      "FormalResultSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_attempt_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "assessment_definition_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Definition Id",
+            "type": "string"
+          },
+          "assessor_reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Assessor Reviewed At"
+          },
+          "contract_version": {
+            "const": "learnlens.formal-result-summary.v1",
+            "default": "learnlens.formal-result-summary.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "course_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Decided At"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Decision Id"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentReasonCode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "response_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          }
+        },
+        "required": [
+          "course_id",
+          "assessment_definition_id",
+          "assessment_attempt_id",
+          "response_version_id",
+          "result_state"
+        ],
+        "title": "FormalResultSummary",
+        "type": "object"
       },
       "FunnelStage": {
         "additionalProperties": false,
@@ -1660,6 +3728,44 @@
           "total"
         ],
         "title": "InactiveLearnerPage",
+        "type": "object"
+      },
+      "InvalidEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reference_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reference Id"
+          },
+          "status": {
+            "const": "INVALID",
+            "default": "INVALID",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason_code"
+        ],
+        "title": "InvalidEvidenceReference",
         "type": "object"
       },
       "JudgeDecision": {
@@ -2281,6 +4387,51 @@
         "title": "MetricValue",
         "type": "object"
       },
+      "MisconceptionState": {
+        "enum": [
+          "PERSISTED",
+          "WEAKENED",
+          "CORRECTED",
+          "UNCERTAIN"
+        ],
+        "title": "MisconceptionState",
+        "type": "string"
+      },
+      "MissingEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "evidence_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "status": {
+            "const": "MISSING",
+            "default": "MISSING",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "evidence_id",
+          "reason_code"
+        ],
+        "title": "MissingEvidenceReference",
+        "type": "object"
+      },
       "ModuleCreate": {
         "additionalProperties": false,
         "properties": {
@@ -2608,6 +4759,14 @@
         "title": "PairedDifferences",
         "type": "object"
       },
+      "QualityReviewDecision": {
+        "enum": [
+          "APPROVED",
+          "REJECTED"
+        ],
+        "title": "QualityReviewDecision",
+        "type": "string"
+      },
       "ReadinessResponse": {
         "additionalProperties": false,
         "properties": {
@@ -2822,6 +4981,36 @@
         "title": "ResearchMetricsResult",
         "type": "object"
       },
+      "ResolvedEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "reference": {
+            "$ref": "#/components/schemas/EvidenceReference"
+          },
+          "status": {
+            "const": "RESOLVED",
+            "default": "RESOLVED",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference"
+        ],
+        "title": "ResolvedEvidenceReference",
+        "type": "object"
+      },
+      "ResultState": {
+        "enum": [
+          "NOT_ASSESSED",
+          "PROVISIONAL",
+          "CONFIRMED",
+          "OVERRIDDEN",
+          "VOID"
+        ],
+        "title": "ResultState",
+        "type": "string"
+      },
       "RetrievalHitRead": {
         "additionalProperties": false,
         "properties": {
@@ -3014,6 +5203,137 @@
         "title": "SafeFallbackView",
         "type": "object"
       },
+      "ScopedRole": {
+        "enum": [
+          "assessor",
+          "research"
+        ],
+        "title": "ScopedRole",
+        "type": "string"
+      },
+      "ScopedRoleAssignmentCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ScopedRole"
+          },
+          "subject_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Subject User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject_user_id",
+          "role",
+          "reason"
+        ],
+        "title": "ScopedRoleAssignmentCreate",
+        "type": "object"
+      },
+      "ScopedRoleAssignmentRead": {
+        "additionalProperties": false,
+        "properties": {
+          "assigned_at": {
+            "format": "date-time",
+            "title": "Assigned At",
+            "type": "string"
+          },
+          "assigned_by_user_id": {
+            "title": "Assigned By User Id",
+            "type": "integer"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ScopedRole"
+          },
+          "subject_user_id": {
+            "title": "Subject User Id",
+            "type": "integer"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "subject_user_id",
+          "course_id",
+          "role",
+          "version",
+          "reason",
+          "assigned_by_user_id",
+          "assigned_at",
+          "valid_from",
+          "valid_until",
+          "revoked_at"
+        ],
+        "title": "ScopedRoleAssignmentRead",
+        "type": "object"
+      },
+      "ScopedRoleAssignmentRevoke": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ScopedRoleAssignmentRevoke",
+        "type": "object"
+      },
       "SettingsRead": {
         "additionalProperties": false,
         "properties": {
@@ -3198,6 +5518,46 @@
         "title": "SimulationRequest",
         "type": "object"
       },
+      "StaleEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "mismatched_fields": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Mismatched Fields",
+            "type": "array"
+          },
+          "reason_code": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Z][A-Z0-9_]*$",
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "reference": {
+            "$ref": "#/components/schemas/EvidenceReference"
+          },
+          "status": {
+            "const": "STALE",
+            "default": "STALE",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "mismatched_fields",
+          "reason_code"
+        ],
+        "title": "StaleEvidenceReference",
+        "type": "object"
+      },
       "StudentDashboardRead": {
         "additionalProperties": false,
         "properties": {
@@ -3353,10 +5713,35 @@
               }
             ],
             "title": "Code"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "title": "SubmissionCreate",
         "type": "object"
+      },
+      "SubmissionState": {
+        "enum": [
+          "NOT_STARTED",
+          "DRAFT",
+          "SUBMITTED",
+          "UNDER_REVIEW",
+          "RETURNED",
+          "COMPLETED"
+        ],
+        "title": "SubmissionState",
+        "type": "string"
       },
       "TaskChoice": {
         "additionalProperties": false,
@@ -3553,6 +5938,16 @@
             ],
             "title": "Access Status",
             "type": "string"
+          },
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentConditionsRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "attempt_count": {
             "default": 0,
@@ -5271,6 +7666,788 @@
         "summary": "Research Analytics",
         "tags": [
           "analytics"
+        ]
+      }
+    },
+    "/api/v1/assessment/admin/assignments/{assignment_id}": {
+      "delete": {
+        "operationId": "revoke_scoped_role_api_v1_assessment_admin_assignments__assignment_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScopedRoleAssignmentRevoke"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopedRoleAssignmentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Scoped Role",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/admin/courses/{course_id}/assignments": {
+      "post": {
+        "operationId": "assign_scoped_role_api_v1_assessment_admin_courses__course_id__assignments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScopedRoleAssignmentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopedRoleAssignmentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assign Scoped Role",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/attempts/{assessment_attempt_id}/evaluate": {
+      "post": {
+        "operationId": "evaluate_assessment_attempt_api_v1_assessment_attempts__assessment_attempt_id__evaluate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Assessment Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentEvaluationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentEvaluationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluate Assessment Attempt",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/definitions/{assessment_definition_id}/history": {
+      "get": {
+        "operationId": "definition_history_api_v1_assessment_courses__course_id__definitions__assessment_definition_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "assessment_definition_id",
+            "required": true,
+            "schema": {
+              "title": "Assessment Definition Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssessmentDefinitionRead"
+                  },
+                  "title": "Response Definition History Api V1 Assessment Courses  Course Id  Definitions  Assessment Definition Id  History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Definition History",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/definitions/{assessment_definition_id}/publish": {
+      "post": {
+        "operationId": "publish_assessment_definition_api_v1_assessment_courses__course_id__definitions__assessment_definition_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "assessment_definition_id",
+            "required": true,
+            "schema": {
+              "title": "Assessment Definition Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDefinitionApproval"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDefinitionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish Assessment Definition",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/outcomes/{outcome_id}/definitions": {
+      "post": {
+        "operationId": "create_assessment_definition_draft_api_v1_assessment_courses__course_id__outcomes__outcome_id__definitions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDefinitionDraftCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDefinitionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Assessment Definition Draft",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/outcomes/{outcome_id}/definitions/{assessment_definition_id}": {
+      "put": {
+        "operationId": "update_assessment_definition_draft_api_v1_assessment_courses__course_id__outcomes__outcome_id__definitions__assessment_definition_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "assessment_definition_id",
+            "required": true,
+            "schema": {
+              "title": "Assessment Definition Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDefinitionDraftUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDefinitionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Assessment Definition Draft",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/review-queue": {
+      "get": {
+        "operationId": "assessment_review_queue_api_v1_assessment_courses__course_id__review_queue_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AssessmentResult"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Result"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result_state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ResultState"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Result State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "review_flag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Review Flag"
+            }
+          },
+          {
+            "in": "query",
+            "name": "minimum_age_hours",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Minimum Age Hours"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssessmentReviewDetailRead"
+                  },
+                  "title": "Response Assessment Review Queue Api V1 Assessment Courses  Course Id  Review Queue Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assessment Review Queue",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/decisions/{decision_id}/review": {
+      "get": {
+        "operationId": "assessment_review_detail_api_v1_assessment_decisions__decision_id__review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentReviewDetailRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assessment Review Detail",
+        "tags": [
+          "assessment"
+        ]
+      },
+      "post": {
+        "operationId": "record_assessment_review_action_api_v1_assessment_decisions__decision_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentReviewActionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentReviewActionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Assessment Review Action",
+        "tags": [
+          "assessment"
         ]
       }
     },
