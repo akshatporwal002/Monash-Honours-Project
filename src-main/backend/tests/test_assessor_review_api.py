@@ -5,9 +5,14 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
-from test_assessment_attempt_models import _attempt_context, _provisional_decision
+from support.assessment import (
+    build_assessment_attempt as _attempt_context,
+)
+from support.assessment import (
+    build_provisional_decision as _provisional_decision,
+)
 
 from app.core.security import hash_password
 from app.domain.assessment import (
@@ -24,12 +29,13 @@ from app.models.assessment import (
     AssessorReview,
     CriterionEvaluation,
 )
-from app.models.lms import Course, PlatformAuditEvent
+from app.models.lms import Course, PlatformAuditEvent, SubmissionAttempt
 from app.models.user import RoleAssignment, ScopedRole, User, UserRole
 from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
 from app.services.assessment.review import (
     AssessmentReviewActionRequest,
     AssessmentReviewConflictError,
+    AssessmentReviewDetail,
     AssessmentReviewFilters,
     AssessmentReviewService,
     AssessmentReviewValidationError,
@@ -288,6 +294,117 @@ def test_review_queue_filters_without_leaking_other_courses(db_session: Session)
     db_session.commit()
     with pytest.raises(ScopedRoleAccessDeniedError):
         service.list_queue(owner, filters=AssessmentReviewFilters(course_id=other_course.id))
+
+
+def _queue_with_query_count(
+    session: Session,
+    owner: User,
+    course_id: str,
+) -> tuple[tuple[AssessmentReviewDetail, ...], int]:
+    query_count = 0
+
+    def count_query(*_: object) -> None:
+        nonlocal query_count
+        query_count += 1
+
+    assert session.bind is not None
+    event.listen(session.bind, "before_cursor_execute", count_query)
+    try:
+        records = _review_service(session, owner).list_queue(
+            owner,
+            filters=AssessmentReviewFilters(course_id=course_id),
+        )
+    finally:
+        event.remove(session.bind, "before_cursor_execute", count_query)
+    return records, query_count
+
+
+def test_review_queue_query_count_is_constant_as_records_grow(db_session: Session) -> None:
+    first_attempt, first_response, first_decision, owner = _decision_context(db_session)
+    first_evaluation = db_session.scalar(
+        select(CriterionEvaluation).where(
+            CriterionEvaluation.assessment_attempt_id == first_attempt.id
+        )
+    )
+    assert first_evaluation is not None
+    _assign_assessor(db_session, owner, first_attempt.course_id, owner)
+    course_id = first_attempt.course_id
+    db_session.expire_all()
+    single_records, single_query_count = _queue_with_query_count(
+        db_session,
+        owner,
+        course_id,
+    )
+    assert [record.decision_id for record in single_records] == [first_decision.id]
+
+    second_response = SubmissionAttempt(
+        draft_id=first_response.draft_id,
+        student_id=first_response.student_id,
+        task_id=first_response.task_id,
+        attempt_number=2,
+        status=first_response.status,
+        answer="The second response links the observation to the claim.",
+        score=None,
+        feedback="Response recorded.",
+        task_form_version_id=first_response.task_form_version_id,
+        response_schema_version=first_response.response_schema_version,
+        content_digest=first_response.content_digest,
+        idempotency_key="response-key-2",
+        declared_conditions=first_response.declared_conditions,
+    )
+    db_session.add(second_response)
+    db_session.flush()
+    second_attempt = AssessmentAttempt(
+        course_id=first_attempt.course_id,
+        student_id=first_attempt.student_id,
+        task_id=first_attempt.task_id,
+        response_version_id=second_response.id,
+        assessment_definition_version_id=first_attempt.assessment_definition_version_id,
+        task_form_version_id=first_attempt.task_form_version_id,
+        bloom_target_version_id=first_attempt.bloom_target_version_id,
+        pass_rule_version_id=first_attempt.pass_rule_version_id,
+        state=AssessmentAttemptState.EVALUATED,
+    )
+    db_session.add(second_attempt)
+    db_session.flush()
+    second_decision = AssessmentDecision(
+        assessment_attempt_id=second_attempt.id,
+        bloom_target_version_id=second_attempt.bloom_target_version_id,
+        pass_rule_version_id=second_attempt.pass_rule_version_id,
+        evaluation_idempotency_key="evaluation-key-2",
+        result=AssessmentResult.PASS,
+        result_state=ResultState.PROVISIONAL,
+        evidence_references={"criterion_evaluations": []},
+        system_reason="TARGET_EVIDENCE_MET",
+    )
+    db_session.add_all(
+        [
+            second_decision,
+            CriterionEvaluation(
+                assessment_attempt_id=second_attempt.id,
+                criterion_version_id=first_evaluation.criterion_version_id,
+                decision=CriterionDecision.MET,
+                evidence_references={"evidence": ["frozen-evidence-2"]},
+                evaluator_reference="rules.v1",
+                reason="The exact response contains the required explanation.",
+            ),
+            PlatformAuditEvent(
+                actor_id=None,
+                action="assessment_evaluation.provisional",
+                resource_type="assessment_attempt",
+                resource_id=second_attempt.id,
+                correlation_id="00000000-0000-4000-8000-000000000014",
+                details={"quality_review_status": "APPROVED"},
+            ),
+        ]
+    )
+    db_session.commit()
+    decision_ids = {first_decision.id, second_decision.id}
+    db_session.expire_all()
+    records, multi_query_count = _queue_with_query_count(db_session, owner, course_id)
+
+    assert {record.decision_id for record in records} == decision_ids
+    assert multi_query_count == single_query_count
 
 
 def test_review_api_exposes_actions_without_numeric_grade_fields() -> None:

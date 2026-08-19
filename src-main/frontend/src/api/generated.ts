@@ -117,6 +117,27 @@ export type ApiSchemas = {
     "task_forms": Array<ApiSchemas["AssessmentTaskFormDraft"]>
     "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
   }
+  "AssessmentDefinitionDraftUpdate": {
+    "access_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "bloom_process": ApiSchemas["BloomProcess"]
+    "claim": string
+    "contradicting_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "criteria": Array<ApiSchemas["AssessmentCriterionDraft"]>
+    "evidence_sufficiency": (Record<string, unknown>) | (Array<unknown>)
+    "expected_version": number
+    "formal_result_eligible": boolean
+    "instructional_support": (Record<string, unknown>) | (Array<unknown>)
+    "insufficient_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "knowledge_dimension": ApiSchemas["BloomKnowledge"]
+    "next_action_contract": (Record<string, unknown>) | (Array<unknown>)
+    "pass_rule_expression": Record<string, unknown>
+    "permitted_tools": (Record<string, unknown>) | (Array<unknown>)
+    "purpose": ApiSchemas["AssessmentPurpose"]
+    "supporting_evidence": (Record<string, unknown>) | (Array<unknown>)
+    "task_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "task_forms": Array<ApiSchemas["AssessmentTaskFormDraft"]>
+    "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
+  }
   "AssessmentDefinitionRead": {
     "access_conditions": (Record<string, unknown>) | (Array<unknown>)
     "approval_state": ApiSchemas["AssessmentApprovalState"]
@@ -150,12 +171,13 @@ export type ApiSchemas = {
   }
   "AssessmentEvaluationRead": {
     "decision_id": string
-    "reason_code": string
+    "reason_code": ApiSchemas["AssessmentReasonCode"]
     "replayed": boolean
     "result": ApiSchemas["AssessmentResult"]
     "result_state": ApiSchemas["ResultState"]
   }
   "AssessmentPurpose": "DIAGNOSTIC" | "FORMATIVE" | "AS_LEARNING" | "SUMMATIVE" | "RESEARCH"
+  "AssessmentReasonCode": "TARGET_EVIDENCE_MET" | "MISSING_REQUIRED_EVIDENCE" | "CRITERIA_NOT_MET" | "TARGET_BLOOM_ACTION_NOT_SHOWN" | "CRITICAL_CONCEPT_GAP" | "INDEPENDENT_EVIDENCE_NOT_SHOWN" | "TRANSFER_EVIDENCE_NOT_SHOWN" | "UNRESOLVED_EVIDENCE_CONFLICT" | "TASK_UNDER_HUMAN_REVIEW"
   "AssessmentResult": "PASS" | "INCOMPLETE"
   "AssessmentReviewActionCreate": {
     "action": ApiSchemas["AssessorReviewAction"]
@@ -197,7 +219,7 @@ export type ApiSchemas = {
     "result": (ApiSchemas["AssessmentResult"]) | (null)
     "result_state": ApiSchemas["ResultState"]
     "review_revision": number
-    "system_reason": string
+    "system_reason": ApiSchemas["AssessmentReasonCode"]
     "versions": Partial<Record<string, (string) | (number)>>
   }
   "AssessmentReviewHistoryRead": {
@@ -471,7 +493,7 @@ export type ApiSchemas = {
     "course_id": string
     "decided_at"?: (string) | (null)
     "decision_id"?: (string) | (null)
-    "reason_code"?: (string) | (null)
+    "reason_code"?: (ApiSchemas["AssessmentReasonCode"]) | (null)
     "response_version_id": string
     "result"?: (ApiSchemas["AssessmentResult"]) | (null)
     "result_state": ApiSchemas["ResultState"]

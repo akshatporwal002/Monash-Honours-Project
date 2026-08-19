@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.assessment_dependencies import (
@@ -15,6 +15,7 @@ from app.api.assessment_dependencies import (
 from app.db.base import Base
 from app.db.session import create_db_engine, create_session_factory, get_db
 from app.main import create_app
+from app.models.assessment import AssessmentDefinition, OutcomeVersion
 from app.models.lms import PlatformAuditEvent
 from app.models.user import RoleAssignment, User, UserRole
 from app.services.lms import DEMO_PASSWORD, bootstrap_demo
@@ -208,6 +209,52 @@ def test_course_assessor_can_approve_complete_definition(
     assert history.json()[0]["criteria"][0]["stable_key"] == "evidence_to_claim"
     assert history.json()[0]["task_forms"][0]["learning_task_id"]
     assert "expected_answer" not in history.json()[0]
+
+
+def test_educator_can_save_a_versioned_draft_revision(
+    assessment_api_context: tuple[TestClient, Session],
+) -> None:
+    client, session = assessment_api_context
+    _login(client, "educator")
+    course, definition = _draft_definition(client)
+    task_id = definition["task_forms"][0]["learning_task_id"]
+    identity = session.get(AssessmentDefinition, definition["assessment_definition_id"])
+    assert identity is not None
+    outcome_id = identity.learning_outcome_id
+    payload = _definition_payload(str(task_id))
+    payload.update(
+        {
+            "expected_version": definition["version"],
+            "claim": "The learner can analyse revised interference evidence.",
+        }
+    )
+
+    response = client.put(
+        f"/api/v1/assessment/courses/{course['id']}/outcomes/{outcome_id}/definitions/"
+        f"{definition['assessment_definition_id']}",
+        json=payload,
+    )
+
+    assert response.status_code == 200, response.text
+    revised = response.json()
+    assert revised["assessment_definition_id"] == definition["assessment_definition_id"]
+    assert revised["version"] == 2
+    assert revised["claim"] == "The learner can analyse revised interference evidence."
+
+    stale = client.put(
+        f"/api/v1/assessment/courses/{course['id']}/outcomes/{outcome_id}/definitions/"
+        f"{definition['assessment_definition_id']}",
+        json=payload,
+    )
+    assert stale.status_code == 409
+    assert (
+        session.scalar(
+            select(func.count())
+            .select_from(OutcomeVersion)
+            .where(OutcomeVersion.learning_outcome_id == outcome_id)
+        )
+        == 2
+    )
 
 
 def test_student_admin_and_cross_course_users_are_denied(

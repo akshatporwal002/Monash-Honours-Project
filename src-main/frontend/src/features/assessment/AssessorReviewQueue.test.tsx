@@ -18,7 +18,7 @@ const review: ApiSchemas['AssessmentReviewDetailRead'] = {
   decision_id: 'decision-1', course_id: 'course-1', outcome_id: 'outcome-1',
   response_text: 'The learner applied the Hadamard gate and explained superposition.',
   response_conditions: { task_form: 'circuit-v2' }, result: 'INCOMPLETE' as const,
-  result_state: 'PROVISIONAL' as const, system_reason: 'One mandatory criterion is not met.',
+  result_state: 'PROVISIONAL' as const, system_reason: 'CRITERIA_NOT_MET',
   review_revision: 2, quality_review_status: 'APPROVED', versions: { criterion_set: 4, task_form: 2 },
   criteria: [{ criterion_version_id: 'criterion-1', criterion_version: 4, decision: 'NOT_MET',
     reason: 'The explanation does not describe the measured state.', evidence_references: { response_span: '1:24' },
@@ -65,7 +65,7 @@ test('review queue shows evidence before decision controls', async () => {
   expect(screen.getByText('The explanation does not describe the measured state.')).toBeInTheDocument()
   expect(screen.getByText('criterion-2')).toBeInTheDocument()
   expect(screen.getByText('criterion set')).toBeInTheDocument()
-  expect(screen.getByText('One mandatory criterion is not met.')).toBeInTheDocument()
+  expect(screen.getByText('CRITERIA_NOT_MET')).toBeInTheDocument()
   expect(screen.getByText('approved')).toBeInTheDocument()
   expect(screen.getByText(/Evaluator: criterion-engine/)).toBeInTheDocument()
   const actionHeading = screen.getByRole('heading', { name: 'Assessor action' })
@@ -140,6 +140,35 @@ test('revoked assessor cannot reload cached review records', async () => {
   expect(onAccessRevoked).toHaveBeenCalledOnce()
   expect(screen.queryByRole('heading', { name: 'Response and evidence' })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Confirm result' })).not.toBeInTheDocument()
+})
+
+test('access refresh is scoped to the selected course when another assignment remains', async () => {
+  const fetchSpy = installQueueFetch()
+  const onAccessRevoked = vi.fn()
+  const onCheckAccess = vi.fn(async (courseId: string) => courseId === 'course-2')
+  renderQueue({
+    assignments: [
+      ...assignments,
+      {
+        id: 'assignment-2',
+        course_id: 'course-2',
+        role: 'assessor',
+        version: 1,
+        valid_from: '2026-08-16T00:00:00Z',
+        valid_until: null,
+      },
+    ],
+    onCheckAccess,
+    onAccessRevoked,
+  })
+
+  expect(await screen.findByText(
+    'Assessor access has expired. Review action controls were removed.',
+  )).toBeInTheDocument()
+  expect(onCheckAccess).toHaveBeenCalledWith('course-1')
+  expect(onAccessRevoked).toHaveBeenCalledOnce()
+  expect(screen.getByLabelText('Assigned course')).toHaveValue('')
+  expect(fetchSpy).not.toHaveBeenCalled()
 })
 
 test('review queue supports keyboard focus containment and axe checks', async () => {

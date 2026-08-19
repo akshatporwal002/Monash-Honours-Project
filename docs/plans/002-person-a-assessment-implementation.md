@@ -10,8 +10,10 @@ Target branch: `main` at `cc79df39a9fc01eeb56a72804c45330f6fdc3680`
 
 Implementation branch: `arv-person-a-assessment`
 
-Current draft PR scope: the full 20-step Person A workstream. Step 1 is complete. Steps 2 to 20
-remain pending in the same draft PR.
+Current integration scope: the implemented work through Step 14, ending at assessor review.
+Steps 15 to 20 remain a later delivery slice. This branch does not yet provide learner result,
+review request, reassessment, numeric-score removal, final Person B integration, or pilot-readiness
+proof.
 
 ## Outcome
 

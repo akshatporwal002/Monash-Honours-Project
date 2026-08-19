@@ -15,6 +15,17 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+def _refuse_populated_downgrade() -> None:
+    connection = op.get_bind()
+    if (
+        sa.inspect(connection).has_table("role_assignments")
+        and connection.execute(sa.text("SELECT COUNT(*) FROM role_assignments")).scalar_one()
+    ):
+        raise RuntimeError(
+            "cannot downgrade populated role assignment history; restore a verified backup instead"
+        )
+
+
 def upgrade() -> None:
     op.create_table(
         "role_assignments",
@@ -108,6 +119,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    _refuse_populated_downgrade()
     op.drop_index(
         "ix_role_assignments_subject_course_role_active",
         table_name="role_assignments",

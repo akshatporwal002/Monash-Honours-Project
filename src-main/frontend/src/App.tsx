@@ -23,8 +23,10 @@ function defaultScreen(role: UserRole): ScreenId {
   return 'student-dashboard'
 }
 
-function hasActiveAssessorAssignment(user: AuthUser): boolean {
-  return user.role === 'educator' && user.scoped_assignments.some((assignment) => assignment.role === 'assessor')
+function hasActiveAssessorAssignment(user: AuthUser, courseId?: string): boolean {
+  return user.role === 'educator' && user.scoped_assignments.some((assignment) => (
+    assignment.role === 'assessor' && (!courseId || assignment.course_id === courseId)
+  ))
 }
 
 function loginError(error: unknown): string {
@@ -154,9 +156,9 @@ function App() {
     }
   }
 
-  const refreshAssessorAccess = useCallback(async (): Promise<boolean> => {
+  const refreshAssessorAccess = useCallback(async (courseId: string): Promise<boolean> => {
     const refreshedUser = await api.auth.me()
-    const active = hasActiveAssessorAssignment(refreshedUser)
+    const active = hasActiveAssessorAssignment(refreshedUser, courseId)
     setUser(refreshedUser)
     if (!active) {
       setActiveScreen((current) => (current === 'assessor-setup' || current === 'assessor-review')

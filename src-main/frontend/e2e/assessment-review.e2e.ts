@@ -71,7 +71,7 @@ test('assessor reviews frozen evidence and records an action by keyboard', async
   const responseHeading = page.getByRole('heading', { name: 'Response and evidence' })
   await expect(responseHeading).toBeVisible()
   await expect(page.getByText('The response links the observation to the claim.')).toBeVisible()
-  await expect(page.getByText('Every mandatory criterion is met.')).toBeVisible()
+  await expect(page.getByText('TARGET_EVIDENCE_MET')).toBeVisible()
   await expect(page.getByText('The exact response contains the required explanation.')).toBeVisible()
   await expect(page.getByText(/Evaluator: rules\.v1\. Model: model\.v1\. Prompt: prompt\.v1\. Retrieval: retrieval\.v1\./)).toBeVisible()
   await expect(page.getByText('Quality Review:', { exact: true }).locator('..')).toContainText('rejected')

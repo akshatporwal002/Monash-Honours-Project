@@ -380,7 +380,6 @@ class LmsService:
         self.session.add(version)
         self.session.flush()
         self._audit(educator, "assessment.outcome_source_versioned", "outcome_version", version.id)
-        self._commit()
         return version
 
     def update_outcome(

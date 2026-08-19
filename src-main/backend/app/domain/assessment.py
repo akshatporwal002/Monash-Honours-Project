@@ -8,6 +8,37 @@ class AssessmentResult(StrEnum):
     INCOMPLETE = "INCOMPLETE"
 
 
+class AssessmentReasonCode(StrEnum):
+    TARGET_EVIDENCE_MET = "TARGET_EVIDENCE_MET"
+    MISSING_REQUIRED_EVIDENCE = "MISSING_REQUIRED_EVIDENCE"
+    CRITERIA_NOT_MET = "CRITERIA_NOT_MET"
+    TARGET_BLOOM_ACTION_NOT_SHOWN = "TARGET_BLOOM_ACTION_NOT_SHOWN"
+    CRITICAL_CONCEPT_GAP = "CRITICAL_CONCEPT_GAP"
+    INDEPENDENT_EVIDENCE_NOT_SHOWN = "INDEPENDENT_EVIDENCE_NOT_SHOWN"
+    TRANSFER_EVIDENCE_NOT_SHOWN = "TRANSFER_EVIDENCE_NOT_SHOWN"
+    UNRESOLVED_EVIDENCE_CONFLICT = "UNRESOLVED_EVIDENCE_CONFLICT"
+    TASK_UNDER_HUMAN_REVIEW = "TASK_UNDER_HUMAN_REVIEW"
+
+
+def public_assessment_reason_code(value: str | AssessmentReasonCode) -> AssessmentReasonCode:
+    """Map stored pre-contract codes without exposing a new public reason."""
+
+    legacy = {
+        "CONFLICTING_CRITERION_EVIDENCE": AssessmentReasonCode.UNRESOLVED_EVIDENCE_CONFLICT,
+        "REQUIRED_CRITERION_EVIDENCE_MISSING": (AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE),
+        "CRITERION_NOT_EVALUABLE": AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE,
+        "CRITERION_EVIDENCE_NOT_MET": AssessmentReasonCode.CRITERIA_NOT_MET,
+        "PASS_RULE_NOT_MET": AssessmentReasonCode.CRITERIA_NOT_MET,
+    }
+    try:
+        return AssessmentReasonCode(value)
+    except ValueError:
+        mapped = legacy.get(str(value))
+        if mapped is None:
+            raise ValueError("unknown assessment reason code") from None
+        return mapped
+
+
 class ResultState(StrEnum):
     NOT_ASSESSED = "NOT_ASSESSED"
     PROVISIONAL = "PROVISIONAL"
@@ -91,6 +122,7 @@ class MisconceptionState(StrEnum):
 __all__ = [
     "AssessmentPurpose",
     "AssessmentAttemptState",
+    "AssessmentReasonCode",
     "AssessmentResult",
     "AppealOrCorrectionState",
     "AssessorReviewAction",
@@ -101,4 +133,5 @@ __all__ = [
     "QualityReviewDecision",
     "ResultState",
     "SubmissionState",
+    "public_assessment_reason_code",
 ]

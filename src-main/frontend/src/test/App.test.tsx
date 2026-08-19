@@ -141,10 +141,49 @@ test('assessor navigation follows active server assignments', async () => {
   expect(screen.queryByRole('button', { name: 'Approve and publish' })).not.toBeInTheDocument()
 })
 
+test('selected course revocation closes the workspace when another assignment remains', async () => {
+  let accessRefreshes = 0
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.endsWith('/auth/me')) {
+      accessRefreshes += 1
+      const assignments = accessRefreshes === 1
+        ? [
+          { id: 'assignment-1', course_id: 'course-1', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null },
+          { id: 'assignment-2', course_id: 'course-2', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null },
+        ]
+        : [
+          { id: 'assignment-2', course_id: 'course-2', role: 'assessor', version: 1, valid_from: '2026-08-16T00:00:00Z', valid_until: null },
+        ]
+      return response({
+        id: 2,
+        email: 'educator@example.edu',
+        full_name: 'Avery Educator',
+        role: 'educator',
+        scoped_assignments: assignments,
+      })
+    }
+    if (url.endsWith('/educator/dashboard')) return response(educatorDashboard)
+    if (url.endsWith('/educator/students')) return response([])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+
+  render(<App />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Assessment setup' }))
+  expect(await screen.findByRole('heading', { name: 'Assessment setup' })).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: 'Check assessor access' }))
+
+  expect(await screen.findByRole('heading', { name: 'Learning pulse' })).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Assessment setup' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Assessment setup' })).toBeInTheDocument()
+})
+
 test('assessment review loads its access check and queue once after navigation', async () => {
   const reviewRecord = {
     decision_id: 'decision-1', course_id: 'course-1', outcome_id: 'outcome-1', response_text: 'A response.',
-    response_conditions: {}, result: 'INCOMPLETE', result_state: 'PROVISIONAL', system_reason: 'Evidence is incomplete.',
+    response_conditions: {}, result: 'INCOMPLETE', result_state: 'PROVISIONAL', system_reason: 'MISSING_REQUIRED_EVIDENCE',
     review_revision: 0, quality_review_status: 'APPROVED', versions: {}, criteria: [],
     missing_criterion_version_ids: [], history: [], created_at: '2026-08-16T00:00:00Z',
   }

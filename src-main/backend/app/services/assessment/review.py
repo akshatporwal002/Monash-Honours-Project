@@ -7,16 +7,18 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Callable
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.domain.assessment import (
     AssessmentAttemptState,
+    AssessmentReasonCode,
     AssessmentResult,
     AssessorReviewAction,
     CriterionDecision,
     ResultState,
+    public_assessment_reason_code,
 )
 from app.models.assessment import (
     AssessmentAttempt,
@@ -95,7 +97,7 @@ class AssessmentReviewDetail:
     response_conditions: dict[str, Any] | list[Any]
     result: AssessmentResult | None
     result_state: ResultState
-    system_reason: str
+    system_reason: AssessmentReasonCode
     review_revision: int
     quality_review_status: str
     versions: dict[str, str | int]
@@ -153,40 +155,55 @@ class AssessmentReviewService:
         if filters.review_flag not in allowed_flags:
             raise AssessmentReviewValidationError("review flag is invalid")
 
-        decisions = self.session.scalars(
-            select(AssessmentDecision)
-            .join(AssessmentAttempt)
-            .where(AssessmentAttempt.course_id == filters.course_id)
-            .order_by(AssessmentDecision.created_at, AssessmentDecision.id)
-        ).all()
         minimum_created_at = (
             self._utc(self._now()) - timedelta(hours=filters.minimum_age_hours)
             if filters.minimum_age_hours is not None
             else None
         )
-        records: list[AssessmentReviewDetail] = []
-        for decision in decisions:
-            detail = self._detail(decision)
-            if filters.outcome_id is not None and detail.outcome_id != filters.outcome_id:
-                continue
-            if filters.result is not None and detail.result is not filters.result:
-                continue
-            if filters.result_state is not None and detail.result_state is not filters.result_state:
-                continue
-            if minimum_created_at is not None and self._utc(detail.created_at) > minimum_created_at:
-                continue
-            if (
-                filters.review_flag == "QUALITY_REJECTED"
-                and detail.quality_review_status != "REJECTED"
-            ):
-                continue
-            if (
-                filters.review_flag == "QUALITY_UNAVAILABLE"
-                and detail.quality_review_status != "UNAVAILABLE"
-            ):
-                continue
-            records.append(detail)
-        return tuple(records)
+        query = (
+            select(AssessmentDecision)
+            .join(AssessmentAttempt)
+            .where(AssessmentAttempt.course_id == filters.course_id)
+        )
+        if filters.outcome_id is not None:
+            query = (
+                query.join(
+                    AssessmentDefinitionVersion,
+                    AssessmentDefinitionVersion.id
+                    == AssessmentAttempt.assessment_definition_version_id,
+                )
+                .join(
+                    OutcomeVersion,
+                    OutcomeVersion.id == AssessmentDefinitionVersion.outcome_version_id,
+                )
+                .where(OutcomeVersion.learning_outcome_id == filters.outcome_id)
+            )
+        if filters.result is not None:
+            query = query.where(AssessmentDecision.result == filters.result)
+        if filters.result_state is not None:
+            query = query.where(AssessmentDecision.result_state == filters.result_state)
+        if minimum_created_at is not None:
+            query = query.where(AssessmentDecision.created_at <= minimum_created_at)
+        if filters.review_flag is not None:
+            quality_status = (
+                "REJECTED" if filters.review_flag == "QUALITY_REJECTED" else "UNAVAILABLE"
+            )
+            quality_event = PlatformAuditEvent.__table__.alias("quality_event_filter")
+            query = query.where(
+                exists(
+                    select(1).where(
+                        quality_event.c.action == "assessment_evaluation.provisional",
+                        quality_event.c.resource_type == "assessment_attempt",
+                        quality_event.c.resource_id == AssessmentAttempt.id,
+                        quality_event.c.details["quality_review_status"].as_string()
+                        == quality_status,
+                    )
+                )
+            )
+        decisions = self.session.scalars(
+            query.order_by(AssessmentDecision.created_at, AssessmentDecision.id)
+        ).all()
+        return self._details(decisions)
 
     def get_detail(self, actor: User, *, decision_id: str) -> AssessmentReviewDetail:
         decision = self._visible_decision(actor, decision_id)
@@ -264,101 +281,208 @@ class AssessmentReviewService:
         return decision
 
     def _detail(self, decision: AssessmentDecision) -> AssessmentReviewDetail:
-        attempt = self.session.get(AssessmentAttempt, decision.assessment_attempt_id)
-        assert attempt is not None
-        response = self.session.get(SubmissionAttempt, attempt.response_version_id)
-        definition = self.session.get(
-            AssessmentDefinitionVersion, attempt.assessment_definition_version_id
-        )
-        bloom = self.session.get(BloomTargetVersion, attempt.bloom_target_version_id)
-        rule = self.session.get(PassRuleVersion, attempt.pass_rule_version_id)
-        form = self.session.get(TaskFormVersion, attempt.task_form_version_id)
-        assert response is not None and definition is not None and bloom is not None
-        assert rule is not None and form is not None
-        outcome = self.session.get(OutcomeVersion, definition.outcome_version_id)
-        assert outcome is not None
-        evaluations = self.session.scalars(
-            select(CriterionEvaluation)
-            .where(CriterionEvaluation.assessment_attempt_id == attempt.id)
-            .order_by(CriterionEvaluation.criterion_version_id)
-        ).all()
-        criteria: list[CriterionReviewDetail] = []
-        missing: list[str] = []
-        for evaluation in evaluations:
-            criterion = self.session.get(CriterionVersion, evaluation.criterion_version_id)
-            assert criterion is not None
-            if evaluation.decision is CriterionDecision.NOT_EVALUABLE:
-                missing.append(criterion.id)
-            criteria.append(
-                CriterionReviewDetail(
-                    criterion_version_id=criterion.id,
-                    criterion_version=criterion.version,
-                    decision=evaluation.decision,
-                    reason=evaluation.reason,
-                    evidence_references=evaluation.evidence_references,
-                    evaluator_reference=evaluation.evaluator_reference,
-                    model_version=evaluation.model_version,
-                    prompt_version=evaluation.prompt_version,
-                    retrieval_version=evaluation.retrieval_version,
+        return self._details((decision,))[0]
+
+    def _details(
+        self, decisions: list[AssessmentDecision] | tuple[AssessmentDecision, ...]
+    ) -> tuple[AssessmentReviewDetail, ...]:
+        if not decisions:
+            return ()
+
+        attempt_ids = {decision.assessment_attempt_id for decision in decisions}
+        attempts = {
+            attempt.id: attempt
+            for attempt in self.session.scalars(
+                select(AssessmentAttempt).where(AssessmentAttempt.id.in_(attempt_ids))
+            )
+        }
+        responses = {
+            response.id: response
+            for response in self.session.scalars(
+                select(SubmissionAttempt).where(
+                    SubmissionAttempt.id.in_(
+                        attempt.response_version_id for attempt in attempts.values()
+                    )
                 )
             )
-        reviews = self._reviews(decision.id)
-        history = tuple(
-            AssessorReviewHistory(
-                id=review.id,
-                review_revision=review.review_revision,
-                assessor_user_id=review.assessor_user_id,
-                action=review.action,
-                prior_result=review.prior_result,
-                new_result=review.new_result,
-                reason=review.reason,
-                reviewed_at=review.reviewed_at,
+        }
+        definitions = {
+            definition.id: definition
+            for definition in self.session.scalars(
+                select(AssessmentDefinitionVersion).where(
+                    AssessmentDefinitionVersion.id.in_(
+                        attempt.assessment_definition_version_id for attempt in attempts.values()
+                    )
+                )
             )
-            for review in reviews
-        )
-        return AssessmentReviewDetail(
-            decision_id=decision.id,
-            course_id=attempt.course_id,
-            outcome_id=outcome.learning_outcome_id,
-            response_text=response.answer,
-            response_conditions=response.declared_conditions,
-            result=decision.result,
-            result_state=decision.result_state,
-            system_reason=decision.system_reason,
-            review_revision=reviews[-1].review_revision if reviews else 0,
-            quality_review_status=self._quality_status(attempt.id),
-            versions={
-                "assessment_definition_id": definition.assessment_definition_id,
-                "assessment_definition_version": definition.version,
-                "outcome_id": outcome.learning_outcome_id,
-                "outcome_version": outcome.version,
-                "bloom_target_id": bloom.bloom_target_id,
-                "bloom_target_version": bloom.version,
-                "pass_rule_id": rule.pass_rule_id,
-                "pass_rule_version": rule.version,
-                "task_form_id": form.id,
-                "task_form_version": form.version,
-                "response_version_id": response.id,
-            },
-            criteria=tuple(criteria),
-            missing_criterion_version_ids=tuple(missing),
-            history=history,
-            created_at=decision.created_at,
-        )
+        }
+        blooms = {
+            bloom.id: bloom
+            for bloom in self.session.scalars(
+                select(BloomTargetVersion).where(
+                    BloomTargetVersion.id.in_(
+                        attempt.bloom_target_version_id for attempt in attempts.values()
+                    )
+                )
+            )
+        }
+        rules = {
+            rule.id: rule
+            for rule in self.session.scalars(
+                select(PassRuleVersion).where(
+                    PassRuleVersion.id.in_(
+                        attempt.pass_rule_version_id for attempt in attempts.values()
+                    )
+                )
+            )
+        }
+        forms = {
+            form.id: form
+            for form in self.session.scalars(
+                select(TaskFormVersion).where(
+                    TaskFormVersion.id.in_(
+                        attempt.task_form_version_id for attempt in attempts.values()
+                    )
+                )
+            )
+        }
+        outcomes = {
+            outcome.id: outcome
+            for outcome in self.session.scalars(
+                select(OutcomeVersion).where(
+                    OutcomeVersion.id.in_(
+                        definition.outcome_version_id for definition in definitions.values()
+                    )
+                )
+            )
+        }
 
-    def _quality_status(self, assessment_attempt_id: str) -> str:
-        event = self.session.scalar(
+        evaluations_by_attempt: dict[str, list[CriterionEvaluation]] = {}
+        evaluations = self.session.scalars(
+            select(CriterionEvaluation)
+            .where(CriterionEvaluation.assessment_attempt_id.in_(attempt_ids))
+            .order_by(
+                CriterionEvaluation.assessment_attempt_id,
+                CriterionEvaluation.criterion_version_id,
+            )
+        ).all()
+        for evaluation in evaluations:
+            evaluations_by_attempt.setdefault(evaluation.assessment_attempt_id, []).append(
+                evaluation
+            )
+        criteria = {
+            criterion.id: criterion
+            for criterion in self.session.scalars(
+                select(CriterionVersion).where(
+                    CriterionVersion.id.in_(
+                        evaluation.criterion_version_id for evaluation in evaluations
+                    )
+                )
+            )
+        }
+
+        decision_ids = {decision.id for decision in decisions}
+        reviews_by_decision: dict[str, list[AssessorReview]] = {}
+        for review in self.session.scalars(
+            select(AssessorReview)
+            .where(AssessorReview.assessment_decision_id.in_(decision_ids))
+            .order_by(AssessorReview.assessment_decision_id, AssessorReview.review_revision)
+        ):
+            reviews_by_decision.setdefault(review.assessment_decision_id, []).append(review)
+        quality_by_attempt: dict[str, str] = {}
+        for event in self.session.scalars(
             select(PlatformAuditEvent)
             .where(
                 PlatformAuditEvent.action == "assessment_evaluation.provisional",
                 PlatformAuditEvent.resource_type == "assessment_attempt",
-                PlatformAuditEvent.resource_id == assessment_attempt_id,
+                PlatformAuditEvent.resource_id.in_(attempt_ids),
             )
             .order_by(PlatformAuditEvent.occurred_at.desc(), PlatformAuditEvent.id.desc())
-        )
-        if event is None:
-            return "NOT_RECORDED"
-        return str(event.details.get("quality_review_status", "NOT_RECORDED"))
+        ):
+            quality_by_attempt.setdefault(
+                event.resource_id,
+                str(event.details.get("quality_review_status", "NOT_RECORDED")),
+            )
+
+        details: list[AssessmentReviewDetail] = []
+        for decision in decisions:
+            attempt = attempts[decision.assessment_attempt_id]
+            response = responses[attempt.response_version_id]
+            definition = definitions[attempt.assessment_definition_version_id]
+            bloom = blooms[attempt.bloom_target_version_id]
+            rule = rules[attempt.pass_rule_version_id]
+            form = forms[attempt.task_form_version_id]
+            outcome = outcomes[definition.outcome_version_id]
+            review_rows = reviews_by_decision.get(decision.id, [])
+            evaluation_rows = evaluations_by_attempt.get(attempt.id, [])
+            criterion_rows = [
+                criteria[evaluation.criterion_version_id] for evaluation in evaluation_rows
+            ]
+            details.append(
+                AssessmentReviewDetail(
+                    decision_id=decision.id,
+                    course_id=attempt.course_id,
+                    outcome_id=outcome.learning_outcome_id,
+                    response_text=response.answer,
+                    response_conditions=response.declared_conditions,
+                    result=decision.result,
+                    result_state=decision.result_state,
+                    system_reason=public_assessment_reason_code(decision.system_reason),
+                    review_revision=(review_rows[-1].review_revision if review_rows else 0),
+                    quality_review_status=quality_by_attempt.get(attempt.id, "NOT_RECORDED"),
+                    versions={
+                        "assessment_definition_id": definition.assessment_definition_id,
+                        "assessment_definition_version": definition.version,
+                        "outcome_id": outcome.learning_outcome_id,
+                        "outcome_version": outcome.version,
+                        "bloom_target_id": bloom.bloom_target_id,
+                        "bloom_target_version": bloom.version,
+                        "pass_rule_id": rule.pass_rule_id,
+                        "pass_rule_version": rule.version,
+                        "task_form_id": form.id,
+                        "task_form_version": form.version,
+                        "response_version_id": response.id,
+                    },
+                    criteria=tuple(
+                        CriterionReviewDetail(
+                            criterion_version_id=criterion.id,
+                            criterion_version=criterion.version,
+                            decision=evaluation.decision,
+                            reason=evaluation.reason,
+                            evidence_references=evaluation.evidence_references,
+                            evaluator_reference=evaluation.evaluator_reference,
+                            model_version=evaluation.model_version,
+                            prompt_version=evaluation.prompt_version,
+                            retrieval_version=evaluation.retrieval_version,
+                        )
+                        for evaluation, criterion in zip(
+                            evaluation_rows, criterion_rows, strict=True
+                        )
+                    ),
+                    missing_criterion_version_ids=tuple(
+                        criterion.id
+                        for evaluation, criterion in zip(
+                            evaluation_rows, criterion_rows, strict=True
+                        )
+                        if evaluation.decision is CriterionDecision.NOT_EVALUABLE
+                    ),
+                    history=tuple(
+                        AssessorReviewHistory(
+                            id=review.id,
+                            review_revision=review.review_revision,
+                            assessor_user_id=review.assessor_user_id,
+                            action=review.action,
+                            prior_result=review.prior_result,
+                            new_result=review.new_result,
+                            reason=review.reason,
+                            reviewed_at=review.reviewed_at,
+                        )
+                        for review in review_rows
+                    ),
+                    created_at=decision.created_at,
+                )
+            )
+        return tuple(details)
 
     def _reviews(self, decision_id: str) -> list[AssessorReview]:
         return list(

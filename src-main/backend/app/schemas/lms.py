@@ -230,6 +230,10 @@ class AssessmentDefinitionDraftCreate(LmsSchema):
     task_forms: list[AssessmentTaskFormDraft]
 
 
+class AssessmentDefinitionDraftUpdate(AssessmentDefinitionDraftCreate):
+    expected_version: Annotated[int, Field(ge=1)]
+
+
 class AssessmentDefinitionApproval(LmsSchema):
     expected_version: Annotated[int, Field(ge=1)]
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2_000)]

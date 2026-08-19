@@ -7,12 +7,18 @@ from alembic.config import Config
 from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from test_assessment_attempt_models import (
-    _attempt_context,
-    _criterion_outside_frozen_rule,
-    _provisional_decision,
+from support.assessment import (
+    build_assessment_attempt as _attempt_context,
 )
-from test_assessment_models import _blueprint
+from support.assessment import (
+    build_assessment_blueprint as _blueprint,
+)
+from support.assessment import (
+    build_external_criterion as _criterion_outside_frozen_rule,
+)
+from support.assessment import (
+    build_provisional_decision as _provisional_decision,
+)
 
 from app.core.security import hash_password
 from app.domain.assessment import (
@@ -686,7 +692,7 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
                         "evaluation_idempotency_key, result, result_state, evidence_references, "
                         "system_reason, created_at) VALUES ('invalid-decision', :attempt, "
                         "'missing-bloom', :rule, 'invalid-evaluation-key', 'PASS', 'PROVISIONAL', "
-                        "'{}', 'Invalid bundle.', CURRENT_TIMESTAMP)"
+                        "'{}', 'TARGET_EVIDENCE_MET', CURRENT_TIMESTAMP)"
                     ),
                     {"attempt": attempt.id, "rule": rule.id},
                 )
@@ -699,7 +705,7 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
             result=AssessmentResult.PASS,
             result_state=ResultState.PROVISIONAL,
             evidence_references={"criterion_evaluations": []},
-            system_reason="All mandatory criteria are met.",
+            system_reason="TARGET_EVIDENCE_MET",
         )
         session.add(decision)
         session.commit()
@@ -957,6 +963,129 @@ def test_assessment_attempt_downgrade_restores_prior_audit_actions(tmp_path: Pat
         assert "feedback_generation_started" in audit_table_sql
     finally:
         engine.dispose()
+
+
+def test_populated_role_assignment_downgrade_is_refused_before_schema_changes(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "populated-role-assignment.db"
+    config = migration_config(f"sqlite:///{database_path.as_posix()}")
+    command.upgrade(config, "20260815_0015")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            owner_id = connection.execute(
+                text(
+                    "INSERT INTO users (email, password_hash, full_name, role, is_active) "
+                    "VALUES ('role-history@example.edu', 'hash', 'Role History', 'educator', 1) "
+                    "RETURNING id"
+                )
+            ).scalar_one()
+            connection.execute(
+                text(
+                    "INSERT INTO courses "
+                    "(id, educator_id, code, title, description, state, enrollment_open, "
+                    "created_at, updated_at) VALUES ('role-history-course', :owner, 'ROL101', "
+                    "'Role history', '', 'draft', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                ),
+                {"owner": owner_id},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO role_assignments "
+                    "(id, subject_user_id, course_id, role, version, assigned_by_user_id, "
+                    "reason, assigned_at, valid_from) VALUES "
+                    "('role-history-1', :owner, 'role-history-course', 'assessor', 1, :owner, "
+                    "'Approved assessor assignment.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                ),
+                {"owner": owner_id},
+            )
+    finally:
+        engine.dispose()
+
+    before = database_manifest(database_path)
+    with pytest.raises(RuntimeError, match="cannot downgrade populated role assignment"):
+        command.downgrade(config, "20260726_0014")
+    assert database_manifest(database_path) == before
+
+
+def test_populated_definition_downgrade_is_refused_before_schema_changes(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "populated-definition.db"
+    config = migration_config(f"sqlite:///{database_path.as_posix()}")
+    command.upgrade(config, "20260815_0016")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    try:
+        with engine.begin() as connection:
+            owner_id = connection.execute(
+                text(
+                    "INSERT INTO users (email, password_hash, full_name, role, is_active) "
+                    "VALUES ('definition-history@example.edu', 'hash', 'Definition History', "
+                    "'educator', 1) RETURNING id"
+                )
+            ).scalar_one()
+            connection.execute(
+                text(
+                    "INSERT INTO courses "
+                    "(id, educator_id, code, title, description, state, enrollment_open, "
+                    "created_at, updated_at) VALUES ('definition-history-course', :owner, "
+                    "'DEF101', 'Definition history', '', 'draft', 1, CURRENT_TIMESTAMP, "
+                    "CURRENT_TIMESTAMP)"
+                ),
+                {"owner": owner_id},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO course_modules "
+                    "(id, course_id, title, description, position, created_at, updated_at) "
+                    "VALUES ('definition-history-module', 'definition-history-course', "
+                    "'Module', '', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                )
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO learning_outcomes "
+                    "(id, module_id, title, statement, kind, week_number, position, created_at, "
+                    "updated_at) VALUES ('definition-history-outcome', "
+                    "'definition-history-module', 'Outcome', 'Statement', 'weekly', 1, 1, "
+                    "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"
+                )
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO assessment_definitions "
+                    "(id, course_id, learning_outcome_id, created_by_user_id, created_at) "
+                    "VALUES ('definition-history-1', 'definition-history-course', "
+                    "'definition-history-outcome', :owner, CURRENT_TIMESTAMP)"
+                ),
+                {"owner": owner_id},
+            )
+    finally:
+        engine.dispose()
+
+    before = database_manifest(database_path)
+    with pytest.raises(RuntimeError, match="cannot downgrade populated assessment definition"):
+        command.downgrade(config, "20260815_0015")
+    assert database_manifest(database_path) == before
+
+
+def test_populated_attempt_downgrade_is_refused_before_schema_changes(tmp_path: Path) -> None:
+    database_path = tmp_path / "populated-attempt.db"
+    config = migration_config(f"sqlite:///{database_path.as_posix()}")
+    command.upgrade(config, "20260815_0017")
+    engine = create_engine(f"sqlite:///{database_path.as_posix()}")
+    session = Session(engine)
+    try:
+        _attempt_context(session)
+    finally:
+        session.close()
+        engine.dispose()
+
+    before = database_manifest(database_path)
+    with pytest.raises(RuntimeError, match="cannot downgrade populated assessment attempt"):
+        command.downgrade(config, "20260815_0016")
+    assert database_manifest(database_path) == before
 
 
 def test_assessment_migration_upgrades_clean_and_legacy_databases(tmp_path: Path) -> None:

@@ -109,7 +109,7 @@ export function FeedbackPanel({
               ? Math.max(1, pollIntervalMs)
               : Math.max(MIN_SERVER_RETRY_DELAY_MS, result.retryAfterMs)
           await wait(Math.min(requestedDelay, remainingMs), controller.signal)
-          if (performance.now() >= deadline) {
+          if (requestedDelay >= remainingMs || performance.now() >= deadline) {
             setRequestError('polling_timeout')
             return
           }

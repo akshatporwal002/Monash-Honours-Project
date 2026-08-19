@@ -13,10 +13,12 @@ from sqlalchemy.orm import Session
 
 from app.domain.assessment import (
     AssessmentAttemptState,
+    AssessmentReasonCode,
     AssessmentResult,
     BloomProcess,
     QualityReviewDecision,
     ResultState,
+    public_assessment_reason_code,
 )
 from app.models.assessment import (
     AssessmentApprovalState,
@@ -80,7 +82,7 @@ class QualityReviewPort(Protocol):
         self,
         *,
         assessment: AssessmentVersionReference,
-        reason_code: str,
+        reason_code: AssessmentReasonCode,
         evidence: tuple[EvidenceReference, ...],
     ) -> QualityReviewDecision | None:
         """Return the separate quality namespace, or None when review is unavailable."""
@@ -105,7 +107,7 @@ class AssessmentEvaluationResult:
     decision_id: str
     result: AssessmentResult
     result_state: ResultState
-    reason_code: str
+    reason_code: AssessmentReasonCode
     replayed: bool
 
 
@@ -243,7 +245,7 @@ class AssessmentEvaluationService:
                     for criterion, outcome in zip(bundle.criteria, outcomes, strict=True)
                 ]
             },
-            system_reason=rule.reason_code,
+            system_reason=rule.reason_code.value,
         )
         self.session.add(decision)
         attempt.state = AssessmentAttemptState.EVALUATED
@@ -252,7 +254,7 @@ class AssessmentEvaluationService:
             attempt,
             {
                 "result": rule.result.value,
-                "reason_code": rule.reason_code,
+                "reason_code": rule.reason_code.value,
                 "quality_review_status": quality_status,
                 "criterion_count": len(outcomes),
             },
@@ -386,7 +388,7 @@ class AssessmentEvaluationService:
     def _quality_status(
         self,
         reference: AssessmentVersionReference,
-        reason_code: str,
+        reason_code: AssessmentReasonCode,
         outcomes: Iterable[EvaluatorOutcome],
     ) -> str:
         evidence = tuple(reference for outcome in outcomes for reference in outcome.evidence)
@@ -443,7 +445,7 @@ class AssessmentEvaluationService:
             decision_id=decision.id,
             result=decision.result,
             result_state=decision.result_state,
-            reason_code=decision.system_reason,
+            reason_code=public_assessment_reason_code(decision.system_reason),
             replayed=replayed,
         )
 

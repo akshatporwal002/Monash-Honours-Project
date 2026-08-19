@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from test_assessment_models import _blueprint
+from support.assessment import build_assessment_blueprint as _blueprint
 
 from app.core.security import hash_password
 from app.domain.assessment import AssessmentAttemptState, AssessmentPurpose

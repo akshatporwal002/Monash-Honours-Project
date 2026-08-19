@@ -64,6 +64,35 @@ EVALUATOR_TYPE = sa.Enum(
     create_constraint=True,
 )
 
+_PROTECTED_DOWNGRADE_TABLES = (
+    "task_approvals",
+    "task_form_versions",
+    "task_forms",
+    "pass_rule_versions",
+    "pass_rules",
+    "criterion_versions",
+    "criteria",
+    "bloom_target_versions",
+    "bloom_targets",
+    "assessment_definition_versions",
+    "outcome_versions",
+    "assessment_definitions",
+)
+
+
+def _refuse_populated_downgrade() -> None:
+    connection = op.get_bind()
+    inspector = sa.inspect(connection)
+    for table in _PROTECTED_DOWNGRADE_TABLES:
+        if (
+            inspector.has_table(table)
+            and connection.execute(sa.text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
+        ):
+            raise RuntimeError(
+                "cannot downgrade populated assessment definition history; "
+                "restore a verified backup instead"
+            )
+
 
 def _approval_columns() -> list[sa.Column[object]]:
     return [
@@ -708,6 +737,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    _refuse_populated_downgrade()
     for table in (
         "task_approvals",
         "task_form_versions",

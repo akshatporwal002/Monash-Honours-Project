@@ -835,6 +835,206 @@
         "title": "AssessmentDefinitionDraftCreate",
         "type": "object"
       },
+      "AssessmentDefinitionDraftUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "access_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Access Conditions"
+          },
+          "bloom_process": {
+            "$ref": "#/components/schemas/BloomProcess"
+          },
+          "claim": {
+            "minLength": 1,
+            "title": "Claim",
+            "type": "string"
+          },
+          "contradicting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Contradicting Evidence"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentCriterionDraft"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "evidence_sufficiency": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Evidence Sufficiency"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "formal_result_eligible": {
+            "title": "Formal Result Eligible",
+            "type": "boolean"
+          },
+          "instructional_support": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Instructional Support"
+          },
+          "insufficient_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Insufficient Evidence"
+          },
+          "knowledge_dimension": {
+            "$ref": "#/components/schemas/BloomKnowledge"
+          },
+          "next_action_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Next Action Contract"
+          },
+          "pass_rule_expression": {
+            "additionalProperties": true,
+            "title": "Pass Rule Expression",
+            "type": "object"
+          },
+          "permitted_tools": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Permitted Tools"
+          },
+          "purpose": {
+            "$ref": "#/components/schemas/AssessmentPurpose"
+          },
+          "supporting_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Supporting Evidence"
+          },
+          "task_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Task Conditions"
+          },
+          "task_forms": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentTaskFormDraft"
+            },
+            "title": "Task Forms",
+            "type": "array"
+          },
+          "transfer_rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Transfer Rule"
+          }
+        },
+        "required": [
+          "claim",
+          "supporting_evidence",
+          "contradicting_evidence",
+          "insufficient_evidence",
+          "task_conditions",
+          "next_action_contract",
+          "purpose",
+          "permitted_tools",
+          "instructional_support",
+          "access_conditions",
+          "transfer_rule",
+          "evidence_sufficiency",
+          "formal_result_eligible",
+          "bloom_process",
+          "knowledge_dimension",
+          "criteria",
+          "pass_rule_expression",
+          "task_forms",
+          "expected_version"
+        ],
+        "title": "AssessmentDefinitionDraftUpdate",
+        "type": "object"
+      },
       "AssessmentDefinitionRead": {
         "additionalProperties": false,
         "properties": {
@@ -1112,8 +1312,7 @@
             "type": "string"
           },
           "reason_code": {
-            "title": "Reason Code",
-            "type": "string"
+            "$ref": "#/components/schemas/AssessmentReasonCode"
           },
           "replayed": {
             "title": "Replayed",
@@ -1145,6 +1344,21 @@
           "RESEARCH"
         ],
         "title": "AssessmentPurpose",
+        "type": "string"
+      },
+      "AssessmentReasonCode": {
+        "enum": [
+          "TARGET_EVIDENCE_MET",
+          "MISSING_REQUIRED_EVIDENCE",
+          "CRITERIA_NOT_MET",
+          "TARGET_BLOOM_ACTION_NOT_SHOWN",
+          "CRITICAL_CONCEPT_GAP",
+          "INDEPENDENT_EVIDENCE_NOT_SHOWN",
+          "TRANSFER_EVIDENCE_NOT_SHOWN",
+          "UNRESOLVED_EVIDENCE_CONFLICT",
+          "TASK_UNDER_HUMAN_REVIEW"
+        ],
+        "title": "AssessmentReasonCode",
         "type": "string"
       },
       "AssessmentResult": {
@@ -1402,8 +1616,7 @@
             "type": "integer"
           },
           "system_reason": {
-            "title": "System Reason",
-            "type": "string"
+            "$ref": "#/components/schemas/AssessmentReasonCode"
           },
           "versions": {
             "additionalProperties": {
@@ -3193,17 +3406,13 @@
           "reason_code": {
             "anyOf": [
               {
-                "maxLength": 100,
-                "minLength": 1,
-                "pattern": "^[A-Z][A-Z0-9_]*$",
-                "type": "string"
+                "$ref": "#/components/schemas/AssessmentReasonCode"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null,
-            "title": "Reason Code"
+            "default": null
           },
           "response_version_id": {
             "maxLength": 255,
@@ -7884,6 +8093,92 @@
           }
         },
         "summary": "Create Assessment Definition Draft",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/outcomes/{outcome_id}/definitions/{assessment_definition_id}": {
+      "put": {
+        "operationId": "update_assessment_definition_draft_api_v1_assessment_courses__course_id__outcomes__outcome_id__definitions__assessment_definition_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "assessment_definition_id",
+            "required": true,
+            "schema": {
+              "title": "Assessment Definition Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentDefinitionDraftUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDefinitionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Assessment Definition Draft",
         "tags": [
           "assessment"
         ]

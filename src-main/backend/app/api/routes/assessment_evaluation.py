@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies.roles import CurrentStudent
 from app.db.session import get_db
-from app.domain.assessment import AssessmentResult, ResultState
+from app.domain.assessment import AssessmentReasonCode, AssessmentResult, ResultState
 from app.services.assessment.evaluation import (
     AssessmentEvaluationConflictError,
     AssessmentEvaluationFaultError,
@@ -33,7 +33,7 @@ class AssessmentEvaluationRead(BaseModel):
     decision_id: str
     result: AssessmentResult
     result_state: ResultState
-    reason_code: str
+    reason_code: AssessmentReasonCode
     replayed: bool
 
 

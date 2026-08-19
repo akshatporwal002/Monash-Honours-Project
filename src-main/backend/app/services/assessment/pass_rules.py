@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
-from app.domain.assessment import AssessmentResult, CriterionDecision
+from app.domain.assessment import AssessmentReasonCode, AssessmentResult, CriterionDecision
 
 MAX_RULE_DEPTH = 16
 MAX_RULE_NODES = 64
@@ -39,7 +39,7 @@ class PassRuleEvaluation:
     """A binary result plus stable evidence categories for review and feedback."""
 
     result: AssessmentResult
-    reason_code: str
+    reason_code: AssessmentReasonCode
     met_criterion_version_ids: tuple[str, ...]
     not_met_criterion_version_ids: tuple[str, ...]
     missing_criterion_version_ids: tuple[str, ...]
@@ -212,15 +212,11 @@ def _evaluate_expression(
     raise AssertionError("parsed pass-rule operator was not recognised")
 
 
-def _reason_code(result: AssessmentResult, summary: _DecisionSummary) -> str:
+def _reason_code(result: AssessmentResult, summary: _DecisionSummary) -> AssessmentReasonCode:
     if result is AssessmentResult.PASS:
-        return "TARGET_EVIDENCE_MET"
+        return AssessmentReasonCode.TARGET_EVIDENCE_MET
     if summary.conflicting:
-        return "CONFLICTING_CRITERION_EVIDENCE"
-    if summary.missing:
-        return "REQUIRED_CRITERION_EVIDENCE_MISSING"
-    if summary.not_evaluable:
-        return "CRITERION_NOT_EVALUABLE"
-    if summary.not_met:
-        return "CRITERION_EVIDENCE_NOT_MET"
-    return "PASS_RULE_NOT_MET"
+        return AssessmentReasonCode.UNRESOLVED_EVIDENCE_CONFLICT
+    if summary.missing or summary.not_evaluable:
+        return AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE
+    return AssessmentReasonCode.CRITERIA_NOT_MET

@@ -16,6 +16,44 @@ down_revision: str | None = "20260815_0016"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+_PROTECTED_DOWNGRADE_TABLES = (
+    "appeals_or_corrections",
+    "reassessment_links",
+    "assessor_reviews",
+    "assessment_decisions",
+    "criterion_evaluations",
+    "assessment_attempts",
+)
+
+
+def _refuse_populated_downgrade() -> None:
+    connection = op.get_bind()
+    inspector = sa.inspect(connection)
+    for table in _PROTECTED_DOWNGRADE_TABLES:
+        if (
+            inspector.has_table(table)
+            and connection.execute(sa.text(f"SELECT COUNT(*) FROM {table}")).scalar_one()
+        ):
+            raise RuntimeError(
+                "cannot downgrade populated assessment attempt history; "
+                "restore a verified backup instead"
+            )
+    if (
+        inspector.has_table("submission_attempts")
+        and connection.execute(
+            sa.text(
+                "SELECT COUNT(*) FROM submission_attempts WHERE score IS NULL "
+                "OR task_form_version_id IS NOT NULL OR response_schema_version IS NOT NULL "
+                "OR content_digest IS NOT NULL OR idempotency_key IS NOT NULL "
+                "OR declared_conditions IS NOT NULL"
+            )
+        ).scalar_one()
+    ):
+        raise RuntimeError(
+            "cannot downgrade populated versioned submission history; "
+            "restore a verified backup instead"
+        )
+
 
 def _enum(name: str, *values: str) -> sa.Enum:
     return sa.Enum(*values, name=name, native_enum=False, create_constraint=True)
@@ -153,6 +191,18 @@ def upgrade() -> None:
         sa.CheckConstraint("length(trim(reason)) > 0", name="criterion_evaluation_reason"),
     )
     result = _enum("assessment_result", "PASS", "INCOMPLETE")
+    reason = _enum(
+        "assessment_reason_code",
+        "TARGET_EVIDENCE_MET",
+        "MISSING_REQUIRED_EVIDENCE",
+        "CRITERIA_NOT_MET",
+        "TARGET_BLOOM_ACTION_NOT_SHOWN",
+        "CRITICAL_CONCEPT_GAP",
+        "INDEPENDENT_EVIDENCE_NOT_SHOWN",
+        "TRANSFER_EVIDENCE_NOT_SHOWN",
+        "UNRESOLVED_EVIDENCE_CONFLICT",
+        "TASK_UNDER_HUMAN_REVIEW",
+    )
     op.create_table(
         "assessment_decisions",
         sa.Column("id", sa.String(length=36), nullable=False),
@@ -174,7 +224,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("evidence_references", sa.JSON(), nullable=False),
-        sa.Column("system_reason", sa.Text(), nullable=False),
+        sa.Column("system_reason", reason, nullable=False),
         sa.Column("assessor_user_id", sa.Integer(), nullable=True),
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
@@ -407,6 +457,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    _refuse_populated_downgrade()
     op.execute("DROP TRIGGER IF EXISTS trg_appeals_or_corrections_lifecycle")
     op.execute("DROP TRIGGER IF EXISTS trg_appeals_or_corrections_scope_update")
     op.execute("DROP TRIGGER IF EXISTS trg_appeals_or_corrections_scope_insert")

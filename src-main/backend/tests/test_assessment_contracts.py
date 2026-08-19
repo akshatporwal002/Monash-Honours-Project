@@ -10,8 +10,10 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
+from app.domain.assessment import public_assessment_reason_code
 from app.schemas.assessment import (
     AccessDeniedEvidenceReference,
+    AssessmentReasonCode,
     AssessmentResult,
     AssessmentVersionReference,
     ConflictingEvidenceReference,
@@ -74,6 +76,7 @@ def assessed_result(**overrides: object) -> FormalResultSummary:
         "decision_id": "decision-1",
         "result": AssessmentResult.PASS,
         "result_state": ResultState.PROVISIONAL,
+        "reason_code": AssessmentReasonCode.TARGET_EVIDENCE_MET,
         "decided_at": datetime(2026, 8, 15, 1, 2, 3, tzinfo=UTC),
     }
     values.update(overrides)
@@ -88,6 +91,29 @@ def test_only_pass_and_incomplete_are_valid_results() -> None:
     for forbidden in ("FAIL", "pass", "incomplete", "NOT_ASSESSED", 1):
         with pytest.raises(ValidationError):
             adapter.validate_python(forbidden)
+
+
+def test_formal_result_reason_codes_match_the_product_contract() -> None:
+    assert [code.value for code in AssessmentReasonCode] == [
+        "TARGET_EVIDENCE_MET",
+        "MISSING_REQUIRED_EVIDENCE",
+        "CRITERIA_NOT_MET",
+        "TARGET_BLOOM_ACTION_NOT_SHOWN",
+        "CRITICAL_CONCEPT_GAP",
+        "INDEPENDENT_EVIDENCE_NOT_SHOWN",
+        "TRANSFER_EVIDENCE_NOT_SHOWN",
+        "UNRESOLVED_EVIDENCE_CONFLICT",
+        "TASK_UNDER_HUMAN_REVIEW",
+    ]
+    with pytest.raises(ValidationError):
+        assessed_result(reason_code="REQUIRED_CRITERION_EVIDENCE_MISSING")
+    with pytest.raises(ValueError, match="unknown assessment reason code"):
+        public_assessment_reason_code("UNKNOWN_REASON")
+
+
+def test_active_assessed_result_requires_a_reason_code() -> None:
+    with pytest.raises(ValidationError, match="require a reason code"):
+        assessed_result(reason_code=None)
 
 
 def test_missing_result_is_distinct_from_incomplete() -> None:
@@ -106,6 +132,29 @@ def test_missing_result_is_distinct_from_incomplete() -> None:
         assessed_result(result_state=ResultState.NOT_ASSESSED)
     with pytest.raises(ValidationError, match="assessed states require"):
         assessed_result(result=None)
+
+
+def test_void_keeps_reviewed_decision_metadata_without_an_active_result() -> None:
+    reviewed_at = datetime(2026, 8, 15, 2, 3, 4, tzinfo=UTC)
+    void = assessed_result(
+        result=None,
+        result_state=ResultState.VOID,
+        reason_code=None,
+        assessor_reviewed_at=reviewed_at,
+    )
+
+    assert void.decision_id == "decision-1"
+    assert void.result is None
+    assert void.reason_code is None
+    assert void.assessor_reviewed_at == reviewed_at
+
+    with pytest.raises(ValidationError, match="active result"):
+        assessed_result(
+            result_state=ResultState.VOID,
+            assessor_reviewed_at=reviewed_at,
+        )
+    with pytest.raises(ValidationError, match="review time"):
+        assessed_result(result=None, result_state=ResultState.VOID, reason_code=None)
 
 
 def test_quality_review_namespace_and_legacy_mapping_are_separate() -> None:

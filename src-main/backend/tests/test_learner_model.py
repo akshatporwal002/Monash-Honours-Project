@@ -265,6 +265,14 @@ def test_conflicting_idempotency_and_out_of_scope_evidence_are_rejected(
             _command(
                 scope,
                 signals,
+                rule_version="learner-rules.v2",
+            )
+        )
+    with pytest.raises(LearnerModelConflictError, match="idempotency"):
+        service.build(
+            _command(
+                scope,
+                signals,
                 snapshot_id="different-snapshot",
             )
         )

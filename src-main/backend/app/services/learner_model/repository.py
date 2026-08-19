@@ -130,7 +130,7 @@ class SqlAlchemyLearnerModelRepository:
                 )
             )
             if existing is not None:
-                if existing.id == snapshot.snapshot_id:
+                if self._is_exact_replay(existing, snapshot, learner_id):
                     return LearnerModelSnapshotWriteResult(
                         snapshot_id=existing.id,
                         created=False,
@@ -205,6 +205,90 @@ class SqlAlchemyLearnerModelRepository:
             raise LearnerModelPersistenceError(
                 "learner-model snapshot could not be stored"
             ) from None
+
+    def _is_exact_replay(
+        self,
+        existing: LearnerModelSnapshotModel,
+        snapshot: LearnerModelSnapshotPayload,
+        learner_id: int,
+    ) -> bool:
+        if (
+            existing.id,
+            existing.course_id,
+            existing.learner_id,
+            existing.outcome_id,
+            existing.prior_snapshot_id,
+            existing.model_source,
+            existing.schema_version,
+            existing.model_version,
+            existing.rule_version,
+            existing.record_version,
+            existing.actor_reference,
+            existing.agent_reference,
+            existing.correlation_id,
+            existing.idempotency_key,
+            _as_utc(existing.occurred_at),
+        ) != (
+            snapshot.snapshot_id,
+            snapshot.course_id,
+            learner_id,
+            snapshot.outcome_id,
+            snapshot.prior_snapshot_id,
+            snapshot.model_source,
+            snapshot.contract_version,
+            snapshot.model_version,
+            snapshot.rule_version,
+            snapshot.record_version,
+            snapshot.actor_reference,
+            snapshot.agent_reference,
+            snapshot.correlation_id,
+            snapshot.idempotency_key,
+            _as_utc(snapshot.occurred_at),
+        ):
+            return False
+
+        estimates = self._session.scalars(
+            select(LearnerOutcomeEstimateModel).where(
+                LearnerOutcomeEstimateModel.snapshot_id == existing.id
+            )
+        ).all()
+        estimate_ids = [estimate.id for estimate in estimates]
+        links = self._session.scalars(
+            select(LearnerModelEvidenceLinkModel).where(
+                LearnerModelEvidenceLinkModel.estimate_id.in_(estimate_ids)
+            )
+        ).all()
+        links_by_estimate: dict[str, set[tuple[str, EvidenceLinkRelation]]] = {}
+        for link in links:
+            links_by_estimate.setdefault(link.estimate_id, set()).add(
+                (link.evidence_id, link.relation)
+            )
+
+        stored = {
+            estimate.id: (
+                estimate.dimension,
+                estimate.inference_status,
+                estimate.uncertainty,
+                estimate.reason_code,
+                _as_utc(estimate.evidence_observed_at),
+                frozenset(links_by_estimate.get(estimate.id, set())),
+            )
+            for estimate in estimates
+        }
+        requested = {
+            estimate.estimate_id: (
+                estimate.dimension,
+                estimate.inference_status,
+                estimate.uncertainty,
+                estimate.reason_code,
+                _as_utc(estimate.evidence_observed_at),
+                frozenset(
+                    (signal.evidence_id, signal.relation) for signal in estimate.evidence_signals
+                ),
+            )
+            for estimate in snapshot.estimates
+        }
+        return stored == requested
 
     def timeline(
         self,

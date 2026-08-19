@@ -406,6 +406,15 @@ export const api = {
       `/assessment/courses/${encodeURIComponent(courseId)}/outcomes/${encodeURIComponent(outcomeId)}/definitions`,
       json('POST', payload),
     ),
+    updateDefinition: (
+      courseId: string,
+      outcomeId: string,
+      assessmentDefinitionId: string,
+      payload: ApiSchemas['AssessmentDefinitionDraftUpdate'],
+    ) => request<ApiSchemas['AssessmentDefinitionRead']>(
+      `/assessment/courses/${encodeURIComponent(courseId)}/outcomes/${encodeURIComponent(outcomeId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}`,
+      json('PUT', payload),
+    ),
     history: (courseId: string, assessmentDefinitionId: string) =>
       request<ApiSchemas['AssessmentDefinitionRead'][]>(
         `/assessment/courses/${encodeURIComponent(courseId)}/definitions/${encodeURIComponent(assessmentDefinitionId)}/history`,

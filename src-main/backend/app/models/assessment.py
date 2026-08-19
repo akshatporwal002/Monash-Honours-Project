@@ -31,6 +31,7 @@ from app.domain.assessment import (
     AppealOrCorrectionState,
     AssessmentAttemptState,
     AssessmentPurpose,
+    AssessmentReasonCode,
     AssessmentResult,
     AssessorReviewAction,
     BloomKnowledge,
@@ -726,7 +727,10 @@ class AssessmentDecision(Base):
         enum_column(ResultState, "assessment_result_state"), nullable=False
     )
     evidence_references: Mapped[dict[str, Any] | list[Any]] = mapped_column(JSON, nullable=False)
-    system_reason: Mapped[str] = mapped_column(Text, nullable=False)
+    system_reason: Mapped[AssessmentReasonCode] = mapped_column(
+        enum_column(AssessmentReasonCode, "assessment_reason_code"),
+        nullable=False,
+    )
     assessor_user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
     )
@@ -1147,8 +1151,7 @@ def _prevent_referenced_criterion_version_delete(
         raise ImmutableAssessmentVersionError("referenced criterion versions cannot be deleted")
 
 
-@event.listens_for(Session, "before_flush")
-def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
+def _validate_pending_pass_rule_scopes(session: Session) -> None:
     for rule_version in session.new.union(session.dirty):
         if not isinstance(rule_version, PassRuleVersion):
             continue
@@ -1178,9 +1181,8 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
                 "pass-rule criterion versions must belong to the same course and definition version"
             )
 
-    from app.models.lms import SubmissionAttempt
 
-    pending = {item.id: item for item in session.new if getattr(item, "id", None) is not None}
+def _assign_pending_review_revisions(session: Session) -> None:
     pending_reviews = [review for review in session.new if isinstance(review, AssessorReview)]
     for decision_id in {review.assessment_decision_id for review in pending_reviews}:
         reviews = [
@@ -1196,6 +1198,10 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
         )
         for offset, review in enumerate(reviews, start=1):
             review.review_revision = current_revision + offset
+
+
+def _validate_pending_attempt_bundles(session: Session, pending: dict[str, object]) -> None:
+    from app.models.lms import SubmissionAttempt
 
     for attempt in session.new.union(session.dirty):
         if not isinstance(attempt, AssessmentAttempt):
@@ -1234,6 +1240,8 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
                 "assessment attempts must reference one exact course-scoped version bundle"
             )
 
+
+def _validate_pending_evaluation_scopes(session: Session, pending: dict[str, object]) -> None:
     for evaluation in session.new.union(session.dirty):
         if not isinstance(evaluation, CriterionEvaluation):
             continue
@@ -1266,6 +1274,8 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
                 "criterion evaluations must use the assessment attempt frozen pass rule"
             )
 
+
+def _validate_pending_decision_bundles(session: Session, pending: dict[str, object]) -> None:
     for decision in session.new.union(session.dirty):
         if not isinstance(decision, AssessmentDecision):
             continue
@@ -1279,6 +1289,8 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
         ):
             raise ValueError("assessment decisions must use the assessment attempt version bundle")
 
+
+def _validate_pending_decision_transitions(session: Session) -> None:
     for decision in session.dirty:
         if not isinstance(decision, AssessmentDecision):
             continue
@@ -1339,6 +1351,8 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
         if matching_review is None:
             raise ValueError("assessment decision transitions require a matching assessor review")
 
+
+def _validate_pending_reassessment_scopes(session: Session, pending: dict[str, object]) -> None:
     for reassessment in session.new.union(session.dirty):
         if not isinstance(reassessment, ReassessmentLink):
             continue
@@ -1368,6 +1382,8 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
         ):
             raise ValueError("reassessment links must connect one learner under one standard")
 
+
+def _validate_pending_appeal_scopes(session: Session, pending: dict[str, object]) -> None:
     for appeal in session.new.union(session.dirty):
         if not isinstance(appeal, AppealOrCorrection):
             continue
@@ -1381,6 +1397,19 @@ def _validate_pass_rule_criterion_scope(session: Session, *_: object) -> None:
             raise ValueError(
                 "appeals and corrections must reference the decision's assessment attempt"
             )
+
+
+@event.listens_for(Session, "before_flush")
+def _validate_pending_assessment_graph(session: Session, *_: object) -> None:
+    pending = {item.id: item for item in session.new if getattr(item, "id", None) is not None}
+    _validate_pending_pass_rule_scopes(session)
+    _assign_pending_review_revisions(session)
+    _validate_pending_attempt_bundles(session, pending)
+    _validate_pending_evaluation_scopes(session, pending)
+    _validate_pending_decision_bundles(session, pending)
+    _validate_pending_decision_transitions(session)
+    _validate_pending_reassessment_scopes(session, pending)
+    _validate_pending_appeal_scopes(session, pending)
 
 
 event.listen(TaskApproval, "before_update", _prevent_approval_mutation)

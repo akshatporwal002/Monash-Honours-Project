@@ -17,6 +17,7 @@ from pydantic import (
 
 from app.domain.assessment import (
     AssessmentPurpose,
+    AssessmentReasonCode,
     AssessmentResult,
     BloomKnowledge,
     BloomProcess,
@@ -188,7 +189,7 @@ class FormalResultSummary(FrozenAssessmentContract):
     decision_id: OpaqueId | None = None
     result: AssessmentResult | None = None
     result_state: ResultState
-    reason_code: ReasonCode | None = None
+    reason_code: AssessmentReasonCode | None = None
     decided_at: datetime | None = None
     assessor_reviewed_at: datetime | None = None
 
@@ -211,8 +212,19 @@ class FormalResultSummary(FrozenAssessmentContract):
                 raise ValueError("NOT_ASSESSED cannot contain an assessor review time")
             return self
 
+        if self.result_state is ResultState.VOID:
+            if self.decision_id is None or self.decided_at is None:
+                raise ValueError("VOID requires a decision and decision time")
+            if self.result is not None or self.reason_code is not None:
+                raise ValueError("VOID cannot contain an active result or reason code")
+            if self.assessor_reviewed_at is None:
+                raise ValueError("reviewed result states require an assessor review time")
+            return self
+
         if self.decision_id is None or self.result is None or self.decided_at is None:
             raise ValueError("assessed states require a decision, result, and decision time")
+        if self.reason_code is None:
+            raise ValueError("active assessed states require a reason code")
 
         reviewed_states = {ResultState.CONFIRMED, ResultState.OVERRIDDEN, ResultState.VOID}
         if self.result_state in reviewed_states and self.assessor_reviewed_at is None:
@@ -238,6 +250,7 @@ def legacy_judge_decision_to_quality_review(
 
 ASSESSMENT_CONTRACT_TYPES: tuple[type[object], ...] = (
     AssessmentResult,
+    AssessmentReasonCode,
     ResultState,
     SubmissionState,
     AssessmentPurpose,
@@ -263,6 +276,7 @@ __all__ = [
     "ASSESSMENT_CONTRACT_TYPES",
     "AccessDeniedEvidenceReference",
     "AssessmentPurpose",
+    "AssessmentReasonCode",
     "AssessmentResult",
     "AssessmentVersionReference",
     "BloomKnowledge",

@@ -21,6 +21,7 @@ from app.api.dependencies.roles import CurrentAdministrator, CurrentEducator, Cu
 from app.api.routes.lms import Lms
 from app.db.session import get_db
 from app.domain.assessment import (
+    AssessmentReasonCode,
     AssessmentResult,
     AssessorReviewAction,
     CriterionDecision,
@@ -29,10 +30,11 @@ from app.domain.assessment import (
 from app.models.assessment import AssessmentDefinitionVersion
 from app.models.user import RoleAssignment, UserRole
 from app.schemas.lms import (
-    AssessmentCriterionRead,
     AssessmentDefinitionApproval,
     AssessmentDefinitionDraftCreate,
+    AssessmentDefinitionDraftUpdate,
     AssessmentDefinitionRead,
+    AssessmentTaskCriterionRead,
     AssessmentTaskFormRead,
     LmsSchema,
     ScopedRoleAssignmentCreate,
@@ -106,7 +108,7 @@ class AssessmentReviewDetailRead(LmsSchema):
     response_conditions: dict[str, Any] | list[Any]
     result: AssessmentResult | None
     result_state: ResultState
-    system_reason: str
+    system_reason: AssessmentReasonCode
     review_revision: int
     quality_review_status: str
     versions: dict[str, str | int]
@@ -200,6 +202,36 @@ def create_assessment_definition_draft(
             draft=_definition_draft(payload, source_version.id),
         )
     except Exception as error:
+        definitions.session.rollback()
+        raise_definition_http_error(error)
+        raise
+    return _definition_read(definition)
+
+
+@router.put(
+    "/courses/{course_id}/outcomes/{outcome_id}/definitions/{assessment_definition_id}",
+    response_model=AssessmentDefinitionRead,
+)
+def update_assessment_definition_draft(
+    course_id: str,
+    outcome_id: str,
+    assessment_definition_id: str,
+    payload: AssessmentDefinitionDraftUpdate,
+    educator: CurrentEducator,
+    lms: Lms,
+    definitions: Definitions,
+) -> AssessmentDefinitionRead:
+    source_version = lms.create_assessment_outcome_version(educator, course_id, outcome_id)
+    try:
+        definition = definitions.update_draft(
+            course_id=course_id,
+            assessment_definition_id=assessment_definition_id,
+            expected_version=payload.expected_version,
+            actor_user_id=educator.id,
+            draft=_definition_draft(payload, source_version.id),
+        )
+    except Exception as error:
+        definitions.session.rollback()
         raise_definition_http_error(error)
         raise
     return _definition_read(definition)
@@ -435,7 +467,7 @@ def _definition_read(version: AssessmentDefinitionVersion) -> AssessmentDefiniti
         transfer_rule=version.transfer_rule,
         evidence_sufficiency=version.evidence_sufficiency,
         criteria=[
-            AssessmentCriterionRead(
+            AssessmentTaskCriterionRead(
                 id=criterion.id,
                 stable_key=criterion.criterion.stable_key,
                 version=criterion.version,

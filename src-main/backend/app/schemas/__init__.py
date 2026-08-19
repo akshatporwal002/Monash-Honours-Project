@@ -8,6 +8,7 @@ _EXPORT_MODULES = {
     "ASSESSMENT_CONTRACT_TYPES": "app.schemas.assessment",
     "AccessDeniedEvidenceReference": "app.schemas.assessment",
     "AssessmentPurpose": "app.schemas.assessment",
+    "AssessmentReasonCode": "app.schemas.assessment",
     "AssessmentResult": "app.schemas.assessment",
     "AssessmentVersionReference": "app.schemas.assessment",
     "AuthenticatedActor": "app.schemas.feedback_api",

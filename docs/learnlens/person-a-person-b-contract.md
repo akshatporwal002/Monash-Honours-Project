@@ -63,6 +63,7 @@ Person B must use these exact symbols and wire values.
 | Backend DTO import path | `app.schemas.assessment` |
 | ORM-free enum import path | `app.domain.assessment` |
 | Learner-result enum | `AssessmentResult`: `PASS`, `INCOMPLETE` |
+| Formal-result reason enum | `AssessmentReasonCode`: the nine stable product reason codes; transport and persistence must not create new public codes |
 | Result lifecycle enum | `ResultState`: `NOT_ASSESSED`, `PROVISIONAL`, `CONFIRMED`, `OVERRIDDEN`, `VOID` |
 | Submission lifecycle enum | `SubmissionState`: `NOT_STARTED`, `DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `RETURNED`, `COMPLETED` |
 | Assessment purpose enum | `AssessmentPurpose`: `DIAGNOSTIC`, `FORMATIVE`, `AS_LEARNING`, `SUMMATIVE`, `RESEARCH` |
@@ -82,7 +83,7 @@ Person B must use these exact symbols and wire values.
 | Evidence integrity | `schema_version`, `record_version`, SHA-256 `content_digest`, source record ID/version, and timezone-aware `occurred_at` |
 | Resolution result | `EvidenceReferenceResolution`: `RESOLVED`, `MISSING`, `STALE`, `CONFLICT`, `ACCESS_DENIED`, `INVALID` |
 | Resolution envelope | Frozen `EvidenceReferenceResolutionEnvelope` with discriminated `resolution` |
-| Formal-result summary | Frozen `FormalResultSummary`; `result=None` is allowed only with `NOT_ASSESSED` |
+| Formal-result summary | Frozen `FormalResultSummary`; `result=None` is allowed with `NOT_ASSESSED` or reviewed `VOID`. A `VOID` record keeps decision timestamps but has no active result or reason code. |
 | Quality Judge compatibility | `legacy_judge_decision_to_quality_review` maps stored `pass` to `APPROVED` and `fail` to `REJECTED` |
 | Frontend generated contract | `ApiSchemas` entries with feature aliases in `features/assessment/types.ts` |
 | Drift checks | `scripts/export_openapi.py --check` and `scripts/generate_frontend_contracts.py --check` |

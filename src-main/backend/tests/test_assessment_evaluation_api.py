@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from test_assessment_attempt_models import _attempt_context
+from support.assessment import build_assessment_attempt as _attempt_context
 
 from app.domain.assessment import (
     AssessmentAttemptState,

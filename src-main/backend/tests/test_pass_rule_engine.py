@@ -6,7 +6,7 @@ import inspect
 
 import pytest
 
-from app.domain.assessment import AssessmentResult, CriterionDecision
+from app.domain.assessment import AssessmentReasonCode, AssessmentResult, CriterionDecision
 from app.services.assessment.pass_rules import (
     MAX_RULE_DEPTH,
     MAX_RULE_NODES,
@@ -49,7 +49,7 @@ def test_all_mandatory_criteria_met_returns_pass() -> None:
     )
 
     assert result.result is AssessmentResult.PASS
-    assert result.reason_code == "TARGET_EVIDENCE_MET"
+    assert result.reason_code is AssessmentReasonCode.TARGET_EVIDENCE_MET
     assert result.met_criterion_version_ids == ("criterion-1", "criterion-2")
 
 
@@ -57,7 +57,7 @@ def test_missing_mandatory_criterion_returns_incomplete() -> None:
     result = PassRuleEngine().evaluate(_request(_outcome("criterion-1", CriterionDecision.MET)))
 
     assert result.result is AssessmentResult.INCOMPLETE
-    assert result.reason_code == "REQUIRED_CRITERION_EVIDENCE_MISSING"
+    assert result.reason_code is AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE
     assert result.missing_criterion_version_ids == ("criterion-2",)
 
 
@@ -188,10 +188,32 @@ def test_not_met_not_evaluable_and_conflicting_criteria_are_listed() -> None:
     )
 
     assert result.result is AssessmentResult.INCOMPLETE
-    assert result.reason_code == "CONFLICTING_CRITERION_EVIDENCE"
+    assert result.reason_code is AssessmentReasonCode.UNRESOLVED_EVIDENCE_CONFLICT
     assert result.not_met_criterion_version_ids == ("criterion-1",)
     assert result.conflicting_criterion_version_ids == ("criterion-1",)
     assert result.not_evaluable_criterion_version_ids == ("criterion-1", "criterion-2")
+
+
+@pytest.mark.parametrize(
+    "decision, expected_reason",
+    (
+        (CriterionDecision.NOT_MET, AssessmentReasonCode.CRITERIA_NOT_MET),
+        (CriterionDecision.NOT_EVALUABLE, AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE),
+    ),
+)
+def test_unmet_criterion_reasons_use_stable_public_codes(
+    decision: CriterionDecision,
+    expected_reason: AssessmentReasonCode,
+) -> None:
+    result = PassRuleEngine().evaluate(
+        _request(
+            _outcome("criterion-1", decision),
+            _outcome("criterion-2", decision),
+        )
+    )
+
+    assert result.result is AssessmentResult.INCOMPLETE
+    assert result.reason_code is expected_reason
 
 
 def test_unapproved_criterion_or_missing_mandatory_rule_leaf_is_rejected() -> None:

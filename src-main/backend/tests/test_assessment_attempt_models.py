@@ -1,9 +1,10 @@
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from test_assessment_models import _blueprint
+from support.assessment import build_assessment_blueprint as _blueprint
 
 from app.core.security import hash_password
 from app.domain.assessment import (
@@ -92,7 +93,7 @@ def _provisional_decision(session: Session, attempt: AssessmentAttempt) -> Asses
         result=AssessmentResult.PASS,
         result_state=ResultState.PROVISIONAL,
         evidence_references={"criterion_evaluations": []},
-        system_reason="Every mandatory criterion is met.",
+        system_reason="TARGET_EVIDENCE_MET",
     )
     session.add(decision)
     session.commit()
@@ -205,11 +206,38 @@ def test_assessment_decision_idempotency_allows_one_record_per_evaluation(
         result=AssessmentResult.PASS,
         result_state=ResultState.PROVISIONAL,
         evidence_references={"criterion_evaluations": []},
-        system_reason="This duplicate evaluation request must not write a second decision.",
+        system_reason="TARGET_EVIDENCE_MET",
     )
     db_session.add(duplicate)
     with pytest.raises(IntegrityError, match="assessment_decisions"):
         db_session.commit()
+
+
+def test_assessment_decision_reason_code_is_database_constrained(db_session: Session) -> None:
+    attempt, _, _, _, _ = _attempt_context(db_session)
+
+    with pytest.raises(IntegrityError, match="assessment_reason_code"):
+        db_session.execute(
+            text(
+                "INSERT INTO assessment_decisions ("
+                "id, assessment_attempt_id, bloom_target_version_id, pass_rule_version_id, "
+                "evaluation_idempotency_key, result, result_state, evidence_references, "
+                "system_reason, assessor_user_id, reviewed_at, prior_result, override_reason, "
+                "created_at) VALUES ("
+                ":id, :attempt_id, :bloom_id, :rule_id, :key, 'PASS', 'PROVISIONAL', '{}', "
+                "'UNKNOWN_REASON', NULL, NULL, NULL, NULL, :created_at)"
+            ),
+            {
+                "id": "invalid-reason-decision",
+                "attempt_id": attempt.id,
+                "bloom_id": attempt.bloom_target_version_id,
+                "rule_id": attempt.pass_rule_version_id,
+                "key": "invalid-reason-key",
+                "created_at": NOW,
+            },
+        )
+        db_session.commit()
+    db_session.rollback()
 
 
 def test_decision_references_exact_response_and_rule_versions(db_session: Session) -> None:
@@ -222,7 +250,7 @@ def test_decision_references_exact_response_and_rule_versions(db_session: Sessio
         result=AssessmentResult.PASS,
         result_state=ResultState.PROVISIONAL,
         evidence_references={"criterion_evaluations": []},
-        system_reason="The version bundle must be exact.",
+        system_reason="TARGET_EVIDENCE_MET",
     )
     db_session.add(invalid_decision)
     with pytest.raises(ValueError, match="assessment attempt version bundle"):

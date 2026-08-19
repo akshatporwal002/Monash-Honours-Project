@@ -74,7 +74,11 @@ class AssessmentSubmissionService:
                     [AssessmentPurpose.DIAGNOSTIC, AssessmentPurpose.FORMATIVE]
                 ),
             )
-            .order_by(TaskFormVersion.created_at.desc(), TaskFormVersion.id.desc())
+            .order_by(
+                TaskFormVersion.version.desc(),
+                TaskFormVersion.created_at.desc(),
+                TaskFormVersion.id.desc(),
+            )
         )
         if form is None:
             return None
