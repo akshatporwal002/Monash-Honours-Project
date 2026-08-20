@@ -1,8 +1,8 @@
 import type { ScopedRoleAssignment } from '../../app/types'
-import { PageHeading } from '../../components/ScreenPrimitives'
+import { Button, PageHeader } from '../../components/ui'
 import { AssessorSetupApproval, AssessorSetupFields } from './AssessorSetupPanels'
 import { useAssessorSetup } from './useAssessorSetup'
-import './assessment.css'
+import styles from './assessment.module.css'
 
 export function AssessorSetup({
   assignments,
@@ -33,44 +33,44 @@ export function AssessorSetup({
   } = setup
 
   return (
-    <div className="screen assessment-setup">
-      <PageHeading
+    <div className={styles.screen}>
+      <PageHeader
         eyebrow="Assessor workspace"
         title="Assessment setup"
         description="Set the approved evidence rules before learners begin an assessed task."
         actions={
-          <button
-            className="button button--secondary"
+          <Button
+            variant="secondary"
             onClick={() => void checkAccess()}
             disabled={busy === 'access'}
           >
             Check assessor access
-          </button>
+          </Button>
         }
       />
-      <p className="assessment-notice" role="note">
+      <p className={styles.notice} role="note">
         <strong>Bloom is not a score.</strong> It names the evidence target. The approved criteria
         decide whether evidence meets the standard.
       </p>
-      {serverError && <p className="form-error" role="alert">{serverError}</p>}
-      {status && <p className="form-status" role="status">{status}</p>}
+      {serverError && <p className={styles.alert} role="alert">{serverError}</p>}
+      {status && <p className={styles.status} role="status">{status}</p>}
       {faults.length > 0 && (
-        <section className="form-error" role="alert" aria-labelledby="assessment-faults">
+        <section className={styles.alert} role="alert" aria-labelledby="assessment-faults">
           <h2 id="assessment-faults">Complete the setup</h2>
           <p>Missing: {faults.join(', ')}.</p>
         </section>
       )}
-      <form onSubmit={saveDraft} noValidate>
+      <form className={styles.form} onSubmit={saveDraft} noValidate>
         <AssessorSetupFields
           values={values}
           assignments={assessorAssignments}
           lockedIdentity={definition !== null || busy === 'save'}
           onUpdate={update}
         />
-        <div className="assessment-actions">
-          <button className="button button--primary" type="submit" disabled={busy === 'save'}>
+        <div className={styles.actions}>
+          <Button variant="primary" type="submit" disabled={busy === 'save'}>
             {busy === 'save' ? 'Saving draft...' : 'Save assessment draft'}
-          </button>
+          </Button>
         </div>
       </form>
       <AssessorSetupApproval

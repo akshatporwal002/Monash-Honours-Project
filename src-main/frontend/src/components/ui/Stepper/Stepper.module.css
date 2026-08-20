@@ -1,0 +1,71 @@
+.stepper {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-round);
+  font-size: var(--text-caption);
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+  background: var(--surface);
+}
+
+.label {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.stepButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1);
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.stepButton:disabled {
+  cursor: default;
+}
+
+/* Certainty grammar: done = solid, current = outlined accent, todo = dashed */
+.done .marker {
+  background: var(--affirm);
+  border-color: var(--affirm);
+  color: var(--surface);
+}
+
+.current .marker {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.current .label {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.todo .marker {
+  border-style: dashed;
+  color: var(--ink-muted);
+}

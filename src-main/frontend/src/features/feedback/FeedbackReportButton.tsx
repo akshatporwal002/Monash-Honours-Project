@@ -3,6 +3,8 @@ import type { FormEvent } from 'react'
 
 import { FeedbackApiError } from './api'
 import type { FeedbackApiClient, FeedbackReportCategory } from './types'
+import { Button } from '../../components/ui'
+import styles from './feedback.module.css'
 
 type FeedbackReportButtonProps = {
   feedbackId: string
@@ -59,15 +61,16 @@ export function FeedbackReportButton({ feedbackId, client }: FeedbackReportButto
   }
 
   return (
-    <div className="feedback-report">
-      <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+    <div className={styles.report}>
+      <Button variant="quiet" size="sm" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
         Report a concern
-      </button>
+      </Button>
       {open && (
-        <form onSubmit={submit} aria-label="Report feedback concern">
-          <label htmlFor={categoryId}>Concern</label>
+        <form onSubmit={submit} aria-label="Report feedback concern" className={styles.reportForm}>
+          <label htmlFor={categoryId} className={styles.reportLabel}>Concern</label>
           <select
             id={categoryId}
+            className={styles.reportSelect}
             value={category}
             onChange={(event) => setCategory(event.target.value as FeedbackReportCategory)}
           >
@@ -77,17 +80,20 @@ export function FeedbackReportButton({ feedbackId, client }: FeedbackReportButto
             <option value="citation_issue">Source or citation issue</option>
             <option value="other">Other concern</option>
           </select>
-          <label htmlFor={noteId}>Additional details (optional)</label>
+          <label htmlFor={noteId} className={styles.reportLabel}>Additional details (optional)</label>
           <textarea
             id={noteId}
+            className={styles.reportTextarea}
             value={note}
             maxLength={2_000}
             onChange={(event) => setNote(event.target.value)}
           />
-          <button type="submit" disabled={status === 'submitting'}>
-            {status === 'submitting' ? 'Sending…' : 'Send report'}
-          </button>
-          {status === 'error' && <p role="alert">{errorMessage}</p>}
+          <div>
+            <Button type="submit" variant="secondary" loading={status === 'submitting'}>
+              Send report
+            </Button>
+          </div>
+          {status === 'error' && <p role="alert" className={styles.alert}>{errorMessage}</p>}
         </form>
       )}
     </div>

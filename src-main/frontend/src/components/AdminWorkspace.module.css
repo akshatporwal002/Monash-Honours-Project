@@ -1,0 +1,274 @@
+.screen {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 72rem;
+}
+
+.loading {
+  color: var(--ink-soft);
+  font-size: var(--text-body);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.metric {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+.metricIcon {
+  display: inline-flex;
+  color: var(--accent);
+  margin-bottom: var(--space-1);
+}
+
+.metricLabel {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.metricValue {
+  font-size: var(--text-h2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.metricDetail {
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.tablePanel {
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  color: var(--ink-muted);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tableTitle {
+  font-size: var(--text-lead);
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-ui);
+}
+
+.table thead th {
+  text-align: left;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  background: var(--surface-sunken);
+  padding: var(--space-2) var(--space-3);
+}
+
+.table tbody th,
+.table tbody td {
+  padding: var(--space-3);
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 400;
+}
+
+.userCell {
+  display: grid;
+}
+
+.userName {
+  font-weight: 600;
+}
+
+.userEmail {
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.inactiveTag {
+  border-style: dashed;
+  color: var(--ink-muted);
+}
+
+.courseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.courseCard {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.courseDescription {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.courseAction {
+  justify-self: start;
+}
+
+.settingsForm {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 44rem;
+}
+
+.settingsSection {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sectionHead {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.sectionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.sectionTitle {
+  font-size: var(--text-h3);
+}
+
+.sectionText {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.settingsWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--attend);
+  border-radius: var(--radius-2);
+  background: var(--attend-wash);
+  color: var(--attend);
+  font-size: var(--text-meta);
+}
+
+.rangeRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.rangeField {
+  flex: 1;
+}
+
+.range {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.rangeValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-ui);
+  min-width: 3rem;
+  padding-bottom: var(--space-1);
+}
+
+.numberField {
+  max-width: 16rem;
+}
+
+.settingsActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.toast {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--affirm);
+  border-radius: var(--radius-2);
+  background: var(--affirm-wash);
+  color: var(--affirm);
+  font-size: var(--text-meta);
+  box-shadow: var(--float);
+  z-index: 10;
+}
+
+.toastError {
+  border-color: var(--fault);
+  background: var(--fault-wash);
+  color: var(--fault);
+}
+
+.dialogForm {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (width <= 980px) {
+  .metrics,
+  .grid,
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

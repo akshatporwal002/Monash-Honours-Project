@@ -1,0 +1,30 @@
+.error {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-6);
+  border: 1px solid var(--fault);
+  border-radius: var(--radius-3);
+  background: var(--fault-wash);
+  text-align: center;
+}
+
+.icon {
+  color: var(--fault);
+}
+
+.title {
+  font-size: var(--text-lead);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.description {
+  font-size: var(--text-body);
+  color: var(--ink-soft);
+  max-width: 44ch;
+}
+
+.action {
+  margin-top: var(--space-2);
+}

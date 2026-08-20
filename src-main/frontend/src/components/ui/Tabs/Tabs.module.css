@@ -1,0 +1,32 @@
+.list {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--line);
+}
+
+.trigger {
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.trigger:hover {
+  color: var(--ink);
+}
+
+.trigger[data-state='active'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.panel {
+  padding-top: var(--space-4);
+  outline: none;
+}

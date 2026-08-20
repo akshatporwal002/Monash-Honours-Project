@@ -1,77 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BarChart3, Trophy, Users } from 'lucide-react'
+
 import { api } from '../app/api'
 import type { EducatorDashboardData } from '../app/types'
-import { Icon, PageHeading, Panel, ScreenState } from './ScreenPrimitives'
-
-function TrendChart({ points }: { points: EducatorDashboardData['engagement'] }) {
-  const maximum = Math.max(1, ...points.flatMap((point) => [point.active_students, point.submissions]))
-  const coordinates = (key: 'active_students' | 'submissions') =>
-    points.map((point, index) => {
-      const x = points.length <= 1 ? 50 : (index / (points.length - 1)) * 100
-      return `${x},${90 - (point[key] / maximum) * 72}`
-    }).join(' ')
-
-  if (points.length === 0) return <div className="inline-empty"><p>No cohort trend data is available for this period.</p></div>
-  return (
-    <figure className="analytics-trend">
-      <figcaption><span><i className="violet" /> Active learners</span><span><i className="cyan" /> Submissions</span></figcaption>
-      <svg viewBox="0 0 100 105" role="img" aria-label="Cohort activity trend">
-        {[18, 36, 54, 72, 90].map((y) => <line key={y} x1="0" y1={y} x2="100" y2={y} className="chart-gridline" />)}
-        <polyline points={coordinates('active_students')} className="chart-line chart-line--violet" />
-        <polyline points={coordinates('submissions')} className="chart-line chart-line--cyan" />
-        {points.map((point, index) => (
-          <text key={point.label} x={points.length <= 1 ? 50 : (index / (points.length - 1)) * 100} y="103" textAnchor="middle">{point.label}</text>
-        ))}
-      </svg>
-    </figure>
-  )
-}
-
-function RadarChart({ values }: { values: NonNullable<EducatorDashboardData['concept_mastery']> }) {
-  const center = 50
-  const radius = 36
-  const pointAt = (index: number, score = 100) => {
-    const angle = -Math.PI / 2 + (index * Math.PI * 2) / values.length
-    const scaled = radius * score / 100
-    return {
-      x: center + Math.cos(angle) * scaled,
-      y: center + Math.sin(angle) * scaled,
-    }
-  }
-  const polygon = values.map((item, index) => {
-    const point = pointAt(index, item.score)
-    return `${point.x},${point.y}`
-  }).join(' ')
-
-  if (values.length < 3) return <div className="inline-empty"><p>At least three assessed concepts are needed for a mastery radar.</p></div>
-  return (
-    <figure className="radar-chart">
-      <svg viewBox="-8 -8 116 116" role="img" aria-label="Concept mastery radar">
-        {[25, 50, 75, 100].map((score) => (
-          <polygon key={score} points={values.map((_, index) => {
-            const point = pointAt(index, score)
-            return `${point.x},${point.y}`
-          }).join(' ')} className="radar-grid" />
-        ))}
-        {values.map((item, index) => {
-          const edge = pointAt(index)
-          const label = pointAt(index, 127)
-          return (
-            <g key={item.label}>
-              <line x1={center} y1={center} x2={edge.x} y2={edge.y} className="radar-axis" />
-              <text x={label.x} y={label.y} textAnchor="middle">{item.label}</text>
-            </g>
-          )
-        })}
-        <polygon points={polygon} className="radar-value" />
-        {values.map((item, index) => {
-          const point = pointAt(index, item.score)
-          return <circle key={item.label} cx={point.x} cy={point.y} r="1.7"><title>{item.label}: {item.score}%</title></circle>
-        })}
-      </svg>
-    </figure>
-  )
-}
+import {
+  BarList,
+  Card,
+  EmptyState,
+  ErrorState,
+  EstimateChip,
+  LineChart,
+  PageHeader,
+  Skeleton,
+  Tag,
+} from './ui'
+import styles from './AnalyticsView.module.css'
 
 export function AnalyticsView() {
   const [data, setData] = useState<EducatorDashboardData | null>(null)
@@ -108,78 +51,135 @@ export function AnalyticsView() {
   )
 
   if (error) {
-    return <div className="screen"><ScreenState kind="error" title="Analytics unavailable" message={error} action={<button className="button button--secondary" onClick={() => void load()}>Try again</button>} /></div>
+    return (
+      <div className={styles.screen}>
+        <ErrorState title="Analytics unavailable" description={error} onRetry={() => void load()} />
+      </div>
+    )
   }
   if (!data) {
-    return <div className="screen"><ScreenState kind="loading" title="Calculating cohort signals" message="Aggregating progress without exposing private student answers." /></div>
+    return (
+      <div className={styles.screen}>
+        <p role="status" className={styles.loading}>
+          Calculating cohort signals: aggregating progress without exposing private student answers.
+        </p>
+        <Skeleton height="2.5rem" width="24rem" />
+        <Skeleton height="9rem" />
+        <Skeleton height="9rem" />
+      </div>
+    )
   }
 
   const performance = data.task_type_performance ?? []
   const mastery = data.concept_mastery ?? []
   const leaderboard = data.leaderboard ?? []
 
+  const metrics = [
+    { label: 'Enrolled learners', value: data.active_students, detail: 'Current cohort', icon: <Users size={18} /> },
+    { label: 'Average completion', value: `${data.average_completion}%`, detail: 'Across course pathways', icon: <BarChart3 size={18} /> },
+    { label: 'Strongest activity', value: bestTaskType?.label ?? 'No data', detail: `${bestTaskType?.score ?? 0}% average`, icon: <Trophy size={18} /> },
+  ]
+
   return (
-    <div className="screen">
-      <PageHeading
+    <div className={styles.screen}>
+      <PageHeader
         eyebrow="Privacy-aware analytics"
         title="Cohort analytics"
         description="Track engagement, activity performance and concept mastery across your authorised courses."
-        actions={<span className="status-chip status-chip--cyan"><Icon name="analytics" size={15} /> Live aggregate</span>}
+        actions={<Tag tone="accent">Live aggregate</Tag>}
       />
 
-      <section className="metric-grid metric-grid--three">
-        <article className="metric-card">
-          <span><Icon name="people" /></span><p>Enrolled learners</p><strong>{data.active_students}</strong><small>Current cohort</small>
-        </article>
-        <article className="metric-card">
-          <span><Icon name="analytics" /></span><p>Average completion</p><strong>{data.average_completion}%</strong><small>Across course pathways</small>
-        </article>
-        <article className="metric-card">
-          <span><Icon name="trophy" /></span><p>Strongest activity</p><strong className="metric-card__text">{bestTaskType?.label ?? 'No data'}</strong><small>{bestTaskType?.score ?? 0}% average</small>
-        </article>
+      <section className={styles.metrics} aria-label="Cohort metrics">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className={styles.metric}>
+            <span className={styles.metricIcon} aria-hidden="true">{metric.icon}</span>
+            <p className={styles.metricLabel}>{metric.label}</p>
+            <p className={styles.metricValue}>{metric.value}</p>
+            <p className={styles.metricDetail}>{metric.detail}</p>
+          </Card>
+        ))}
       </section>
 
-      <div className="analytics-grid">
-        <Panel eyebrow="Learning behaviour" title="Cohort trend" className="analytics-wide">
-          <TrendChart points={data.engagement} />
-        </Panel>
-
-        <Panel eyebrow="Assessment formats" title="Task-type performance">
-          {performance.length === 0 ? (
-            <div className="inline-empty"><p>Task performance appears after submitted activities are scored.</p></div>
+      <div className={styles.grid}>
+        <Card eyebrow="Learning behaviour" heading="Cohort trend" className={styles.wide}>
+          {data.engagement.length === 0 ? (
+            <EmptyState title="No cohort trend data is available for this period." />
           ) : (
-            <div className="performance-bars">
-              {performance.map((item) => (
-                <div key={item.label}>
-                  <span>{item.label}</span>
-                  <div><i style={{ width: `${item.score}%` }} /></div>
-                  <strong>{item.score}%</strong>
-                </div>
-              ))}
-            </div>
+            <LineChart
+              title="Cohort activity trend"
+              labels={data.engagement.map((point) => point.label)}
+              series={[
+                { label: 'Active learners', values: data.engagement.map((point) => point.active_students) },
+                { label: 'Submissions', values: data.engagement.map((point) => point.submissions) },
+              ]}
+            />
           )}
-        </Panel>
+        </Card>
 
-        <Panel eyebrow="Learning outcomes" title="Concept mastery">
-          <RadarChart values={mastery} />
-        </Panel>
-
-        <Panel eyebrow="Gamification" title="Leaderboard" className="analytics-wide">
-          {leaderboard.length === 0 ? (
-            <div className="inline-empty"><Icon name="trophy" /><p>The leaderboard starts after students earn their first points.</p></div>
+        <Card eyebrow="Assessment formats" heading="Task-type performance">
+          {performance.length === 0 ? (
+            <EmptyState title="Task performance appears after submitted activities are scored." />
           ) : (
-            <ol className="leaderboard">
-              {leaderboard.slice(0, 8).map((student, index) => (
-                <li key={student.student_id}>
-                  <span className={`rank rank--${index + 1}`}>{index + 1}</span>
-                  <span className="avatar avatar--small">{student.display_name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</span>
-                  <div><strong>{student.display_name}</strong><small>{student.completed_tasks} activities completed</small></div>
-                  <b>{student.points.toLocaleString()} XP</b>
+            <BarList
+              max={100}
+              items={performance.map((item) => ({
+                label: item.label,
+                value: item.score,
+                display: `${item.score}%`,
+              }))}
+            />
+          )}
+        </Card>
+
+        <Card eyebrow="Learning outcomes" heading="Concept mastery">
+          {mastery.length === 0 ? (
+            <EmptyState title="Concept estimates appear after assessed activities." />
+          ) : (
+            <ul className={styles.conceptList}>
+              {mastery.map((item) => (
+                <li key={item.label} className={styles.conceptRow}>
+                  <span className={styles.conceptLabel}>{item.label}</span>
+                  <EstimateChip uncertainty="Cohort estimate">{item.score}%</EstimateChip>
                 </li>
               ))}
-            </ol>
+            </ul>
           )}
-        </Panel>
+        </Card>
+
+        {/* Leaderboard behaviour is retained pending FR25 roadmap work (plan 006,
+            Behaviour-preservation rule); presentation is a plain table with no
+            rank celebration styling. */}
+        <Card eyebrow="Gamification" heading="Leaderboard" className={styles.wide}>
+          {leaderboard.length === 0 ? (
+            <EmptyState
+              icon={<Trophy size={20} />}
+              title="The leaderboard starts after students earn their first points."
+            />
+          ) : (
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Student</th>
+                    <th scope="col">Activities completed</th>
+                    <th scope="col">Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboard.slice(0, 8).map((student, index) => (
+                    <tr key={student.student_id}>
+                      <td className={styles.rank}>{index + 1}</td>
+                      <th scope="row" className={styles.studentCell}>{student.display_name}</th>
+                      <td>{student.completed_tasks}</td>
+                      <td className={styles.points}>{student.points.toLocaleString()} XP</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   )

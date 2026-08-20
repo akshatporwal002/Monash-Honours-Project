@@ -1,6 +1,9 @@
-# 005: Remaining feature roadmap
+ plan # 005: Remaining feature roadmap
 
 Status: current roadmap, not an implementation-completion claim
+
+Current delivery state: Step 1 decision register created; Step 2 is `BLOCKED` pending approved
+values for D-01 provisional-result visibility and D-06 reassessment policy.
 
 Owner: unassigned
 
@@ -48,12 +51,14 @@ data, or promote any release or pilot gate to passed.
 
 Files:
 
-- `docs/learnlens/known-limits-and-deferred-decisions.md` (new, when the owning workstream begins)
+- `docs/learnlens/known-limits-and-deferred-decisions.md`
 - `docs/plans/002-person-a-assessment-implementation.md`
 - `docs/plans/004-remaining-work-and-merge-readiness.md`
 
 Changes:
 
+- [x] Create a decision register with the unresolved decision, named owner, required approval,
+  dependent feature, and blocking effect.
 - [ ] Name the owner and policy for provisional-result visibility.
 - [ ] Approve reassessment eligibility, current-result selection, task-form equivalence, and review
   triggers.
@@ -71,6 +76,12 @@ Edge and failure cases:
 effect before its dependent feature is implemented.
 
 ### Step 2: Close the learner formal-result loop
+
+Current gate: `BLOCKED`. D-01 and D-06 in
+`docs/learnlens/known-limits-and-deferred-decisions.md` remain `PENDING`. Do not expose a
+provisional result value or activate reassessment until the owners record approved, versioned
+policy values. An unset visibility policy must continue to show an under-review state without the
+result value.
 
 Files:
 

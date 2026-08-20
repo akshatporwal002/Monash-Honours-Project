@@ -1,0 +1,12 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: 0; /* deliberately square: not a result chip */
+  background: var(--surface-sunken);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}

@@ -1,0 +1,11 @@
+.link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  border-radius: var(--radius-1);
+  transition: color var(--motion-fast) var(--ease-out);
+}
+
+.link:hover {
+  color: var(--accent-strong);
+}

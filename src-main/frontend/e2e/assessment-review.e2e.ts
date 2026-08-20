@@ -8,8 +8,8 @@ const actionsByProject = {
   webkit: 'Override result',
 } as const
 
-async function expectNoHorizontalPageOverflow(page: import('@playwright/test').Page) {
-  const dimensions = await page.evaluate(() => ({
+async function measurePageOverflow(page: import('@playwright/test').Page) {
+  return await page.evaluate(() => ({
     body: {
       bounds: document.body.getBoundingClientRect().toJSON(),
       clientWidth: document.body.clientWidth,
@@ -24,21 +24,37 @@ async function expectNoHorizontalPageOverflow(page: import('@playwright/test').P
     clientWidth: document.documentElement.clientWidth,
     innerWidth: window.innerWidth,
     scrollWidth: document.documentElement.scrollWidth,
+    // Widest right-edge offenders first: a closed off-canvas drawer sits at a
+    // negative left by design, so reporting those first hides the real cause.
     overflowingElements: [...document.querySelectorAll<HTMLElement>('body *')]
-      .filter((element) => {
-        const bounds = element.getBoundingClientRect()
-        return bounds.left < 0 || bounds.right > document.documentElement.clientWidth
-      })
       .map((element) => ({
-        className: element.className,
+        className: String(element.className),
         tagName: element.tagName,
-        text: element.textContent?.trim().slice(0, 80),
+        right: Math.round(element.getBoundingClientRect().right),
+        left: Math.round(element.getBoundingClientRect().left),
+        text: element.textContent?.trim().slice(0, 60),
       }))
-      .slice(0, 10),
+      .filter((entry) => entry.right > document.documentElement.clientWidth)
+      .sort((first, second) => second.right - first.right)
+      .slice(0, 8),
   }))
-  expect(dimensions.scrollWidth, JSON.stringify(dimensions)).toBeLessThanOrEqual(
-    dimensions.clientWidth,
-  )
+}
+
+/**
+ * WCAG 2.2 reflow: no horizontal page scroll at the tested width. Polled
+ * because a viewport resize is not synchronous with relayout in every engine;
+ * the assertion itself is unchanged, it just measures a settled layout.
+ */
+async function expectNoHorizontalPageOverflow(page: import('@playwright/test').Page) {
+  await expect
+    .poll(async () => {
+      const dimensions = await measurePageOverflow(page)
+      return dimensions.scrollWidth - dimensions.clientWidth
+    }, {
+      message: `horizontal overflow at ${JSON.stringify(await measurePageOverflow(page))}`,
+      timeout: 5_000,
+    })
+    .toBeLessThanOrEqual(0)
 }
 
 test('assessor reviews frozen evidence and records an action by keyboard', async ({ page }, testInfo) => {
@@ -56,17 +72,18 @@ test('assessor reviews frozen evidence and records an action by keyboard', async
     })
   })
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Educator', exact: true }).click()
+  await page.goto('/login')
+  await page.getByRole('radio', { name: 'Educator', exact: true }).check()
   await page.getByLabel('Email address').fill('educator@quantumlearn.demo')
   await page.getByLabel('Password').fill('quantumlearn-demo')
-  await page.getByRole('button', { name: 'Enter educator workspace' }).click()
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
 
-  const reviewNavigation = page.getByRole('button', { name: 'Assessment review' })
+  const reviewNavigation = page.getByRole('link', { name: 'Assessment review' })
   await expect(reviewNavigation).toBeVisible()
   await reviewNavigation.focus()
   await page.keyboard.press('Enter')
 
+  await expect(page).toHaveURL(/\/assessor\/review$/)
   await expect(page.getByRole('heading', { name: 'Assessment review queue' })).toBeVisible()
   const responseHeading = page.getByRole('heading', { name: 'Response and evidence' })
   await expect(responseHeading).toBeVisible()
@@ -74,7 +91,20 @@ test('assessor reviews frozen evidence and records an action by keyboard', async
   await expect(page.getByText('TARGET_EVIDENCE_MET')).toBeVisible()
   await expect(page.getByText('The exact response contains the required explanation.')).toBeVisible()
   await expect(page.getByText(/Evaluator: rules\.v1\. Model: model\.v1\. Prompt: prompt\.v1\. Retrieval: retrieval\.v1\./)).toBeVisible()
-  await expect(page.getByText('Quality Review:', { exact: true }).locator('..')).toContainText('rejected')
+  // Quality Judge stays a separate namespace from the learner result (AT20).
+  await expect(page.getByText('Quality review: rejected')).toBeVisible()
+  // The formal result renders through ResultSeal: a capitalised PASS/INCOMPLETE
+  // label plus a written lifecycle line, never lowercase body text (AC19, AT24).
+  // Each project records a different action against the same shared record, so
+  // the lifecycle value depends on run order and is matched as a set.
+  await expect(page.getByText(/^(Pass|Incomplete)$/).first()).toBeVisible()
+  await expect(
+    page
+      .getByText(
+        /^(Provisional \u2014 awaiting assessor review|Confirmed by assessor|Changed by assessor decision|Set aside by assessor decision|Not yet assessed)$/,
+      )
+      .first(),
+  ).toBeVisible()
   const headingTexts = await page.getByRole('heading').allTextContents()
   expect(headingTexts.indexOf('Response and evidence')).toBeLessThan(
     headingTexts.indexOf('Assessor action'),
@@ -85,21 +115,24 @@ test('assessor reviews frozen evidence and records an action by keyboard', async
   const action = page.getByRole('button', { name: actionLabel })
   await action.focus()
   await page.keyboard.press('Enter')
-  const dialog = page.getByRole('dialog')
+  const dialog = page.getByRole('alertdialog')
   await expect(dialog).toBeVisible()
 
+  // Initial focus lands on the least destructive control: Cancel.
+  const cancel = dialog.getByRole('button', { name: 'Cancel' })
+  await expect(cancel).toBeFocused()
   if (actionLabel === 'Override result') {
-    await expect(dialog.getByLabel('Replacement result')).toBeFocused()
-    await page.keyboard.press('Tab')
+    await expect(dialog.getByLabel('Replacement result')).toBeVisible()
   }
-  const reason = dialog.getByLabel('Reason')
+  await page.keyboard.press('Shift+Tab')
+  const reason = dialog.getByLabel('Reason (required)')
   await expect(reason).toBeFocused()
   await page.keyboard.type(`Browser evidence for ${testInfo.project.name}.`)
   await page.keyboard.press('Tab')
-  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused()
+  await expect(cancel).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(dialog.getByRole('button', { name: actionLabel })).toBeFocused()
-  expect((await new AxeBuilder({ page }).include('.assessment-review-dialog').analyze()).violations).toEqual([])
+  expect((await new AxeBuilder({ page }).include('[role="alertdialog"]').analyze()).violations).toEqual([])
   const actionResponsePromise = page.waitForResponse((response) =>
     response.request().method() === 'POST'
       && new URL(response.url()).pathname.endsWith('/review'),

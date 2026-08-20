@@ -1,0 +1,82 @@
+/*
+ * LearnLens design tokens - the only file where raw hex values are permitted.
+ * Authority: docs/learnlens/ui-redesign-decisions.md section 4.
+ *
+ * Promoted to :root at the plan 006 Step 9 cutover (legacy styles.css deleted).
+ * The .ll-root alias remains for portal containers and standalone mounts.
+ *
+ * Contrast pairings are asserted by tokens.test.ts. If a value must shift to
+ * pass WCAG 2.2 AA, update it here and write the change back to the design doc.
+ */
+
+:root,
+.ll-root {
+  /* Ground */
+  --paper: #faf9f7; /* page background */
+  --surface: #ffffff; /* cards, panels, table bodies */
+  --surface-sunken: #f1f0ec; /* wells, table headers, code-adjacent areas */
+  --line: #e4e2dc; /* hairline borders, dividers */
+  --line-strong: #c8c6bf; /* input borders, emphasised structure */
+
+  /* Ink */
+  --ink: #20242b; /* primary text on --surface / --paper, AA 4.5+ */
+  --ink-soft: #4e555f; /* secondary text on --surface, AA 4.5+ */
+  --ink-muted: #626a75; /* metadata >=12px on --surface, --paper, and --surface-sunken, AA 4.5+ */
+
+  /* Accent — cyanotype */
+  --accent: #1a5687; /* links, primary buttons, focus ring; text on --surface, AA 4.5+ */
+  --accent-strong: #134369; /* hover / pressed */
+  --accent-wash: #eaf1f7; /* selected rows, active backgrounds */
+  --accent-line: #b7cee2; /* selected borders, quiet emphasis */
+
+  /* Status — always paired with text + icon, never colour alone (D2 §14.4, AT24) */
+  --affirm: #1d6b4c; /* confirmed PASS, success; text on --surface and --affirm-wash, AA 4.5+ */
+  --affirm-wash: #e8f3ed;
+  --attend: #7a5200; /* INCOMPLETE, caution; text on --surface and --attend-wash, AA 4.5+ */
+  --attend-wash: #fbf3e0;
+  --fault: #9e2b3e; /* system faults and destructive actions ONLY — never a learner result */
+  --fault-wash: #f9ecee;
+
+  /* Type families */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  /* Type scale — floor is 12px (0.75rem); nothing renders smaller */
+  --text-caption: 0.75rem;
+  --text-meta: 0.8125rem;
+  --text-ui: 0.875rem;
+  --text-body: 0.9375rem;
+  --text-lead: 1.0625rem;
+  --text-h3: 1.25rem;
+  --text-h2: 1.5rem;
+  --text-h1: 1.875rem;
+  --text-display: 2.5rem;
+
+  /* Spacing — 4px base scale; names are multiples of 4px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Radii */
+  --radius-1: 4px; /* chips, tags, inline code */
+  --radius-2: 8px; /* buttons, inputs */
+  --radius-3: 12px; /* cards, panels, dialogs */
+  --radius-round: 999px; /* pills, avatars */
+
+  /* Elevation — structure comes from --line hairlines; shadows are for true elevation only */
+  --raise: 0 4px 16px rgb(32 36 43 / 10%); /* menus, popovers */
+  --float: 0 12px 32px rgb(32 36 43 / 16%); /* dialogs, toasts */
+
+  /* Motion */
+  --motion-fast: 140ms; /* interactive state changes */
+  --motion-enter: 200ms; /* dialog / toast entry */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}

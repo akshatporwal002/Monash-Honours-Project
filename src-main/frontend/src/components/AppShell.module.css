@@ -1,0 +1,246 @@
+.shell {
+  display: grid;
+  grid-template-columns: 15.5rem 1fr;
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.skipLink {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 100;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--surface);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-size: var(--text-ui);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus {
+  transform: none;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-5);
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink);
+  text-decoration: none;
+  font-family: var(--font-serif);
+  font-size: var(--text-lead);
+  font-weight: 600;
+}
+
+.lens {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.workspace {
+  margin-top: calc(var(--space-4) * -1);
+  color: var(--ink-muted);
+  font-size: var(--text-caption);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  color: var(--ink-soft);
+  font-size: var(--text-ui);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+
+.navLink:hover {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.navLink[aria-current='page'] {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.navIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-round);
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.userText {
+  display: grid;
+  min-width: 0;
+}
+
+.userName {
+  font-size: var(--text-ui);
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userEmail {
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signOut {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.signOut:hover {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.mainArea {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  min-height: 3rem;
+}
+
+.topbarBrand {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.menuButton {
+  display: none;
+}
+
+.main {
+  flex: 1;
+  padding: var(--space-8) var(--space-8) var(--space-16);
+  outline: none;
+}
+
+.scrim {
+  display: none;
+}
+
+@media (width <= 760px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 30% 0 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform var(--motion-enter) var(--ease-out);
+    height: 100dvh;
+  }
+
+  .sidebarOpen {
+    transform: none;
+    box-shadow: var(--float);
+  }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgb(32 36 43 / 40%);
+    border: 0;
+  }
+
+  .menuButton {
+    display: inline-flex;
+  }
+
+  .topbarBrand {
+    display: inline-flex;
+  }
+
+  .main {
+    padding: var(--space-5) var(--space-4) var(--space-12);
+  }
+}

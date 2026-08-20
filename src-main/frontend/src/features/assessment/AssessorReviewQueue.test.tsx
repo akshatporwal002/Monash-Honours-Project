@@ -1,5 +1,5 @@
 import axe from 'axe-core'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import type { ApiSchemas } from '../../api/generated'
@@ -54,6 +54,15 @@ function renderQueue(overrides: Partial<Parameters<typeof AssessorReviewQueue>[0
   return render(<AssessorReviewQueue assignments={assignments} onCheckAccess={async () => true} onAccessRevoked={() => undefined} {...overrides} />)
 }
 
+async function chooseOption(
+  user: ReturnType<typeof userEvent.setup>,
+  fieldLabel: string,
+  optionLabel: string,
+) {
+  await user.click(screen.getByLabelText(fieldLabel))
+  await user.click(await screen.findByRole('option', { name: optionLabel }))
+}
+
 beforeEach(() => vi.restoreAllMocks())
 
 test('review queue shows evidence before decision controls', async () => {
@@ -66,13 +75,26 @@ test('review queue shows evidence before decision controls', async () => {
   expect(screen.getByText('criterion-2')).toBeInTheDocument()
   expect(screen.getByText('criterion set')).toBeInTheDocument()
   expect(screen.getByText('CRITERIA_NOT_MET')).toBeInTheDocument()
-  expect(screen.getByText('approved')).toBeInTheDocument()
+  expect(screen.getByText('Quality review: approved')).toBeInTheDocument()
   expect(screen.getByText(/Evaluator: criterion-engine/)).toBeInTheDocument()
   const actionHeading = screen.getByRole('heading', { name: 'Assessor action' })
   expect(responseHeading.compareDocumentPosition(actionHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
-test('override void withhold and return require a reason', async () => {
+test('criterion decisions render as labelled chips, never colour alone', async () => {
+  installQueueFetch()
+  renderQueue()
+  await screen.findByRole('heading', { name: 'Criterion decisions' })
+
+  const notMet = screen.getByText('Not met')
+  expect(notMet).toBeInTheDocument()
+  // Text plus icon: the chip carries a hidden decorative icon alongside its label (AT24)
+  expect(notMet.closest('span')?.querySelector('svg[aria-hidden="true"]')).not.toBeNull()
+  // No fail wording anywhere in the assessor queue (AT19)
+  expect(document.body.textContent).not.toMatch(/fail/i)
+})
+
+test('override void withhold and return require a reason before confirm is enabled', async () => {
   installQueueFetch()
   const user = userEvent.setup()
   renderQueue()
@@ -80,10 +102,15 @@ test('override void withhold and return require a reason', async () => {
 
   for (const label of ['Confirm result', 'Override result', 'Void result', 'Withhold result', 'Return for review']) {
     await user.click(screen.getByRole('button', { name: label }))
-    const dialog = await screen.findByRole('dialog')
-    await user.click(within(dialog).getByRole('button', { name: label }))
-    expect(screen.getByRole('alert')).toHaveTextContent('Record a reason before submitting')
+    const dialog = await screen.findByRole('alertdialog')
+    const confirm = within(dialog).getByRole('button', { name: label })
+    expect(confirm).toBeDisabled()
+    await user.type(within(dialog).getByLabelText(/Reason/), 'Reviewed against evidence.')
+    expect(confirm).toBeEnabled()
+    await user.clear(within(dialog).getByLabelText(/Reason/))
+    expect(confirm).toBeDisabled()
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
   }
 })
 
@@ -97,8 +124,8 @@ test('stale review keeps typed reason and reloads current state', async () => {
   renderQueue()
   await screen.findByRole('button', { name: 'Confirm result' })
   await user.click(screen.getByRole('button', { name: 'Confirm result' }))
-  const dialog = await screen.findByRole('dialog')
-  await user.type(within(dialog).getByLabelText('Reason'), 'Evidence was independently checked.')
+  const dialog = await screen.findByRole('alertdialog')
+  await user.type(within(dialog).getByLabelText(/Reason/), 'Evidence was independently checked.')
   await user.click(within(dialog).getByRole('button', { name: 'Confirm result' }))
 
   expect(await screen.findByRole('status')).toHaveTextContent('Current history was reloaded')
@@ -123,7 +150,7 @@ test('revoked assessor cannot use cached action controls', async () => {
   await user.click(screen.getByRole('button', { name: 'Confirm result' }))
 
   expect(onAccessRevoked).toHaveBeenCalledOnce()
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
   expect(screen.getByText('Assessor access has expired. Review action controls were removed.')).toBeInTheDocument()
   expect(screen.queryByRole('heading', { name: 'Response and evidence' })).not.toBeInTheDocument()
 })
@@ -167,8 +194,21 @@ test('access refresh is scoped to the selected course when another assignment re
   )).toBeInTheDocument()
   expect(onCheckAccess).toHaveBeenCalledWith('course-1')
   expect(onAccessRevoked).toHaveBeenCalledOnce()
-  expect(screen.getByLabelText('Assigned course')).toHaveValue('')
+  expect(screen.getByLabelText('Assigned course')).toHaveTextContent('Select an assigned course')
   expect(fetchSpy).not.toHaveBeenCalled()
+})
+
+test('empty queue names the active filters', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const url = String(input)
+    if (url.includes('/review-queue')) return response([])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+  renderQueue()
+
+  const empty = await screen.findByText('No review records')
+  expect(empty).toBeInTheDocument()
+  expect(screen.getByText(/Active filters: course course-1\./)).toBeInTheDocument()
 })
 
 test('review queue supports keyboard focus containment and axe checks', async () => {
@@ -179,21 +219,27 @@ test('review queue supports keyboard focus containment and axe checks', async ()
   action.focus()
   expect(action).toHaveFocus()
   await user.keyboard('{Enter}')
-  const dialog = await screen.findByRole('dialog')
-  expect(within(dialog).getByLabelText('Reason')).toHaveFocus()
+  const dialog = await screen.findByRole('alertdialog')
+  const cancel = within(dialog).getByRole('button', { name: 'Cancel' })
+  // Radix AlertDialog opens with focus on the least destructive control
+  await waitFor(() => expect(cancel).toHaveFocus())
   expect((await axe.run(dialog)).violations).toEqual([])
-  await user.type(within(dialog).getByLabelText('Reason'), 'I confirmed the response against the evidence.')
-  await user.keyboard('{Tab}')
-  expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus()
-  await user.keyboard('{Tab}')
-  expect(within(dialog).getByRole('button', { name: 'Confirm result' })).toHaveFocus()
-  fireEvent.keyDown(within(dialog).getByRole('button', { name: 'Confirm result' }), { key: 'Tab' })
-  expect(within(dialog).getByLabelText('Reason')).toHaveFocus()
-  fireEvent.keyDown(within(dialog).getByLabelText('Reason'), { key: 'Tab', shiftKey: true })
-  expect(within(dialog).getByRole('button', { name: 'Confirm result' })).toHaveFocus()
+  const reason = within(dialog).getByLabelText(/Reason/)
+  await user.type(reason, 'I confirmed the response against the evidence.')
+  const confirm = within(dialog).getByRole('button', { name: 'Confirm result' })
+  expect(confirm).toBeEnabled()
+  // Tab stays trapped inside the dialog and wraps at the edges
+  await user.tab()
+  expect(cancel).toHaveFocus()
+  await user.tab()
+  expect(confirm).toHaveFocus()
+  await user.tab()
+  expect(reason).toHaveFocus()
+  await user.tab({ shift: true })
+  expect(confirm).toHaveFocus()
   await user.keyboard('{Enter}')
   expect(await screen.findByRole('status')).toHaveTextContent('Confirm result recorded')
-  expect(action).toHaveFocus()
+  await waitFor(() => expect(action).toHaveFocus())
   expect((await axe.run(container)).violations).toEqual([])
 })
 
@@ -203,16 +249,16 @@ test('network failure retains the typed reason and active filters', async () => 
   renderQueue()
   await screen.findByRole('button', { name: 'Confirm result' })
   await user.type(screen.getByLabelText('Outcome ID'), 'outcome-1')
-  await user.selectOptions(screen.getByLabelText('Result'), 'INCOMPLETE')
+  await chooseOption(user, 'Result', 'Incomplete')
   await user.click(screen.getByRole('button', { name: 'Apply filters' }))
   await user.click(screen.getByRole('button', { name: 'Confirm result' }))
-  const dialog = await screen.findByRole('dialog')
-  await user.type(within(dialog).getByLabelText('Reason'), 'The source service is unavailable.')
+  const dialog = await screen.findByRole('alertdialog')
+  await user.type(within(dialog).getByLabelText(/Reason/), 'The source service is unavailable.')
   await user.click(within(dialog).getByRole('button', { name: 'Confirm result' }))
 
   expect(await screen.findByRole('alert')).toHaveTextContent('typed reason remain available')
   expect(within(dialog).getByDisplayValue('The source service is unavailable.')).toBeInTheDocument()
   expect(screen.getByLabelText('Outcome ID')).toHaveValue('outcome-1')
-  expect(screen.getByLabelText('Result')).toHaveValue('INCOMPLETE')
+  expect(screen.getByLabelText('Result')).toHaveTextContent('Incomplete')
   expect(fetchSpy.mock.calls.some(([input]) => String(input).includes('outcome_id=outcome-1') && String(input).includes('result=INCOMPLETE'))).toBe(true)
 })

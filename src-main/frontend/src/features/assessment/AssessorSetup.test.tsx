@@ -49,10 +49,22 @@ async function fillRequiredTextFields(user: ReturnType<typeof userEvent.setup>) 
   for (const [field, value] of Object.entries(values)) await user.type(screen.getByLabelText(field), value)
 }
 
+const bloomVerificationLabel = 'I verified that this task elicits the selected Bloom process.'
+const accessVerificationLabel = 'I verified that each access mode preserves the assessed construct.'
+
 async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await fillRequiredTextFields(user)
-  await user.click(screen.getByLabelText('Verified Bloom elicitation'))
-  await user.click(screen.getByLabelText('Verified construct-preserving access'))
+  await user.click(screen.getByLabelText(bloomVerificationLabel))
+  await user.click(screen.getByLabelText(accessVerificationLabel))
+}
+
+async function chooseOption(
+  user: ReturnType<typeof userEvent.setup>,
+  fieldLabel: string,
+  optionLabel: string,
+) {
+  await user.click(screen.getByLabelText(fieldLabel))
+  await user.click(await screen.findByRole('option', { name: optionLabel }))
 }
 
 beforeEach(() => vi.restoreAllMocks())
@@ -97,23 +109,23 @@ test('changing verified Bloom, task-form, or access inputs requires fresh verifi
   renderSetup()
   await fillRequiredFields(user)
 
-  fireEvent.change(screen.getByLabelText('Bloom process'), { target: { value: 'ANALYSE' } })
-  expect(screen.getByLabelText('Verified Bloom elicitation')).not.toBeChecked()
+  await chooseOption(user, 'Bloom process', 'Analyse')
+  expect(screen.getByLabelText(bloomVerificationLabel)).not.toBeChecked()
   await user.click(screen.getByRole('button', { name: 'Save assessment draft' }))
   expect(screen.getByRole('alert')).toHaveTextContent('Bloom elicitation verification')
 
-  await user.click(screen.getByLabelText('Verified Bloom elicitation'))
+  await user.click(screen.getByLabelText(bloomVerificationLabel))
   fireEvent.change(screen.getByLabelText('Access conditions'), {
     target: { value: 'A revised access mode' },
   })
-  expect(screen.getByLabelText('Verified construct-preserving access')).not.toBeChecked()
+  expect(screen.getByLabelText(accessVerificationLabel)).not.toBeChecked()
 
-  await user.click(screen.getByLabelText('Verified construct-preserving access'))
+  await user.click(screen.getByLabelText(accessVerificationLabel))
   fireEvent.change(screen.getByLabelText('Task family'), {
     target: { value: 'revised_quantum_circuit' },
   })
-  expect(screen.getByLabelText('Verified Bloom elicitation')).not.toBeChecked()
-  expect(screen.getByLabelText('Verified construct-preserving access')).not.toBeChecked()
+  expect(screen.getByLabelText(bloomVerificationLabel)).not.toBeChecked()
+  expect(screen.getByLabelText(accessVerificationLabel)).not.toBeChecked()
   await user.click(screen.getByRole('button', { name: 'Save assessment draft' }))
   expect(screen.getByRole('alert')).toHaveTextContent('access preservation verification')
   expect(screen.getByRole('alert')).toHaveTextContent('Bloom elicitation verification')
@@ -216,8 +228,8 @@ test('edited values must be saved as a new version before publication', async ()
   expect(screen.getByLabelText('Outcome ID')).toBeDisabled()
   expect(requests.filter((request) => request.method === 'POST')).toHaveLength(1)
 
-  await user.click(screen.getByLabelText('Verified Bloom elicitation'))
-  await user.click(screen.getByLabelText('Verified construct-preserving access'))
+  await user.click(screen.getByLabelText(bloomVerificationLabel))
+  await user.click(screen.getByLabelText(accessVerificationLabel))
   await user.click(screen.getByRole('button', { name: 'Save assessment draft' }))
   await screen.findByText('Draft revision saved. Review the new version before approval.')
   const update = requests.find((request) => request.method === 'PUT')
@@ -251,8 +263,8 @@ test('an edit made during a pending save remains dirty after the request complet
   await screen.findByText('Draft saved. Review the pass rule, then approve when ready.')
 
   fireEvent.change(screen.getByLabelText('Claim'), { target: { value: 'First revised claim.' } })
-  await user.click(screen.getByLabelText('Verified Bloom elicitation'))
-  await user.click(screen.getByLabelText('Verified construct-preserving access'))
+  await user.click(screen.getByLabelText(bloomVerificationLabel))
+  await user.click(screen.getByLabelText(accessVerificationLabel))
   await user.click(screen.getByRole('button', { name: 'Save assessment draft' }))
   await waitFor(() => expect(updateBodies).toHaveLength(1))
   fireEvent.change(screen.getByLabelText('Claim'), { target: { value: 'Newer local claim.' } })

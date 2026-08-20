@@ -1,10 +1,21 @@
-import type { LearningNotification, LearningTask, StudentDashboardData } from '../app/types'
-import { Icon, PageHeading, Panel, ProgressRing } from './ScreenPrimitives'
+import { ArrowRight, Award, BellDot, BookOpen, Check, Lock, Trophy } from 'lucide-react'
 
-function taskState(task: LearningTask): 'locked' | 'in-progress' | 'completed' {
+import type { LearningNotification, LearningTask, StudentDashboardData } from '../app/types'
+import { Button, Card, EmptyState, Meter, PageHeader, Tag, cx } from './ui'
+import styles from './StudentDashboard.module.css'
+
+type TaskState = 'locked' | 'in-progress' | 'completed'
+
+function taskState(task: LearningTask): TaskState {
   if (task.status === 'completed') return 'completed'
   if (task.status === 'locked') return 'locked'
   return 'in-progress'
+}
+
+const stateLabel: Record<TaskState, string> = {
+  completed: 'Completed',
+  locked: 'Locked',
+  'in-progress': 'In progress',
 }
 
 function taskKind(task: LearningTask): string {
@@ -28,144 +39,168 @@ export function StudentDashboard({
   const nextRecommendation = recommendations[0]
   const nextTask = tasks.find((task) => task.id === nextRecommendation?.task_id)
   const earned = progress.achievements.filter((achievement) => achievement.earned_at)
+  const unread = notifications.filter((item) => !item.is_read).length
 
   return (
-    <div className="screen">
-      <PageHeading
-        eyebrow="Student dashboard"
+    <div className={styles.screen}>
+      <PageHeader
+        eyebrow="My learning"
         title={`Welcome back, ${firstName}`}
         description="Build momentum with one focused quantum concept at a time."
-        actions={
-          <div className="xp-card" aria-label={`${progress.points} experience points`}>
-            <span><Icon name="spark" size={18} /> Level {progress.level}</span>
-            <strong>{progress.points} XP</strong>
-            <div className="meter"><i style={{ width: `${progress.level_progress}%` }} /></div>
-            <small>{progress.points_to_next_level ?? 0} XP to your next level</small>
-          </div>
-        }
       />
 
-      <section className="student-hero">
-        <article className="continue-panel">
-          <div>
-            <p className="eyebrow">AI recommendation</p>
-            <h2>{nextTask?.title ?? 'Your pathway is complete'}</h2>
-            <p>{nextRecommendation?.reason ?? 'You have completed every available activity. Keep exploring your achievements.'}</p>
-            {nextTask && (
-              <button className="button button--light" onClick={() => onOpenTask(nextTask)}>
-                Continue learning <Icon name="arrow" size={18} />
-              </button>
-            )}
-          </div>
-          <div className="hero-atom" aria-hidden="true"><i /><i /><i /><b /></div>
-        </article>
-        <article className="momentum-panel">
-          <ProgressRing value={progress.completion_percent} />
-          <div>
-            <p className="eyebrow">Course momentum</p>
-            <h2>{progress.completed_tasks} of {progress.total_tasks} activities</h2>
-            <div className="compact-stats">
-              <span><strong>{progress.average_score}%</strong> average</span>
-              <span><strong>{progress.points_to_next_level ?? 0}</strong> XP to level up</span>
-              <span><strong>{earned.length}</strong> achievements</span>
-            </div>
-          </div>
-        </article>
-      </section>
+      <div className={styles.hero}>
+        <Card eyebrow="Continue" className={styles.continueCard}>
+          {nextTask ? (
+            <>
+              <h2 className={styles.continueTitle}>{nextTask.title}</h2>
+              <p className={styles.continueMeta}>
+                <Tag>{taskKind(nextTask)}</Tag>
+                <span>{nextTask.module}</span>
+              </p>
+              {nextRecommendation?.reason ? (
+                <p className={styles.continueReason}>{nextRecommendation.reason}</p>
+              ) : null}
+              <div className={styles.continueAction}>
+                <Button variant="primary" onClick={() => onOpenTask(nextTask)}>
+                  Continue learning <ArrowRight size={16} aria-hidden="true" />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className={styles.continueTitle}>Your pathway is complete</h2>
+              <p className={styles.continueReason}>
+                You have completed every available activity. Review earlier work or explore your achievements.
+              </p>
+            </>
+          )}
+        </Card>
+        <Card eyebrow="Course momentum" className={styles.momentumCard}>
+          <Meter value={progress.completed_tasks} max={progress.total_tasks} label="Activities completed" />
+          <p className={styles.momentumNote}>{earned.length} achievements earned</p>
+        </Card>
+      </div>
 
-      <Panel
-        eyebrow="Your pathway"
-        title="Quantum foundations"
-        className="pathway-panel"
-        action={<span className="status-chip status-chip--cyan">{progress.completion_percent}% complete</span>}
-      >
+      <Card eyebrow="Your pathway" heading="Quantum foundations" className={styles.pathway}>
         {tasks.length === 0 ? (
-          <div className="inline-empty"><Icon name="book" /><p>No activities are available yet. Your educator is preparing the pathway.</p></div>
+          <EmptyState
+            icon={<BookOpen size={20} />}
+            title="No activities yet"
+            description="Your educator is preparing the pathway. Check back soon."
+          />
         ) : (
-          <ol className="module-path">
+          <ol className={styles.path}>
             {tasks.map((task, index) => {
               const state = taskState(task)
               return (
-                <li key={task.id} className={`module-step module-step--${state}`}>
-                  <span className="module-step__marker">
-                    {state === 'completed' ? <Icon name="check" /> : state === 'locked' ? '—' : index + 1}
+                <li key={task.id} className={cx(styles.step, styles[`step-${state}`])}>
+                  <span className={styles.marker} aria-hidden="true">
+                    {state === 'completed' ? <Check size={14} /> : state === 'locked' ? <Lock size={12} /> : index + 1}
                   </span>
-                  <div className="module-step__copy">
-                    <div>
+                  <div className={styles.stepBody}>
+                    <p className={styles.stepMeta}>
                       <span>{task.module}</span>
-                      <span className={`status-chip status-chip--${state}`}>
-                        {state === 'in-progress' ? 'In progress' : state}
-                      </span>
-                    </div>
-                    <h3>{task.title}</h3>
-                    <p>{taskKind(task)} · {task.difficulty} · {task.points} XP{task.attempt_count ? ` · ${task.attempt_count} attempt${task.attempt_count === 1 ? '' : 's'}` : ''}</p>
+                      <span className={styles.stepState}>{stateLabel[state]}</span>
+                    </p>
+                    <h3 className={styles.stepTitle}>{task.title}</h3>
+                    <p className={styles.stepDetail}>
+                      {taskKind(task)} · {task.difficulty}
+                      {task.attempt_count
+                        ? ` · ${task.attempt_count} attempt${task.attempt_count === 1 ? '' : 's'}`
+                        : ''}
+                    </p>
                   </div>
-                  <button
-                    className={state === 'locked' ? 'button button--ghost' : 'button button--secondary'}
+                  <Button
+                    variant={state === 'in-progress' ? 'secondary' : 'quiet'}
                     disabled={state === 'locked'}
                     onClick={() => onOpenTask(task)}
                     aria-label={`${state === 'completed' ? 'Review' : 'Open'} ${task.title}`}
                   >
                     {state === 'locked' ? 'Locked' : state === 'completed' ? 'Review' : 'Open'}
-                    {state !== 'locked' && <Icon name="arrow" size={16} />}
-                  </button>
+                  </Button>
                 </li>
               )
             })}
           </ol>
         )}
-      </Panel>
+      </Card>
 
-      <div className="student-grid">
-        <Panel eyebrow="Progress by module" title="Concept mastery">
+      <div className={styles.grid}>
+        <Card eyebrow="Progress by module" heading="Module activity">
           {Object.keys(progress.module_progress).length === 0 ? (
-            <div className="inline-empty"><p>Complete an activity to see module mastery.</p></div>
+            <EmptyState title="Nothing to show yet" description="Complete an activity to see module progress." />
           ) : (
-            <div className="ring-grid">
-              {Object.entries(progress.module_progress).slice(0, 4).map(([module, value]) => (
-                <div key={module}>
-                  <ProgressRing value={value} label="mastery" size="small" />
-                  <strong>{module}</strong>
-                </div>
-              ))}
+            <div className={styles.modules}>
+              {Object.entries(progress.module_progress)
+                .slice(0, 4)
+                .map(([module, value]) => (
+                  <Meter key={module} value={Math.round(value)} max={100} label={module} />
+                ))}
             </div>
           )}
-        </Panel>
+        </Card>
 
-        <Panel eyebrow="Milestones" title="Achievements" action={<Icon name="trophy" />}>
+        <Card eyebrow="Milestones" heading="Achievements">
           {progress.achievements.length === 0 ? (
-            <div className="inline-empty"><Icon name="spark" /><p>Your first achievement is one activity away.</p></div>
+            <EmptyState
+              icon={<Award size={20} />}
+              title="Your first achievement is one activity away"
+              description="Finish an activity to earn it."
+            />
           ) : (
-            <div className="achievement-list">
+            <ul className={styles.achievements}>
               {progress.achievements.slice(0, 4).map((achievement) => (
-                <article className={achievement.earned_at ? 'earned' : 'locked'} key={achievement.code}>
-                  <span aria-hidden="true">{achievement.icon || '✦'}</span>
-                  <div><strong>{achievement.name}</strong><p>{achievement.description}</p></div>
-                </article>
+                <li key={achievement.code} className={cx(styles.achievement, !achievement.earned_at && styles.achievementLocked)}>
+                  <span className={styles.achievementIcon} aria-hidden="true">
+                    {achievement.earned_at ? <Trophy size={16} /> : <Award size={16} />}
+                  </span>
+                  <div>
+                    <strong className={styles.achievementName}>{achievement.name}</strong>
+                    <p className={styles.achievementText}>{achievement.description}</p>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </Panel>
+        </Card>
 
-        <Panel eyebrow="Stay on track" title="Updates" action={<span className="status-chip">{notifications.filter((item) => !item.is_read).length} new</span>}>
+        <Card eyebrow="Stay on track" heading="Updates" actions={unread ? <Tag tone="accent">{unread} new</Tag> : undefined}>
           {notifications.length === 0 ? (
-            <div className="inline-empty"><p>You are all caught up.</p></div>
+            <EmptyState title="You are all caught up" description="New reminders will appear here." />
           ) : (
-            <div className="notification-list">
+            <ul className={styles.notifications}>
               {notifications.slice(0, 4).map((notification) => (
-                <button
-                  key={notification.id}
-                  className={notification.is_read ? 'read' : ''}
-                  onClick={() => void onReadNotification(notification)}
-                >
-                  <span className="notification-dot" />
-                  <span><strong>{notification.title}</strong><small>{notification.message}</small></span>
-                </button>
+                <li key={notification.id}>
+                  <button
+                    type="button"
+                    className={cx(styles.notification, notification.is_read && styles.notificationRead)}
+                    onClick={() => void onReadNotification(notification)}
+                  >
+                    <span className={styles.notificationIcon} aria-hidden="true">
+                      <BellDot size={14} />
+                    </span>
+                    <span>
+                      <strong className={styles.notificationTitle}>{notification.title}</strong>
+                      <span className={styles.notificationText}>{notification.message}</span>
+                    </span>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </Panel>
+        </Card>
       </div>
+
+      {/* Gamification data retained pending the FR25 opt-in decision (plan 006 §8); deliberately quiet. */}
+      <Card eyebrow="Optional points" className={styles.points}>
+        <p className={styles.pointsText}>
+          Level {progress.level} · {progress.points} points
+          {progress.points_to_next_level ? ` · ${progress.points_to_next_level} to the next level` : ''}
+          {progress.average_score ? ` · ${progress.average_score}% practice average` : ''}
+        </p>
+        <p className={styles.pointsNote}>Points come from practice activity only. They never affect a formal result.</p>
+      </Card>
     </div>
   )
 }

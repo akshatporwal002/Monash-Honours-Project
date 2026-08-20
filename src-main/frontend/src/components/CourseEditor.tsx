@@ -1,8 +1,34 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+  Link2,
+  Loader2,
+  Sparkles,
+  Upload,
+} from 'lucide-react'
+
 import { ApiError, api } from '../app/api'
 import type { CourseModule, CourseSummary, GeneratedTaskPreview, LearningOutcome } from '../app/types'
-import { Icon, PageHeading } from './ScreenPrimitives'
+import {
+  AlertDialog,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Input,
+  Checkbox,
+  PageHeader,
+  Select,
+  Stepper,
+  Tag,
+  Textarea,
+  cx,
+} from './ui'
+import styles from './CourseEditor.module.css'
 
 const steps = [
   { number: 1, label: 'Course details' },
@@ -13,6 +39,8 @@ const steps = [
 
 const allowedExtensions = ['.pdf', '.docx', '.pptx']
 const maximumFileSize = 20 * 1024 * 1024
+
+const newCourseValue = 'new-course'
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message
@@ -403,337 +431,437 @@ export function CourseEditor() {
   }
 
   return (
-    <div className="screen">
-      <PageHeading
+    <div className={styles.screen}>
+      <PageHeader
         eyebrow="Course authoring"
         title={course ? course.title : 'Configure a grounded course'}
         description="A four-step path from course intent to educator-reviewed learning activities."
         actions={
-          <div className="course-editor-actions">
-            <label>
-              <span className="sr-only">Choose a course to edit</span>
-              <select value={course?.id ?? ''} onChange={(event) => void selectCourse(event.target.value)}>
-                <option value="">New course</option>
-                {courses.map((item) => <option value={item.id} key={item.id}>{item.code} · {item.title}</option>)}
-              </select>
-            </label>
-            {course && <span className={`status-chip status-chip--${course.status}`}>{course.status}</span>}
-            {course?.status === 'draft' && <button className="button button--secondary" onClick={() => void publish()} disabled={busy}>Publish</button>}
-            {course && course.status !== 'archived' && <button className="button button--ghost" onClick={() => setArchiveConfirm(true)} disabled={busy}>Archive</button>}
+          <div className={styles.headerActions}>
+            <Select
+              aria-label="Choose a course to edit"
+              className={styles.coursePicker}
+              value={course?.id ?? newCourseValue}
+              onValueChange={(value) => void selectCourse(value === newCourseValue ? '' : value)}
+              options={[
+                { value: newCourseValue, label: 'New course' },
+                ...courses.map((item) => ({ value: item.id, label: `${item.code} · ${item.title}` })),
+              ]}
+            />
+            {course && <Tag>{course.status}</Tag>}
+            {course?.status === 'draft' && (
+              <Button variant="secondary" onClick={() => void publish()} disabled={busy}>
+                Publish
+              </Button>
+            )}
+            {course && course.status !== 'archived' && (
+              <Button variant="quiet" onClick={() => setArchiveConfirm(true)} disabled={busy}>
+                Archive
+              </Button>
+            )}
           </div>
         }
       />
 
-      <nav className="wizard-steps" aria-label="Course creation progress">
-        {steps.map((item) => (
-          <button
-            key={item.number}
-            className={step === item.number ? 'active' : step > item.number ? 'complete' : ''}
-            disabled={item.number > step || (!course && item.number > 1)}
-            onClick={() => setStep(item.number)}
-            aria-current={step === item.number ? 'step' : undefined}
-          >
-            <span>{step > item.number ? <Icon name="check" size={16} /> : item.number}</span>
-            <div><small>Step {item.number}</small><strong>{item.label}</strong></div>
-          </button>
-        ))}
+      <nav aria-label="Course creation progress">
+        <Stepper
+          steps={steps.map((item) => ({
+            label: item.label,
+            disabled: item.number > step || (!course && item.number > 1),
+          }))}
+          current={step - 1}
+          onSelectStep={(index) => setStep(index + 1)}
+        />
       </nav>
 
-      <section className="wizard-card">
+      <Card className={styles.wizardCard}>
         {step === 1 && (
-          <form className="wizard-form" onSubmit={(event) => void saveDetails(event)}>
-            <div className="wizard-copy">
-              <p className="eyebrow">Step 1 of 4</p>
+          <form className={styles.form} onSubmit={(event) => void saveDetails(event)}>
+            <div className={styles.copy}>
+              <p className={styles.eyebrow}>Step 1 of 4</p>
               <h2>Course details</h2>
-              <p>Give students a short, recognisable course identity. You can refine it before publishing.</p>
+              <p className={styles.copyText}>
+                Give students a short, recognisable course identity. You can refine it before publishing.
+              </p>
             </div>
-            <div className="form-grid">
-              <label className="field field--short">
-                <span>Course code</span>
-                <input value={details.code} onChange={(event) => setDetails({ ...details, code: event.target.value.toUpperCase() })} placeholder="QTM101" pattern="[A-Z0-9][A-Z0-9-]*" maxLength={20} required />
-              </label>
-              <label className="field">
-                <span>Course title</span>
-                <input value={details.title} onChange={(event) => setDetails({ ...details, title: event.target.value })} placeholder="Foundations of Quantum Computing" required />
-              </label>
-              <label className="field field--full">
-                <span>Description</span>
-                <textarea value={details.description} onChange={(event) => setDetails({ ...details, description: event.target.value })} placeholder="What will students learn and why does it matter?" rows={5} required />
-                <small>{details.description.length} characters</small>
-              </label>
-              <label className="switch-field field--full">
-                <input
-                  type="checkbox"
-                  checked={details.enrollment_open}
-                  onChange={(event) => setDetails({
-                    ...details,
-                    enrollment_open: event.target.checked,
-                  })}
+            <div className={styles.formGrid}>
+              <Field label="Course code" className={styles.fieldShort}>
+                <Input
+                  value={details.code}
+                  onChange={(event) => setDetails({ ...details, code: event.target.value.toUpperCase() })}
+                  placeholder="QTM101"
+                  pattern="[A-Z0-9][A-Z0-9-]*"
+                  maxLength={20}
+                  required
                 />
-                <span><i /></span>
-                <div>
-                  <strong>Enrollment open</strong>
-                  <small>Allow eligible students to be enrolled in this course.</small>
-                </div>
-              </label>
+              </Field>
+              <Field label="Course title">
+                <Input
+                  value={details.title}
+                  onChange={(event) => setDetails({ ...details, title: event.target.value })}
+                  placeholder="Foundations of Quantum Computing"
+                  required
+                />
+              </Field>
+              <Field
+                label="Description"
+                help={`${details.description.length} characters`}
+                className={styles.fieldFull}
+              >
+                <Textarea
+                  value={details.description}
+                  onChange={(event) => setDetails({ ...details, description: event.target.value })}
+                  placeholder="What will students learn and why does it matter?"
+                  rows={5}
+                  required
+                />
+              </Field>
+              <Checkbox
+                className={styles.fieldFull}
+                label="Enrollment open"
+                help="Allow eligible students to be enrolled in this course."
+                checked={details.enrollment_open}
+                onChange={(event) => setDetails({
+                  ...details,
+                  enrollment_open: event.target.checked,
+                })}
+              />
             </div>
-            <div className="wizard-actions">
-              <button className="button button--primary" disabled={busy}>
-                {busy ? 'Saving…' : 'Save and add materials'} <Icon name="arrow" size={17} />
-              </button>
+            <div className={styles.actions}>
+              <Button type="submit" variant="primary" loading={busy}>
+                Save and add materials <ArrowRight size={16} aria-hidden="true" />
+              </Button>
             </div>
           </form>
         )}
 
         {step === 2 && (
-          <div className="wizard-form">
-            <div className="wizard-copy">
-              <p className="eyebrow">Step 2 of 4</p>
+          <div className={styles.form}>
+            <div className={styles.copy}>
+              <p className={styles.eyebrow}>Step 2 of 4</p>
               <h2>Learning materials</h2>
-              <p>Upload educator-approved sources. QuantumLearn uses only authorised course material to ground generated tasks.</p>
+              <p className={styles.copyText}>
+                Upload educator-approved sources. LearnLens uses only authorised course material to ground generated tasks.
+              </p>
             </div>
-            <div className="material-grid">
-              <section className="upload-zone">
-                <span className="icon-chip"><Icon name="book" /></span>
-                <h3>Upload a source</h3>
-                <p>PDF, DOCX or PPTX · 20 MB maximum</p>
-                <label className="button button--secondary">
+            <div className={styles.materialGrid}>
+              <section className={styles.sourceCard}>
+                <span className={styles.sourceIcon} aria-hidden="true"><Upload size={18} /></span>
+                <h3 className={styles.sourceTitle}>Upload a source</h3>
+                <p className={styles.sourceHint}>PDF, DOCX or PPTX · 20 MB maximum</p>
+                <label className={styles.fileButton}>
                   Choose file
-                  <input className="sr-only" type="file" accept=".pdf,.docx,.pptx" onChange={chooseFile} />
+                  <input
+                    className="ll-sr-only"
+                    type="file"
+                    accept=".pdf,.docx,.pptx"
+                    onChange={chooseFile}
+                  />
                 </label>
                 {selectedFile && (
-                  <div className="selected-file">
-                    <span><Icon name="check" size={16} /> {selectedFile.name}</span>
-                    <button className="button button--primary" onClick={() => void uploadFile()} disabled={busy}>Upload</button>
+                  <div className={styles.selectedFile}>
+                    <span className={styles.selectedName}>
+                      <FileText size={14} aria-hidden="true" /> {selectedFile.name}
+                    </span>
+                    <Button variant="primary" size="sm" onClick={() => void uploadFile()} loading={busy}>
+                      Upload
+                    </Button>
                   </div>
                 )}
               </section>
-              <section className="link-source">
-                <span className="icon-chip"><Icon name="course" /></span>
-                <h3>Link a secure source</h3>
-                <p>Use a public HTTPS PDF, DOCX or PPTX containing approved course content.</p>
-                <label className="field">
-                  <span>HTTPS address</span>
-                  <input type="url" value={materialUrl} onChange={(event) => setMaterialUrl(event.target.value)} placeholder="https://example.edu/quantum-notes.pdf" />
-                </label>
-                <button className="button button--secondary" onClick={() => void addLink()} disabled={busy || !materialUrl.startsWith('https://')}>Add link</button>
+              <section className={styles.sourceCard}>
+                <span className={styles.sourceIcon} aria-hidden="true"><Link2 size={18} /></span>
+                <h3 className={styles.sourceTitle}>Link a secure source</h3>
+                <p className={styles.sourceHint}>
+                  Use a public HTTPS PDF, DOCX or PPTX containing approved course content.
+                </p>
+                <Field label="HTTPS address">
+                  <Input
+                    type="url"
+                    value={materialUrl}
+                    onChange={(event) => setMaterialUrl(event.target.value)}
+                    placeholder="https://example.edu/quantum-notes.pdf"
+                  />
+                </Field>
+                <div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => void addLink()}
+                    disabled={busy || !materialUrl.startsWith('https://')}
+                  >
+                    Add link
+                  </Button>
+                </div>
               </section>
             </div>
             {materials.length > 0 && (
-              <div className="material-list">
-                <h3>Course sources</h3>
-                {materials.map((material) => (
-                  <div key={material.id}><Icon name="check" size={17} /><span><strong>{material.filename}</strong><small>{material.status}</small></span></div>
-                ))}
+              <div className={styles.materialList}>
+                <h3 className={styles.materialHeading}>Course sources</h3>
+                <ul className={styles.materials}>
+                  {materials.map((material) => {
+                    const processing = material.status !== 'indexed' && material.status !== 'failed'
+                    return (
+                      <li key={material.id} className={styles.material}>
+                        <span
+                          className={cx(
+                            styles.materialIcon,
+                            material.status === 'failed' && styles.materialIconFault,
+                          )}
+                          aria-hidden="true"
+                        >
+                          {material.status === 'indexed' ? (
+                            <CheckCircle2 size={16} />
+                          ) : processing ? (
+                            <Loader2 size={16} className={styles.spin} />
+                          ) : (
+                            <AlertTriangle size={16} />
+                          )}
+                        </span>
+                        <span className={styles.materialBody}>
+                          <strong className={styles.materialName}>{material.filename}</strong>
+                          <small className={styles.materialStatus}>{material.status}</small>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
             )}
-            <div className="wizard-actions">
-              <button className="button button--ghost" onClick={() => setStep(1)}>Back</button>
-              <button className="button button--primary" disabled={indexedMaterialCount === 0} onClick={() => setStep(3)}>Define outcomes <Icon name="arrow" size={17} /></button>
+            <div className={styles.actions}>
+              <Button variant="quiet" onClick={() => setStep(1)}>Back</Button>
+              <Button
+                variant="primary"
+                disabled={indexedMaterialCount === 0}
+                onClick={() => setStep(3)}
+              >
+                Define outcomes <ArrowRight size={16} aria-hidden="true" />
+              </Button>
             </div>
           </div>
         )}
 
         {step === 3 && (
-          <form className="wizard-form" onSubmit={(event) => void saveOutcomes(event)}>
-            <div className="wizard-copy">
-              <p className="eyebrow">Step 3 of 4</p>
+          <form className={styles.form} onSubmit={(event) => void saveOutcomes(event)}>
+            <div className={styles.copy}>
+              <p className={styles.eyebrow}>Step 3 of 4</p>
               <h2>Module and outcomes</h2>
-              <p>Use observable language so each generated activity can be checked against a clear learning goal.</p>
+              <p className={styles.copyText}>
+                Use observable language so each generated activity can be checked against a clear learning goal.
+              </p>
             </div>
             {modules.length > 0 && (
-              <div className="module-picker">
-                <label className="field">
-                  <span>Module to edit</span>
-                  <select
+              <div className={styles.modulePicker}>
+                <Field label="Module to edit">
+                  <Select
                     value={module?.id ?? ''}
-                    onChange={(event) => void selectModule(event.target.value)}
-                  >
-                    <option value="" disabled>Select a module</option>
-                    {modules.map((item) => (
-                      <option value={item.id} key={item.id}>
-                        {item.position}. {item.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="button button--secondary"
-                  onClick={startNewModule}
-                >
+                    onValueChange={(value) => void selectModule(value)}
+                    placeholder="Select a module"
+                    options={modules.map((item) => ({
+                      value: item.id,
+                      label: `${item.position}. ${item.title}`,
+                    }))}
+                  />
+                </Field>
+                <Button variant="secondary" onClick={startNewModule}>
                   Add another module
-                </button>
+                </Button>
               </div>
             )}
-            <div className="form-grid">
-              <label className="field">
-                <span>Module title</span>
-                <input value={moduleTitle} onChange={(event) => setModuleTitle(event.target.value)} placeholder="Superposition and measurement" required />
-              </label>
-              <label className="field">
-                <span>Module description</span>
-                <input value={moduleDescription} onChange={(event) => setModuleDescription(event.target.value)} placeholder="Core single-qubit concepts" required />
-              </label>
-              <label className="field">
-                <span>Outcome schedule</span>
-                <select
+            <div className={styles.formGrid}>
+              <Field label="Module title">
+                <Input
+                  value={moduleTitle}
+                  onChange={(event) => setModuleTitle(event.target.value)}
+                  placeholder="Superposition and measurement"
+                  required
+                />
+              </Field>
+              <Field label="Module description">
+                <Input
+                  value={moduleDescription}
+                  onChange={(event) => setModuleDescription(event.target.value)}
+                  placeholder="Core single-qubit concepts"
+                  required
+                />
+              </Field>
+              <Field label="Outcome schedule">
+                <Select
                   value={outcomeKind}
-                  onChange={(event) =>
-                    setOutcomeKind(event.target.value as 'topic' | 'weekly')}
-                >
-                  <option value="topic">Topic-based</option>
-                  <option value="weekly">Weekly</option>
-                </select>
-              </label>
+                  onValueChange={(value) => setOutcomeKind(value as 'topic' | 'weekly')}
+                  options={[
+                    { value: 'topic', label: 'Topic-based' },
+                    { value: 'weekly', label: 'Weekly' },
+                  ]}
+                />
+              </Field>
               {outcomeKind === 'weekly' && (
-                <label className="field">
-                  <span>Week number</span>
-                  <input
+                <Field label="Week number">
+                  <Input
                     type="number"
                     min="1"
                     value={weekNumber}
                     onChange={(event) => setWeekNumber(Number(event.target.value))}
                     required
                   />
-                </label>
+                </Field>
               )}
-              <label className="field field--full">
-                <span>
-                  {editingOutcomeId ? 'Edit learning outcome' : 'Learning outcomes · one per line'}
-                </span>
-                <textarea
+              <Field
+                label={editingOutcomeId ? 'Edit learning outcome' : 'Learning outcomes · one per line'}
+                help={`${outcomeText.split('\n').filter((line) => line.trim()).length} outcomes`}
+                className={styles.fieldFull}
+              >
+                <Textarea
                   rows={7}
                   value={outcomeText}
                   onChange={(event) => setOutcomeText(event.target.value)}
                   placeholder={'Explain how a Hadamard gate creates superposition.\nPredict measurement probabilities for a single-qubit circuit.\nBuild and test a Bell-state circuit.'}
                   required
                 />
-                <small>{outcomeText.split('\n').filter((line) => line.trim()).length} outcomes</small>
-              </label>
+              </Field>
             </div>
             {outcomes.length > 0 && (
-              <div className="outcome-list" aria-label="Saved learning outcomes">
-                <h3>Saved outcomes</h3>
+              <div className={styles.outcomeList} aria-label="Saved learning outcomes">
+                <h3 className={styles.materialHeading}>Saved outcomes</h3>
                 {outcomes.map((outcome) => (
-                  <article key={outcome.id}>
-                    <div>
-                      <span className="status-chip">
+                  <article key={outcome.id} className={styles.outcome}>
+                    <div className={styles.outcomeBody}>
+                      <Tag>
                         {outcome.kind === 'weekly'
                           ? `Week ${outcome.week_number}`
                           : 'Topic'}
-                      </span>
-                      <strong>{outcome.title}</strong>
-                      <p>{outcome.statement}</p>
+                      </Tag>
+                      <strong className={styles.outcomeTitle}>{outcome.title}</strong>
+                      <p className={styles.outcomeStatement}>{outcome.statement}</p>
                     </div>
-                    <div>
-                      <button
-                        type="button"
-                        className="button button--ghost"
-                        onClick={() => editOutcome(outcome)}
-                      >
+                    <div className={styles.outcomeActions}>
+                      <Button variant="quiet" size="sm" onClick={() => editOutcome(outcome)}>
                         Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="button button--ghost"
+                      </Button>
+                      <Button
+                        variant="quiet"
+                        size="sm"
                         onClick={() => void deleteOutcome(outcome)}
                         disabled={busy}
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </article>
                 ))}
               </div>
             )}
-            <div className="wizard-actions">
-              <button type="button" className="button button--ghost" onClick={() => setStep(2)}>Back</button>
-              <button className="button button--primary" disabled={busy}>
-                {busy ? 'Saving…' : editingOutcomeId ? 'Update outcome' : 'Save and generate'}
-                <Icon name="arrow" size={17} />
-              </button>
+            <div className={styles.actions}>
+              <Button variant="quiet" onClick={() => setStep(2)}>Back</Button>
+              <Button type="submit" variant="primary" loading={busy}>
+                {editingOutcomeId ? 'Update outcome' : 'Save and generate'}
+                <ArrowRight size={16} aria-hidden="true" />
+              </Button>
             </div>
           </form>
         )}
 
         {step === 4 && (
-          <div className="wizard-form">
-            <div className="wizard-copy wizard-copy--generate">
-              <div>
-                <p className="eyebrow">Step 4 of 4</p>
+          <div className={styles.form}>
+            <div className={styles.generateHeader}>
+              <div className={styles.copy}>
+                <p className={styles.eyebrow}>Step 4 of 4</p>
                 <h2>AI task generation</h2>
-                <p>Generate a small scaffolded sequence, then review each task before the course is published.</p>
+                <p className={styles.copyText}>
+                  Generate a small scaffolded sequence, then review each task before the course is published.
+                </p>
               </div>
-              <label className="task-count">
-                <span>Outcome</span>
-                <select
-                  value={generationOutcomeId}
-                  onChange={(event) => setGenerationOutcomeId(event.target.value)}
+              <div className={styles.generateControls}>
+                <Field label="Outcome">
+                  <Select
+                    value={generationOutcomeId}
+                    onValueChange={(value) => setGenerationOutcomeId(value)}
+                    options={outcomes.map((outcome) => ({
+                      value: outcome.id,
+                      label: outcome.title,
+                    }))}
+                  />
+                </Field>
+                <Field label="Tasks">
+                  <Select
+                    value={String(taskCount)}
+                    onValueChange={(value) => setTaskCount(Number(value))}
+                    options={[3, 4, 5].map((count) => ({
+                      value: String(count),
+                      label: String(count),
+                    }))}
+                  />
+                </Field>
+                <Button
+                  variant="primary"
+                  onClick={() => void generate()}
+                  loading={busy}
+                  disabled={indexedMaterialCount === 0 || !generationOutcomeId}
                 >
-                  {outcomes.map((outcome) => (
-                    <option key={outcome.id} value={outcome.id}>
-                      {outcome.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="task-count">
-                <span>Tasks</span>
-                <select value={taskCount} onChange={(event) => setTaskCount(Number(event.target.value))}>
-                  {[3, 4, 5].map((count) => <option key={count}>{count}</option>)}
-                </select>
-              </label>
-              <button className="button button--primary" onClick={() => void generate()} disabled={busy || indexedMaterialCount === 0 || !generationOutcomeId}>
-                <Icon name="spark" size={17} /> {busy ? 'Generating…' : generatedTasks.length ? 'Regenerate tasks' : 'Generate tasks'}
-              </button>
+                  <Sparkles size={16} aria-hidden="true" />
+                  {generatedTasks.length ? 'Regenerate tasks' : 'Generate tasks'}
+                </Button>
+              </div>
             </div>
             {generatedTasks.length === 0 ? (
-              <div className="generation-empty">
-                <div className="hero-atom hero-atom--small" aria-hidden="true"><i /><i /><i /><b /></div>
-                <h3>Ready to build the scaffold</h3>
-                <p>QuantumLearn will use {indexedMaterialCount} indexed source{indexedMaterialCount === 1 ? '' : 's'} and the selected learning outcome.</p>
-              </div>
+              <EmptyState
+                icon={<Sparkles size={20} />}
+                title="Ready to build the scaffold"
+                description={`LearnLens will use ${indexedMaterialCount} indexed source${indexedMaterialCount === 1 ? '' : 's'} and the selected learning outcome.`}
+              />
             ) : (
-              <ol className="generated-task-list">
+              <ol className={styles.taskList}>
                 {generatedTasks.map((task, index) => (
-                  <li key={task.id ?? `${task.title}-${index}`}>
-                    <span>{index + 1}</span>
-                    <div>
-                      <div><strong>{task.title}</strong><span className="status-chip">{taskTypeLabel(task.task_type)}</span><span className="status-chip">{task.difficulty}</span></div>
-                      <p>{task.prompt}</p>
-                      {task.learning_outcome && <small>Outcome: {task.learning_outcome}</small>}
-                      {task.source_references && task.source_references.length > 0 && <small>Sources: {task.source_references.join(', ')}</small>}
+                  <li key={task.id ?? `${task.title}-${index}`} className={styles.task}>
+                    <span className={styles.taskNumber} aria-hidden="true">{index + 1}</span>
+                    <div className={styles.taskBody}>
+                      <div className={styles.taskHead}>
+                        <strong className={styles.taskTitle}>{task.title}</strong>
+                        <Tag>{taskTypeLabel(task.task_type)}</Tag>
+                        <Tag>{task.difficulty}</Tag>
+                      </div>
+                      <p className={styles.taskPrompt}>{task.prompt}</p>
+                      {task.learning_outcome && (
+                        <small className={styles.taskMeta}>Outcome: {task.learning_outcome}</small>
+                      )}
+                      {task.source_references && task.source_references.length > 0 && (
+                        <small className={styles.taskMeta}>
+                          Sources: {task.source_references.join(', ')}
+                        </small>
+                      )}
                     </div>
                   </li>
                 ))}
               </ol>
             )}
-            <div className="wizard-actions">
-              <button className="button button--ghost" onClick={() => setStep(3)}>Back</button>
-              <button className="button button--primary" onClick={() => void publish()} disabled={busy || course?.status === 'published' || course?.status === 'archived'}>
-                {course?.status === 'published' ? 'Course published' : 'Approve and publish'} <Icon name="check" size={17} />
-              </button>
+            <div className={styles.actions}>
+              <Button variant="quiet" onClick={() => setStep(3)}>Back</Button>
+              <Button
+                variant="primary"
+                onClick={() => void publish()}
+                disabled={busy || course?.status === 'published' || course?.status === 'archived'}
+              >
+                {course?.status === 'published' ? 'Course published' : 'Approve and publish'}
+                <CheckCircle2 size={16} aria-hidden="true" />
+              </Button>
             </div>
           </div>
         )}
 
-        {error && <p className="form-error wizard-message" role="alert">{error}</p>}
-        {message && <p className="form-status wizard-message" role="status">{message}</p>}
-      </section>
-      {archiveConfirm && course && (
-        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="archive-course-title">
-          <section className="confirm-dialog">
-            <span className="icon-chip icon-chip--warning"><Icon name="warning" /></span>
-            <h2 id="archive-course-title">Archive {course.title}?</h2>
-            <p>Students will no longer see this course as active. Materials, outcomes, attempts and analytics will be retained.</p>
-            <div>
-              <button autoFocus className="button button--ghost" onClick={() => setArchiveConfirm(false)}>Cancel</button>
-              <button className="button button--primary" onClick={() => void archive()} disabled={busy}>Archive course</button>
-            </div>
-          </section>
-        </div>
-      )}
+        {error && <p className={cx(styles.formMessage, styles.formError)} role="alert">{error}</p>}
+        {message && <p className={cx(styles.formMessage, styles.formStatus)} role="status">{message}</p>}
+      </Card>
+
+      <AlertDialog
+        open={archiveConfirm && Boolean(course)}
+        onOpenChange={(open) => {
+          if (!open) setArchiveConfirm(false)
+        }}
+        title={course ? `Archive ${course.title}?` : 'Archive course?'}
+        description="Students will no longer see this course as active. Materials, outcomes, attempts and analytics will be retained."
+        confirmLabel="Archive course"
+        confirmLoading={busy}
+        onConfirm={() => void archive()}
+      />
     </div>
   )
 }

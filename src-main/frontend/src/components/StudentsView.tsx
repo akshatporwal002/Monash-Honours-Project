@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Send, Users } from 'lucide-react'
+
 import { api } from '../app/api'
 import type { EducatorStudent, StudentRisk } from '../app/types'
-import { Icon, PageHeading, Panel, ScreenState } from './ScreenPrimitives'
+import {
+  BarList,
+  Button,
+  Card,
+  Checkbox,
+  EmptyState,
+  ErrorState,
+  EstimateChip,
+  PageHeader,
+  SearchInput,
+  Select,
+  Skeleton,
+} from './ui'
+import styles from './StudentsView.module.css'
 
 type StudentFilter = 'all' | StudentRisk
 
@@ -9,6 +24,12 @@ function riskFor(student: EducatorStudent): StudentRisk {
   if (student.risk) return student.risk
   if (student.completed_tasks === 0) return 'not_started'
   return student.completion_percent < 50 ? 'at_risk' : 'on_track'
+}
+
+const riskLabel: Record<StudentRisk, string> = {
+  on_track: 'On track',
+  at_risk: 'At risk',
+  not_started: 'Not started',
 }
 
 function formatLastActive(value: string | null): string {
@@ -86,7 +107,7 @@ export function StudentsView() {
     try {
       const result = await api.educator.notifyStudents(
         selected,
-        'Your educator has shared a learning check-in. Open QuantumLearn to review your next recommended activity.',
+        'Your educator has shared a learning check-in. Open LearnLens to review your next recommended activity.',
       )
       setNotice(`${result.sent} notification${result.sent === 1 ? '' : 's'} sent.`)
       setSelected([])
@@ -98,70 +119,102 @@ export function StudentsView() {
   }
 
   if (error) {
-    return <div className="screen"><ScreenState kind="error" title="Student view unavailable" message={error} action={<button className="button button--secondary" onClick={() => void load()}>Try again</button>} /></div>
+    return (
+      <div className={styles.screen}>
+        <ErrorState title="Student view unavailable" description={error} onRetry={() => void load()} />
+      </div>
+    )
   }
   if (!students) {
-    return <div className="screen"><ScreenState kind="loading" title="Loading students" message="Building the latest progress view for your courses." /></div>
+    return (
+      <div className={styles.screen}>
+        <p role="status" className={styles.loading}>
+          Loading students: building the latest progress view for your courses.
+        </p>
+        <Skeleton height="2.5rem" width="24rem" />
+        <Skeleton height="9rem" />
+        <Skeleton height="14rem" />
+      </div>
+    )
   }
 
   return (
-    <div className="screen">
-      <PageHeading
+    <div className={styles.screen}>
+      <PageHeader
         eyebrow="Student support"
         title="Students"
         description="Find learners quickly, compare progress and send a timely check-in."
         actions={
-          <button className="button button--primary" onClick={() => void notify()} disabled={selected.length === 0 || sending}>
-            <Icon name="people" size={18} /> {sending ? 'Sending…' : `Notify selected${selected.length ? ` (${selected.length})` : ''}`}
-          </button>
+          <div className={styles.headerActions}>
+            <Button
+              variant="primary"
+              onClick={() => void notify()}
+              disabled={selected.length === 0}
+              loading={sending}
+            >
+              <Send size={16} aria-hidden="true" />
+              {`Notify selected${selected.length ? ` (${selected.length})` : ''}`}
+            </Button>
+            {selected.length === 0 && (
+              <span className={styles.actionHint}>Select students below to enable notifications.</span>
+            )}
+          </div>
         }
       />
 
-      <Panel title="Cohort distribution" eyebrow="Current standing">
-        <div className="distribution-chart" role="img" aria-label="Student progress distribution">
-          {distribution.map(({ risk, count, percent }) => (
-            <div key={risk}>
-              <span>{risk === 'on_track' ? 'On track' : risk === 'at_risk' ? 'At risk' : 'Not started'}</span>
-              <div><i className={`distribution-${risk}`} style={{ width: `${percent}%` }} /></div>
-              <strong>{count} <small>({percent}%)</small></strong>
-            </div>
-          ))}
-        </div>
-      </Panel>
+      <Card eyebrow="Current standing" heading="Cohort distribution">
+        <BarList
+          max={100}
+          items={distribution.map(({ risk, count, percent }) => ({
+            label: riskLabel[risk],
+            value: percent,
+            display: `${count} (${percent}%)`,
+          }))}
+        />
+      </Card>
 
-      <section className="table-panel" aria-labelledby="student-table-title">
-        <header className="table-toolbar">
+      <Card padding="none" className={styles.tablePanel} aria-labelledby="student-table-title">
+        <header className={styles.toolbar}>
           <div>
-            <p className="eyebrow">Enrolment</p>
-            <h2 id="student-table-title">{students.length} students</h2>
+            <p className={styles.eyebrow}>Enrolment</p>
+            <h2 id="student-table-title" className={styles.tableTitle}>{students.length} students</h2>
           </div>
-          <div className="table-controls">
-            <label className="search-field">
-              <span className="sr-only">Search students</span>
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, email or course" />
-            </label>
-            <label>
-              <span className="sr-only">Filter by progress state</span>
-              <select value={filter} onChange={(event) => setFilter(event.target.value as StudentFilter)}>
-                <option value="all">All students</option>
-                <option value="on_track">On track</option>
-                <option value="at_risk">At risk</option>
-                <option value="not_started">Not started</option>
-              </select>
-            </label>
+          <div className={styles.controls}>
+            <SearchInput
+              label="Search students"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name, email or course"
+              className={styles.search}
+            />
+            <Select
+              aria-label="Filter by progress state"
+              value={filter}
+              onValueChange={(value) => setFilter(value as StudentFilter)}
+              options={[
+                { value: 'all', label: 'All students' },
+                { value: 'on_track', label: 'On track' },
+                { value: 'at_risk', label: 'At risk' },
+                { value: 'not_started', label: 'Not started' },
+              ]}
+            />
           </div>
         </header>
-        {notice && <p className="form-status table-notice" role="status">{notice}</p>}
+        {notice && <p className={styles.notice} role="status">{notice}</p>}
         {filtered.length === 0 ? (
-          <div className="inline-empty table-empty"><Icon name="people" /><p>No students match this search and filter.</p></div>
+          <EmptyState
+            icon={<Users size={20} />}
+            title="No students match this search and filter."
+            className={styles.empty}
+          />
         ) : (
-          <div className="table-scroll">
-            <table>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>
-                    <input
-                      type="checkbox"
+                  <th scope="col" className={styles.selectCell}>
+                    <Checkbox
+                      label=""
                       aria-label="Select all visible students"
                       checked={filtered.every((student) => selected.includes(student.student_id))}
                       onChange={toggleAll}
@@ -180,16 +233,46 @@ export function StudentsView() {
                   const risk = riskFor(student)
                   return (
                     <tr key={student.student_id}>
-                      <td><input type="checkbox" aria-label={`Select ${student.display_name}`} checked={selected.includes(student.student_id)} onChange={() => setSelected((current) => current.includes(student.student_id) ? current.filter((id) => id !== student.student_id) : [...current, student.student_id])} /></td>
-                      <th scope="row"><strong>{student.display_name}</strong><small>{student.email}</small></th>
+                      <td className={styles.selectCell}>
+                        <Checkbox
+                          label=""
+                          aria-label={`Select ${student.display_name}`}
+                          checked={selected.includes(student.student_id)}
+                          onChange={() => setSelected((current) => current.includes(student.student_id)
+                            ? current.filter((id) => id !== student.student_id)
+                            : [...current, student.student_id])}
+                        />
+                      </td>
+                      <th scope="row" className={styles.studentCell}>
+                        <strong className={styles.studentName}>{student.display_name}</strong>
+                        <small className={styles.studentEmail}>{student.email}</small>
+                      </th>
                       <td>{student.course_title || 'All courses'}</td>
                       <td>
-                        <div className="table-progress"><span><i style={{ width: `${student.completion_percent}%` }} /></span><strong>{student.completion_percent}%</strong></div>
-                        <small>{student.completed_tasks}/{student.total_tasks} activities</small>
+                        <div className={styles.progress}>
+                          <span className={styles.progressTrack} aria-hidden="true">
+                            <span style={{ width: `${student.completion_percent}%` }} />
+                          </span>
+                          <strong className={styles.progressValue}>{student.completion_percent}%</strong>
+                        </div>
+                        <small className={styles.progressDetail}>
+                          {student.completed_tasks}/{student.total_tasks} activities
+                        </small>
                       </td>
-                      <td><strong>{student.completed_tasks ? `${student.average_score}%` : '—'}</strong></td>
+                      <td>
+                        <strong className={styles.average}>
+                          {student.completed_tasks ? `${student.average_score}%` : '—'}
+                        </strong>
+                      </td>
                       <td>{formatLastActive(student.last_active)}</td>
-                      <td><span className={`risk-badge risk-badge--${risk}`}>{risk === 'on_track' ? 'On track' : risk === 'at_risk' ? 'At risk' : 'Not started'}</span>{Boolean(student.overdue_tasks) && <small>{student.overdue_tasks} overdue</small>}</td>
+                      <td>
+                        <EstimateChip uncertainty="Estimate from completion activity">
+                          {riskLabel[risk]}
+                        </EstimateChip>
+                        {Boolean(student.overdue_tasks) && (
+                          <small className={styles.overdue}>{student.overdue_tasks} overdue</small>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
@@ -197,7 +280,7 @@ export function StudentsView() {
             </table>
           </div>
         )}
-      </section>
+      </Card>
     </div>
   )
 }

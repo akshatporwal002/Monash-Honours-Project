@@ -1,9 +1,25 @@
+import { ArrowLeft, Play } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragEvent, ReactNode } from 'react'
+
 import { ApiError, api, csrfToken } from '../app/api'
 import type { GateOperation, LearningTask, SimulationResult, TaskSubmission } from '../app/types'
 import { createFeedbackApiClient, FeedbackPanel } from '../features/feedback'
-import { Icon } from './ScreenPrimitives'
+import {
+  AlertDialog,
+  Button,
+  Card,
+  DescriptionList,
+  Field,
+  Tag,
+  Textarea,
+  bloomKnowledgeLabels,
+  bloomProcessPlain,
+  cx,
+} from './ui'
+import type { DescriptionItem } from './ui'
+import type { BloomKnowledge, BloomProcess } from '../features/assessment/types'
+import styles from './TaskView.module.css'
 
 const defaultOptions = [
   { id: 'a', text: 'It creates an equal superposition of |0⟩ and |1⟩.' },
@@ -25,13 +41,13 @@ function codeTokens(code: string): ReactNode[] {
   const tokenPattern = /(\b(?:from|import|as|def|return|for|in|if|else|QuantumCircuit|AerSimulator)\b|'[^']*'|"[^"]*"|#[^\n]*)/g
   return code.split(tokenPattern).filter(Boolean).map((token, index) => {
     const className = token.startsWith('#')
-      ? 'token-comment'
+      ? styles.tokenComment
       : token.startsWith("'") || token.startsWith('"')
-        ? 'token-string'
+        ? styles.tokenString
         : /^(from|import|as|def|return|for|in|if|else)$/.test(token)
-          ? 'token-keyword'
+          ? styles.tokenKeyword
           : /^(QuantumCircuit|AerSimulator)$/.test(token)
-            ? 'token-class'
+            ? styles.tokenClass
             : ''
     return <span className={className} key={`${token}-${index}`}>{token}</span>
   })
@@ -89,6 +105,11 @@ function readableConditions(value: Record<string, unknown> | unknown[]): string 
   return values.map(String).join(', ') || 'None declared'
 }
 
+function readablePurpose(purpose: string): string {
+  const lower = purpose.replaceAll('_', ' ').toLowerCase()
+  return lower.charAt(0).toUpperCase() + lower.slice(1)
+}
+
 export function TaskView({
   task,
   onClose,
@@ -99,7 +120,6 @@ export function TaskView({
   onSubmitted: () => Promise<void>
 }) {
   const mode = taskMode(task)
-  const workspaceRef = useRef<HTMLElement>(null)
   const idempotencyKeyRef = useRef<string | null>(null)
   const feedbackClient = useMemo(
     () => createFeedbackApiClient({ getCsrfToken: csrfToken }),
@@ -119,6 +139,8 @@ export function TaskView({
   const [draftReload, setDraftReload] = useState(0)
   const [statusMessage, setStatusMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
   const options = task.options?.length ? task.options : defaultOptions
   const qiskitCode = task.starter_code || [
     'from qiskit import QuantumCircuit',
@@ -129,38 +151,6 @@ export function TaskView({
     'circuit.cx(0, 1)',
     'circuit.measure([0, 1], [0, 1])',
   ].join('\n')
-
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const workspace = workspaceRef.current
-    const focusableSelector = 'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [href]'
-    workspace?.querySelector<HTMLElement>(focusableSelector)?.focus()
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab' || !workspace) return
-      const focusable = Array.from(workspace.querySelectorAll<HTMLElement>(focusableSelector))
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      previousFocus?.focus()
-    }
-  }, [onClose])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -229,12 +219,20 @@ export function TaskView({
         ? Boolean(code.trim())
       : Boolean(answer.trim())
 
+  const touch = () => setDirty(true)
+
+  const requestClose = () => {
+    if (dirty) setConfirmLeave(true)
+    else onClose()
+  }
+
   const addGate = (gate: GateOperation['gate'], target = 0) => {
     setOperations((current) => [
       ...current,
       { gate, targets: gate === 'cx' ? [0, 1] : [target] },
     ])
     setSimulation(null)
+    touch()
   }
 
   const dropGate = (event: DragEvent<HTMLDivElement>, target: number) => {
@@ -276,10 +274,12 @@ export function TaskView({
           ...(current ?? []).filter((item) => item.id !== result.id),
         ])
         setStatusMessage('Activity submitted. Your grounded feedback is ready below.')
+        setDirty(false)
         await onSubmitted()
       } else {
         await api.student.saveDraft(task.id, payload)
         setStatusMessage('Draft saved.')
+        setDirty(false)
       }
     } catch (error) {
       setStatusMessage(messageFor(error))
@@ -288,296 +288,326 @@ export function TaskView({
     }
   }
 
+  const assessmentItems: DescriptionItem[] = task.assessment
+    ? [
+        { term: 'Purpose', description: readablePurpose(task.assessment.purpose) },
+        {
+          term: 'Target',
+          description: `${bloomProcessPlain(task.assessment.bloom_process as BloomProcess)} (${
+            bloomKnowledgeLabels[task.assessment.knowledge_dimension as BloomKnowledge] ?? task.assessment.knowledge_dimension
+          })`,
+        },
+        { term: 'Claim', description: task.assessment.claim },
+        { term: 'Task conditions', description: readableConditions(task.assessment.task_conditions) },
+        { term: 'Permitted tools', description: readableConditions(task.assessment.permitted_tools) },
+        { term: 'Access conditions', description: readableConditions(task.assessment.access_conditions) },
+        { term: 'Review', description: task.assessment.review_rule },
+      ]
+    : []
+
   return (
-    <div className="task-overlay" role="dialog" aria-modal="true" aria-labelledby="task-title">
-      <article className="task-workspace" ref={workspaceRef}>
-        <header className="task-header">
-          <button className="icon-button" onClick={onClose} aria-label="Close task"><Icon name="close" /></button>
-          <div>
-            <p className="eyebrow">{task.module} · {task.difficulty}</p>
-            <h1 id="task-title">{task.title}</h1>
-          </div>
-          <span className="xp-pill"><Icon name="spark" size={15} /> {task.points} XP</span>
-        </header>
+    <article className={cx('ll-root', styles.page)} aria-labelledby="task-title">
+      <header className={styles.header}>
+        <Button variant="quiet" onClick={requestClose} aria-label="Close task">
+          <ArrowLeft size={16} aria-hidden="true" /> Back
+        </Button>
+        <div className={styles.headerText}>
+          <p className={styles.eyebrow}>
+            {task.module} · {task.difficulty}
+          </p>
+          <h1 id="task-title" className={styles.title}>{task.title}</h1>
+        </div>
+      </header>
 
-        <div className="task-layout">
-          <aside className="task-brief">
-            <span className="icon-chip"><Icon name={mode.startsWith('code') ? 'code' : mode === 'circuit' ? 'circuit' : 'book'} /></span>
-            <p className="eyebrow">Your mission</p>
-            <h2>{task.description}</h2>
-            <p>{task.instructions}</p>
-            <div className="learning-note">
-              <Icon name="spark" size={18} />
-              <p>{task.assessment
+      <div className={styles.layout}>
+        <aside className={styles.brief}>
+          <Card eyebrow="Your mission">
+            <h2 className={styles.briefTitle}>{task.description}</h2>
+            <p className={styles.briefText}>{task.instructions}</p>
+            <p className={styles.briefNote}>
+              {task.assessment
                 ? 'Read the assessment conditions before you submit. Your response will be saved as evidence.'
-                : 'Try an answer first. Your feedback will explain the next useful step, not just the score.'}</p>
-            </div>
-            {task.assessment && (
-              <section className="source-list" aria-labelledby="assessment-conditions-title">
-                <strong id="assessment-conditions-title">Assessment conditions</strong>
-                <span>Purpose: {task.assessment.purpose.replace('_', ' ')}</span>
-                <span>Target: {task.assessment.bloom_process} ({task.assessment.knowledge_dimension})</span>
-                <span>Claim: {task.assessment.claim}</span>
-                <span>Task conditions: {readableConditions(task.assessment.task_conditions)}</span>
-                <span>Permitted tools: {readableConditions(task.assessment.permitted_tools)}</span>
-                <span>Access conditions: {readableConditions(task.assessment.access_conditions)}</span>
-                <span>Review: {task.assessment.review_rule}</span>
-                <strong>Evidence criteria</strong>
+                : 'Try an answer first. Your feedback will explain the next useful step.'}
+            </p>
+          </Card>
+          {task.assessment ? (
+            <Card eyebrow="Before you attempt" heading="Assessment conditions">
+              <DescriptionList items={assessmentItems} />
+              <h3 className={styles.criteriaTitle}>Evidence criteria</h3>
+              <ul className={styles.criteria}>
                 {task.assessment.criteria.map((criterion) => (
-                  <span key={criterion.description}>
-                    {criterion.mandatory ? 'Required: ' : 'Supporting: '}{criterion.description}
-                  </span>
+                  <li key={criterion.description} className={cx(styles.criterion, !criterion.mandatory && styles.criterionSupporting)}>
+                    {criterion.mandatory ? 'Required: ' : 'Supporting: '}
+                    {criterion.description}
+                  </li>
                 ))}
-              </section>
-            )}
-            {task.source_references && task.source_references.length > 0 && (
-              <div className="source-list">
-                <strong>Grounded in</strong>
-                {task.source_references.map((source) => <span key={source}>{source}</span>)}
-              </div>
-            )}
-          </aside>
+              </ul>
+            </Card>
+          ) : null}
+          {task.source_references && task.source_references.length > 0 ? (
+            <Card eyebrow="Grounded in">
+              <ul className={styles.sources}>
+                {task.source_references.map((source) => (
+                  <li key={source}>{source}</li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
+        </aside>
 
-          <section className="task-interaction" aria-label="Activity">
-            {draftLoading ? (
-              <p className="attempt-history__state" role="status">Restoring your saved work…</p>
-            ) : (
-              <>
-                {mode === 'mcq' && (
-              <fieldset className="mcq">
-                <legend>Select the best answer</legend>
-                {options.map((option, index) => (
-                  <label key={option.id} className={selectedOption === option.id ? 'selected' : ''}>
-                    <input
-                      type="radio"
-                      name="answer"
-                      value={option.id}
-                      checked={selectedOption === option.id}
-                      onChange={() => setSelectedOption(option.id)}
+        <section className={styles.interaction} aria-label="Activity">
+          {draftLoading ? (
+            <p className={styles.stateNote} role="status">Restoring your saved work…</p>
+          ) : (
+            <>
+              {(mode === 'mcq' || mode === 'multi') && (
+                <fieldset className={styles.choices}>
+                  <legend className={styles.legend}>
+                    {mode === 'mcq' ? 'Select the best answer' : 'Select every correct answer'}
+                  </legend>
+                  {options.map((option, index) => {
+                    const selected = mode === 'mcq'
+                      ? selectedOption === option.id
+                      : selectedOptions.includes(option.id)
+                    return (
+                      <label key={option.id} className={cx(styles.choice, selected && styles.choiceSelected)}>
+                        <input
+                          type={mode === 'mcq' ? 'radio' : 'checkbox'}
+                          name={mode === 'mcq' ? 'answer' : 'answers'}
+                          value={option.id}
+                          checked={selected}
+                          onChange={() => {
+                            if (mode === 'mcq') setSelectedOption(option.id)
+                            else {
+                              setSelectedOptions((current) =>
+                                current.includes(option.id)
+                                  ? current.filter((id) => id !== option.id)
+                                  : [...current, option.id])
+                            }
+                            touch()
+                          }}
+                          className={styles.choiceInput}
+                        />
+                        <span className={styles.letter} aria-hidden="true">{String.fromCharCode(65 + index)}</span>
+                        <span className={styles.choiceText}>{option.text}</span>
+                      </label>
+                    )
+                  })}
+                </fieldset>
+              )}
+
+              {mode === 'code-explanation' && (
+                <div className={styles.codeStack}>
+                  <div className={styles.codeWindow}>
+                    <div className={styles.codeBar}>
+                      <span>entanglement.py</span>
+                      <Tag>Python · Qiskit</Tag>
+                    </div>
+                    <pre className={styles.codePre} aria-label="Qiskit code example"><code>{codeTokens(qiskitCode)}</code></pre>
+                  </div>
+                  <Field label="Explain what this circuit does" help={`${answer.length} characters`}>
+                    <Textarea
+                      rows={6}
+                      value={answer}
+                      onChange={(event) => { setAnswer(event.target.value); touch() }}
+                      placeholder="Describe the state after the H and CX gates, then explain the expected measurements."
                     />
-                    <span className="option-letter">{String.fromCharCode(65 + index)}</span>
-                    <span>{option.text}</span>
-                  </label>
-                ))}
-              </fieldset>
-                )}
-
-                {mode === 'multi' && (
-              <fieldset className="mcq">
-                <legend>Select every correct answer</legend>
-                {options.map((option, index) => (
-                  <label key={option.id} className={selectedOptions.includes(option.id) ? 'selected' : ''}>
-                    <input
-                      type="checkbox"
-                      name="answers"
-                      value={option.id}
-                      checked={selectedOptions.includes(option.id)}
-                      onChange={() => setSelectedOptions((current) =>
-                        current.includes(option.id)
-                          ? current.filter((id) => id !== option.id)
-                          : [...current, option.id])}
-                    />
-                    <span className="option-letter">{String.fromCharCode(65 + index)}</span>
-                    <span>{option.text}</span>
-                  </label>
-                ))}
-              </fieldset>
-                )}
-
-                {mode === 'code-explanation' && (
-              <div className="code-explanation">
-                <div className="code-window">
-                  <div className="code-window__bar"><span>entanglement.py</span><span>Python · Qiskit</span></div>
-                  <pre aria-label="Qiskit code example"><code>{codeTokens(qiskitCode)}</code></pre>
+                  </Field>
                 </div>
-                <label className="field">
-                  <span>Explain what this circuit does</span>
-                  <textarea
-                    rows={6}
-                    value={answer}
-                    onChange={(event) => setAnswer(event.target.value)}
-                    placeholder="Describe the state after the H and CX gates, then explain the expected measurements."
-                  />
-                  <small>{answer.length} characters</small>
-                </label>
-              </div>
-                )}
+              )}
 
-                {mode === 'code-completion' && (
-              <div className="code-explanation">
-                <div className="code-window">
-                  <div className="code-window__bar"><span>solution.py</span><span>Python · Qiskit</span></div>
+              {mode === 'code-completion' && (
+                <div className={styles.codeWindow}>
+                  <div className={styles.codeBar}>
+                    <span>solution.py</span>
+                    <Tag>Python · Qiskit</Tag>
+                  </div>
                   <textarea
-                    className="code-editor"
+                    className={styles.codeEditor}
                     aria-label="Qiskit code editor"
                     spellCheck={false}
                     value={code}
-                    onChange={(event) => setCode(event.target.value)}
+                    onChange={(event) => { setCode(event.target.value); touch() }}
                   />
                 </div>
-              </div>
-                )}
+              )}
 
-                {mode === 'text' && (
-              <label className="field">
-                <span>Your response</span>
-                <textarea
-                  aria-label="Your response"
-                  rows={12}
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  placeholder="Explain your reasoning in your own words."
-                />
-                <small>{answer.length} characters</small>
-              </label>
-                )}
+              {mode === 'text' && (
+                <Field label="Your response" help={`${answer.length} characters`}>
+                  <Textarea
+                    rows={12}
+                    value={answer}
+                    onChange={(event) => { setAnswer(event.target.value); touch() }}
+                    placeholder="Explain your reasoning in your own words."
+                  />
+                </Field>
+              )}
 
-                {mode === 'circuit' && (
-              <div className="circuit-builder">
-                <div className="gate-palette" aria-label="Quantum gate palette">
-                  <div><strong>Gate palette</strong><small>Drag a gate to a wire or use its add button.</small></div>
-                  {(['h', 'x', 'cx'] as const).map((gate) => (
-                    <button
-                      key={gate}
-                      draggable
-                      onDragStart={(event) => event.dataTransfer.setData('application/x-quantum-gate', gate)}
-                      onClick={() => addGate(gate)}
-                      aria-label={`Add ${gate.toUpperCase()} gate`}
-                    >
-                      {gate.toUpperCase()}
-                    </button>
-                  ))}
-                  <button className="clear-gates" onClick={() => { setOperations([]); setSimulation(null) }}>Clear</button>
-                </div>
-                <div className="circuit-board" aria-label="Two qubit circuit">
-                  {[0, 1].map((qubit) => (
-                    <div
-                      className="qubit-wire"
-                      key={qubit}
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={(event) => dropGate(event, qubit)}
-                    >
-                      <code>|0⟩ q{qubit}</code>
-                      <div className="wire">
-                        {operations.map((operation, index) => (
-                          operation.targets.includes(qubit)
-                            ? (
-                              <button
-                                key={`${operation.gate}-${index}`}
-                                title="Remove gate"
-                                onClick={() => setOperations((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                              >
-                                {operation.gate === 'cx' ? (qubit === 0 ? '●' : '⊕') : operation.gate.toUpperCase()}
-                              </button>
-                            )
-                            : <i key={`${operation.gate}-${index}`} />
-                        ))}
-                      </div>
+              {mode === 'circuit' && (
+                <div className={styles.circuit}>
+                  <div className={styles.palette} aria-label="Quantum gate palette">
+                    <div className={styles.paletteIntro}>
+                      <strong>Gate palette</strong>
+                      <small>Drag a gate to a wire or use its add button.</small>
                     </div>
-                  ))}
-                </div>
-                <button className="button button--secondary" onClick={() => void runSimulation()} disabled={busy || operations.length === 0}>
-                  <Icon name="circuit" size={17} /> Run 1,024 shots
-                </button>
-                {simulation && (
-                  <div className="simulation-results">
-                    <div><strong>Simulation result</strong><small>{simulation.engine}</small></div>
-                    {Object.entries(simulation.counts).map(([state, count]) => (
-                      <div className="result-bar" key={state}>
-                        <code>|{state}⟩</code>
-                        <span><i style={{ width: `${Math.max(2, count / 10.24)}%` }} /></span>
-                        <strong>{count}</strong>
+                    {(['h', 'x', 'cx'] as const).map((gate) => (
+                      <button
+                        key={gate}
+                        type="button"
+                        className={styles.gateButton}
+                        draggable
+                        onDragStart={(event) => event.dataTransfer.setData('application/x-quantum-gate', gate)}
+                        onClick={() => addGate(gate)}
+                        aria-label={`Add ${gate.toUpperCase()} gate`}
+                      >
+                        {gate.toUpperCase()}
+                      </button>
+                    ))}
+                    <Button variant="quiet" size="sm" onClick={() => { setOperations([]); setSimulation(null); touch() }}>
+                      Clear
+                    </Button>
+                  </div>
+                  <div className={styles.board} aria-label="Two qubit circuit">
+                    {[0, 1].map((qubit) => (
+                      <div
+                        className={styles.wireRow}
+                        key={qubit}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => dropGate(event, qubit)}
+                      >
+                        <code className={styles.wireLabel}>|0⟩ q{qubit}</code>
+                        <div className={styles.wire}>
+                          {operations.map((operation, index) => (
+                            operation.targets.includes(qubit)
+                              ? (
+                                <button
+                                  key={`${operation.gate}-${index}`}
+                                  type="button"
+                                  className={styles.gateChip}
+                                  title="Remove gate"
+                                  onClick={() => { setOperations((current) => current.filter((_, itemIndex) => itemIndex !== index)); touch() }}
+                                >
+                                  {operation.gate === 'cx' ? (qubit === 0 ? '●' : '⊕') : operation.gate.toUpperCase()}
+                                </button>
+                              )
+                              : <i key={`${operation.gate}-${index}`} className={styles.wireGap} />
+                          ))}
+                        </div>
                       </div>
                     ))}
-                    <pre>{simulation.circuit_text}</pre>
                   </div>
-                )}
-              </div>
-                )}
-              </>
-            )}
-
-            {draftError && (
-              <div className="form-status" role="alert">
-                {draftError}{' '}
-                <button
-                  className="button button--ghost"
-                  onClick={() => {
-                    setDraftLoading(true)
-                    setDraftError('')
-                    setDraftReload((current) => current + 1)
-                  }}
-                >
-                  Try restoring again
-                </button>
-              </div>
-            )}
-
-            {submission && (
-              <div className={`submission-result ${submission.score !== null && submission.score >= 70 ? 'submission-result--success' : ''}`} role="status">
-                <div>
-                  <span><Icon name={submission.score !== null && submission.score >= 70 ? 'check' : 'spark'} /></span>
-                  <div>
-                    <p className="eyebrow">Attempt recorded</p>
-                    <h2>{submission.score === null ? 'Assessment response saved' : `${submission.score}%`}</h2>
-                  </div>
-                </div>
-                <p>{submission.score === null
-                  ? 'Your response is saved for assessment and review.'
-                  : 'Your response is saved. Validated AI feedback is prepared separately below.'}</p>
-              </div>
-            )}
-            {latestFeedbackReference && (
-              <FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} />
-            )}
-            <section className="attempt-history" aria-labelledby="attempt-history-title">
-              <header>
-                <div>
-                  <p className="eyebrow">Your records</p>
-                  <h2 id="attempt-history-title">Attempt history</h2>
-                </div>
-                {attempts && <span>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span>}
-              </header>
-              {attempts === null ? (
-                <p className="attempt-history__state">Loading previous attempts…</p>
-              ) : attempts.length === 0 ? (
-                <p className="attempt-history__state">
-                  {attemptsError || 'No attempts yet. Submit this activity when you are ready.'}
-                </p>
-              ) : (
-                <ol>
-                  {attempts.map((item, index) => (
-                    <li key={item.id ?? `${item.attempt_number}-${item.submitted_at}`}>
-                      <span className="attempt-number">#{item.attempt_number ?? attempts.length - index}</span>
-                      <div>
-                        <strong>{item.score === null ? 'Assessment response saved' : `${item.score}%`}</strong>
-                        <small>{item.status.replace('_', ' ')}</small>
+                  <Button variant="secondary" onClick={() => void runSimulation()} disabled={busy || operations.length === 0}>
+                    <Play size={15} aria-hidden="true" /> Run 1,024 shots
+                  </Button>
+                  {simulation && (
+                    <div className={styles.simulation}>
+                      <div className={styles.simulationHead}>
+                        <strong>Simulation result</strong>
+                        <small>{simulation.engine}</small>
                       </div>
-                      {item.submitted_at ? (
-                        <time dateTime={item.submitted_at}>
-                          {new Date(item.submitted_at).toLocaleString('en-AU', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          })}
-                        </time>
-                      ) : <time>Just now</time>}
-                    </li>
-                  ))}
-                </ol>
+                      {Object.entries(simulation.counts).map(([state, count]) => (
+                        <div className={styles.resultRow} key={state}>
+                          <code>|{state}⟩</code>
+                          <span className={styles.resultTrack}>
+                            <i className={styles.resultFill} style={{ width: `${Math.min(100, Math.max(2, count / 10.24))}%` }} />
+                          </span>
+                          <strong className={styles.resultCount}>{count}</strong>
+                        </div>
+                      ))}
+                      <pre className={styles.circuitText}>{simulation.circuit_text}</pre>
+                    </div>
+                  )}
+                </div>
               )}
-            </section>
-            {statusMessage && <p className="form-status" role="status">{statusMessage}</p>}
-          </section>
-        </div>
+            </>
+          )}
 
-        <footer className="task-footer">
-          <button className="button button--ghost" onClick={onClose}>Close</button>
-          <button className="button button--secondary" onClick={() => void save(false)} disabled={busy || draftLoading || !valid}>Save draft</button>
-          <button className="button button--primary" onClick={() => void save(true)} disabled={busy || draftLoading || !valid}>
-            {busy ? 'Working…' : 'Submit activity'} <Icon name="arrow" size={17} />
-          </button>
-        </footer>
-      </article>
-    </div>
+          {draftError && (
+            <div className={styles.alert} role="alert">
+              {draftError}{' '}
+              <Button
+                variant="quiet"
+                size="sm"
+                onClick={() => {
+                  setDraftLoading(true)
+                  setDraftError('')
+                  setDraftReload((current) => current + 1)
+                }}
+              >
+                Try restoring again
+              </Button>
+            </div>
+          )}
+
+          {submission && (
+            <Card eyebrow="Attempt recorded" className={styles.submissionCard} role="status">
+              <h2 className={styles.submissionTitle}>
+                {submission.score === null ? 'Assessment response saved' : `${submission.score}%`}
+              </h2>
+              <p className={styles.submissionText}>
+                {submission.score === null
+                  ? 'Your response is saved for assessment and review.'
+                  : 'Your response is saved. Validated AI feedback is prepared separately below.'}
+              </p>
+            </Card>
+          )}
+          {latestFeedbackReference && (
+            <FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} />
+          )}
+          <Card eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
+            {attempts === null ? (
+              <p className={styles.stateNote}>Loading previous attempts…</p>
+            ) : attempts.length === 0 ? (
+              <p className={styles.stateNote}>
+                {attemptsError || 'No attempts yet. Submit this activity when you are ready.'}
+              </p>
+            ) : (
+              <ol className={styles.attempts}>
+                {attempts.map((item, index) => (
+                  <li key={item.id ?? `${item.attempt_number}-${item.submitted_at}`} className={styles.attempt}>
+                    <span className={styles.attemptNumber}>#{item.attempt_number ?? attempts.length - index}</span>
+                    <div className={styles.attemptBody}>
+                      <strong>{item.score === null ? 'Assessment response saved' : `${item.score}%`}</strong>
+                      <small className={styles.attemptStatus}>{item.status.replace('_', ' ')}</small>
+                    </div>
+                    {item.submitted_at ? (
+                      <time dateTime={item.submitted_at} className={styles.attemptTime}>
+                        {new Date(item.submitted_at).toLocaleString('en-AU', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </time>
+                    ) : <time className={styles.attemptTime}>Just now</time>}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+          {statusMessage && <p className={styles.status} role="status">{statusMessage}</p>}
+        </section>
+      </div>
+
+      <footer className={styles.footer}>
+        <Button variant="quiet" onClick={requestClose}>Close</Button>
+        <Button variant="secondary" onClick={() => void save(false)} disabled={busy || draftLoading || !valid}>
+          Save draft
+        </Button>
+        <Button variant="primary" onClick={() => void save(true)} disabled={busy || draftLoading || !valid} loading={busy}>
+          Submit activity
+        </Button>
+      </footer>
+
+      <AlertDialog
+        open={confirmLeave}
+        onOpenChange={setConfirmLeave}
+        title="Leave this activity?"
+        description="Your unsaved changes will be lost. Save a draft first to keep them."
+        confirmLabel="Leave activity"
+        onConfirm={() => {
+          setConfirmLeave(false)
+          onClose()
+        }}
+      />
+    </article>
   )
 }

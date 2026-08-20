@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { AnalyticsDashboard } from '../features/analytics/AnalyticsDashboard'
 import type { AnalyticsFilterState } from '../features/analytics/types'
 import { FeedbackPanel } from '../features/feedback/FeedbackPanel'
-import '../styles.css'
+import '../styles/tokens.css'
+import '../styles/globals.css'
 
 const filters: AnalyticsFilterState = {
   courseId: 'course-e2e',

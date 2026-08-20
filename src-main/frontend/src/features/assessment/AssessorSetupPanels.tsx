@@ -1,17 +1,26 @@
 import type { ScopedRoleAssignment } from '../../app/types'
-import { Panel } from '../../components/ScreenPrimitives'
+import {
+  Button,
+  Card,
+  Checkbox,
+  Field,
+  Input,
+  Select,
+  Textarea,
+  bloomKnowledgeLabels,
+  bloomProcessDescriptors,
+  bloomProcessLabels,
+} from '../../components/ui'
 import type { AssessmentDefinition } from './api'
 import type { SetupValues } from './assessmentDraft'
+import { purposeLabels } from './assessmentReviewPresentation'
 import { assessmentPurposeValues, bloomKnowledgeValues, bloomProcessValues } from './types'
+import styles from './assessment.module.css'
 
 export type SetupUpdate = <Key extends keyof SetupValues>(
   key: Key,
   value: SetupValues[Key],
 ) => void
-
-function label(value: string): string {
-  return value.toLowerCase().replaceAll('_', ' ')
-}
 
 function AssessmentTargetFields({
   values,
@@ -25,242 +34,206 @@ function AssessmentTargetFields({
   onUpdate: SetupUpdate
 }) {
   return (
-    <Panel title="Assessment target" eyebrow="Outcome and source">
-      <div className="assessment-form-grid">
-        <label className="field">
-          <span>Assigned course</span>
-          <select
-            aria-label="Assigned course"
-            value={values.courseId}
-            onChange={(event) => onUpdate('courseId', event.target.value)}
-            aria-describedby="course-help"
-            disabled={lockedIdentity}
+    <Card eyebrow="Outcome and source">
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.legend}>Assessment target</legend>
+        <div className={styles.formGrid}>
+          <Field
+            label="Assigned course"
+            help="Only courses in your active assessor assignment are available."
           >
-            <option value="">Select an assigned course</option>
-            {assignments.map((assignment) => (
-              <option key={assignment.id} value={assignment.course_id}>
-                {assignment.course_id}
-              </option>
-            ))}
-          </select>
-          <small id="course-help">Only courses in your active assessor assignment are available.</small>
-        </label>
-        <label className="field">
-          <span>Outcome ID</span>
-          <input
-            aria-label="Outcome ID"
-            value={values.outcomeId}
-            onChange={(event) => onUpdate('outcomeId', event.target.value)}
-            disabled={lockedIdentity}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <span>Outcome wording</span>
-          <textarea
-            aria-label="Outcome wording"
-            value={values.outcome}
-            onChange={(event) => onUpdate('outcome', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field">
-          <span>Source</span>
-          <input
-            aria-label="Source"
-            value={values.source}
-            onChange={(event) => onUpdate('source', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field">
-          <span>Source version</span>
-          <input
-            aria-label="Source version"
-            value={values.sourceVersion}
-            onChange={(event) => onUpdate('sourceVersion', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <span>Source digest</span>
-          <input
-            aria-label="Source digest"
-            value={values.sourceDigest}
-            onChange={(event) => onUpdate('sourceDigest', event.target.value)}
-            required
-          />
-        </label>
-      </div>
-    </Panel>
+            <Select
+              options={assignments.map((assignment) => ({
+                value: assignment.course_id,
+                label: assignment.course_id,
+              }))}
+              value={values.courseId || undefined}
+              onValueChange={(value) => onUpdate('courseId', value)}
+              placeholder="Select an assigned course"
+              disabled={lockedIdentity}
+            />
+          </Field>
+          <Field label="Outcome ID">
+            <Input
+              value={values.outcomeId}
+              onChange={(event) => onUpdate('outcomeId', event.target.value)}
+              disabled={lockedIdentity}
+              required
+            />
+          </Field>
+          <Field label="Outcome wording" className={styles.fieldFull}>
+            <Textarea
+              value={values.outcome}
+              onChange={(event) => onUpdate('outcome', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Source">
+            <Input
+              value={values.source}
+              onChange={(event) => onUpdate('source', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Source version">
+            <Input
+              value={values.sourceVersion}
+              onChange={(event) => onUpdate('sourceVersion', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Source digest" className={styles.fieldFull}>
+            <Input
+              value={values.sourceDigest}
+              onChange={(event) => onUpdate('sourceDigest', event.target.value)}
+              required
+            />
+          </Field>
+        </div>
+      </fieldset>
+    </Card>
   )
 }
 
 function EvidenceRuleFields({ values, onUpdate }: { values: SetupValues, onUpdate: SetupUpdate }) {
   return (
-    <Panel title="Evidence and pass rule" eyebrow="Bloom target">
-      <div className="assessment-form-grid">
-        <label className="field">
-          <span>Bloom process</span>
-          <select
-            aria-label="Bloom process"
-            value={values.bloomProcess}
-            onChange={(event) => (
-              onUpdate('bloomProcess', event.target.value as SetupValues['bloomProcess'])
-            )}
-          >
-            {bloomProcessValues.map((value) => (
-              <option key={value} value={value}>{label(value)}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Knowledge dimension</span>
-          <select
-            aria-label="Knowledge dimension"
-            value={values.knowledgeDimension}
-            onChange={(event) => (
-              onUpdate(
-                'knowledgeDimension',
-                event.target.value as SetupValues['knowledgeDimension'],
-              )
-            )}
-          >
-            {bloomKnowledgeValues.map((value) => (
-              <option key={value} value={value}>{label(value)}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Assessment purpose</span>
-          <select
-            aria-label="Assessment purpose"
-            value={values.purpose}
-            onChange={(event) => (
-              onUpdate('purpose', event.target.value as SetupValues['purpose'])
-            )}
-          >
-            {assessmentPurposeValues.map((value) => (
-              <option key={value} value={value}>{label(value)}</option>
-            ))}
-          </select>
-        </label>
-        <label className="field field--full">
-          <span>Claim</span>
-          <textarea
-            aria-label="Claim"
-            value={values.claim}
-            onChange={(event) => onUpdate('claim', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <span>Required evidence</span>
-          <textarea
-            aria-label="Required evidence"
-            value={values.evidence}
-            onChange={(event) => onUpdate('evidence', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <span>Mandatory criterion</span>
-          <textarea
-            aria-label="Mandatory criterion"
-            value={values.criterion}
-            onChange={(event) => onUpdate('criterion', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <input
-            aria-label="Verified Bloom elicitation"
-            type="checkbox"
+    <Card eyebrow="Bloom target">
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.legend}>Evidence and pass rule</legend>
+        <div className={styles.formGrid}>
+          <Field label="Bloom process" help={bloomProcessDescriptors[values.bloomProcess]}>
+            <Select
+              options={bloomProcessValues.map((value) => ({
+                value,
+                label: bloomProcessLabels[value],
+              }))}
+              value={values.bloomProcess}
+              onValueChange={(value) => (
+                onUpdate('bloomProcess', value as SetupValues['bloomProcess'])
+              )}
+            />
+          </Field>
+          <Field label="Knowledge dimension">
+            <Select
+              options={bloomKnowledgeValues.map((value) => ({
+                value,
+                label: bloomKnowledgeLabels[value],
+              }))}
+              value={values.knowledgeDimension}
+              onValueChange={(value) => (
+                onUpdate('knowledgeDimension', value as SetupValues['knowledgeDimension'])
+              )}
+            />
+          </Field>
+          <Field label="Assessment purpose">
+            <Select
+              options={assessmentPurposeValues.map((value) => ({
+                value,
+                label: purposeLabels[value],
+              }))}
+              value={values.purpose}
+              onValueChange={(value) => onUpdate('purpose', value as SetupValues['purpose'])}
+            />
+          </Field>
+          <Field label="Claim" className={styles.fieldFull}>
+            <Textarea
+              value={values.claim}
+              onChange={(event) => onUpdate('claim', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Required evidence" className={styles.fieldFull}>
+            <Textarea
+              value={values.evidence}
+              onChange={(event) => onUpdate('evidence', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Mandatory criterion" className={styles.fieldFull}>
+            <Textarea
+              value={values.criterion}
+              onChange={(event) => onUpdate('criterion', event.target.value)}
+              required
+            />
+          </Field>
+          <Checkbox
+            className={styles.fieldFull}
+            label="I verified that this task elicits the selected Bloom process."
             checked={values.bloomVerified}
             onChange={(event) => onUpdate('bloomVerified', event.target.checked)}
           />
-          <span>I verified that this task elicits the selected Bloom process.</span>
-        </label>
-      </div>
-      <aside className="assessment-pass-rule" aria-label="Pass rule preview">
-        <h3>Pass rule preview</h3>
-        <p>Pass when every mandatory criterion is met for the selected Bloom target.</p>
-        <p>Each listed mandatory criterion must be met.</p>
-      </aside>
-    </Panel>
+        </div>
+        <aside className={styles.passRule} aria-label="Pass rule preview">
+          <p className={styles.passRuleTitle}>Pass rule preview</p>
+          <p>Pass when every mandatory criterion is met for the selected Bloom target.</p>
+          <p>Each listed mandatory criterion must be met.</p>
+        </aside>
+      </fieldset>
+    </Card>
   )
 }
 
 function TaskConditionFields({ values, onUpdate }: { values: SetupValues, onUpdate: SetupUpdate }) {
   return (
-    <Panel title="Task conditions" eyebrow="Form, tools, and access">
-      <div className="assessment-form-grid">
-        <label className="field">
-          <span>Task form ID</span>
-          <input
-            aria-label="Task form ID"
-            value={values.taskId}
-            onChange={(event) => onUpdate('taskId', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field">
-          <span>Task family</span>
-          <input
-            aria-label="Task family"
-            value={values.taskFamily}
-            onChange={(event) => onUpdate('taskFamily', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <span>Permitted tools</span>
-          <input
-            aria-label="Permitted tools"
-            value={values.tools}
-            onChange={(event) => onUpdate('tools', event.target.value)}
-            required
-          />
-          <small>Separate items with commas.</small>
-        </label>
-        <label className="field field--full">
-          <span>Instructional support</span>
-          <textarea
-            aria-label="Instructional support"
-            value={values.support}
-            onChange={(event) => onUpdate('support', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <span>Access conditions</span>
-          <textarea
-            aria-label="Access conditions"
-            value={values.access}
-            onChange={(event) => onUpdate('access', event.target.value)}
-            required
-          />
-        </label>
-        <label className="field field--full">
-          <input
-            aria-label="Verified construct-preserving access"
-            type="checkbox"
+    <Card eyebrow="Form, tools, and access">
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.legend}>Task conditions</legend>
+        <div className={styles.formGrid}>
+          <Field label="Task form ID">
+            <Input
+              value={values.taskId}
+              onChange={(event) => onUpdate('taskId', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Task family">
+            <Input
+              value={values.taskFamily}
+              onChange={(event) => onUpdate('taskFamily', event.target.value)}
+              required
+            />
+          </Field>
+          <Field
+            label="Permitted tools"
+            help="Separate items with commas."
+            className={styles.fieldFull}
+          >
+            <Input
+              value={values.tools}
+              onChange={(event) => onUpdate('tools', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Instructional support" className={styles.fieldFull}>
+            <Textarea
+              value={values.support}
+              onChange={(event) => onUpdate('support', event.target.value)}
+              required
+            />
+          </Field>
+          <Field label="Access conditions" className={styles.fieldFull}>
+            <Textarea
+              value={values.access}
+              onChange={(event) => onUpdate('access', event.target.value)}
+              required
+            />
+          </Field>
+          <Checkbox
+            className={styles.fieldFull}
+            label="I verified that each access mode preserves the assessed construct."
             checked={values.accessVerified}
             onChange={(event) => onUpdate('accessVerified', event.target.checked)}
           />
-          <span>I verified that each access mode preserves the assessed construct.</span>
-        </label>
-        <label className="field field--full">
-          <span>Transfer rule</span>
-          <textarea
-            aria-label="Transfer rule"
-            value={values.transfer}
-            onChange={(event) => onUpdate('transfer', event.target.value)}
-            required
-          />
-        </label>
-      </div>
-    </Panel>
+          <Field label="Transfer rule" className={styles.fieldFull}>
+            <Textarea
+              value={values.transfer}
+              onChange={(event) => onUpdate('transfer', event.target.value)}
+              required
+            />
+          </Field>
+        </div>
+      </fieldset>
+    </Card>
   )
 }
 
@@ -291,7 +264,7 @@ export function AssessorSetupFields({
 
 function ApprovalHistory({ history }: { history: AssessmentDefinition[] }) {
   return (
-    <ol className="assessment-history" aria-label="Approval history">
+    <ol className={styles.history} aria-label="Approval history">
       {history.map((item) => (
         <li key={item.id}>
           <strong>{item.approval_state === 'APPROVED' ? 'Published' : 'Draft'}</strong>
@@ -327,39 +300,37 @@ export function AssessorSetupApproval({
   onPublish: () => void
 }) {
   return (
-    <Panel title="Approval and history" eyebrow="Assessor decision">
+    <Card eyebrow="Assessor decision" heading="Approval and history">
       {!definition ? (
-        <p className="assessment-muted">Save a complete draft before it can be approved.</p>
+        <p className={styles.muted}>Save a complete draft before it can be approved.</p>
       ) : (
-        <div className="assessment-approval">
-          <p>
+        <div className={styles.approval}>
+          <p className={styles.approvalStatus}>
             <strong>Status:</strong>{' '}
             {definition.approval_state === 'APPROVED' ? 'Published' : 'Draft'}
           </p>
           {dirty && (
-            <p className="assessment-muted" role="note">
+            <p className={styles.muted} role="note">
               Save the current changes as a new draft version before publishing.
             </p>
           )}
-          <label className="field">
-            <span>Approval reason</span>
-            <textarea
-              aria-label="Approval reason"
+          <Field label="Approval reason">
+            <Textarea
               value={values.approvalReason}
               onChange={(event) => onUpdate('approvalReason', event.target.value)}
               required
             />
-          </label>
-          <div className="assessment-actions">
-            <button
-              className="button button--secondary"
+          </Field>
+          <div className={styles.actions}>
+            <Button
+              variant="secondary"
               onClick={onLoadHistory}
               disabled={busy === 'history'}
             >
               {busy === 'history' ? 'Loading history...' : 'Reload server history'}
-            </button>
-            <button
-              className="button button--primary"
+            </Button>
+            <Button
+              variant="primary"
               onClick={onPublish}
               disabled={
                 busy === 'publish'
@@ -368,10 +339,10 @@ export function AssessorSetupApproval({
               }
             >
               {busy === 'publish' ? 'Publishing...' : 'Approve and publish'}
-            </button>
+            </Button>
           </div>
           {stale && (
-            <section className="assessment-conflict" role="alert">
+            <section className={styles.conflict} role="alert">
               <h3>Another version is available</h3>
               <p>
                 Your local values have not been replaced. Reload server history to compare
@@ -387,6 +358,6 @@ export function AssessorSetupApproval({
           <ApprovalHistory history={history} />
         </div>
       )}
-    </Panel>
+    </Card>
   )
 }

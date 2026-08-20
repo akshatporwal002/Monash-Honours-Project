@@ -1,0 +1,347 @@
+.screen {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 64rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.coursePicker {
+  min-width: 14rem;
+}
+
+.wizardCard {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.copy {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 44rem;
+}
+
+.eyebrow {
+  color: var(--ink-muted);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.copyText {
+  color: var(--ink-soft);
+  font-size: var(--text-body);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.fieldShort {
+  max-width: 12rem;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.materialGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.sourceCard {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-3);
+}
+
+.sourceIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  color: var(--accent);
+  background: var(--surface);
+}
+
+.sourceTitle {
+  font-size: var(--text-lead);
+}
+
+.sourceHint {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+/* A label styled as the secondary button, wrapping the visually hidden file input. */
+.fileButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-2);
+  background: var(--surface);
+  font-size: var(--text-ui);
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.fileButton:hover {
+  background: var(--surface-sunken);
+}
+
+.fileButton:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.selectedFile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.selectedName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.materialList {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.materialHeading {
+  font-size: var(--text-lead);
+}
+
+.materials {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.material {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+}
+
+.materialIcon {
+  display: inline-flex;
+  color: var(--affirm);
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.materialIconFault {
+  color: var(--fault);
+}
+
+.spin {
+  animation: rotate 1.2s linear infinite;
+  color: var(--ink-muted);
+}
+
+@keyframes rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.materialBody {
+  display: grid;
+  min-width: 0;
+}
+
+.materialName {
+  font-size: var(--text-ui);
+  overflow-wrap: anywhere;
+}
+
+.materialStatus {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+}
+
+.modulePicker {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.outcomeList {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.outcome {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+}
+
+.outcomeBody {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+  min-width: 0;
+}
+
+.outcomeTitle {
+  font-size: var(--text-ui);
+}
+
+.outcomeStatement {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.outcomeActions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.generateHeader {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.generateControls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.taskList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: task;
+}
+
+.task {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+}
+
+.taskNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-round);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.taskBody {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.taskHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.taskTitle {
+  font-size: var(--text-ui);
+}
+
+.taskPrompt {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.taskMeta {
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.formMessage {
+  font-size: var(--text-meta);
+  border-radius: var(--radius-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.formError {
+  color: var(--fault);
+  background: var(--fault-wash);
+}
+
+.formStatus {
+  color: var(--affirm);
+  background: var(--affirm-wash);
+}
+
+@media (width <= 860px) {
+  .formGrid,
+  .materialGrid {
+    grid-template-columns: 1fr;
+  }
+}

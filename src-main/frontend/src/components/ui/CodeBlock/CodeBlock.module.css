@@ -1,0 +1,14 @@
+.block {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  background: var(--surface-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  line-height: 1.6;
+  color: var(--ink);
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 4;
+}

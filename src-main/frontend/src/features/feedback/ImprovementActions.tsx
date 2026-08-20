@@ -1,5 +1,7 @@
 import { useId } from 'react'
 
+import styles from './feedback.module.css'
+
 export function ImprovementActions({ actions }: { actions: string[] }) {
   const headingId = useId()
   if (actions.length === 0) return null
@@ -7,7 +9,7 @@ export function ImprovementActions({ actions }: { actions: string[] }) {
   return (
     <section aria-labelledby={headingId}>
       <h3 id={headingId}>Ways to improve</h3>
-      <ol className="improvement-actions">
+      <ol className={styles.actions}>
         {actions.map((action) => (
           <li key={action}>{action}</li>
         ))}

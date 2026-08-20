@@ -1,69 +1,60 @@
-import { useState } from 'react'
+import { BarChart3, BookOpen, ClipboardCheck, ClipboardList, LayoutDashboard, LogOut, Menu, Settings, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { AuthUser, UserRole } from '../app/types'
-import { Icon } from './ScreenPrimitives'
-import type { IconName } from './ScreenPrimitives'
+import { NavLink, Link, Outlet } from 'react-router-dom'
 
-export type ScreenId =
-  | 'student-dashboard'
-  | 'educator-dashboard'
-  | 'course-editor'
-  | 'students'
-  | 'analytics'
-  | 'assessor-setup'
-  | 'assessor-review'
-  | 'admin-overview'
-  | 'admin-users'
-  | 'admin-courses'
-  | 'admin-settings'
+import type { AuthUser, UserRole } from '../app/types'
+import { cx } from './ui/cx'
+import { homePath } from './paths'
+import styles from './AppShell.module.css'
 
 interface NavigationItem {
-  id: ScreenId
+  to: string
+  end?: boolean
   label: string
-  icon: IconName
+  icon: ReactNode
 }
+
+const iconSize = 18
 
 const navigation: Record<UserRole, NavigationItem[]> = {
-  student: [
-    { id: 'student-dashboard', label: 'My learning', icon: 'dashboard' },
-  ],
+  student: [{ to: '/student', end: true, label: 'My learning', icon: <LayoutDashboard size={iconSize} /> }],
   educator: [
-    { id: 'educator-dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { id: 'course-editor', label: 'Course editor', icon: 'course' },
-    { id: 'students', label: 'Students', icon: 'people' },
-    { id: 'analytics', label: 'Analytics', icon: 'analytics' },
+    { to: '/educator', end: true, label: 'Dashboard', icon: <LayoutDashboard size={iconSize} /> },
+    { to: '/educator/courses', label: 'Course editor', icon: <BookOpen size={iconSize} /> },
+    { to: '/educator/students', label: 'Students', icon: <Users size={iconSize} /> },
+    { to: '/educator/analytics', label: 'Analytics', icon: <BarChart3 size={iconSize} /> },
   ],
   admin: [
-    { id: 'admin-overview', label: 'Overview', icon: 'dashboard' },
-    { id: 'admin-users', label: 'Accounts', icon: 'people' },
-    { id: 'admin-courses', label: 'Courses', icon: 'course' },
-    { id: 'admin-settings', label: 'Settings', icon: 'settings' },
+    { to: '/admin', end: true, label: 'Overview', icon: <LayoutDashboard size={iconSize} /> },
+    { to: '/admin/users', label: 'Accounts', icon: <Users size={iconSize} /> },
+    { to: '/admin/courses', label: 'Courses', icon: <BookOpen size={iconSize} /> },
+    { to: '/admin/settings', label: 'Settings', icon: <Settings size={iconSize} /> },
   ],
 }
 
-function navigationFor(role: UserRole, hasAssessorAccess: boolean): NavigationItem[] {
-  if (role !== 'educator' || !hasAssessorAccess) return navigation[role]
-  return [...navigation.educator, { id: 'assessor-setup', label: 'Assessment setup', icon: 'check' }, { id: 'assessor-review', label: 'Assessment review', icon: 'check' }]
-}
+const assessorNavigation: NavigationItem[] = [
+  { to: '/assessor/setup', label: 'Assessment setup', icon: <ClipboardList size={iconSize} /> },
+  { to: '/assessor/review', label: 'Assessment review', icon: <ClipboardCheck size={iconSize} /> },
+]
 
-function defaultScreen(role: UserRole): ScreenId {
-  return navigation[role][0].id
+function LensMark({ size = 22 }: { size?: number }) {
+  return (
+    <svg className={styles.lens} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 3v18" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  )
 }
 
 export function AppShell({
   user,
   hasAssessorAccess,
-  activeScreen,
-  onNavigate,
   onLogout,
-  children,
 }: {
   user: AuthUser
   hasAssessorAccess: boolean
-  activeScreen: ScreenId
-  onNavigate: (screen: ScreenId) => void
   onLogout: () => Promise<void>
-  children: ReactNode
 }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const initials = user.full_name
@@ -73,55 +64,85 @@ export function AppShell({
     .slice(0, 2)
     .toUpperCase()
 
-  const navigate = (screen: ScreenId) => {
-    onNavigate(screen)
-    setMobileOpen(false)
-  }
-  const visibleNavigation = navigationFor(user.role, hasAssessorAccess)
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [mobileOpen])
+
+  const items =
+    user.role === 'educator' && hasAssessorAccess ? [...navigation.educator, ...assessorNavigation] : navigation[user.role]
 
   return (
-    <div className="app-shell">
-      <a className="skip-link" href="#main-content">Skip to content</a>
-      <aside className={`app-sidebar ${mobileOpen ? 'open' : ''}`}>
-        <a className="brand" href="#main-content" onClick={() => navigate(defaultScreen(user.role))}>
-          <span className="brand-mark"><i /><i /><b /></span>
-          <span>Quantum<strong>Learn</strong></span>
-        </a>
-        <p className="workspace-label">{user.role} workspace</p>
-        <nav aria-label={`${user.role} navigation`}>
-          {visibleNavigation.map((item) => (
-            <button
-              key={item.id}
-              className={activeScreen === item.id ? 'active' : ''}
-              aria-current={activeScreen === item.id ? 'page' : undefined}
-              onClick={() => navigate(item.id)}
+    <div className={cx('ll-root', styles.shell)}>
+      <a className={styles.skipLink} href="#main-content">
+        Skip to content
+      </a>
+      <aside id="app-sidebar" className={cx(styles.sidebar, mobileOpen && styles.sidebarOpen)}>
+        <Link className={styles.brand} to={homePath(user.role)} onClick={() => setMobileOpen(false)}>
+          <LensMark />
+          <span>LearnLens</span>
+        </Link>
+        <p className={styles.workspace}>{user.role} workspace</p>
+        <nav className={styles.nav} aria-label={`${user.role} navigation`}>
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={styles.navLink}
+              onClick={() => setMobileOpen(false)}
             >
-              <Icon name={item.icon} />
+              <span className={styles.navIcon} aria-hidden="true">
+                {item.icon}
+              </span>
               <span>{item.label}</span>
-            </button>
+            </NavLink>
           ))}
         </nav>
-        <div className="sidebar-user">
-          <span className="avatar">{initials}</span>
-          <div><strong>{user.full_name}</strong><small>{user.email}</small></div>
+        <div className={styles.spacer} />
+        <div className={styles.user}>
+          <span className={styles.avatar} aria-hidden="true">
+            {initials}
+          </span>
+          <div className={styles.userText}>
+            <span className={styles.userName}>{user.full_name}</span>
+            <span className={styles.userEmail}>{user.email}</span>
+          </div>
         </div>
-        <button className="sidebar-logout" onClick={() => void onLogout()}>
-          <Icon name="logout" size={18} />
+        <button type="button" className={styles.signOut} onClick={() => void onLogout()}>
+          <span className={styles.navIcon} aria-hidden="true">
+            <LogOut size={iconSize} />
+          </span>
           <span>Sign out</span>
         </button>
       </aside>
 
-      {mobileOpen && <button className="sidebar-scrim" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen ? <div className={styles.scrim} aria-hidden="true" onClick={() => setMobileOpen(false)} /> : null}
 
-      <div className="app-main">
-        <header className="mobile-header">
-          <button className="icon-button" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
-            <Icon name="menu" />
+      <div className={styles.mainArea}>
+        <header className={styles.topbar}>
+          <button
+            type="button"
+            className={cx(styles.menuButton)}
+            aria-label="Open navigation"
+            aria-expanded={mobileOpen}
+            aria-controls="app-sidebar"
+            onClick={() => setMobileOpen((open) => !open)}
+          >
+            <Menu size={20} aria-hidden="true" />
           </button>
-          <span className="brand brand--mobile">Quantum<strong>Learn</strong></span>
-          <span className="avatar avatar--small">{initials}</span>
+          <span className={styles.topbarBrand}>
+            <LensMark size={18} />
+            LearnLens
+          </span>
         </header>
-        <main id="main-content" tabIndex={-1}>{children}</main>
+        <main id="main-content" tabIndex={-1} className={styles.main}>
+          <Outlet />
+        </main>
       </div>
     </div>
   )

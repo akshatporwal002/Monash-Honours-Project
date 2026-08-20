@@ -72,10 +72,8 @@ test('reloads and edits persisted modules, weekly outcomes, and enrollment statu
   render(<CourseEditor />)
   const user = userEvent.setup()
 
-  await user.selectOptions(
-    await screen.findByLabelText('Choose a course to edit'),
-    'course-1',
-  )
+  await user.click(await screen.findByRole('combobox', { name: 'Choose a course to edit' }))
+  await user.click(await screen.findByRole('option', { name: 'QL-101 · Quantum Foundations' }))
   expect(await screen.findByDisplayValue('Quantum Foundations')).toBeInTheDocument()
   expect(screen.getByRole('checkbox', { name: /Enrollment open/ })).not.toBeChecked()
 
@@ -85,10 +83,11 @@ test('reloads and edits persisted modules, weekly outcomes, and enrollment statu
   expect(await screen.findByDisplayValue('Measurement')).toBeInTheDocument()
   expect(screen.getByText('Explain single-qubit measurement probabilities.')).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Edit' }))
-  expect(screen.getByLabelText('Outcome schedule')).toHaveValue('weekly')
+  expect(screen.getByRole('combobox', { name: 'Outcome schedule' })).toHaveTextContent('Weekly')
   expect(screen.getByLabelText('Week number')).toHaveValue(2)
 
-  await user.selectOptions(screen.getByLabelText('Outcome schedule'), 'topic')
+  await user.click(screen.getByRole('combobox', { name: 'Outcome schedule' }))
+  await user.click(await screen.findByRole('option', { name: 'Topic-based' }))
   const editor = screen.getByLabelText(/Edit learning outcome/)
   await user.clear(editor)
   await user.type(editor, 'Explain how measurement changes a qubit state.')
