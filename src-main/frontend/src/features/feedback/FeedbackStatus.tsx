@@ -1,4 +1,5 @@
 import type { FeedbackProcessingStage } from './types'
+import styles from './feedback.module.css'
 
 type FeedbackStatusProps = {
   stage?: FeedbackProcessingStage | null
@@ -15,8 +16,8 @@ const STAGE_LABELS: Record<FeedbackProcessingStage, string> = {
 export function FeedbackStatus({ stage }: FeedbackStatusProps) {
   const stageLabel = stage ? ` Current stage: ${STAGE_LABELS[stage]}.` : ''
   return (
-    <div className="feedback-status" role="status" aria-live="polite">
-      <span className="feedback-status__spinner" aria-hidden="true" />
+    <div className={styles.status} role="status" aria-live="polite">
+      <span className={styles.spinner} aria-hidden="true" />
       <span>Preparing your feedback.{stageLabel}</span>
     </div>
   )

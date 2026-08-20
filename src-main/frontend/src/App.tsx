@@ -1,27 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+
 import { ApiError, api } from './app/api'
-import type { AuthUser, LearningNotification, LearningTask, StudentDashboardData, UserRole } from './app/types'
+import type { AuthUser, LearningNotification, StudentDashboardData, UserRole } from './app/types'
 import { AdminWorkspace } from './components/AdminWorkspace'
 import { AnalyticsView } from './components/AnalyticsView'
 import { AppShell } from './components/AppShell'
-import type { ScreenId } from './components/AppShell'
+import { homePath } from './components/paths'
 import { CourseEditor } from './components/CourseEditor'
 import { EducatorDashboard } from './components/EducatorDashboard'
 import { LoginScreen } from './components/LoginScreen'
+import { NotFound } from './components/NotFound'
 import { ScreenState } from './components/ScreenPrimitives'
+import { Button } from './components/ui'
 import { StudentDashboard } from './components/StudentDashboard'
 import { StudentsView } from './components/StudentsView'
-import { TaskView } from './components/TaskView'
+import { TaskPage } from './components/TaskPage'
 import { AssessorSetup } from './features/assessment/AssessorSetup'
 import { AssessorReviewQueue } from './features/assessment/AssessorReviewQueue'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
-
-function defaultScreen(role: UserRole): ScreenId {
-  if (role === 'educator') return 'educator-dashboard'
-  if (role === 'admin') return 'admin-overview'
-  return 'student-dashboard'
-}
 
 function hasActiveAssessorAssignment(user: AuthUser, courseId?: string): boolean {
   return user.role === 'educator' && user.scoped_assignments.some((assignment) => (
@@ -32,25 +31,20 @@ function hasActiveAssessorAssignment(user: AuthUser, courseId?: string): boolean
 function loginError(error: unknown): string {
   if (error instanceof ApiError && error.status === 401) return 'Email or password is incorrect.'
   if (error instanceof ApiError) return error.message
-  return 'QuantumLearn could not reach the sign-in service. Please try again.'
+  return 'LearnLens could not reach the sign-in service. Please try again.'
 }
 
-function App() {
+function AppRoutes() {
+  const navigate = useNavigate()
   const [sessionState, setSessionState] = useState<SessionState>('checking')
   const [user, setUser] = useState<AuthUser | null>(null)
-  const [activeScreen, setActiveScreen] = useState<ScreenId>('student-dashboard')
   const [loginBusy, setLoginBusy] = useState(false)
   const [authError, setAuthError] = useState('')
   const [studentData, setStudentData] = useState<StudentDashboardData | null>(null)
   const [studentError, setStudentError] = useState('')
-  const [activeTask, setActiveTask] = useState<LearningTask | null>(null)
-  const [pendingTask, setPendingTask] = useState<LearningTask | null>(null)
-  const [taskOpenError, setTaskOpenError] = useState('')
-  const taskRequestId = useRef(0)
 
   const acceptUser = (authenticatedUser: AuthUser) => {
     setUser(authenticatedUser)
-    setActiveScreen(defaultScreen(authenticatedUser.role))
     setSessionState('authenticated')
     setAuthError('')
   }
@@ -142,17 +136,14 @@ function App() {
   }
 
   const logout = async () => {
-    taskRequestId.current += 1
     try {
       await api.auth.logout()
     } finally {
       setUser(null)
       setStudentData(null)
-      setActiveTask(null)
-      setPendingTask(null)
-      setTaskOpenError('')
       setSessionState('anonymous')
       setAuthError('')
+      navigate('/login', { replace: true })
     }
   }
 
@@ -160,45 +151,12 @@ function App() {
     const refreshedUser = await api.auth.me()
     const active = hasActiveAssessorAssignment(refreshedUser, courseId)
     setUser(refreshedUser)
-    if (!active) {
-      setActiveScreen((current) => (current === 'assessor-setup' || current === 'assessor-review')
-        ? defaultScreen(refreshedUser.role)
-        : current)
-    }
     return active
   }, [])
 
   const leaveAssessorWorkspace = useCallback(() => {
-    setActiveScreen(defaultScreen('educator'))
-  }, [])
-
-  const openStudentTask = async (task: LearningTask) => {
-    const requestId = taskRequestId.current + 1
-    taskRequestId.current = requestId
-    setPendingTask(task)
-    setTaskOpenError('')
-    setActiveTask(null)
-    try {
-      const openedTask = await api.student.task(task.id)
-      if (taskRequestId.current !== requestId) return
-      setActiveTask(openedTask)
-      setPendingTask(null)
-    } catch (error) {
-      if (taskRequestId.current !== requestId) return
-      setTaskOpenError(
-        error instanceof Error
-          ? error.message
-          : 'This activity could not be opened. Please try again.',
-      )
-    }
-  }
-
-  const closeStudentTask = () => {
-    taskRequestId.current += 1
-    setActiveTask(null)
-    setPendingTask(null)
-    setTaskOpenError('')
-  }
+    navigate('/educator')
+  }, [navigate])
 
   const markNotificationRead = async (notification: LearningNotification) => {
     if (notification.is_read) return
@@ -216,116 +174,105 @@ function App() {
 
   if (sessionState === 'checking') {
     return (
-      <main className="standalone-state">
-        <ScreenState kind="loading" title="Opening QuantumLearn" message="Checking your secure learning session." />
+      <main>
+        <ScreenState fullscreen kind="loading" title="Opening LearnLens" message="Checking your secure learning session." />
       </main>
     )
   }
 
   if (sessionState === 'anonymous' || !user) {
-    return <LoginScreen onLogin={login} onLoadDemo={loadDemo} busy={loginBusy} error={authError} />
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginScreen onLogin={login} onLoadDemo={loadDemo} busy={loginBusy} error={authError} />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    )
   }
 
-  let content
-  if (user.role === 'student') {
-    if (studentError) {
-      content = (
-        <div className="screen">
-          <ScreenState
-            kind="error"
-            title="Learning dashboard unavailable"
-            message={studentError}
-            action={<button className="button button--secondary" onClick={() => void loadStudentDashboard()}>Try again</button>}
-          />
-        </div>
-      )
-    } else if (!studentData) {
-      content = <div className="screen"><ScreenState kind="loading" title="Preparing your pathway" message="Loading activities, progress and recommendations." /></div>
-    } else {
-      content = (
-        <StudentDashboard
-          data={studentData}
-          onOpenTask={(task) => void openStudentTask(task)}
-          onReadNotification={markNotificationRead}
-        />
-      )
-    }
-  } else if (user.role === 'educator') {
-    if (activeScreen === 'assessor-setup' && hasActiveAssessorAssignment(user)) {
-      content = (
-        <AssessorSetup
-          assignments={user.scoped_assignments}
-          onCheckAccess={refreshAssessorAccess}
-          onAccessRevoked={leaveAssessorWorkspace}
-        />
-      )
-    } else if (activeScreen === 'assessor-review' && hasActiveAssessorAssignment(user)) {
-      content = (
-        <AssessorReviewQueue
-          assignments={user.scoped_assignments}
-          onCheckAccess={refreshAssessorAccess}
-          onAccessRevoked={leaveAssessorWorkspace}
-        />
-      )
-    } else if (activeScreen === 'course-editor') content = <CourseEditor />
-    else if (activeScreen === 'students') content = <StudentsView />
-    else if (activeScreen === 'analytics') content = <AnalyticsView />
-    else {
-      content = (
-        <EducatorDashboard
-          onCreateCourse={() => setActiveScreen('course-editor')}
-          onViewStudents={() => setActiveScreen('students')}
-        />
-      )
-    }
-  } else {
-    const section = activeScreen === 'admin-users'
-      ? 'users'
-      : activeScreen === 'admin-courses'
-        ? 'courses'
-        : activeScreen === 'admin-settings'
-          ? 'settings'
-          : 'overview'
-    content = <AdminWorkspace section={section} />
-  }
+  // A valid path outside the user's authority renders the same not-found page
+  // as an unknown path, so URLs never reveal what exists (D2 §13.3 posture).
+  const guard = (allowed: boolean, element: ReactNode) =>
+    allowed ? element : <NotFound homeTo={homePath(user.role)} />
+
+  const assessorAccess = hasActiveAssessorAssignment(user)
+
+  const studentHome = studentError ? (
+    <ScreenState
+      kind="error"
+      title="Learning dashboard unavailable"
+      message={studentError}
+      action={<Button variant="secondary" onClick={() => void loadStudentDashboard()}>Try again</Button>}
+    />
+  ) : !studentData ? (
+    <ScreenState kind="loading" title="Preparing your pathway" message="Loading activities, progress and recommendations." />
+  ) : (
+    <StudentDashboard
+      data={studentData}
+      onOpenTask={(task) => navigate(`/student/tasks/${task.id}`)}
+      onReadNotification={markNotificationRead}
+    />
+  )
 
   return (
-    <AppShell
-      user={user}
-      hasAssessorAccess={hasActiveAssessorAssignment(user)}
-      activeScreen={activeScreen}
-      onNavigate={setActiveScreen}
-      onLogout={logout}
-    >
-      {content}
-      {activeTask && (
-        <TaskView
-          key={activeTask.id}
-          task={activeTask}
-          onClose={closeStudentTask}
-          onSubmitted={() => loadStudentDashboard()}
+    <Routes>
+      <Route path="/login" element={<Navigate to={homePath(user.role)} replace />} />
+      <Route path="/" element={<Navigate to={homePath(user.role)} replace />} />
+      <Route element={<AppShell user={user} hasAssessorAccess={assessorAccess} onLogout={logout} />}>
+        <Route path="/student" element={guard(user.role === 'student', studentHome)} />
+        <Route
+          path="/student/tasks/:taskId"
+          element={guard(user.role === 'student', <TaskPage onSubmitted={loadStudentDashboard} />)}
         />
-      )}
-      {pendingTask && (
-        <div className="task-overlay" role="dialog" aria-modal="true" aria-label="Open learning activity">
-          <article className="task-workspace">
-            <ScreenState
-              kind={taskOpenError ? 'error' : 'loading'}
-              title={taskOpenError ? 'Activity unavailable' : `Opening ${pendingTask.title}`}
-              message={taskOpenError || 'Loading the latest task, saved work and feedback.'}
-              action={taskOpenError ? (
-                <div className="page-actions">
-                  <button className="button button--primary" onClick={() => void openStudentTask(pendingTask)}>
-                    Try again
-                  </button>
-                  <button className="button button--ghost" onClick={closeStudentTask}>Close</button>
-                </div>
-              ) : undefined}
-            />
-          </article>
-        </div>
-      )}
-    </AppShell>
+        <Route
+          path="/educator"
+          element={guard(
+            user.role === 'educator',
+            <EducatorDashboard
+              onCreateCourse={() => navigate('/educator/courses')}
+              onViewStudents={() => navigate('/educator/students')}
+            />,
+          )}
+        />
+        <Route path="/educator/courses" element={guard(user.role === 'educator', <CourseEditor />)} />
+        <Route path="/educator/students" element={guard(user.role === 'educator', <StudentsView />)} />
+        <Route path="/educator/analytics" element={guard(user.role === 'educator', <AnalyticsView />)} />
+        <Route
+          path="/assessor/setup"
+          element={guard(
+            assessorAccess,
+            <AssessorSetup
+              assignments={user.scoped_assignments}
+              onCheckAccess={refreshAssessorAccess}
+              onAccessRevoked={leaveAssessorWorkspace}
+            />,
+          )}
+        />
+        <Route
+          path="/assessor/review"
+          element={guard(
+            assessorAccess,
+            <AssessorReviewQueue
+              assignments={user.scoped_assignments}
+              onCheckAccess={refreshAssessorAccess}
+              onAccessRevoked={leaveAssessorWorkspace}
+            />,
+          )}
+        />
+        <Route path="/admin" element={guard(user.role === 'admin', <AdminWorkspace section="overview" />)} />
+        <Route path="/admin/users" element={guard(user.role === 'admin', <AdminWorkspace section="users" />)} />
+        <Route path="/admin/courses" element={guard(user.role === 'admin', <AdminWorkspace section="courses" />)} />
+        <Route path="/admin/settings" element={guard(user.role === 'admin', <AdminWorkspace section="settings" />)} />
+        <Route path="*" element={<NotFound homeTo={homePath(user.role)} />} />
+      </Route>
+    </Routes>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   )
 }
 

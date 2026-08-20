@@ -1,0 +1,88 @@
+.seal {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-2);
+  border: 1.5px solid transparent;
+}
+
+.icon {
+  display: inline-flex;
+}
+
+.icon > svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.text {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.result {
+  font-size: var(--text-lead);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.lifecycle {
+  font-size: var(--text-meta);
+}
+
+/* Certainty grammar: PASS confirmed = solid */
+.pass {
+  background: var(--affirm);
+  border-color: var(--affirm);
+  color: var(--surface);
+}
+
+.pass .lifecycle {
+  color: var(--surface);
+  opacity: 0.9;
+}
+
+/* INCOMPLETE = outlined, open — never red, never failure-framed */
+.incomplete {
+  background: var(--attend-wash);
+  border-color: var(--attend);
+  color: var(--attend);
+}
+
+.incomplete .lifecycle {
+  color: var(--attend);
+}
+
+/* Provisional = dashed (awaiting the measurement) */
+.provisional {
+  border-style: dashed;
+}
+
+.pass.provisional {
+  background: var(--affirm-wash);
+  color: var(--affirm);
+}
+
+.pass.provisional .lifecycle {
+  color: var(--affirm);
+  opacity: 1;
+}
+
+.sm {
+  padding: var(--space-1) var(--space-2);
+  gap: var(--space-2);
+}
+
+.sm .icon > svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.sm .result {
+  font-size: var(--text-meta);
+}
+
+.sm .lifecycle {
+  font-size: var(--text-caption);
+}

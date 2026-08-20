@@ -1,0 +1,108 @@
+/*
+ * LearnLens global base. Unscoped at the plan 006 Step 9 cutover; the
+ * .ll-root selectors remain so portals and standalone mounts inherit the base.
+ */
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+}
+
+/*
+ * .ll-root marks the app shell and every Radix portal container so both inherit
+ * type and tokens. It deliberately does NOT paint a background: portal surfaces
+ * (dialogs, menus, toasts) set their own, and a blanket --paper here repainted
+ * them at equal specificity.
+ */
+body,
+.ll-root {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--ink);
+  font-synthesis: none;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ll-root,
+.ll-root *,
+.ll-root *::before,
+.ll-root *::after {
+  box-sizing: border-box;
+}
+
+.ll-root h1,
+.ll-root h2,
+.ll-root h3,
+.ll-root p {
+  margin: 0;
+}
+
+.ll-root h1 {
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.ll-root h2 {
+  font-size: var(--text-h2);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.ll-root h3 {
+  font-size: var(--text-h3);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ll-root code,
+.ll-root pre,
+.ll-root kbd,
+.ll-root samp {
+  font-family: var(--font-mono);
+}
+
+.ll-root :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-1);
+}
+
+.ll-root ::selection {
+  background: var(--accent-wash);
+}
+
+.ll-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * The element itself is listed, not only its descendants: portal surfaces are
+ * .ll-root elements and carry their own entry animation, so a descendant-only
+ * rule left dialogs and toasts animating under prefers-reduced-motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ll-root,
+  .ll-root *,
+  .ll-root *::before,
+  .ll-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

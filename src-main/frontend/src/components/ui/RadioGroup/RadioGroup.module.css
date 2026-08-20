@@ -1,0 +1,45 @@
+.group {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-ui);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.option {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0.125rem 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.text {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--text-ui);
+  color: var(--ink);
+}
+
+.help {
+  font-size: var(--text-meta);
+  color: var(--ink-muted);
+}

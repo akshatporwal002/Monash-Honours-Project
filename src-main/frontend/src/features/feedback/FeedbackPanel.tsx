@@ -7,7 +7,8 @@ import { FeedbackSources } from './FeedbackSources'
 import { FeedbackStatus } from './FeedbackStatus'
 import { ImprovementActions } from './ImprovementActions'
 import type { FeedbackApiClient, FeedbackWorkflowResponse } from './types'
-import './feedback.css'
+import { Button, Tag, cx } from '../../components/ui'
+import styles from './feedback.module.css'
 
 type FeedbackPanelProps = {
   submissionId: string
@@ -130,20 +131,22 @@ export function FeedbackPanel({
 
   if (requestError !== null) {
     return (
-      <section className="feedback-panel" aria-labelledby={headingId}>
-        <h2 id={headingId}>Feedback</h2>
-        <p role="alert">{requestFailureMessage(requestError)}</p>
-        <button type="button" onClick={() => setRequestVersion((value) => value + 1)}>
-          Try again
-        </button>
+      <section className={cx('ll-root', styles.panel)} aria-labelledby={headingId}>
+        <h2 id={headingId} className={styles.heading}>Feedback</h2>
+        <p role="alert" className={styles.alert}>{requestFailureMessage(requestError)}</p>
+        <div>
+          <Button variant="secondary" onClick={() => setRequestVersion((value) => value + 1)}>
+            Try again
+          </Button>
+        </div>
       </section>
     )
   }
 
   if (workflow === null || workflow.status === 'processing') {
     return (
-      <section className="feedback-panel" aria-labelledby={headingId}>
-        <h2 id={headingId}>Feedback</h2>
+      <section className={cx('ll-root', styles.panel)} aria-labelledby={headingId}>
+        <h2 id={headingId} className={styles.heading}>Feedback</h2>
         <FeedbackStatus stage={workflow?.processing_stage} />
       </section>
     )
@@ -152,13 +155,15 @@ export function FeedbackPanel({
   if (workflow.status === 'failed' || workflow.feedback === null) {
     const retryable = workflow.status === 'failed' && workflow.error?.retryable === true
     return (
-      <section className="feedback-panel" aria-labelledby={headingId}>
-        <h2 id={headingId}>Feedback</h2>
-        <p role="alert">Feedback processing could not be completed.</p>
+      <section className={cx('ll-root', styles.panel, styles.fallback)} aria-labelledby={headingId}>
+        <h2 id={headingId} className={styles.heading}>Feedback</h2>
+        <p role="alert" className={styles.alert}>Feedback processing could not be completed.</p>
         {retryable && (
-          <button type="button" onClick={() => setRequestVersion((value) => value + 1)}>
-            Retry feedback
-          </button>
+          <div>
+            <Button variant="secondary" onClick={() => setRequestVersion((value) => value + 1)}>
+              Retry feedback
+            </Button>
+          </div>
         )}
       </section>
     )
@@ -167,10 +172,11 @@ export function FeedbackPanel({
   const feedback = workflow.feedback
   return (
     <section
-      className={`feedback-panel feedback-panel--${feedback.kind}`}
+      className={cx('ll-root', styles.panel, feedback.kind === 'safe_fallback' && styles.fallback)}
+      data-kind={feedback.kind}
       aria-labelledby={headingId}
     >
-      <h2 id={headingId}>
+      <h2 id={headingId} className={styles.heading}>
         {feedback.kind === 'safe_fallback' ? 'Feedback unavailable' : 'Your feedback'}
       </h2>
       <FeedbackMarkdown>{feedback.summary}</FeedbackMarkdown>
@@ -192,7 +198,10 @@ export function FeedbackPanel({
       )}
       <FeedbackSources sources={feedback.sources} />
       {feedback.kind === 'validated' && (
-        <p className="feedback-panel__notice">{feedback.ai_generated_notice}</p>
+        <p className={styles.notice}>
+          <Tag>AI-generated</Tag>
+          {feedback.ai_generated_notice}
+        </p>
       )}
       <FeedbackReportButton feedbackId={feedback.feedback_id} client={apiClient} />
     </section>

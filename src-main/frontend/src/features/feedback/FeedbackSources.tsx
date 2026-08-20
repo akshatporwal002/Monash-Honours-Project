@@ -1,6 +1,7 @@
 import { useId } from 'react'
 
 import type { FeedbackSource } from './types'
+import styles from './feedback.module.css'
 
 export function FeedbackSources({ sources }: { sources: FeedbackSource[] }) {
   const headingId = useId()
@@ -9,7 +10,7 @@ export function FeedbackSources({ sources }: { sources: FeedbackSource[] }) {
   return (
     <section aria-labelledby={headingId}>
       <h3 id={headingId}>Sources</h3>
-      <ul className="feedback-sources">
+      <ul className={styles.sources}>
         {sources.map((source) => (
           <li key={source.source_id}>{source.label}</li>
         ))}

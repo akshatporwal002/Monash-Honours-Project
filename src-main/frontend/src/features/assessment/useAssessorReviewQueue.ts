@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent } from 'react'
 
 import { ApiError } from '../../app/api'
 import type { ScopedRoleAssignment } from '../../app/types'
 import { assessmentApi } from './api'
 import type { AssessmentResult, AssessmentReviewAction } from './api'
 import type { PendingAction } from './AssessorReviewPanels'
-import { actionLabels, readable } from './assessmentReviewPresentation'
-import { useReviewDialogFocus } from './useReviewDialogFocus'
+import { actionLabels, lifecycleLabels } from './assessmentReviewPresentation'
 import { reviewErrorMessage, useReviewQueueData } from './useReviewQueueData'
 
 export function useAssessorReviewQueue({
@@ -26,23 +24,17 @@ export function useAssessorReviewQueue({
     onAccessRevoked,
   })
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
-  const [reason, setReason] = useState('')
   const [overrideResult, setOverrideResult] = useState<AssessmentResult>('INCOMPLETE')
   const [busy, setBusy] = useState(false)
-  const [returnFocusAction, setReturnFocusAction] = useState<AssessmentReviewAction | null>(null)
-  const focus = useReviewDialogFocus(pendingAction, busy)
 
-  const openAction = async (
-    event: MouseEvent<HTMLButtonElement>,
-    action: AssessmentReviewAction,
-  ) => {
+  /* Dialog focus management (trap, Escape, focus return) now comes from the
+     ui AlertDialog primitive; the typed reason lives inside the dialog and is
+     handed to submitAction on confirm (plan 006 Step 7). */
+  const openAction = async (action: AssessmentReviewAction) => {
     if (!data.selected || !(await data.checkAccess())) {
       setPendingAction(null)
       return
     }
-    focus.captureTrigger(event.currentTarget)
-    setReturnFocusAction(action)
-    setReason('')
     setOverrideResult(data.selected.result === 'PASS' ? 'INCOMPLETE' : 'PASS')
     setPendingAction({ action, detail: data.selected })
     data.setError('')
@@ -65,7 +57,7 @@ export function useAssessorReviewQueue({
     }
   }
 
-  const recordAction = async (action: PendingAction) => {
+  const recordAction = async (action: PendingAction, reason: string) => {
     const response = await assessmentApi.reviewAction(action.detail.decision_id, {
       action: action.action,
       reason: reason.trim(),
@@ -76,17 +68,15 @@ export function useAssessorReviewQueue({
     await data.refreshQueue()
     await data.reloadCurrentDetail(response.decision_id)
     setPendingAction(null)
-    setReason('')
     data.setStatus(
-      `${actionLabels[action.action]} recorded. Current state: ${readable(response.result_state)}.`,
+      `${actionLabels[action.action]} recorded. Current state: ${lifecycleLabels[response.result_state]}.`,
     )
   }
 
-  const submitAction = async () => {
+  const submitAction = async (reason: string) => {
     if (!pendingAction) return
     if (!reason.trim()) {
       data.setError('Record a reason before submitting this assessor action.')
-      focus.reasonRef.current?.focus()
       return
     }
     if (!(await data.checkAccess())) {
@@ -96,7 +86,7 @@ export function useAssessorReviewQueue({
     setBusy(true)
     data.setError('')
     try {
-      await recordAction(pendingAction)
+      await recordAction(pendingAction, reason)
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
         await reloadAfterConflict(pendingAction)
@@ -108,29 +98,15 @@ export function useAssessorReviewQueue({
     }
   }
 
-  const closeDialogWithEscape = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (focus.closeDialogWithEscape(event)) setPendingAction(null)
-  }
-
   return {
     assessorAssignments,
     ...data,
     pendingAction,
-    reason,
     overrideResult,
     busy,
-    returnFocusAction,
-    triggerRef: focus.triggerRef,
-    reasonRef: focus.reasonRef,
-    overrideRef: focus.overrideRef,
-    submitRef: focus.submitRef,
-    setReason,
     setOverrideResult,
     setPendingAction,
     openAction,
     submitAction,
-    closeDialogWithEscape,
-    wrapFromFirstControl: focus.wrapFromFirstControl,
-    wrapFromSubmit: focus.wrapFromSubmit,
   }
 }

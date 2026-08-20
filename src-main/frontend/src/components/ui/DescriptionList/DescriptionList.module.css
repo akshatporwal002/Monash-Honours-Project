@@ -1,0 +1,33 @@
+.list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.term {
+  font-size: var(--text-meta);
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.description {
+  margin: 0;
+  font-size: var(--text-body);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (width <= 480px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}

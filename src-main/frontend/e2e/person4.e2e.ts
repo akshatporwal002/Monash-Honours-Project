@@ -8,8 +8,8 @@ async function openDemoWorkspace(
   page: Page,
   role: 'Student' | 'Educator' | 'Admin',
 ) {
-  await page.goto('/')
-  await page.getByRole('button', { name: role, exact: true }).click()
+  await page.goto('/login')
+  await page.getByRole('radio', { name: role, exact: true }).check()
   await page.getByRole('button', { name: 'Load demo workspace' }).click()
 }
 
@@ -18,7 +18,10 @@ test('production entry keeps protected workspaces behind login', async ({
 }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'QuantumLearn' })).toBeVisible()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(
+    page.getByRole('heading', { name: 'Sign in to LearnLens', level: 1 }),
+  ).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Your feedback' })).toHaveCount(0)
   await expect(
     page.getByRole('heading', { name: 'Learning and research analytics' }),
@@ -30,15 +33,19 @@ test('educator demo connects dashboard, editor, students, and analytics', async 
 }) => {
   await openDemoWorkspace(page, 'Educator')
 
+  await expect(page).toHaveURL(/\/educator$/)
   await expect(page.getByRole('heading', { name: 'Learning pulse' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Weekly engagement' })).toBeVisible()
-  await page.getByRole('button', { name: 'Course editor' }).click()
+  await page.getByRole('link', { name: 'Course editor' }).click()
+  await expect(page).toHaveURL(/\/educator\/courses$/)
   await expect(
     page.getByRole('heading', { name: 'Configure a grounded course' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: 'Students' }).click()
+  await page.getByRole('link', { name: 'Students' }).click()
+  await expect(page).toHaveURL(/\/educator\/students$/)
   await expect(page.getByRole('heading', { name: 'Students', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Analytics' }).click()
+  await page.getByRole('link', { name: 'Analytics' }).click()
+  await expect(page).toHaveURL(/\/educator\/analytics$/)
   await expect(page.getByRole('heading', { name: 'Cohort analytics' })).toBeVisible()
 })
 
@@ -47,18 +54,57 @@ test('student demo opens the scaffolded pathway and an interactive task', async 
 }) => {
   await openDemoWorkspace(page, 'Student')
 
+  await expect(page).toHaveURL(/\/student$/)
   await expect(page.getByRole('heading', { name: 'Welcome back, Alex' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Quantum foundations' })).toBeVisible()
   await page.getByRole('button', { name: 'Continue learning' }).click()
+  await expect(page).toHaveURL(/\/student\/tasks\/[^/]+$/)
   await expect(
     page.getByRole('heading', {
       name: 'Choose the superposition statement',
       level: 1,
     }),
   ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save draft' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Submit activity' })).toBeVisible()
   await page.getByRole('button', { name: 'Close task' }).click()
+  await expect(page).toHaveURL(/\/student$/)
   await expect(page.getByRole('heading', { name: 'Welcome back, Alex' })).toBeVisible()
+})
+
+test('student task path is operable by keyboard alone', async ({ page }) => {
+  await openDemoWorkspace(page, 'Student')
+  await expect(page).toHaveURL(/\/student$/)
+
+  // Open the activity without a pointer.
+  const continueAction = page.getByRole('button', { name: 'Continue learning' })
+  await continueAction.focus()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(/\/student\/tasks\/[^/]+$/)
+
+  // Answer with the keyboard.
+  const firstOption = page.getByRole('radio').first()
+  await firstOption.focus()
+  await page.keyboard.press('Space')
+  await expect(firstOption).toBeChecked()
+
+  // Submit stays reachable and enabled from the answered state.
+  const submit = page.getByRole('button', { name: 'Submit activity' })
+  await submit.focus()
+  await expect(submit).toBeFocused()
+  await expect(submit).toBeEnabled()
+
+  // Leaving with unsaved work asks first; the guard is keyboard operable and
+  // Escape keeps the learner's accepted work on screen.
+  const close = page.getByRole('button', { name: 'Close task' })
+  await close.focus()
+  await page.keyboard.press('Enter')
+  const leaveDialog = page.getByRole('alertdialog')
+  await expect(leaveDialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(leaveDialog).toHaveCount(0)
+  await expect(page).toHaveURL(/\/student\/tasks\/[^/]+$/)
+  await expect(firstOption).toBeChecked()
 })
 
 test('administrator demo connects accounts, courses, and settings', async ({
@@ -66,12 +112,16 @@ test('administrator demo connects accounts, courses, and settings', async ({
 }) => {
   await openDemoWorkspace(page, 'Admin')
 
+  await expect(page).toHaveURL(/\/admin$/)
   await expect(page.getByRole('heading', { name: 'System overview' })).toBeVisible()
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('link', { name: 'Accounts' }).click()
+  await expect(page).toHaveURL(/\/admin\/users$/)
   await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible()
-  await page.getByRole('button', { name: 'Courses' }).click()
+  await page.getByRole('link', { name: 'Courses' }).click()
+  await expect(page).toHaveURL(/\/admin\/courses$/)
   await expect(page.getByRole('heading', { name: 'Courses' })).toBeVisible()
-  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await expect(page).toHaveURL(/\/admin\/settings$/)
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
 })
 

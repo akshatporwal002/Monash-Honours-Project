@@ -1,10 +1,48 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
+import {
+  AlertTriangle,
+  BarChart3,
+  BookOpen,
+  GraduationCap,
+  Sparkles,
+  UserPlus,
+  Users,
+} from 'lucide-react'
+
 import { api } from '../app/api'
 import type { AdminUser, CourseSummary, SystemSettings, UserRole } from '../app/types'
-import { Icon, PageHeading, Panel, ScreenState } from './ScreenPrimitives'
+import {
+  AlertDialog,
+  BarList,
+  Button,
+  Card,
+  Checkbox,
+  DescriptionList,
+  Dialog,
+  EmptyState,
+  ErrorState,
+  Field,
+  Input,
+  PageHeader,
+  Select,
+  Skeleton,
+  Tag,
+  cx,
+} from './ui'
+import styles from './AdminWorkspace.module.css'
 
 export type AdminSection = 'overview' | 'users' | 'courses' | 'settings'
+
+const roleOptions = [
+  { value: 'student', label: 'Student' },
+  { value: 'educator', label: 'Educator' },
+  { value: 'admin', label: 'Administrator' },
+]
+
+/* Radix Select items cannot carry an empty-string value; this sentinel maps to
+   the stored '' (no provider configured). */
+const noProviderValue = 'no-provider'
 
 export function AdminWorkspace({ section }: { section: AdminSection }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null)
@@ -16,50 +54,13 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [pendingUser, setPendingUser] = useState<AdminUser | null>(null)
   const [pendingCourse, setPendingCourse] = useState<CourseSummary | null>(null)
+  const [pendingRole, setPendingRole] = useState<{ user: AdminUser; role: UserRole } | null>(null)
   const [newUser, setNewUser] = useState({
     full_name: '',
     email: '',
     role: 'student' as UserRole,
     password: '',
   })
-  const dialogRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    if (!showCreateUser && !pendingUser && !pendingCourse) return
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    const dialog = dialogRef.current
-    const focusableSelector = 'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)'
-    dialog?.querySelector<HTMLElement>(focusableSelector)?.focus()
-    const close = () => {
-      setShowCreateUser(false)
-      setPendingUser(null)
-      setPendingCourse(null)
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        close()
-        return
-      }
-      if (event.key !== 'Tab' || !dialog) return
-      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      previousFocus?.focus()
-    }
-  }, [pendingCourse, pendingUser, showCreateUser])
 
   const load = async (signal?: AbortSignal) => {
     try {
@@ -141,17 +142,7 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
     }
   }
 
-  const updateRole = async (user: AdminUser, role: UserRole) => {
-    if (
-      user.role === 'educator'
-      && role !== 'educator'
-      && !window.confirm(
-        'This educator may own active courses. Confirm that those courses have been archived '
-        + 'or can remain administrator-managed before changing the role.',
-      )
-    ) {
-      return
-    }
+  const applyRole = async (user: AdminUser, role: UserRole) => {
     setBusy(true)
     setError('')
     setMessage('')
@@ -164,6 +155,15 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
     } finally {
       setBusy(false)
     }
+  }
+
+  const requestRoleChange = (user: AdminUser, role: UserRole) => {
+    if (role === user.role) return
+    if (user.role === 'educator' && role !== 'educator') {
+      setPendingRole({ user, role })
+      return
+    }
+    void applyRole(user, role)
   }
 
   const archiveCourse = async () => {
@@ -199,110 +199,183 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
   }
 
   if (error && (!users || !courses || !settings)) {
-    return <div className="screen"><ScreenState kind="error" title="Admin workspace unavailable" message={error} action={<button className="button button--secondary" onClick={() => void load()}>Try again</button>} /></div>
+    return (
+      <div className={styles.screen}>
+        <ErrorState title="Admin workspace unavailable" description={error} onRetry={() => void load()} />
+      </div>
+    )
   }
   if (!users || !courses || !settings) {
-    return <div className="screen"><ScreenState kind="loading" title="Loading administration" message="Checking accounts, courses and system configuration." /></div>
+    return (
+      <div className={styles.screen}>
+        <p role="status" className={styles.loading}>
+          Loading administration: checking accounts, courses and system configuration.
+        </p>
+        <Skeleton height="2.5rem" width="24rem" />
+        <Skeleton height="9rem" />
+        <Skeleton height="9rem" />
+      </div>
+    )
   }
 
   return (
-    <div className="screen">
+    <div className={styles.screen}>
       {section === 'overview' && (
         <>
-          <PageHeading eyebrow="Administration" title="System overview" description="A concise view of the people, courses and configuration behind QuantumLearn." />
-          <section className="metric-grid">
+          <PageHeader
+            eyebrow="Administration"
+            title="System overview"
+            description="A concise view of the people, courses and configuration behind LearnLens."
+          />
+          <section className={styles.metrics} aria-label="System metrics">
             {[
-              { label: 'Active accounts', value: counts.active, detail: 'Across all roles', icon: 'user' as const },
-              { label: 'Students', value: counts.students, detail: 'Learner accounts', icon: 'book' as const },
-              { label: 'Educators', value: counts.educators, detail: 'Course owners', icon: 'course' as const },
-              { label: 'Published courses', value: counts.published, detail: `${courses.length} total courses`, icon: 'analytics' as const },
+              { label: 'Active accounts', value: counts.active, detail: 'Across all roles', icon: <Users size={18} /> },
+              { label: 'Students', value: counts.students, detail: 'Learner accounts', icon: <BookOpen size={18} /> },
+              { label: 'Educators', value: counts.educators, detail: 'Course owners', icon: <GraduationCap size={18} /> },
+              { label: 'Published courses', value: counts.published, detail: `${courses.length} total courses`, icon: <BarChart3 size={18} /> },
             ].map((item) => (
-              <article className="metric-card" key={item.label}>
-                <span><Icon name={item.icon} /></span><p>{item.label}</p><strong>{item.value}</strong><small>{item.detail}</small>
-              </article>
+              <Card key={item.label} className={styles.metric}>
+                <span className={styles.metricIcon} aria-hidden="true">{item.icon}</span>
+                <p className={styles.metricLabel}>{item.label}</p>
+                <p className={styles.metricValue}>{item.value}</p>
+                <p className={styles.metricDetail}>{item.detail}</p>
+              </Card>
             ))}
           </section>
-          <div className="admin-overview-grid">
-            <Panel eyebrow="Account mix" title="Users by role">
-              <div className="role-breakdown">
-                {(['student', 'educator', 'admin'] as const).map((role) => {
-                  const count = users.filter((user) => user.role === role).length
-                  return <div key={role}><span>{role}</span><div><i style={{ width: `${users.length ? (count / users.length) * 100 : 0}%` }} /></div><strong>{count}</strong></div>
-                })}
-              </div>
-            </Panel>
-            <Panel eyebrow="Governance" title="Configuration health">
-              <dl className="settings-summary">
-                <div><dt>AI provider</dt><dd>{settings.llm_provider || 'Not configured'}</dd></div>
-                <div><dt>Model</dt><dd>{settings.llm_model || 'Not configured'}</dd></div>
-                <div><dt>At-risk threshold</dt><dd>{settings.at_risk_threshold}%</dd></div>
-                <div><dt>Passing score</dt><dd>{settings.passing_score}%</dd></div>
-                <div><dt>Points per level</dt><dd>{settings.points_per_level}</dd></div>
-                <div><dt>Automatic reminders</dt><dd>{settings.reminders_enabled ? 'Enabled' : 'Disabled'}</dd></div>
-              </dl>
-            </Panel>
+          <div className={styles.grid}>
+            <Card eyebrow="Account mix" heading="Users by role">
+              <BarList
+                max={Math.max(1, users.length)}
+                items={(['student', 'educator', 'admin'] as const).map((role) => ({
+                  label: role,
+                  value: users.filter((user) => user.role === role).length,
+                }))}
+              />
+            </Card>
+            <Card eyebrow="Governance" heading="Configuration health">
+              <DescriptionList
+                items={[
+                  { term: 'AI provider', description: settings.llm_provider || 'Not configured' },
+                  { term: 'Model', description: settings.llm_model || 'Not configured' },
+                  { term: 'At-risk threshold', description: `${settings.at_risk_threshold}%` },
+                  { term: 'Passing score', description: `${settings.passing_score}%` },
+                  { term: 'Points per level', description: String(settings.points_per_level) },
+                  { term: 'Automatic reminders', description: settings.reminders_enabled ? 'Enabled' : 'Disabled' },
+                ]}
+              />
+            </Card>
           </div>
         </>
       )}
 
       {section === 'users' && (
         <>
-          <PageHeading
+          <PageHeader
             eyebrow="Account management"
             title="Users"
             description="Create role-scoped accounts and deactivate access without deleting learning records."
-            actions={<button className="button button--primary" onClick={() => setShowCreateUser(true)}><Icon name="user" size={18} /> Add user</button>}
+            actions={
+              <Button variant="primary" onClick={() => setShowCreateUser(true)}>
+                <UserPlus size={16} aria-hidden="true" /> Add user
+              </Button>
+            }
           />
-          <section className="table-panel" aria-labelledby="admin-users-title">
-            <header className="table-toolbar"><div><p className="eyebrow">Directory</p><h2 id="admin-users-title">{users.length} accounts</h2></div></header>
-            <div className="table-scroll">
-              <table>
-                <thead><tr><th scope="col">User</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col">Action</th></tr></thead>
+          <Card padding="none" className={styles.tablePanel} aria-labelledby="admin-users-title">
+            <header className={styles.toolbar}>
+              <div>
+                <p className={styles.eyebrow}>Directory</p>
+                <h2 id="admin-users-title" className={styles.tableTitle}>{users.length} accounts</h2>
+              </div>
+            </header>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">User</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Created</th>
+                    <th scope="col">Action</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {users.map((user) => (
                     <tr key={user.id}>
-                      <th scope="row"><strong>{user.full_name}</strong><small>{user.email}</small></th>
+                      <th scope="row" className={styles.userCell}>
+                        <strong className={styles.userName}>{user.full_name}</strong>
+                        <small className={styles.userEmail}>{user.email}</small>
+                      </th>
                       <td>
-                        <select
-                          className="table-role-select"
+                        <Select
                           aria-label={`Role for ${user.full_name}`}
                           value={user.role}
                           disabled={busy}
-                          onChange={(event) => void updateRole(user, event.target.value as UserRole)}
-                        >
-                          <option value="student">Student</option>
-                          <option value="educator">Educator</option>
-                          <option value="admin">Administrator</option>
-                        </select>
+                          onValueChange={(value) => requestRoleChange(user, value as UserRole)}
+                          options={roleOptions}
+                        />
                       </td>
-                      <td><span className={`risk-badge risk-badge--${user.is_active ? 'on_track' : 'not_started'}`}>{user.is_active ? 'Active' : 'Inactive'}</span></td>
+                      <td>
+                        <Tag className={cx(!user.is_active && styles.inactiveTag)}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </Tag>
+                      </td>
                       <td>{user.created_at ? new Date(user.created_at).toLocaleDateString('en-AU') : '—'}</td>
-                      <td><button className="button button--ghost" onClick={() => setPendingUser(user)}>{user.is_active ? 'Deactivate' : 'Reactivate'}</button></td>
+                      <td>
+                        <Button variant="quiet" size="sm" onClick={() => setPendingUser(user)}>
+                          {user.is_active ? 'Deactivate' : 'Reactivate'}
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </section>
+          </Card>
         </>
       )}
 
       {section === 'courses' && (
         <>
-          <PageHeading eyebrow="Course governance" title="Courses" description="Review ownership and archive courses while preserving dependent student records." />
+          <PageHeader
+            eyebrow="Course governance"
+            title="Courses"
+            description="Review ownership and archive courses while preserving dependent student records."
+          />
           {courses.length === 0 ? (
-            <ScreenState kind="empty" title="No courses configured" message="Educators can create the first course from their course editor." />
+            <EmptyState
+              icon={<BookOpen size={20} />}
+              title="No courses configured"
+              description="Educators can create the first course from their course editor."
+            />
           ) : (
-            <div className="admin-course-grid">
+            <div className={styles.courseGrid}>
               {courses.map((course) => (
-                <article className="admin-course-card" key={course.id}>
-                  <header><span className="icon-chip"><Icon name="course" /></span><span className={`status-chip status-chip--${course.status}`}>{course.status}</span></header>
-                  <p className="eyebrow">{course.code}</p>
-                  <h2>{course.title}</h2>
-                  <p>{course.description || 'No course description provided.'}</p>
-                  <dl><div><dt>Students</dt><dd>{course.enrolled_students ?? 0}</dd></div><div><dt>Modules</dt><dd>{course.module_count ?? 0}</dd></div></dl>
-                  <button className="button button--ghost" disabled={course.status === 'archived'} onClick={() => setPendingCourse(course)}>Archive course</button>
-                </article>
+                <Card
+                  key={course.id}
+                  eyebrow={course.code}
+                  heading={course.title}
+                  actions={<Tag>{course.status}</Tag>}
+                  className={styles.courseCard}
+                >
+                  <p className={styles.courseDescription}>
+                    {course.description || 'No course description provided.'}
+                  </p>
+                  <DescriptionList
+                    items={[
+                      { term: 'Students', description: String(course.enrolled_students ?? 0) },
+                      { term: 'Modules', description: String(course.module_count ?? 0) },
+                    ]}
+                  />
+                  <div className={styles.courseAction}>
+                    <Button
+                      variant="quiet"
+                      disabled={course.status === 'archived'}
+                      onClick={() => setPendingCourse(course)}
+                    >
+                      Archive course
+                    </Button>
+                  </div>
+                </Card>
               ))}
             </div>
           )}
@@ -311,65 +384,206 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
 
       {section === 'settings' && (
         <>
-          <PageHeading eyebrow="System configuration" title="Settings" description="Choose shared AI defaults and learner-support thresholds for the MVP." />
-          <form className="settings-form" onSubmit={(event) => void saveSettings(event)}>
-            <section>
-              <div><span className="icon-chip"><Icon name="spark" /></span><div><h2>AI generation</h2><p>Changing provider or model affects future task and feedback generation.</p></div></div>
-              <div className="form-grid">
-                <label className="field"><span>Provider</span><select value={settings.llm_provider} onChange={(event) => setSettings({ ...settings, llm_provider: event.target.value })}><option value="">Select provider</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="local">Local provider</option></select></label>
-                <label className="field"><span>Model</span><input value={settings.llm_model} onChange={(event) => setSettings({ ...settings, llm_model: event.target.value })} placeholder="Configured model identifier" /></label>
+          <PageHeader
+            eyebrow="System configuration"
+            title="Settings"
+            description="Choose shared AI defaults and learner-support thresholds for the MVP."
+          />
+          <form className={styles.settingsForm} onSubmit={(event) => void saveSettings(event)}>
+            <Card className={styles.settingsSection}>
+              <div className={styles.sectionHead}>
+                <span className={styles.sectionIcon} aria-hidden="true"><Sparkles size={18} /></span>
+                <div>
+                  <h2 className={styles.sectionTitle}>AI generation</h2>
+                  <p className={styles.sectionText}>
+                    Changing provider or model affects future task and feedback generation.
+                  </p>
+                </div>
               </div>
-              {!settings.llm_provider && <p className="settings-warning"><Icon name="warning" size={17} /> AI generation remains unavailable until a provider and its server-side credentials are configured.</p>}
-            </section>
-            <section>
-              <div><span className="icon-chip"><Icon name="people" /></span><div><h2>Student support</h2><p>Set when low progress should become an educator alert.</p></div></div>
-              <label className="range-field"><span>At-risk completion threshold</span><input type="range" min="10" max="90" step="5" value={settings.at_risk_threshold} onChange={(event) => setSettings({ ...settings, at_risk_threshold: Number(event.target.value) })} /><strong>{settings.at_risk_threshold}%</strong></label>
-              <label className="range-field"><span>Passing score</span><input type="range" min="0" max="100" step="5" value={settings.passing_score} onChange={(event) => setSettings({ ...settings, passing_score: Number(event.target.value) })} /><strong>{settings.passing_score}%</strong></label>
-              <label className="field settings-number"><span>Points required per level</span><input type="number" min="1" max="100000" value={settings.points_per_level} onChange={(event) => setSettings({ ...settings, points_per_level: Number(event.target.value) })} /></label>
-              <label className="switch-field"><input type="checkbox" checked={settings.reminders_enabled} onChange={(event) => setSettings({ ...settings, reminders_enabled: event.target.checked })} /><span><i /></span><div><strong>Automatic overdue reminders</strong><small>Send one deduplicated reminder when a task becomes overdue.</small></div></label>
-            </section>
-            <div className="wizard-actions"><button className="button button--primary" disabled={busy}>{busy ? 'Saving…' : 'Save settings'} <Icon name="check" size={17} /></button></div>
+              <div className={styles.formGrid}>
+                <Field label="Provider">
+                  <Select
+                    value={settings.llm_provider || noProviderValue}
+                    onValueChange={(value) => setSettings({
+                      ...settings,
+                      llm_provider: value === noProviderValue ? '' : value,
+                    })}
+                    options={[
+                      { value: noProviderValue, label: 'Select provider' },
+                      { value: 'openai', label: 'OpenAI' },
+                      { value: 'anthropic', label: 'Anthropic' },
+                      { value: 'local', label: 'Local provider' },
+                    ]}
+                  />
+                </Field>
+                <Field label="Model">
+                  <Input
+                    value={settings.llm_model}
+                    onChange={(event) => setSettings({ ...settings, llm_model: event.target.value })}
+                    placeholder="Configured model identifier"
+                  />
+                </Field>
+              </div>
+              {!settings.llm_provider && (
+                <p className={styles.settingsWarning}>
+                  <AlertTriangle size={16} aria-hidden="true" /> AI generation remains unavailable
+                  until a provider and its server-side credentials are configured.
+                </p>
+              )}
+            </Card>
+            <Card className={styles.settingsSection}>
+              <div className={styles.sectionHead}>
+                <span className={styles.sectionIcon} aria-hidden="true"><Users size={18} /></span>
+                <div>
+                  <h2 className={styles.sectionTitle}>Student support</h2>
+                  <p className={styles.sectionText}>
+                    Set when low progress should become an educator alert.
+                  </p>
+                </div>
+              </div>
+              <div className={styles.rangeRow}>
+                <Field label="At-risk completion threshold" className={styles.rangeField}>
+                  <input
+                    type="range"
+                    className={styles.range}
+                    min="10"
+                    max="90"
+                    step="5"
+                    value={settings.at_risk_threshold}
+                    onChange={(event) => setSettings({ ...settings, at_risk_threshold: Number(event.target.value) })}
+                  />
+                </Field>
+                <strong className={styles.rangeValue}>{settings.at_risk_threshold}%</strong>
+              </div>
+              <div className={styles.rangeRow}>
+                <Field label="Passing score" className={styles.rangeField}>
+                  <input
+                    type="range"
+                    className={styles.range}
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={settings.passing_score}
+                    onChange={(event) => setSettings({ ...settings, passing_score: Number(event.target.value) })}
+                  />
+                </Field>
+                <strong className={styles.rangeValue}>{settings.passing_score}%</strong>
+              </div>
+              <Field label="Points required per level" className={styles.numberField}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100000}
+                  value={settings.points_per_level}
+                  onChange={(event) => setSettings({ ...settings, points_per_level: Number(event.target.value) })}
+                />
+              </Field>
+              <Checkbox
+                label="Automatic overdue reminders"
+                help="Send one deduplicated reminder when a task becomes overdue."
+                checked={settings.reminders_enabled}
+                onChange={(event) => setSettings({ ...settings, reminders_enabled: event.target.checked })}
+              />
+            </Card>
+            <div className={styles.settingsActions}>
+              <Button type="submit" variant="primary" loading={busy}>Save settings</Button>
+            </div>
           </form>
         </>
       )}
 
-      {message && <p className="toast-message" role="status">{message}</p>}
-      {error && <p className="toast-message toast-message--error" role="alert">{error}</p>}
+      {message && <p className={styles.toast} role="status">{message}</p>}
+      {error && <p className={cx(styles.toast, styles.toastError)} role="alert">{error}</p>}
 
-      {showCreateUser && (
-        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="create-user-title">
-          <form className="confirm-dialog create-user-dialog" ref={(node) => { dialogRef.current = node }} onSubmit={(event) => void createUser(event)}>
-            <header><span className="icon-chip"><Icon name="user" /></span><div><p className="eyebrow">New account</p><h2 id="create-user-title">Add a user</h2></div></header>
-            <label className="field"><span>Full name</span><input value={newUser.full_name} onChange={(event) => setNewUser({ ...newUser, full_name: event.target.value })} required /></label>
-            <label className="field"><span>Email address</span><input type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} required /></label>
-            <label className="field"><span>Role</span><select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value as UserRole })}><option value="student">Student</option><option value="educator">Educator</option><option value="admin">Administrator</option></select></label>
-            <label className="field"><span>Temporary password</span><input type="password" minLength={8} value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} required /></label>
-            <div><button type="button" className="button button--ghost" onClick={() => setShowCreateUser(false)}>Cancel</button><button className="button button--primary" disabled={busy}>Create account</button></div>
-          </form>
-        </div>
-      )}
+      <Dialog
+        open={showCreateUser}
+        onOpenChange={setShowCreateUser}
+        title="Add a user"
+        description="Create a role-scoped account with a temporary password."
+      >
+        <form className={styles.dialogForm} onSubmit={(event) => void createUser(event)}>
+          <Field label="Full name">
+            <Input
+              value={newUser.full_name}
+              onChange={(event) => setNewUser({ ...newUser, full_name: event.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Email address">
+            <Input
+              type="email"
+              value={newUser.email}
+              onChange={(event) => setNewUser({ ...newUser, email: event.target.value })}
+              required
+            />
+          </Field>
+          <Field label="Role">
+            <Select
+              value={newUser.role}
+              onValueChange={(value) => setNewUser({ ...newUser, role: value as UserRole })}
+              options={roleOptions}
+            />
+          </Field>
+          <Field label="Temporary password">
+            <Input
+              type="password"
+              minLength={8}
+              value={newUser.password}
+              onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
+              required
+            />
+          </Field>
+          <div className={styles.dialogActions}>
+            <Button variant="quiet" onClick={() => setShowCreateUser(false)}>Cancel</Button>
+            <Button type="submit" variant="primary" loading={busy}>Create account</Button>
+          </div>
+        </form>
+      </Dialog>
 
-      {pendingUser && (
-        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-user-title">
-          <section className="confirm-dialog" ref={(node) => { dialogRef.current = node }}>
-            <span className="icon-chip icon-chip--warning"><Icon name="warning" /></span>
-            <h2 id="confirm-user-title">{pendingUser.is_active ? 'Deactivate' : 'Reactivate'} {pendingUser.full_name}?</h2>
-            <p>{pendingUser.is_active ? 'They will lose access immediately. Their submissions, feedback and dependent course data will be preserved.' : 'They will regain access according to their assigned role.'}</p>
-            <div><button className="button button--ghost" onClick={() => setPendingUser(null)}>Cancel</button><button className="button button--primary" onClick={() => void confirmUserState()} disabled={busy}>Confirm</button></div>
-          </section>
-        </div>
-      )}
+      <AlertDialog
+        open={Boolean(pendingUser)}
+        onOpenChange={(open) => {
+          if (!open) setPendingUser(null)
+        }}
+        title={pendingUser
+          ? `${pendingUser.is_active ? 'Deactivate' : 'Reactivate'} ${pendingUser.full_name}?`
+          : 'Update account?'}
+        description={pendingUser?.is_active
+          ? 'They will lose access immediately. Their submissions, feedback and dependent course data will be preserved.'
+          : 'They will regain access according to their assigned role.'}
+        confirmLabel="Confirm"
+        confirmLoading={busy}
+        onConfirm={() => void confirmUserState()}
+      />
 
-      {pendingCourse && (
-        <div className="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-course-title">
-          <section className="confirm-dialog" ref={(node) => { dialogRef.current = node }}>
-            <span className="icon-chip icon-chip--warning"><Icon name="warning" /></span>
-            <h2 id="confirm-course-title">Archive {pendingCourse.title}?</h2>
-            <p>The course will be hidden from active learning. Enrolments, submissions and analytics will be retained for audit and research.</p>
-            <div><button className="button button--ghost" onClick={() => setPendingCourse(null)}>Cancel</button><button className="button button--primary" onClick={() => void archiveCourse()} disabled={busy}>Archive course</button></div>
-          </section>
-        </div>
-      )}
+      <AlertDialog
+        open={Boolean(pendingRole)}
+        onOpenChange={(open) => {
+          if (!open) setPendingRole(null)
+        }}
+        title={pendingRole ? `Change ${pendingRole.user.full_name}'s role?` : 'Change role?'}
+        description="This educator may own active courses. Confirm that those courses have been archived or can remain administrator-managed before changing the role."
+        confirmLabel="Change role"
+        confirmLoading={busy}
+        onConfirm={() => {
+          if (!pendingRole) return
+          const { user, role } = pendingRole
+          setPendingRole(null)
+          void applyRole(user, role)
+        }}
+      />
+
+      <AlertDialog
+        open={Boolean(pendingCourse)}
+        onOpenChange={(open) => {
+          if (!open) setPendingCourse(null)
+        }}
+        title={pendingCourse ? `Archive ${pendingCourse.title}?` : 'Archive course?'}
+        description="The course will be hidden from active learning. Enrolments, submissions and analytics will be retained for audit and research."
+        confirmLabel="Archive course"
+        confirmLoading={busy}
+        onConfirm={() => void archiveCourse()}
+      />
     </div>
   )
 }

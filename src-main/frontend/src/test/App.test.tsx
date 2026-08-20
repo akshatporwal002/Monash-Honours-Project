@@ -74,6 +74,7 @@ const studentDashboard = {
 beforeEach(() => {
   vi.restoreAllMocks()
   document.cookie = 'ql_csrf=; Max-Age=0'
+  window.history.pushState({}, '', '/')
 })
 
 test('signs an educator into the server-authorised workspace with credentialed requests', async () => {
@@ -97,11 +98,11 @@ test('signs an educator into the server-authorised workspace with credentialed r
 
   render(<App />)
   const user = userEvent.setup()
-  expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
-  await user.click(screen.getByRole('button', { name: /Educator/ }))
+  expect(await screen.findByRole('heading', { name: 'Sign in to LearnLens' })).toBeInTheDocument()
+  await user.click(screen.getByRole('radio', { name: 'Educator' }))
   await user.type(screen.getByLabelText('Email address'), 'educator@example.edu')
   await user.type(screen.getByLabelText('Password'), 'correct-password')
-  await user.click(screen.getByRole('button', { name: /Enter educator workspace/ }))
+  await user.click(screen.getByRole('button', { name: 'Sign in' }))
 
   expect(await screen.findByRole('heading', { name: 'Learning pulse' })).toBeInTheDocument()
   const loginCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/auth/login'))
@@ -125,7 +126,7 @@ test('assessor navigation follows active server assignments', async () => {
 
   render(<App />)
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Assessment setup' }))
+  await user.click(await screen.findByRole('link', { name: 'Assessment setup' }))
   expect(await screen.findByRole('heading', { name: 'Assessment setup' })).toBeInTheDocument()
 
   fetchMock.mockRestore()
@@ -136,8 +137,8 @@ test('assessor navigation follows active server assignments', async () => {
     throw new Error(`Unexpected request: ${url}`)
   })
   await user.click(screen.getByRole('button', { name: 'Check assessor access' }))
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Assessment setup' })).not.toBeInTheDocument())
-  expect(screen.queryByRole('button', { name: 'Assessment setup' })).not.toBeInTheDocument()
+  await waitFor(() => expect(screen.queryByRole('link', { name: 'Assessment setup' })).not.toBeInTheDocument())
+  expect(screen.queryByRole('link', { name: 'Assessment setup' })).not.toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Approve and publish' })).not.toBeInTheDocument()
 })
 
@@ -170,14 +171,14 @@ test('selected course revocation closes the workspace when another assignment re
 
   render(<App />)
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Assessment setup' }))
+  await user.click(await screen.findByRole('link', { name: 'Assessment setup' }))
   expect(await screen.findByRole('heading', { name: 'Assessment setup' })).toBeInTheDocument()
 
   await user.click(screen.getByRole('button', { name: 'Check assessor access' }))
 
   expect(await screen.findByRole('heading', { name: 'Learning pulse' })).toBeInTheDocument()
   expect(screen.queryByRole('heading', { name: 'Assessment setup' })).not.toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Assessment setup' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Assessment setup' })).toBeInTheDocument()
 })
 
 test('assessment review loads its access check and queue once after navigation', async () => {
@@ -202,7 +203,7 @@ test('assessment review loads its access check and queue once after navigation',
 
   render(<App />)
   const user = userEvent.setup()
-  await user.click(await screen.findByRole('button', { name: 'Assessment review' }))
+  await user.click(await screen.findByRole('link', { name: 'Assessment review' }))
   expect(await screen.findByRole('heading', { name: 'Assessment review queue' })).toBeInTheDocument()
   await waitFor(() => expect(fetchMock.mock.calls.filter(([input]) =>
     String(input).includes('/assessment/courses/course-1/review-queue'))).toHaveLength(1))
@@ -481,9 +482,11 @@ test('shows formal assessment conditions and saves a response without a numeric 
   const user = userEvent.setup()
 
   expect(await screen.findByText('Assessment conditions')).toBeInTheDocument()
-  expect(screen.getByText(/Purpose: SUMMATIVE/)).toBeInTheDocument()
+  expect(screen.getByText('Summative')).toBeInTheDocument()
+  expect(screen.getByText(/Analyse — break a problem into parts/)).toBeInTheDocument()
   expect(screen.getByText(/Required: Explain the evidence-to-claim relationship/)).toBeInTheDocument()
-  expect(screen.getByText(/Permitted tools: notes/)).toBeInTheDocument()
+  expect(screen.getByText('Permitted tools')).toBeInTheDocument()
+  expect(screen.getByText('notes')).toBeInTheDocument()
   await user.type(screen.getByLabelText('Your response'), 'The evidence supports the claim.')
   await user.click(screen.getByRole('button', { name: /Submit activity/ }))
 
@@ -884,6 +887,6 @@ test('has no detectable axe violations on the role selection and sign-in screen'
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({ detail: 'Not authenticated' }, 401))
   const { container } = render(<App />)
 
-  expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
+  expect(await screen.findByRole('heading', { name: 'Sign in to LearnLens' })).toBeInTheDocument()
   expect((await axe.run(container)).violations).toEqual([])
 })

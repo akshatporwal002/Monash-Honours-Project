@@ -1,7 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  CheckCircle2,
+  Plus,
+  Users,
+} from 'lucide-react'
+
 import { api } from '../app/api'
 import type { EducatorDashboardData, EducatorStudent } from '../app/types'
-import { Icon, PageHeading, Panel, ScreenState } from './ScreenPrimitives'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  EstimateChip,
+  LineChart,
+  PageHeader,
+  Skeleton,
+} from './ui'
+import styles from './EducatorDashboard.module.css'
 
 function activityTime(value: string): string {
   const date = new Date(value)
@@ -11,36 +31,6 @@ function activityTime(value: string): string {
   if (minutes < 60) return `${minutes}m ago`
   if (minutes < 1_440) return `${Math.floor(minutes / 60)}h ago`
   return `${Math.floor(minutes / 1_440)}d ago`
-}
-
-function WeeklyChart({ points }: { points: EducatorDashboardData['engagement'] }) {
-  const maximum = Math.max(1, ...points.flatMap((point) => [point.active_students, point.submissions]))
-  const makePoints = (key: 'active_students' | 'submissions') =>
-    points.map((point, index) => {
-      const x = points.length === 1 ? 50 : (index / (points.length - 1)) * 100
-      const y = 94 - (point[key] / maximum) * 80
-      return `${x},${y}`
-    }).join(' ')
-
-  if (points.length === 0) {
-    return <div className="inline-empty"><p>Engagement appears after students start learning activities.</p></div>
-  }
-
-  return (
-    <figure className="line-chart" aria-label="Weekly active students and submissions">
-      <div className="chart-legend"><span><i className="violet" /> Active students</span><span><i className="cyan" /> Submissions</span></div>
-      <svg viewBox="0 0 100 100" role="img">
-        <title>Weekly engagement</title>
-        {[20, 40, 60, 80].map((line) => <line key={line} x1="0" y1={line} x2="100" y2={line} className="chart-gridline" />)}
-        <polyline points={makePoints('active_students')} className="chart-line chart-line--violet" />
-        <polyline points={makePoints('submissions')} className="chart-line chart-line--cyan" />
-        {points.map((point, index) => {
-          const x = points.length === 1 ? 50 : (index / (points.length - 1)) * 100
-          return <text key={point.label} x={x} y="99" textAnchor="middle">{point.label}</text>
-        })}
-      </svg>
-    </figure>
-  )
 }
 
 export function EducatorDashboard({ onCreateCourse, onViewStudents }: {
@@ -108,105 +98,160 @@ export function EducatorDashboard({ onCreateCourse, onViewStudents }: {
 
   if (error) {
     return (
-      <div className="screen">
-        <ScreenState
-          kind="error"
+      <div className={styles.screen}>
+        <ErrorState
           title="Educator dashboard unavailable"
-          message={error}
-          action={<button className="button button--secondary" onClick={() => void load()}>Try again</button>}
+          description={error}
+          onRetry={() => void load()}
         />
       </div>
     )
   }
   if (!dashboard) {
-    return <div className="screen"><ScreenState kind="loading" title="Preparing your course view" message="Loading engagement, student support and course progress." /></div>
+    return (
+      <div className={styles.screen}>
+        <p role="status" className={styles.loading}>
+          Preparing your course view: loading engagement, student support and course progress.
+        </p>
+        <Skeleton height="2.5rem" width="24rem" />
+        <Skeleton height="9rem" />
+        <Skeleton height="9rem" />
+      </div>
+    )
   }
 
+  const metrics = [
+    { label: 'Enrolled students', value: dashboard.active_students, detail: 'Across your courses', icon: <Users size={18} /> },
+    { label: 'Average completion', value: `${dashboard.average_completion}%`, detail: 'All published pathways', icon: <BarChart3 size={18} /> },
+    { label: 'Submissions this week', value: dashboard.submissions_this_week, detail: 'Learning attempts', icon: <BookOpen size={18} /> },
+    { label: 'Need support', value: dashboard.at_risk_count, detail: 'Based on engagement', icon: <AlertTriangle size={18} /> },
+  ]
+
   return (
-    <div className="screen">
-      <PageHeading
+    <div className={styles.screen}>
+      <PageHeader
         eyebrow="Educator dashboard"
         title="Learning pulse"
         description="See what changed this week, then act on the signals that matter."
-        actions={<button className="button button--primary" onClick={onCreateCourse}><Icon name="course" size={18} /> Create course</button>}
+        actions={
+          <Button variant="primary" onClick={onCreateCourse}>
+            <Plus size={16} aria-hidden="true" /> Create course
+          </Button>
+        }
       />
 
-      <section className="metric-grid">
-        {[
-          ['Enrolled students', dashboard.active_students, 'Across your courses'],
-          ['Average completion', `${dashboard.average_completion}%`, 'All published pathways'],
-          ['Submissions this week', dashboard.submissions_this_week, 'Learning attempts'],
-          ['Need support', dashboard.at_risk_count, 'Based on engagement'],
-        ].map(([label, value, detail], index) => (
-          <article className={index === 3 && Number(value) > 0 ? 'metric-card metric-card--warning' : 'metric-card'} key={label}>
-            <span><Icon name={index === 3 ? 'warning' : index === 2 ? 'book' : index === 1 ? 'analytics' : 'people'} /></span>
-            <p>{label}</p>
-            <strong>{value}</strong>
-            <small>{detail}</small>
-          </article>
+      <section className={styles.metrics} aria-label="Course metrics">
+        {metrics.map((metric) => (
+          <Card key={metric.label} className={styles.metric}>
+            <span className={styles.metricIcon} aria-hidden="true">{metric.icon}</span>
+            <p className={styles.metricLabel}>{metric.label}</p>
+            <p className={styles.metricValue}>{metric.value}</p>
+            <p className={styles.metricDetail}>{metric.detail}</p>
+          </Card>
         ))}
       </section>
 
-      <div className="educator-grid">
-        <Panel eyebrow="Last seven days" title="Weekly engagement" className="engagement-panel">
-          <WeeklyChart points={dashboard.engagement} />
-        </Panel>
+      <div className={styles.grid}>
+        <Card eyebrow="Last seven days" heading="Weekly engagement" className={styles.engagementPanel}>
+          {dashboard.engagement.length === 0 ? (
+            <EmptyState title="Engagement appears after students start learning activities." />
+          ) : (
+            <LineChart
+              title="Weekly active students and submissions"
+              labels={dashboard.engagement.map((point) => point.label)}
+              series={[
+                { label: 'Active students', values: dashboard.engagement.map((point) => point.active_students) },
+                { label: 'Submissions', values: dashboard.engagement.map((point) => point.submissions) },
+              ]}
+            />
+          )}
+        </Card>
 
-        <Panel
+        <Card
           eyebrow="Early support"
-          title="At-risk alerts"
-          className="risk-panel"
-          action={<button className="text-button" onClick={onViewStudents}>View all <Icon name="arrow" size={15} /></button>}
+          heading="At-risk alerts"
+          className={styles.riskPanel}
+          actions={
+            <Button variant="quiet" size="sm" onClick={onViewStudents}>
+              View all <ArrowRight size={14} aria-hidden="true" />
+            </Button>
+          }
         >
           {atRisk.length === 0 ? (
-            <div className="inline-empty"><Icon name="check" /><p>No students currently meet the at-risk threshold.</p></div>
+            <EmptyState
+              icon={<CheckCircle2 size={20} />}
+              title="No students currently meet the at-risk threshold."
+            />
           ) : (
-            <div className="risk-list">
+            <ul className={styles.riskList}>
               {atRisk.map((student) => (
-                <article key={student.student_id}>
-                  <span className="avatar avatar--small">{student.display_name.split(' ').map((part) => part[0]).join('').slice(0, 2)}</span>
-                  <div><strong>{student.display_name}</strong><small>{student.completion_percent}% complete · {student.average_score}% average</small></div>
-                  <button className="button button--ghost" onClick={() => void notify(student)}>Check in</button>
-                </article>
+                <li key={student.student_id} className={styles.riskRow}>
+                  <div className={styles.riskBody}>
+                    <p className={styles.riskName}>{student.display_name}</p>
+                    <p className={styles.riskDetail}>
+                      {student.completion_percent}% complete · {student.average_score}% average
+                    </p>
+                    <EstimateChip uncertainty="Estimate from completion activity">
+                      At risk
+                    </EstimateChip>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={() => void notify(student)}>
+                    Check in
+                  </Button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-          {notice && <p className="form-status" role="status">{notice}</p>}
-        </Panel>
+          {notice && <p className={styles.notice} role="status">{notice}</p>}
+        </Card>
       </div>
 
-      <div className="educator-lower-grid">
-        <Panel eyebrow="Live course signal" title="Recent activity">
+      <div className={styles.grid}>
+        <Card eyebrow="Live course signal" heading="Recent activity">
           {dashboard.recent_activity.length === 0 ? (
-            <div className="inline-empty"><p>New submissions and milestones will appear here.</p></div>
+            <EmptyState title="New submissions and milestones will appear here." />
           ) : (
-            <ol className="activity-feed">
+            <ol className={styles.timeline}>
               {dashboard.recent_activity.slice(0, 6).map((item) => (
-                <li key={item.id}>
-                  <i />
-                  <div><strong>{item.actor}</strong><p>{item.action}</p></div>
-                  <time dateTime={item.occurred_at}>{activityTime(item.occurred_at)}</time>
+                <li key={item.id} className={styles.timelineItem}>
+                  <span className={styles.timelineDot} aria-hidden="true" />
+                  <div className={styles.timelineBody}>
+                    <p className={styles.timelineActor}>{item.actor}</p>
+                    <p className={styles.timelineAction}>{item.action}</p>
+                  </div>
+                  <time dateTime={item.occurred_at} className={styles.timelineTime}>
+                    {activityTime(item.occurred_at)}
+                  </time>
                 </li>
               ))}
             </ol>
           )}
-        </Panel>
+        </Card>
 
-        <Panel eyebrow="Published learning" title="Course progress">
+        <Card eyebrow="Published learning" heading="Course progress">
           {dashboard.courses.length === 0 ? (
-            <div className="inline-empty"><Icon name="course" /><p>Create your first course to begin building a pathway.</p></div>
+            <EmptyState
+              icon={<BookOpen size={20} />}
+              title="Create your first course to begin building a pathway."
+            />
           ) : (
-            <div className="course-progress-list">
+            <ul className={styles.courseList}>
               {dashboard.courses.slice(0, 5).map((course) => (
-                <article key={course.id}>
-                  <div><span>{course.code}</span><strong>{course.title}</strong><small>{course.enrolled_students ?? 0} students</small></div>
-                  <div className="meter"><i style={{ width: `${course.completion_percent ?? 0}%` }} /></div>
-                  <b>{course.completion_percent ?? 0}%</b>
-                </article>
+                <li key={course.id} className={styles.courseRow}>
+                  <div className={styles.courseText}>
+                    <p className={styles.courseCode}>{course.code}</p>
+                    <p className={styles.courseTitle}>{course.title}</p>
+                    <p className={styles.courseMeta}>{course.enrolled_students ?? 0} students</p>
+                  </div>
+                  <span className={styles.courseTrack} aria-hidden="true">
+                    <span style={{ width: `${course.completion_percent ?? 0}%` }} />
+                  </span>
+                  <span className={styles.courseValue}>{course.completion_percent ?? 0}%</span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </Panel>
+        </Card>
       </div>
     </div>
   )

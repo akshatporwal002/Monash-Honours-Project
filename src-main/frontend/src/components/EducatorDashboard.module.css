@@ -1,0 +1,220 @@
+.screen {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 64rem;
+}
+
+.loading {
+  color: var(--ink-soft);
+  font-size: var(--text-body);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+.metric {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+.metricIcon {
+  display: inline-flex;
+  color: var(--accent);
+  margin-bottom: var(--space-1);
+}
+
+.metricLabel {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.metricValue {
+  font-size: var(--text-h2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.metricDetail {
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.engagementPanel {
+  min-width: 0;
+}
+
+.riskPanel {
+  min-width: 0;
+}
+
+.riskList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.riskRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.riskRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.riskBody {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+}
+
+.riskName {
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.riskDetail {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.notice {
+  margin-top: var(--space-3);
+  font-size: var(--text-meta);
+  color: var(--affirm);
+}
+
+/* Quiet timeline: hairline rail with dot markers */
+.timeline {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  position: relative;
+  padding-left: var(--space-1);
+}
+
+.timelineDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.375rem;
+  border-radius: var(--radius-round);
+  background: var(--line-strong);
+  flex-shrink: 0;
+}
+
+.timelineBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.timelineActor {
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.timelineAction {
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.timelineTime {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.courseList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.courseRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'text value'
+    'track track';
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+}
+
+.courseText {
+  grid-area: text;
+  min-width: 0;
+}
+
+.courseCode {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+}
+
+.courseTitle {
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.courseMeta {
+  font-size: var(--text-caption);
+  color: var(--ink-muted);
+}
+
+.courseTrack {
+  grid-area: track;
+  display: block;
+  height: 0.375rem;
+  border-radius: var(--radius-round);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.courseTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-round);
+  background: var(--accent);
+}
+
+.courseValue {
+  grid-area: value;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  color: var(--ink);
+}
+
+@media (width <= 980px) {
+  .metrics,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

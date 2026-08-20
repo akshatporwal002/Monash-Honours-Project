@@ -1,0 +1,12 @@
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-meta);
+  color: var(--ink-soft);
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--ink-muted);
+}

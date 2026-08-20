@@ -1,0 +1,449 @@
+/* Assessor setup and review queue styling (plan 006 Step 7). Tokens only. */
+
+.screen {
+  display: grid;
+  gap: var(--space-5);
+}
+
+/* System notice: attention wash, never fault-red (Bloom guidance, conflicts) */
+.notice {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--attend);
+  border-left-width: 3px;
+  border-radius: var(--radius-2);
+  background: var(--attend-wash);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: 1.55;
+}
+
+.alert {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--fault);
+  border-left-width: 3px;
+  border-radius: var(--radius-2);
+  background: var(--fault-wash);
+  color: var(--fault);
+  font-size: var(--text-ui);
+  line-height: 1.5;
+}
+
+.alert h2,
+.alert h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.alert p {
+  margin: 0;
+}
+
+.status {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--text-ui);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-lead);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+/* Pass rule preview is learner-visible language, so it reads in serif */
+.passRule {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  background: var(--surface-sunken);
+  font-family: var(--font-serif);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.passRule .passRuleTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.passRule p {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-body);
+}
+
+.passRule p:last-child {
+  margin-bottom: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.actionsStart {
+  justify-content: flex-start;
+}
+
+.approval {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.approvalStatus {
+  margin: 0;
+  font-size: var(--text-body);
+}
+
+.muted {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-body);
+}
+
+.conflict {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--attend);
+  border-left-width: 3px;
+  border-radius: var(--radius-2);
+  background: var(--attend-wash);
+  color: var(--ink);
+}
+
+.conflict h3 {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.conflict p {
+  margin: 0;
+  font-size: var(--text-ui);
+}
+
+.conflict summary {
+  cursor: pointer;
+  font-size: var(--text-ui);
+  font-weight: 500;
+}
+
+.history {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  font-size: var(--text-ui);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(7rem, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary li {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  background: var(--surface);
+}
+
+.summary strong {
+  font-size: var(--text-h3);
+  font-weight: 600;
+}
+
+.summary span {
+  color: var(--ink-soft);
+  font-size: var(--text-meta);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.72fr) minmax(0, 1.5fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.detail {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.recordList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recordButton {
+  display: grid;
+  width: 100%;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  justify-items: start;
+}
+
+.recordButton:hover {
+  border-color: var(--line-strong);
+}
+
+/* Selection: accent wash + accent border (replaces the dead var(--accent)
+   reference from the legacy stylesheet this module supersedes) */
+.recordActive,
+.recordActive:hover {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.recordOutcome {
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+.recordStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.recordMeta {
+  color: var(--ink-muted);
+  font-size: var(--text-caption);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.section h3 {
+  margin: 0;
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.section p {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.systemReason {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+}
+
+.criterionList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.criterionItem {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2);
+  justify-items: start;
+}
+
+.criterionItem p {
+  margin: 0;
+  font-size: var(--text-body);
+  overflow-wrap: anywhere;
+}
+
+/* Criterion decision chips: the certainty grammar. MET solid affirm,
+   NOT_MET outlined attend, NOT_EVALUABLE dashed muted. Text + icon always. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.chip svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.chipMet {
+  border: 1px solid var(--affirm);
+  background: var(--affirm);
+  color: var(--surface);
+}
+
+.chipNotMet {
+  border: 1px solid var(--attend);
+  background: var(--attend-wash);
+  color: var(--attend);
+}
+
+.chipNotEvaluable {
+  border: 1px dashed var(--ink-muted);
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.provenance {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  overflow-wrap: anywhere;
+}
+
+/* Missing evidence is the canonical dashed element */
+.missingList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.missingList li {
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--ink-muted);
+  border-radius: var(--radius-2);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}
+
+.historyList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.historyList li {
+  font-size: var(--text-body);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.structured {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.rawValue {
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  overflow-wrap: anywhere;
+}
+
+.raw summary {
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: var(--text-meta);
+}
+
+.raw[open] summary {
+  margin-bottom: var(--space-2);
+}
+
+.resultLine {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  margin-bottom: var(--space-4);
+}
+
+.dialogExtras {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+@media (max-width: 760px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+
+  .actions > * {
+    flex: 1 1 12rem;
+  }
+
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

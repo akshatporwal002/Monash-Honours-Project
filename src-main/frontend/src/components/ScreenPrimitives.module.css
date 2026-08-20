@@ -1,0 +1,61 @@
+.state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: var(--space-3);
+  min-height: 40vh;
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.fullscreen {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.icon {
+  color: var(--ink-muted);
+}
+
+.errorIcon {
+  color: var(--fault);
+}
+
+.spinner {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2.5px solid var(--accent);
+  border-right-color: transparent;
+  border-radius: var(--radius-round);
+  animation: screen-spin 0.7s linear infinite;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.message {
+  color: var(--ink-soft);
+  font-size: var(--text-body);
+  max-width: 44ch;
+}
+
+.action {
+  margin-top: var(--space-2);
+}
+
+@keyframes screen-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
