@@ -133,14 +133,14 @@ Files:
 
 Changes:
 
-- [ ] Add append-only learner annotation, educator review, and correction-snapshot link models.
-- [ ] Enforce exactly one evidence-or-estimate target, same-scope foreign keys, version ordering,
+- [x] Add append-only learner annotation, educator review, and correction-snapshot link models.
+- [x] Enforce exactly one evidence-or-estimate target, same-scope foreign keys, version ordering,
   idempotency, review ancestry, and allowed action checks.
-- [ ] Add learner/outcome timeline, target, annotation review-history, correlation, and idempotency
+- [x] Add learner/outcome timeline, target, annotation review-history, correlation, and idempotency
   indexes.
-- [ ] Add SQLite update/delete triggers for all correction tables.
-- [ ] Add a forward revision from current head `20260816_0021` and advance the readiness pin.
-- [ ] Refuse destructive downgrade when correction data exists; require verified backup recovery.
+- [x] Add SQLite update/delete triggers for all correction tables.
+- [x] Add a forward revision from current head `20260816_0021` and advance the readiness pin.
+- [x] Refuse destructive downgrade when correction data exists; require verified backup recovery.
 
 Edge and failure cases:
 
@@ -150,6 +150,10 @@ Edge and failure cases:
 **Acceptance:** model and migration tests prove clean and legacy upgrade, repeat-safe upgrade,
 constraints, append-only triggers, zero existing-record loss, empty downgrade, and populated
 downgrade refusal.
+
+**Verification (2026-08-24):** Ruff passed for all changed Python files. The learner-model,
+deployment-runtime, and full migration selection passed with 82 tests; one Python 3.12 SQLite
+datetime-adapter deprecation warning remains upstream of this change.
 
 ## Step 3: Implement scoped correction repository and service
 
