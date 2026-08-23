@@ -104,14 +104,14 @@ Files:
 
 Changes:
 
-- [ ] Define frozen, extra-forbid learner-annotation and educator-review commands and read models.
-- [ ] Require one target kind, opaque/versioned identifiers, course/learner/outcome scope,
+- [x] Define frozen, extra-forbid learner-annotation and educator-review commands and read models.
+- [x] Require one target kind, opaque/versioned identifiers, course/learner/outcome scope,
   correlation ID, actor, timestamp, idempotency key, and bounded note or reason text.
-- [ ] Reuse `CorrectionAction` while preventing learner annotations from claiming educator review
+- [x] Reuse `CorrectionAction` while preventing learner annotations from claiming educator review
   actions and preventing reviews from claiming `ANNOTATED`.
-- [ ] Reject formal-result, numeric-score, research-condition, diagnosis, demographic, and unknown
+- [x] Reject formal-result, numeric-score, research-condition, diagnosis, demographic, and unknown
   fields.
-- [ ] Treat learner note text as protected untrusted content rather than model evidence.
+- [x] Treat learner note text as protected untrusted content rather than model evidence.
 
 Edge and failure cases:
 
