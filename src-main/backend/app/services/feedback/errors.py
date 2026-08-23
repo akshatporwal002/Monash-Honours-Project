@@ -16,6 +16,11 @@ class InvalidFeedbackOutputError(FeedbackAgentError):
         super().__init__("The feedback model returned invalid structured output")
 
 
+class AssessedFeedbackNotReadyError(FeedbackAgentError):
+    def __init__(self) -> None:
+        super().__init__("Assessed feedback generation is awaiting criteria-based support")
+
+
 class SubmissionNotFoundError(FeedbackPipelineError):
     def __init__(self, submission_id: str) -> None:
         self.submission_id = submission_id

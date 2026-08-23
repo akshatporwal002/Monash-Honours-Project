@@ -5,6 +5,7 @@ from typing import Any, Protocol
 
 from app.models.enums import FeedbackReportCategory, WorkflowStage
 from app.schemas.feedback import (
+    AssessmentFeedbackContextResolution,
     FeedbackContext,
     FeedbackPipelineResult,
     FeedbackRegenerationContext,
@@ -52,6 +53,13 @@ class SubmissionProvider(Protocol):
 
 class TaskProvider(Protocol):
     async def get_task(self, task_id: str) -> TaskContext | None: ...
+
+
+class AssessmentFeedbackContextProvider(Protocol):
+    async def resolve(
+        self,
+        submission: SubmissionContext,
+    ) -> AssessmentFeedbackContextResolution: ...
 
 
 class RetrievalProvider(Protocol):

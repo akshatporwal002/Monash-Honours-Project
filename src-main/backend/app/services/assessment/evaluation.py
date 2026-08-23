@@ -60,6 +60,21 @@ class AssessmentEvaluationConflictError(AssessmentEvaluationError):
 class AssessmentEvaluationFaultError(AssessmentEvaluationError):
     """A provider or system fault retained work but created no learner result."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        failure_category: str = "provider_fault",
+        retryable: bool = True,
+    ) -> None:
+        super().__init__(message)
+        self.failure_category = failure_category
+        self.retryable = retryable
+
+
+class CriterionEvaluationUnavailableError(RuntimeError):
+    """The frozen criterion requires an evaluator that is not approved for release."""
+
 
 class CriterionEvaluationPort(Protocol):
     """Resolve evidence and evaluate one frozen criterion outside this orchestrator."""
@@ -121,11 +136,13 @@ class AssessmentEvaluationService:
         criterion_port: CriterionEvaluationPort,
         quality_port: QualityReviewPort,
         correlation_id: str | None = None,
+        retain_pending_on_fault: bool = False,
     ) -> None:
         self.session = session
         self.criterion_port = criterion_port
         self.quality_port = quality_port
         self.correlation_id = correlation_id or str(uuid4())
+        self.retain_pending_on_fault = retain_pending_on_fault
 
     def evaluate(
         self,
@@ -198,18 +215,44 @@ class AssessmentEvaluationService:
                     ),
                 )
             )
+        except CriterionEvaluationUnavailableError as error:
+            self.session.rollback()
+            self._record_fault(
+                attempt.id,
+                "EVALUATION_PROVIDER_UNAVAILABLE",
+                retain_pending=self.retain_pending_on_fault,
+            )
+            raise AssessmentEvaluationFaultError(
+                "assessment evaluation requires human review",
+                failure_category="provider_unavailable",
+                retryable=False,
+            ) from error
         except Exception as error:
             self.session.rollback()
-            self._record_fault(attempt.id, "EVALUATION_PROVIDER_OR_RULE_FAULT")
+            self._record_fault(
+                attempt.id,
+                "EVALUATION_PROVIDER_OR_RULE_FAULT",
+                retain_pending=self.retain_pending_on_fault,
+            )
             raise AssessmentEvaluationFaultError(
-                "assessment evaluation could not complete"
+                "assessment evaluation could not complete",
+                failure_category="provider_fault",
+                retryable=True,
             ) from error
 
         quality_status = self._quality_status(bundle.reference, rule.reason_code, outcomes)
         if quality_status == "FAULTED":
             self.session.rollback()
-            self._record_fault(attempt.id, "QUALITY_REVIEW_FAULT")
-            raise AssessmentEvaluationFaultError("quality review could not complete")
+            self._record_fault(
+                attempt.id,
+                "QUALITY_REVIEW_FAULT",
+                retain_pending=self.retain_pending_on_fault,
+            )
+            raise AssessmentEvaluationFaultError(
+                "quality review could not complete",
+                failure_category="provider_fault",
+                retryable=True,
+            )
 
         for criterion, outcome in zip(bundle.criteria, outcomes, strict=True):
             self.session.add(
@@ -376,6 +419,12 @@ class AssessmentEvaluationService:
         outcomes: Iterable[EvaluatorOutcome], bundle: "_EvaluationBundle"
     ) -> None:
         for criterion, outcome in zip(bundle.criteria, outcomes, strict=True):
+            if outcome.advisory:
+                raise CriterionEvaluationUnavailableError(
+                    "advisory criterion output cannot create a provisional result"
+                )
+            if outcome.evaluator_type is not criterion.evaluator_type:
+                raise ValueError("criterion evaluator type does not match the approved version")
             if not outcome.reason.strip() or not outcome.evidence:
                 raise ValueError("criterion evaluator returned incomplete evidence")
             if any(
@@ -402,16 +451,27 @@ class AssessmentEvaluationService:
             return "FAULTED"
         return decision.value if decision is not None else "UNAVAILABLE"
 
-    def _record_fault(self, attempt_id: str, reason_code: str) -> None:
+    def _record_fault(
+        self,
+        attempt_id: str,
+        reason_code: str,
+        *,
+        retain_pending: bool,
+    ) -> None:
         attempt = self.session.get(AssessmentAttempt, attempt_id)
         if attempt is None:
             raise AssessmentEvaluationNotFoundError("assessment attempt was not found")
-        attempt.state = AssessmentAttemptState.FAULTED
-        attempt.fault_reason = (
-            "Assessment evaluation could not complete. The response is retained for review."
-        )
+        if not retain_pending:
+            attempt.state = AssessmentAttemptState.FAULTED
+            attempt.fault_reason = (
+                "Assessment evaluation could not complete. The response is retained for review."
+            )
         self._audit(
-            "assessment_evaluation.faulted",
+            (
+                "assessment_evaluation.under_review"
+                if retain_pending
+                else "assessment_evaluation.faulted"
+            ),
             attempt,
             {"reason_code": reason_code},
             outcome="failure",

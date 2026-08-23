@@ -96,6 +96,8 @@ def feedback_context_payload(context: FeedbackContext) -> dict[str, Any]:
     simulation_payload = _simulation_payload(context)
     if simulation_payload is not None:
         payload["simulation_context"] = simulation_payload
+    if context.assessment_context is not None:
+        payload["assessment_context"] = context.assessment_context.model_dump(mode="json")
     return payload
 
 

@@ -76,6 +76,21 @@ class CriterionEvaluatorType(StrEnum):
     MIXED = "mixed"
 
 
+class AssessmentEvaluationJobState(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    RETRY_SCHEDULED = "retry_scheduled"
+    COMPLETED = "completed"
+    REVIEW_REQUIRED = "review_required"
+
+
+class AssessmentEvaluationFailureCategory(StrEnum):
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    PROVIDER_FAULT = "provider_fault"
+    VERSION_CONFLICT = "version_conflict"
+    PERSISTENCE_UNAVAILABLE = "persistence_unavailable"
+
+
 class ImmutableAssessmentVersionError(RuntimeError):
     """Raised when application code changes a finalised assessment version."""
 
@@ -611,6 +626,96 @@ class AssessmentAttempt(Base):
     decisions: Mapped[list[AssessmentDecision]] = relationship(
         back_populates="assessment_attempt", cascade="all, delete-orphan"
     )
+    evaluation_job: Mapped[AssessmentEvaluationJob | None] = relationship(
+        back_populates="assessment_attempt",
+        uselist=False,
+    )
+
+
+class AssessmentEvaluationJob(Base):
+    """Durable, fenced work for one frozen assessment attempt."""
+
+    __tablename__ = "assessment_evaluation_jobs"
+    __table_args__ = (
+        UniqueConstraint(
+            "response_version_id",
+            name="uq_assessment_evaluation_jobs_response",
+        ),
+        UniqueConstraint(
+            "evaluation_idempotency_key",
+            name="uq_assessment_evaluation_jobs_idempotency",
+        ),
+        CheckConstraint(
+            "processing_attempts BETWEEN 0 AND 3",
+            name="assessment_evaluation_job_attempts",
+        ),
+        CheckConstraint(
+            "(state = 'pending' AND processing_attempts = 0 "
+            "AND execution_token IS NULL AND lease_expires_at IS NULL "
+            "AND next_retry_at IS NULL AND failure_category IS NULL AND completed_at IS NULL) OR "
+            "(state = 'running' AND processing_attempts BETWEEN 1 AND 3 "
+            "AND execution_token IS NOT NULL AND lease_expires_at IS NOT NULL "
+            "AND next_retry_at IS NULL AND failure_category IS NULL AND completed_at IS NULL) OR "
+            "(state = 'retry_scheduled' AND processing_attempts BETWEEN 1 AND 2 "
+            "AND execution_token IS NULL AND lease_expires_at IS NULL "
+            "AND next_retry_at IS NOT NULL AND failure_category IS NOT NULL "
+            "AND completed_at IS NULL) OR "
+            "(state = 'completed' AND processing_attempts BETWEEN 1 AND 3 "
+            "AND execution_token IS NULL AND lease_expires_at IS NULL "
+            "AND next_retry_at IS NULL AND failure_category IS NULL "
+            "AND completed_at IS NOT NULL) OR "
+            "(state = 'review_required' AND processing_attempts BETWEEN 1 AND 3 "
+            "AND execution_token IS NULL AND lease_expires_at IS NULL "
+            "AND next_retry_at IS NULL AND failure_category IS NOT NULL "
+            "AND completed_at IS NOT NULL)",
+            name="assessment_evaluation_job_state_shape",
+        ),
+        Index(
+            "ix_assessment_evaluation_jobs_claim",
+            "state",
+            "next_retry_at",
+            "lease_expires_at",
+            "created_at",
+        ),
+    )
+
+    assessment_attempt_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_attempts.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    response_version_id: Mapped[str] = mapped_column(
+        ForeignKey("submission_attempts.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    evaluation_idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    state: Mapped[AssessmentEvaluationJobState] = mapped_column(
+        enum_column(AssessmentEvaluationJobState, "assessment_evaluation_job_state"),
+        nullable=False,
+        default=AssessmentEvaluationJobState.PENDING,
+    )
+    processing_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    execution_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_category: Mapped[AssessmentEvaluationFailureCategory | None] = mapped_column(
+        enum_column(
+            AssessmentEvaluationFailureCategory,
+            "assessment_evaluation_failure_category",
+        ),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    assessment_attempt: Mapped[AssessmentAttempt] = relationship(back_populates="evaluation_job")
 
 
 class AssessmentLegacyHistory(Base):

@@ -21,7 +21,13 @@ from app.schemas.feedback import (
     SubmissionContext,
     TaskContext,
 )
-from app.services.feedback.agent import LlmFeedbackGenerator
+from app.services.assessment.feedback_context import (
+    SqlAlchemyAssessmentFeedbackContextProvider,
+)
+from app.services.feedback.agent import (
+    LlmFeedbackGenerator,
+    PendingAssessmentFeedbackGenerator,
+)
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.judge import LlmFeedbackJudge
 from app.services.feedback.pipeline import FeedbackPipeline
@@ -73,7 +79,7 @@ class LmsSubmissionProvider:
             student_id=str(attempt.student_id),
             attempt_number=attempt.attempt_number,
             submitted_answer=submitted_answer,
-            score=float(attempt.score),
+            score=float(attempt.score) if attempt.score is not None else None,
             submitted_at=attempt.submitted_at,
         )
 
@@ -193,12 +199,16 @@ def build_feedback_pipeline(
     repository: SqlAlchemyFeedbackWorkflowRepository,
 ) -> FeedbackPipeline:
     client = _configured_model_client(session)
-    generator = LlmFeedbackGenerator(client) if client is not None else LocalFeedbackGenerator()
+    base_generator = (
+        LlmFeedbackGenerator(client) if client is not None else LocalFeedbackGenerator()
+    )
+    generator = PendingAssessmentFeedbackGenerator(base_generator)
     judge = LlmFeedbackJudge(client) if client is not None else LocalFeedbackJudge()
     collector = DefaultFeedbackContextCollector(
         SqlAlchemyTaskProvider(session),
         retrieval_provider=TaskSourceRetrievalProvider(session),
         simulation_provider=SubmittedCircuitSimulationProvider(session),
+        assessment_context_provider=SqlAlchemyAssessmentFeedbackContextProvider(session),
         provider_timeout_seconds=settings.provider_timeout_seconds,
     )
     secret_setting = settings.learning_event_pseudonym_secret

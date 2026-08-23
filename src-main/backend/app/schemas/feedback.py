@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
@@ -14,7 +14,14 @@ from pydantic import (
     model_validator,
 )
 
+from app.domain.assessment import (
+    AssessmentPurpose,
+    BloomKnowledge,
+    BloomProcess,
+    CriterionDecision,
+)
 from app.models.enums import JudgeDecision, JudgeEvaluationStatus
+from app.schemas.assessment import AssessmentVersionReference, EvidenceReference
 
 ExternalId = Annotated[
     str,
@@ -72,6 +79,15 @@ class ContextProviderStatus(str, Enum):
     FAILED = "failed"
 
 
+class AssessmentContextStatus(str, Enum):
+    NOT_ASSESSED = "not_assessed"
+    RESOLVED = "resolved"
+    MISSING = "missing"
+    STALE = "stale"
+    ACCESS_DENIED = "access_denied"
+    INVALID = "invalid"
+
+
 class FeedbackAgentOutput(FeedbackContract):
     # Structured model output arrives as ordinary JSON, so wire-format enum
     # strings must be accepted before the rest of the fields are validated.
@@ -117,6 +133,100 @@ class TaskContext(FeedbackContract):
                 and len(json.dumps(value, ensure_ascii=False, separators=(",", ":"))) > 50_000
             ):
                 raise ValueError("task marking context exceeds the allowed size")
+        return self
+
+
+class FeedbackCriterionEvaluationContext(FeedbackContract):
+    decision: CriterionDecision
+    evidence_references: list[EvidenceReference] = Field(default_factory=list, max_length=100)
+    evaluator_reference: ExternalId
+    model_version: ExternalId | None = None
+    prompt_version: ExternalId | None = None
+    retrieval_version: ExternalId | None = None
+    reason: NonEmptyText
+    evaluated_at: datetime
+
+    @field_validator("evaluated_at")
+    @classmethod
+    def require_evaluation_timezone(cls, value: datetime) -> datetime:
+        if value.utcoffset() is None:
+            raise ValueError("criterion evaluation time must include a timezone")
+        return value
+
+
+class FeedbackCriterionContext(FeedbackContract):
+    criterion_id: ExternalId
+    criterion_version_id: ExternalId
+    criterion_version: Annotated[int, Field(ge=1)]
+    learner_description: NonEmptyText
+    evidence_description: NonEmptyText
+    mandatory: bool
+    evidence_source_types: list[ExternalId] = Field(min_length=1, max_length=50)
+    met_rule: NonEmptyText
+    not_met_rule: NonEmptyText
+    not_evaluable_rule: NonEmptyText
+    approved_anchors: JsonValue
+    critical_error_rules: JsonValue
+    evaluator_type: ExternalId
+    evaluation: FeedbackCriterionEvaluationContext | None = None
+
+
+class AssessmentFeedbackContext(FeedbackContract):
+    contract_version: Literal["learnlens.assessed-feedback-context.v1"] = (
+        "learnlens.assessed-feedback-context.v1"
+    )
+    assessment: AssessmentVersionReference
+    task: TaskContext
+    response_schema_version: ExternalId
+    response_content_digest: ExternalId
+    task_form_id: ExternalId
+    task_source_version: ExternalId
+    task_source_digest: ExternalId
+    task_family: ExternalId
+    task_form_context: JsonValue
+    task_form_constraints: JsonValue
+    assessment_claim: NonEmptyText
+    assessment_purpose: AssessmentPurpose
+    bloom_process: BloomProcess
+    bloom_knowledge: BloomKnowledge
+    criteria: list[FeedbackCriterionContext] = Field(min_length=1, max_length=64)
+    pass_rule_expression: JsonValue
+    permitted_tools: JsonValue
+    instructional_support: JsonValue
+    access_conditions: JsonValue
+    transfer_rule: JsonValue
+    evidence_sufficiency: JsonValue
+
+    @model_validator(mode="after")
+    def validate_frozen_scope(self) -> "AssessmentFeedbackContext":
+        reference = self.assessment
+        if self.task.task_id != reference.task_id or self.task.course_id != reference.course_id:
+            raise ValueError("assessed feedback task does not match the frozen assessment")
+        criterion_ids = [item.criterion_version_id for item in self.criteria]
+        if len(set(criterion_ids)) != len(criterion_ids):
+            raise ValueError("assessed feedback criteria must be unique")
+        for criterion in self.criteria:
+            evaluation = criterion.evaluation
+            if evaluation is not None and any(
+                evidence.assessment != reference for evidence in evaluation.evidence_references
+            ):
+                raise ValueError("criterion evidence does not match the frozen assessment")
+        return self
+
+
+class AssessmentFeedbackContextResolution(FeedbackContract):
+    status: AssessmentContextStatus
+    context: AssessmentFeedbackContext | None = None
+    reason_code: ExternalId | None = None
+
+    @model_validator(mode="after")
+    def validate_resolution_shape(self) -> "AssessmentFeedbackContextResolution":
+        if self.status is AssessmentContextStatus.RESOLVED:
+            if self.context is None or self.reason_code is not None:
+                raise ValueError("resolved assessment context requires context only")
+            return self
+        if self.context is not None or self.reason_code is None:
+            raise ValueError("unresolved assessment context requires a reason code only")
         return self
 
 
@@ -214,6 +324,7 @@ class FeedbackContext(FeedbackContract):
         max_length=100,
     )
     simulation_status: ContextProviderStatus = ContextProviderStatus.NOT_REQUESTED
+    assessment_context: AssessmentFeedbackContext | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -246,6 +357,15 @@ class FeedbackContext(FeedbackContract):
             raise ValueError("task and submission context refer to different tasks")
         if self.task.course_id != self.submission.course_id:
             raise ValueError("task and submission context refer to different courses")
+        if self.assessment_context is not None:
+            assessment = self.assessment_context.assessment
+            if (
+                self.assessment_context.task != self.task
+                or assessment.response_version_id != self.submission.submission_id
+                or assessment.task_id != self.submission.task_id
+                or assessment.course_id != self.submission.course_id
+            ):
+                raise ValueError("assessment context does not match the feedback workflow")
         if self.retrieval_context:
             if self.retrieval_status is not ContextProviderStatus.COMPLETED:
                 raise ValueError("retrieval items require completed retrieval status")
