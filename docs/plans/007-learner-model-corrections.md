@@ -166,14 +166,14 @@ Files:
 
 Changes:
 
-- [ ] Add repository operations for annotation creation, review creation, exact replay, correction
+- [x] Add repository operations for annotation creation, review creation, exact replay, correction
   history, latest-review lookup, and accepted-correction lookup.
-- [ ] Validate target and reviewer scope in the repository even when the caller supplies a
+- [x] Validate target and reviewer scope in the repository even when the caller supplies a
   permissive policy.
-- [ ] Implement learner self-scope and assigned-educator course-scope policies from current
+- [x] Implement learner self-scope and assigned-educator course-scope policies from current
   enrolment/course data.
-- [ ] Require optimistic latest-review version checks and return a typed stale-review conflict.
-- [ ] Return non-enumerating not-found behaviour for missing and inaccessible targets.
+- [x] Require optimistic latest-review version checks and return a typed stale-review conflict.
+- [x] Return non-enumerating not-found behaviour for missing and inaccessible targets.
 
 Edge and failure cases:
 
@@ -182,6 +182,10 @@ Edge and failure cases:
 
 **Acceptance:** service/repository tests prove learner self-scope, educator course scope,
 non-enumeration, exact replay, conflicting replay, optimistic concurrency, and atomic history.
+
+**Verification (2026-08-24):** Ruff passed for the correction repository, service, safety module,
+and tests. The learner-model, deployment-runtime, and full migration selection passed with 86
+tests; the existing Python 3.12 SQLite datetime-adapter deprecation warning remains.
 
 ## Step 4: Make later snapshots respect accepted corrections
 

@@ -35,6 +35,14 @@ class LearnerModelConflictError(LearnerModelSafetyError):
     """An idempotency key was reused for a different immutable snapshot."""
 
 
+class LearnerModelCorrectionNotFoundError(LearnerModelSafetyError):
+    """A correction resource is missing or unavailable to the current actor."""
+
+
+class LearnerModelStaleReviewError(LearnerModelConflictError):
+    """An educator review was based on an outdated latest-review version."""
+
+
 class LearnerModelPersistenceError(LearnerModelSafetyError):
     """Snapshot storage failed without exposing database details to callers."""
 
@@ -73,10 +81,12 @@ def require_human_review_for_model_source(
 
 __all__ = [
     "LearnerModelConflictError",
+    "LearnerModelCorrectionNotFoundError",
     "LearnerModelPersistenceError",
     "LearnerModelProviderError",
     "LearnerModelReviewRequiredError",
     "LearnerModelSafetyError",
+    "LearnerModelStaleReviewError",
     "reject_banned_fields",
     "require_human_review_for_model_source",
     "require_safe_claim_text",
