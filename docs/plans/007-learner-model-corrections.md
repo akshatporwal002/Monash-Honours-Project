@@ -230,13 +230,13 @@ Files:
 
 Changes:
 
-- [ ] Emit the existing learner-annotation and educator-correction action names through an
+- [x] Emit the existing learner-annotation and educator-correction action names through an
   injected audit sink after authoritative correction persistence.
-- [ ] Include action, outcome, correlation, schema/version, and opaque actor/resource
+- [x] Include action, outcome, correlation, schema/version, and opaque actor/resource
   fingerprints only.
-- [ ] Keep learner note, educator reason, direct learner identity, evidence text, inference text,
+- [x] Keep learner note, educator reason, direct learner identity, evidence text, inference text,
   and exception details out of general audit metadata.
-- [ ] Make audit failure visible as bounded operational state without rolling back accepted
+- [x] Make audit failure visible as bounded operational state without rolling back accepted
   correction history.
 
 Edge and failure cases:
@@ -246,6 +246,11 @@ Edge and failure cases:
 
 **Acceptance:** privacy tests inspect success, failure, replay, and fallback audit events and find
 no protected note, reason, direct identity, evidence content, or raw exception text.
+
+**Verification (2026-08-24):** Ruff lint and format checks passed across the evidence and
+learner-model changed area. The evidence, learner-model, safety, correction-contract,
+deployment-runtime, and migration selection passed with 112 tests; the existing Python 3.12
+SQLite datetime-adapter deprecation warning remains.
 
 ## Step 6: Export isolated correction APIs and close the slice
 

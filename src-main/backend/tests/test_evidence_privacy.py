@@ -108,7 +108,21 @@ def test_audit_events_are_bounded_and_exclude_private_content(
     assert event.schema_version == "evidence-record.v1"
     assert "PRIVATE_LEARNER_ANSWER" not in repr(event)
     assert {field.name for field in fields(event)}.isdisjoint(
-        {"content", "answer", "prompt", "source_chunk", "course_id", "learner_id", "role"}
+        {
+            "content",
+            "answer",
+            "prompt",
+            "source_chunk",
+            "course_id",
+            "learner_id",
+            "role",
+            "note",
+            "reason",
+            "evidence_id",
+            "estimate_id",
+            "annotation_id",
+            "review_id",
+        }
     )
 
 

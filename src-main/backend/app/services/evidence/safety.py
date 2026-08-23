@@ -62,7 +62,7 @@ class EvidenceAccessPolicy(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class EvidenceAuditEvent:
-    """Bounded, privacy-minimal audit data with no content or direct learner identifiers."""
+    """Bounded Person B audit data with no content or direct learner identifiers."""
 
     action: EvidenceAuditAction
     actor_fingerprint: str
@@ -72,6 +72,7 @@ class EvidenceAuditEvent:
     schema_version: str
     occurred_at: datetime
     outcome: str
+    record_version: int | None = None
     failure_category: str | None = None
 
 
@@ -99,6 +100,12 @@ def safe_failure_category(error: BaseException) -> str:
     return "evidence_audit_unavailable"
 
 
+def safe_correction_audit_failure_category(_: BaseException | None = None) -> str:
+    """Report correction-audit degradation without forwarding private error details."""
+
+    return "correction_audit_unavailable"
+
+
 __all__ = [
     "EvidenceAccessPolicy",
     "EvidenceAccessScope",
@@ -111,5 +118,6 @@ __all__ = [
     "EvidencePersistenceError",
     "EvidenceScopeError",
     "opaque_fingerprint",
+    "safe_correction_audit_failure_category",
     "safe_failure_category",
 ]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import fields
 from datetime import timedelta
 from pathlib import Path
 
@@ -42,6 +43,11 @@ from app.models.lms import (
 from app.models.persistence import LearningTask
 from app.models.user import User, UserRole
 from app.services.evidence.repository import EvidenceCapture, SqlAlchemyEvidenceRepository
+from app.services.evidence.safety import (
+    EvidenceAuditAction,
+    EvidenceAuditEvent,
+    opaque_fingerprint,
+)
 from app.services.learner_model.builder import (
     DeterministicLearnerModelBuilder,
     LearnerModelBuildService,
@@ -358,6 +364,14 @@ class _PermissiveCorrectionPolicy:
         return True
 
 
+class _CorrectionAuditSink:
+    def __init__(self) -> None:
+        self.events: list[EvidenceAuditEvent] = []
+
+    def record(self, event: EvidenceAuditEvent) -> None:
+        self.events.append(event)
+
+
 def test_model_constraints_keep_targets_actions_idempotency_and_reviews_ordered(
     db_session: Session,
 ) -> None:
@@ -523,6 +537,126 @@ def test_correction_service_supports_exact_replay_history_and_accepted_lookup(
     assert latest == accepted.review
     assert len(accepted_corrections) == 1
     assert accepted_corrections[0].review == accepted.review
+
+
+def test_correction_service_emits_bounded_created_and_replayed_audit_events(
+    db_session: Session,
+) -> None:
+    scope = _seed_target_history(db_session)
+    audit = _CorrectionAuditSink()
+    service = LearnerModelCorrectionService(
+        SqlAlchemyLearnerModelRepository(db_session),
+        audit_sink=audit,
+    )
+    annotation = _annotation_command(scope, note="PRIVATE_LEARNER_CORRECTION_NOTE")
+    review = _review_command(scope, reason="PRIVATE_EDUCATOR_CORRECTION_REASON")
+
+    created_annotation = service.annotate(annotation)
+    replayed_annotation = service.annotate(annotation)
+    created_review = service.review(review)
+    replayed_review = service.review(review)
+
+    assert created_annotation.audit_recorded is True
+    assert replayed_annotation.audit_recorded is True
+    assert created_review.audit_recorded is True
+    assert replayed_review.audit_recorded is True
+    assert [event.action for event in audit.events] == [
+        EvidenceAuditAction.LEARNER_ANNOTATION,
+        EvidenceAuditAction.LEARNER_ANNOTATION,
+        EvidenceAuditAction.EDUCATOR_CORRECTION,
+        EvidenceAuditAction.EDUCATOR_CORRECTION,
+    ]
+    assert [event.outcome for event in audit.events] == [
+        "created",
+        "replayed",
+        "created",
+        "replayed",
+    ]
+    annotation_event, _, review_event, _ = audit.events
+    assert annotation_event.actor_fingerprint == opaque_fingerprint(scope["learner_id"])
+    assert annotation_event.resource_fingerprint == opaque_fingerprint(annotation.annotation_id)
+    assert annotation_event.record_version == annotation.record_version
+    assert review_event.actor_fingerprint == opaque_fingerprint(scope["educator_id"])
+    assert review_event.resource_fingerprint == opaque_fingerprint(review.review_id)
+    assert review_event.record_version == review.review_version
+    assert all(event.correlation_id == "service-correlation-1" for event in audit.events)
+    assert all(
+        private_value not in repr(audit.events)
+        for private_value in (
+            annotation.note,
+            review.reason,
+            annotation.annotation_id,
+            review.review_id,
+        )
+    )
+    assert {field.name for field in fields(EvidenceAuditEvent)}.isdisjoint(
+        {
+            "note",
+            "reason",
+            "course_id",
+            "learner_id",
+            "evidence_id",
+            "estimate_id",
+            "annotation_id",
+            "review_id",
+        }
+    )
+
+
+def test_correction_audit_failure_keeps_authoritative_history_and_hides_error(
+    db_session: Session,
+) -> None:
+    class _BrokenAuditSink:
+        def record(self, _: EvidenceAuditEvent) -> None:
+            raise RuntimeError("PRIVATE_CORRECTION_AUDIT_EXCEPTION")
+
+    scope = _seed_target_history(db_session)
+    repository = SqlAlchemyLearnerModelRepository(db_session)
+    service = LearnerModelCorrectionService(repository, audit_sink=_BrokenAuditSink())
+
+    annotation = service.annotate(_annotation_command(scope))
+    review = service.review(_review_command(scope))
+
+    assert annotation.created is True
+    assert annotation.audit_recorded is False
+    assert annotation.audit_failure_category == "correction_audit_unavailable"
+    assert review.created is True
+    assert review.audit_recorded is False
+    assert review.audit_failure_category == "correction_audit_unavailable"
+    assert db_session.scalar(select(func.count()).select_from(LearnerModelAnnotation)) == 1
+    assert db_session.scalar(select(func.count()).select_from(LearnerModelCorrectionReview)) == 1
+    assert "PRIVATE_CORRECTION_AUDIT_EXCEPTION" not in repr(annotation)
+    assert "PRIVATE_CORRECTION_AUDIT_EXCEPTION" not in repr(review)
+
+
+def test_correction_fingerprint_failure_emits_content_free_fallback_event(
+    db_session: Session,
+) -> None:
+    def _broken_fingerprinter(_: str) -> str:
+        raise RuntimeError("PRIVATE_PSEUDONYMISATION_EXCEPTION")
+
+    scope = _seed_target_history(db_session)
+    audit = _CorrectionAuditSink()
+    service = LearnerModelCorrectionService(
+        SqlAlchemyLearnerModelRepository(db_session),
+        audit_sink=audit,
+        audit_fingerprinter=_broken_fingerprinter,
+    )
+
+    result = service.annotate(_annotation_command(scope, note="PRIVATE_FALLBACK_CORRECTION_NOTE"))
+
+    assert result.created is True
+    assert result.audit_recorded is True
+    assert result.audit_failure_category == "correction_audit_unavailable"
+    assert len(audit.events) == 1
+    event = audit.events[0]
+    assert event.action is EvidenceAuditAction.LEARNER_ANNOTATION
+    assert event.outcome == "audit_fallback"
+    assert event.actor_fingerprint == "evidence-audit-v1:unavailable"
+    assert event.resource_fingerprint == "evidence-audit-v1:unavailable"
+    assert event.failure_category == "correction_audit_unavailable"
+    assert "PRIVATE_PSEUDONYMISATION_EXCEPTION" not in repr(event)
+    assert "PRIVATE_FALLBACK_CORRECTION_NOTE" not in repr(event)
 
 
 def test_repository_scope_checks_override_a_permissive_caller_policy(
