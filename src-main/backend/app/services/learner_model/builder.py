@@ -8,6 +8,7 @@ from typing import Protocol
 from uuid import UUID, uuid5
 
 from app.domain.platform_enums import (
+    CorrectionTargetKind,
     EvidenceLinkRelation,
     EvidenceType,
     InferenceStatus,
@@ -21,6 +22,7 @@ from app.services.learner_model.contracts import (
     LearnerOutcomeEstimatePayload,
 )
 from app.services.learner_model.repository import (
+    AcceptedLearnerModelCorrection,
     LearnerEvidenceObservation,
     LearnerModelSnapshotWriteResult,
     SqlAlchemyLearnerModelRepository,
@@ -120,6 +122,7 @@ class LearnerModelBuildService:
         except LearnerModelReviewRequiredError:
             return LearnerModelBuildResult(LearnerModelBuildState.REVIEW_REQUIRED)
         observations = self._repository.observations(command)
+        correction_state = self._repository.correction_state(command)
         try:
             payload = self._builder.build(command, observations)
         except Exception:
@@ -128,10 +131,61 @@ class LearnerModelBuildService:
             return LearnerModelBuildResult(LearnerModelBuildState.PROVIDER_UNAVAILABLE)
         if payload is None:
             return LearnerModelBuildResult(LearnerModelBuildState.NO_INFERENCE)
+        corrected_payload, applied_review_ids = _apply_accepted_corrections(
+            payload,
+            correction_state.accepted,
+        )
         return LearnerModelBuildResult(
             LearnerModelBuildState.STORED,
-            snapshot=self._repository.store(payload),
+            snapshot=self._repository.store(
+                corrected_payload,
+                correction_state=correction_state,
+                applied_correction_review_ids=applied_review_ids,
+            ),
         )
+
+
+def _apply_accepted_corrections(
+    payload: LearnerModelSnapshotPayload,
+    corrections: tuple[AcceptedLearnerModelCorrection, ...],
+) -> tuple[LearnerModelSnapshotPayload, frozenset[str]]:
+    """Mark affected new estimates for review without mutating source evidence or history."""
+
+    estimates: list[LearnerOutcomeEstimatePayload] = []
+    applied_review_ids: set[str] = set()
+    for estimate in payload.estimates:
+        evidence_ids = {signal.evidence_id for signal in estimate.evidence_signals}
+        affecting = tuple(
+            correction
+            for correction in corrections
+            if (
+                correction.annotation.target.target_kind is CorrectionTargetKind.EVIDENCE
+                and correction.annotation.target.evidence_id in evidence_ids
+            )
+            or (
+                correction.annotation.target.target_kind is CorrectionTargetKind.ESTIMATE
+                and correction.target_dimension is estimate.dimension
+            )
+        )
+        if not affecting:
+            estimates.append(estimate)
+            continue
+        applied_review_ids.update(correction.review.review_id for correction in affecting)
+        estimates.append(
+            LearnerOutcomeEstimatePayload(
+                estimate_id=estimate.estimate_id,
+                dimension=estimate.dimension,
+                inference_status=InferenceStatus.NEEDS_REVIEW,
+                uncertainty=max(estimate.uncertainty, 0.8),
+                reason_code="correction.accepted-review.v1",
+                evidence_observed_at=estimate.evidence_observed_at,
+                evidence_signals=estimate.evidence_signals,
+            )
+        )
+    return (
+        payload.model_copy(update={"estimates": tuple(estimates)}),
+        frozenset(applied_review_ids),
+    )
 
 
 def _estimates(

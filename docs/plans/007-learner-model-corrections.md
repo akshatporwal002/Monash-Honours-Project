@@ -198,12 +198,12 @@ Files:
 
 Changes:
 
-- [ ] Resolve accepted correction reviews for evidence and estimates used by a new build command.
-- [ ] Preserve the previous snapshot and original evidence links unchanged.
-- [ ] Emit a later `NEEDS_REVIEW` estimate for the affected dimension rather than silently
+- [x] Resolve accepted correction reviews for evidence and estimates used by a new build command.
+- [x] Preserve the previous snapshot and original evidence links unchanged.
+- [x] Emit a later `NEEDS_REVIEW` estimate for the affected dimension rather than silently
   reversing, deleting, or replacing the earlier inference.
-- [ ] Store the accepted-review-to-new-snapshot link atomically with the new snapshot.
-- [ ] Ensure rejected or pending reviews do not change deterministic output.
+- [x] Store the accepted-review-to-new-snapshot link atomically with the new snapshot.
+- [x] Ensure rejected or pending reviews do not change deterministic output.
 
 Edge and failure cases:
 
@@ -214,6 +214,10 @@ Edge and failure cases:
 **Acceptance:** deterministic tests prove accepted, rejected, pending, stale, and provider-failure
 paths; the original snapshot remains byte-for-byte retrievable and the later snapshot links the
 accepted correction.
+
+**Verification (2026-08-24):** Ruff passed for the changed builder, repository, and correction
+tests. The learner-model, safety, correction-contract, deployment-runtime, and migration selection
+passed with 92 tests; the existing Python 3.12 SQLite datetime-adapter deprecation warning remains.
 
 ## Step 5: Add privacy-bounded audit events
 

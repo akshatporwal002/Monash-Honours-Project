@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from uuid import UUID, uuid5
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -21,6 +22,7 @@ from app.domain.platform_enums import (
 from app.models.learner_model import (
     LearnerModelAnnotation,
     LearnerModelCorrectionReview,
+    LearnerModelCorrectionSnapshotLink,
 )
 from app.models.learner_model import (
     LearnerModelEvidenceLink as LearnerModelEvidenceLinkModel,
@@ -48,6 +50,8 @@ from app.services.learner_model.safety import (
     LearnerModelSafetyError,
     LearnerModelStaleReviewError,
 )
+
+_CORRECTION_LINK_NAMESPACE = UUID("70c3b36a-7f3a-4915-a7eb-85be33c54ddb")
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,6 +114,36 @@ class LearnerModelCorrectionHistory:
 class AcceptedLearnerModelCorrection:
     annotation: LearnerAnnotationPayload
     review: EducatorCorrectionReviewPayload
+    target_dimension: LearnerModelDimension | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LearnerModelCorrectionDecision:
+    annotation: LearnerAnnotationPayload
+    review: EducatorCorrectionReviewPayload
+    target_dimension: LearnerModelDimension | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class LearnerModelCorrectionState:
+    course_id: str
+    learner_id: str
+    outcome_id: str
+    evidence_ids: tuple[str, ...]
+    prior_snapshot_id: str | None
+    decisions: tuple[LearnerModelCorrectionDecision, ...]
+
+    @property
+    def accepted(self) -> tuple[AcceptedLearnerModelCorrection, ...]:
+        return tuple(
+            AcceptedLearnerModelCorrection(
+                annotation=decision.annotation,
+                review=decision.review,
+                target_dimension=decision.target_dimension,
+            )
+            for decision in self.decisions
+            if decision.review.action is CorrectionAction.ACCEPTED
+        )
 
 
 class SqlAlchemyLearnerModelRepository:
@@ -323,6 +357,28 @@ class SqlAlchemyLearnerModelRepository:
         review = self._latest_review_row(annotation.id)
         return None if review is None else _review_payload(review, _annotation_target(annotation))
 
+    def correction_state(
+        self,
+        command: LearnerModelBuildCommand,
+    ) -> LearnerModelCorrectionState:
+        """Capture the latest relevant review state for optimistic build validation."""
+
+        learner_id = _learner_id(command.learner_id)
+        evidence_ids = tuple(sorted(signal.evidence_id for signal in command.evidence_signals))
+        try:
+            return self._load_correction_state(
+                course_id=command.course_id,
+                learner_id=learner_id,
+                outcome_id=command.outcome_id,
+                evidence_ids=evidence_ids,
+                prior_snapshot_id=command.prior_snapshot_id,
+            )
+        except SQLAlchemyError:
+            self._session.rollback()
+            raise LearnerModelPersistenceError(
+                "learner-model correction state could not be read"
+            ) from None
+
     def accepted_corrections(
         self,
         *,
@@ -349,6 +405,7 @@ class SqlAlchemyLearnerModelRepository:
                         AcceptedLearnerModelCorrection(
                             annotation=_annotation_payload(annotation),
                             review=_review_payload(review, _annotation_target(annotation)),
+                            target_dimension=self._target_dimension(annotation),
                         )
                     )
             return tuple(accepted)
@@ -357,6 +414,75 @@ class SqlAlchemyLearnerModelRepository:
             raise LearnerModelPersistenceError(
                 "accepted learner-model corrections could not be read"
             ) from None
+
+    def _load_correction_state(
+        self,
+        *,
+        course_id: str,
+        learner_id: int,
+        outcome_id: str,
+        evidence_ids: tuple[str, ...],
+        prior_snapshot_id: str | None,
+    ) -> LearnerModelCorrectionState:
+        prior_estimates = self._session.scalars(
+            select(LearnerOutcomeEstimateModel).where(
+                LearnerOutcomeEstimateModel.snapshot_id == prior_snapshot_id
+            )
+        ).all()
+        prior_dimensions = {estimate.id: estimate.dimension for estimate in prior_estimates}
+        target_clauses = []
+        if evidence_ids:
+            target_clauses.append(LearnerModelAnnotation.evidence_id.in_(evidence_ids))
+        if prior_dimensions:
+            target_clauses.append(LearnerModelAnnotation.estimate_id.in_(prior_dimensions))
+        if not target_clauses:
+            annotations: list[LearnerModelAnnotation] = []
+        else:
+            annotations = list(
+                self._session.scalars(
+                    select(LearnerModelAnnotation)
+                    .where(
+                        LearnerModelAnnotation.course_id == course_id,
+                        LearnerModelAnnotation.learner_id == learner_id,
+                        LearnerModelAnnotation.outcome_id == outcome_id,
+                        or_(*target_clauses),
+                    )
+                    .order_by(LearnerModelAnnotation.id)
+                ).all()
+            )
+        decisions: list[LearnerModelCorrectionDecision] = []
+        for annotation in annotations:
+            review = self._latest_review_row(annotation.id)
+            if review is None:
+                continue
+            decisions.append(
+                LearnerModelCorrectionDecision(
+                    annotation=_annotation_payload(annotation),
+                    review=_review_payload(review, _annotation_target(annotation)),
+                    target_dimension=(
+                        None
+                        if annotation.estimate_id is None
+                        else prior_dimensions.get(annotation.estimate_id)
+                    ),
+                )
+            )
+        return LearnerModelCorrectionState(
+            course_id=course_id,
+            learner_id=str(learner_id),
+            outcome_id=outcome_id,
+            evidence_ids=evidence_ids,
+            prior_snapshot_id=prior_snapshot_id,
+            decisions=tuple(decisions),
+        )
+
+    def _target_dimension(
+        self,
+        annotation: LearnerModelAnnotation,
+    ) -> LearnerModelDimension | None:
+        if annotation.estimate_id is None:
+            return None
+        estimate = self._session.get(LearnerOutcomeEstimateModel, annotation.estimate_id)
+        return None if estimate is None else estimate.dimension
 
     def _annotation_by_idempotency(
         self,
@@ -597,11 +723,23 @@ class SqlAlchemyLearnerModelRepository:
             for evidence_id in requested
         )
 
-    def store(self, snapshot: LearnerModelSnapshotPayload) -> LearnerModelSnapshotWriteResult:
+    def store(
+        self,
+        snapshot: LearnerModelSnapshotPayload,
+        *,
+        correction_state: LearnerModelCorrectionState | None = None,
+        applied_correction_review_ids: frozenset[str] = frozenset(),
+    ) -> LearnerModelSnapshotWriteResult:
         """Store one complete snapshot atomically, or return its exact replay."""
 
         learner_id = _learner_id(snapshot.learner_id)
         try:
+            current_correction_state = self._validate_correction_state(
+                snapshot,
+                learner_id=learner_id,
+                correction_state=correction_state,
+                applied_review_ids=applied_correction_review_ids,
+            )
             existing = self._session.scalar(
                 select(LearnerModelSnapshotModel).where(
                     LearnerModelSnapshotModel.course_id == snapshot.course_id,
@@ -611,7 +749,12 @@ class SqlAlchemyLearnerModelRepository:
                 )
             )
             if existing is not None:
-                if self._is_exact_replay(existing, snapshot, learner_id):
+                if self._is_exact_replay(
+                    existing, snapshot, learner_id
+                ) and self._correction_links_are_exact(
+                    existing.id,
+                    applied_correction_review_ids,
+                ):
                     return LearnerModelSnapshotWriteResult(
                         snapshot_id=existing.id,
                         created=False,
@@ -668,6 +811,13 @@ class SqlAlchemyLearnerModelRepository:
                 for estimate_id, payload in estimate_ids.items()
                 for signal in payload.evidence_signals
             )
+            self._session.flush()
+            self._add_correction_snapshot_links(
+                model,
+                snapshot,
+                current_correction_state,
+                applied_correction_review_ids,
+            )
             self._session.commit()
             return LearnerModelSnapshotWriteResult(
                 snapshot_id=model.id,
@@ -686,6 +836,104 @@ class SqlAlchemyLearnerModelRepository:
             raise LearnerModelPersistenceError(
                 "learner-model snapshot could not be stored"
             ) from None
+
+    def _validate_correction_state(
+        self,
+        snapshot: LearnerModelSnapshotPayload,
+        *,
+        learner_id: int,
+        correction_state: LearnerModelCorrectionState | None,
+        applied_review_ids: frozenset[str],
+    ) -> LearnerModelCorrectionState | None:
+        if correction_state is None:
+            if applied_review_ids:
+                raise LearnerModelConflictError(
+                    "applied corrections require a captured correction state"
+                )
+            return None
+        if (
+            correction_state.course_id != snapshot.course_id
+            or correction_state.learner_id != snapshot.learner_id
+            or correction_state.outcome_id != snapshot.outcome_id
+            or correction_state.prior_snapshot_id != snapshot.prior_snapshot_id
+        ):
+            raise LearnerModelConflictError(
+                "correction state does not match the learner-model snapshot scope"
+            )
+        current = self._load_correction_state(
+            course_id=snapshot.course_id,
+            learner_id=learner_id,
+            outcome_id=snapshot.outcome_id,
+            evidence_ids=correction_state.evidence_ids,
+            prior_snapshot_id=snapshot.prior_snapshot_id,
+        )
+        if current != correction_state:
+            raise LearnerModelStaleReviewError(
+                "learner-model correction state changed during snapshot construction"
+            )
+        accepted_by_id = {item.review.review_id: item for item in current.accepted}
+        if not applied_review_ids <= accepted_by_id.keys():
+            raise LearnerModelConflictError(
+                "snapshot references a correction that is not currently accepted"
+            )
+        for review_id in applied_review_ids:
+            if accepted_by_id[review_id].review.occurred_at > snapshot.occurred_at:
+                raise LearnerModelConflictError(
+                    "accepted correction must precede the learner-model snapshot"
+                )
+        return current
+
+    def _correction_links_are_exact(
+        self,
+        snapshot_id: str,
+        applied_review_ids: frozenset[str],
+    ) -> bool:
+        stored_review_ids = frozenset(
+            self._session.scalars(
+                select(LearnerModelCorrectionSnapshotLink.review_id).where(
+                    LearnerModelCorrectionSnapshotLink.snapshot_id == snapshot_id
+                )
+            ).all()
+        )
+        return stored_review_ids == applied_review_ids
+
+    def _add_correction_snapshot_links(
+        self,
+        snapshot_model: LearnerModelSnapshotModel,
+        snapshot: LearnerModelSnapshotPayload,
+        correction_state: LearnerModelCorrectionState | None,
+        applied_review_ids: frozenset[str],
+    ) -> None:
+        if correction_state is None or not applied_review_ids:
+            return
+        decisions = {
+            decision.review.review_id: decision
+            for decision in correction_state.decisions
+            if decision.review.review_id in applied_review_ids
+        }
+        for review_id in sorted(applied_review_ids):
+            link_id = str(
+                uuid5(
+                    _CORRECTION_LINK_NAMESPACE,
+                    f"{snapshot.snapshot_id}:{review_id}",
+                )
+            )
+            self._session.add(
+                LearnerModelCorrectionSnapshotLink(
+                    id=link_id,
+                    review_id=decisions[review_id].review.review_id,
+                    snapshot_id=snapshot_model.id,
+                    course_id=snapshot.course_id,
+                    learner_id=snapshot_model.learner_id,
+                    outcome_id=snapshot.outcome_id,
+                    schema_version="learnlens.correction-snapshot-link.v1",
+                    record_version=1,
+                    actor_reference=snapshot.agent_reference or snapshot.actor_reference,
+                    correlation_id=snapshot.correlation_id,
+                    idempotency_key=f"correction-link:{link_id}",
+                    occurred_at=_as_utc(snapshot.occurred_at),
+                )
+            )
 
     def _is_exact_replay(
         self,
@@ -1041,8 +1289,10 @@ __all__ = [
     "AcceptedLearnerModelCorrection",
     "LearnerEvidenceObservation",
     "LearnerAnnotationWriteResult",
+    "LearnerModelCorrectionDecision",
     "LearnerModelCorrectionHistory",
     "LearnerModelCorrectionReviewWriteResult",
+    "LearnerModelCorrectionState",
     "LearnerModelSnapshotView",
     "LearnerModelSnapshotWriteResult",
     "LearnerOutcomeEstimateView",

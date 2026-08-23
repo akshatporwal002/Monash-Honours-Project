@@ -17,6 +17,7 @@ from app.db.session import create_db_engine
 from app.domain.platform_enums import (
     CorrectionAction,
     CorrectionTargetKind,
+    EvidenceLinkRelation,
     InferenceStatus,
     LearnerModelDimension,
     ModelSource,
@@ -26,6 +27,7 @@ from app.models.learner_model import (
     LearnerModelAnnotation,
     LearnerModelCorrectionReview,
     LearnerModelCorrectionSnapshotLink,
+    LearnerModelEvidenceLink,
     LearnerModelSnapshot,
     LearnerOutcomeEstimate,
 )
@@ -40,6 +42,16 @@ from app.models.lms import (
 from app.models.persistence import LearningTask
 from app.models.user import User, UserRole
 from app.services.evidence.repository import EvidenceCapture, SqlAlchemyEvidenceRepository
+from app.services.learner_model.builder import (
+    DeterministicLearnerModelBuilder,
+    LearnerModelBuildService,
+    LearnerModelBuildState,
+)
+from app.services.learner_model.contracts import (
+    LearnerModelBuildCommand,
+    LearnerModelEvidenceSignal,
+    LearnerModelSnapshotPayload,
+)
 from app.services.learner_model.correction_contracts import (
     EducatorCorrectionReviewCommand,
     LearnerAnnotationCommand,
@@ -181,7 +193,15 @@ def _seed_target_history(session: Session) -> dict[str, str]:
         reason_code="rule.reasoning-strength.v1",
         evidence_observed_at=NOW,
     )
+    evidence_link = LearnerModelEvidenceLink(
+        id="link-before-correction",
+        estimate_id=estimate.id,
+        evidence_id="evidence-record-1",
+        relation=EvidenceLinkRelation.SUPPORTS,
+    )
     session.add_all((snapshot, estimate))
+    session.flush()
+    session.add(evidence_link)
     session.commit()
     return scope
 
@@ -279,6 +299,52 @@ def _review_command(
     }
     values.update(overrides)
     return EducatorCorrectionReviewCommand.model_validate(values)
+
+
+def _build_command(
+    scope: dict[str, str],
+    **overrides: object,
+) -> LearnerModelBuildCommand:
+    values: dict[str, object] = {
+        "snapshot_id": "snapshot-after-correction",
+        "course_id": scope["course_one"],
+        "learner_id": scope["learner_id"],
+        "outcome_id": scope["outcome_one"],
+        "prior_snapshot_id": "snapshot-before-correction",
+        "model_source": ModelSource.RULE_BASED,
+        "model_version": "learner-model-rules.v1",
+        "rule_version": "learner-rules.v1",
+        "record_version": 2,
+        "actor_reference": scope["learner_id"],
+        "agent_reference": "learner-model-agent.v1",
+        "correlation_id": "build-after-correction-correlation",
+        "idempotency_key": "build-after-correction-key",
+        "occurred_at": NOW + timedelta(minutes=10),
+        "evidence_signals": (
+            LearnerModelEvidenceSignal(
+                evidence_id="evidence-record-1",
+                relation=EvidenceLinkRelation.SUPPORTS,
+            ),
+        ),
+    }
+    values.update(overrides)
+    return LearnerModelBuildCommand.model_validate(values)
+
+
+def _accept_correction(
+    service: LearnerModelCorrectionService,
+    scope: dict[str, str],
+    target: dict[str, object],
+) -> None:
+    service.annotate(_annotation_command(scope, target=target))
+    service.review(
+        _review_command(
+            scope,
+            target=target,
+            action=CorrectionAction.ACCEPTED,
+            reason="The correction is supported and must inform the next snapshot.",
+        )
+    )
 
 
 class _PermissiveCorrectionPolicy:
@@ -678,6 +744,183 @@ def test_concurrent_exact_duplicates_resolve_to_replay_without_partial_rows(
     assert collided_review.created is False
     assert db_session.scalar(select(func.count()).select_from(LearnerModelAnnotation)) == 1
     assert db_session.scalar(select(func.count()).select_from(LearnerModelCorrectionReview)) == 1
+
+
+@pytest.mark.parametrize(
+    "target",
+    (
+        {
+            "target_kind": CorrectionTargetKind.EVIDENCE,
+            "evidence_id": "evidence-record-1",
+        },
+        {
+            "target_kind": CorrectionTargetKind.ESTIMATE,
+            "estimate_id": "estimate-before-correction",
+        },
+    ),
+)
+def test_accepted_correction_marks_only_later_snapshot_for_review_and_links_it(
+    db_session: Session,
+    target: dict[str, object],
+) -> None:
+    scope = _seed_target_history(db_session)
+    repository = SqlAlchemyLearnerModelRepository(db_session)
+    correction_service = LearnerModelCorrectionService(repository)
+    before = repository.timeline(
+        course_id=scope["course_one"],
+        learner_id=scope["learner_id"],
+        outcome_id=scope["outcome_one"],
+    )
+    _accept_correction(correction_service, scope, target)
+
+    result = LearnerModelBuildService(
+        repository,
+        DeterministicLearnerModelBuilder(),
+    ).build(_build_command(scope))
+    after = repository.timeline(
+        course_id=scope["course_one"],
+        learner_id=scope["learner_id"],
+        outcome_id=scope["outcome_one"],
+    )
+    correction_links = db_session.scalars(select(LearnerModelCorrectionSnapshotLink)).all()
+    stored_estimate = db_session.scalar(
+        select(LearnerOutcomeEstimate).where(
+            LearnerOutcomeEstimate.snapshot_id == "snapshot-after-correction"
+        )
+    )
+
+    assert result.state is LearnerModelBuildState.STORED
+    assert len(before) == 1 and len(after) == 2
+    assert after[0] == before[0]
+    assert before[0].estimates[0].inference_status is InferenceStatus.SUPPORTED
+    assert after[1].estimates[0].inference_status is InferenceStatus.NEEDS_REVIEW
+    assert after[1].estimates[0].evidence_ids == before[0].estimates[0].evidence_ids
+    assert stored_estimate is not None
+    assert stored_estimate.reason_code == "correction.accepted-review.v1"
+    assert stored_estimate.uncertainty == 0.8
+    assert len(correction_links) == 1
+    assert correction_links[0].review_id == "service-review-1"
+    assert correction_links[0].snapshot_id == "snapshot-after-correction"
+
+
+@pytest.mark.parametrize(
+    "action",
+    (CorrectionAction.REJECTED, CorrectionAction.NEEDS_REVIEW),
+)
+def test_rejected_and_pending_corrections_leave_deterministic_output_unchanged(
+    db_session: Session,
+    action: CorrectionAction,
+) -> None:
+    scope = _seed_target_history(db_session)
+    repository = SqlAlchemyLearnerModelRepository(db_session)
+    correction_service = LearnerModelCorrectionService(repository)
+    correction_service.annotate(_annotation_command(scope))
+    correction_service.review(_review_command(scope, action=action))
+    before = repository.timeline(
+        course_id=scope["course_one"],
+        learner_id=scope["learner_id"],
+        outcome_id=scope["outcome_one"],
+    )
+
+    result = LearnerModelBuildService(
+        repository,
+        DeterministicLearnerModelBuilder(),
+    ).build(_build_command(scope))
+    after = repository.timeline(
+        course_id=scope["course_one"],
+        learner_id=scope["learner_id"],
+        outcome_id=scope["outcome_one"],
+    )
+
+    assert result.state is LearnerModelBuildState.STORED
+    assert after[0] == before[0]
+    assert after[1].estimates[0].inference_status is InferenceStatus.SUPPORTED
+    assert (
+        db_session.scalar(select(func.count()).select_from(LearnerModelCorrectionSnapshotLink)) == 0
+    )
+
+
+def test_provider_failure_preserves_accepted_correction_and_existing_snapshot(
+    db_session: Session,
+) -> None:
+    class _FailingBuilder:
+        model_version = "learner-model-rules.v1"
+
+        def build(self, *_: object) -> LearnerModelSnapshotPayload | None:
+            raise RuntimeError("provider failed")
+
+    scope = _seed_target_history(db_session)
+    repository = SqlAlchemyLearnerModelRepository(db_session)
+    correction_service = LearnerModelCorrectionService(repository)
+    _accept_correction(
+        correction_service,
+        scope,
+        {
+            "target_kind": CorrectionTargetKind.EVIDENCE,
+            "evidence_id": "evidence-record-1",
+        },
+    )
+    before = repository.timeline(
+        course_id=scope["course_one"],
+        learner_id=scope["learner_id"],
+        outcome_id=scope["outcome_one"],
+    )
+
+    result = LearnerModelBuildService(repository, _FailingBuilder()).build(_build_command(scope))
+
+    assert result.state is LearnerModelBuildState.PROVIDER_UNAVAILABLE
+    assert (
+        repository.timeline(
+            course_id=scope["course_one"],
+            learner_id=scope["learner_id"],
+            outcome_id=scope["outcome_one"],
+        )
+        == before
+    )
+    assert db_session.scalar(select(func.count()).select_from(LearnerModelAnnotation)) == 1
+    assert db_session.scalar(select(func.count()).select_from(LearnerModelCorrectionReview)) == 1
+    assert (
+        db_session.scalar(select(func.count()).select_from(LearnerModelCorrectionSnapshotLink)) == 0
+    )
+
+
+def test_correction_accepted_during_build_causes_stale_conflict_without_snapshot(
+    db_session: Session,
+) -> None:
+    scope = _seed_target_history(db_session)
+    repository = SqlAlchemyLearnerModelRepository(db_session)
+    correction_service = LearnerModelCorrectionService(repository)
+    correction_service.annotate(_annotation_command(scope))
+    correction_service.review(_review_command(scope))
+
+    class _AcceptDuringBuild:
+        model_version = "learner-model-rules.v1"
+
+        def __init__(self) -> None:
+            self._delegate = DeterministicLearnerModelBuilder()
+
+        def build(self, command, observations):
+            correction_service.review(
+                _review_command(
+                    scope,
+                    review_id="service-review-2",
+                    review_version=2,
+                    expected_latest_review_version=1,
+                    action=CorrectionAction.ACCEPTED,
+                    idempotency_key="service-review-key-2",
+                    occurred_at=NOW + timedelta(minutes=4),
+                )
+            )
+            return self._delegate.build(command, observations)
+
+    with pytest.raises(LearnerModelStaleReviewError, match="changed during"):
+        LearnerModelBuildService(repository, _AcceptDuringBuild()).build(_build_command(scope))
+
+    assert db_session.scalar(select(func.count()).select_from(LearnerModelSnapshot)) == 1
+    assert db_session.scalar(select(func.count()).select_from(LearnerModelCorrectionReview)) == 2
+    assert (
+        db_session.scalar(select(func.count()).select_from(LearnerModelCorrectionSnapshotLink)) == 0
+    )
 
 
 def test_clean_migration_creates_indexes_triggers_and_supports_empty_downgrade(
