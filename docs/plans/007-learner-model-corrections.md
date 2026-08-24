@@ -1,12 +1,12 @@
 # 007: Learner evidence annotations and model corrections
 
-Status: proposed
+Status: implementation in progress
 
-Owner: Raveen
+Owner: Learning intelligence and adaptive support workstream
 
 Created: 2026-08-24
 
-Target branch: `raveen-person-b-learning-intelligence`
+Target branch: `raveen-learning-intelligence`
 
 ## Outcome
 
