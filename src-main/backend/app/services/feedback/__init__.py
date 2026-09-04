@@ -1,4 +1,8 @@
-from app.services.feedback.agent import AI_GENERATED_NOTICE, LlmFeedbackGenerator
+from app.services.feedback.agent import (
+    AI_GENERATED_NOTICE,
+    LlmFeedbackGenerator,
+    PendingAssessmentFeedbackGenerator,
+)
 from app.services.feedback.application import (
     FeedbackAccessPolicy,
     FeedbackBackgroundExecutor,
@@ -9,6 +13,7 @@ from app.services.feedback.application import (
 from app.services.feedback.composition import build_grounded_feedback_context_collector
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.contracts import (
+    AssessmentFeedbackContextProvider,
     FeedbackAttemptPersistence,
     FeedbackContextCollector,
     FeedbackGenerator,
@@ -28,6 +33,7 @@ from app.services.feedback.contracts import (
     WorkflowProgressRecorder,
 )
 from app.services.feedback.errors import (
+    AssessedFeedbackNotReadyError,
     ContextCollectionError,
     ContextIntegrityError,
     FeedbackAgentError,
@@ -66,6 +72,8 @@ from app.services.feedback.worker import FeedbackRecoveryWorker
 
 __all__ = [
     "AI_GENERATED_NOTICE",
+    "AssessedFeedbackNotReadyError",
+    "AssessmentFeedbackContextProvider",
     "FEEDBACK_PROMPT_VERSION",
     "ContextCollectionError",
     "ContextIntegrityError",
@@ -103,6 +111,7 @@ __all__ = [
     "QUALITY_JUDGE_PROMPT_VERSION",
     "QUALITY_POLICY_VERSION",
     "QualityJudgePromptBuilder",
+    "PendingAssessmentFeedbackGenerator",
     "RecordingStructuredLlmClient",
     "RetrievalProvider",
     "SimulationProvider",

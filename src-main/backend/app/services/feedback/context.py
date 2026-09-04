@@ -3,6 +3,7 @@ import asyncio
 from pydantic import ValidationError
 
 from app.schemas.feedback import (
+    AssessmentContextStatus,
     ContextProviderStatus,
     FeedbackContext,
     RetrievalContext,
@@ -11,7 +12,12 @@ from app.schemas.feedback import (
     SimulationResult,
     SubmissionContext,
 )
-from app.services.feedback.contracts import RetrievalProvider, SimulationProvider, TaskProvider
+from app.services.feedback.contracts import (
+    AssessmentFeedbackContextProvider,
+    RetrievalProvider,
+    SimulationProvider,
+    TaskProvider,
+)
 from app.services.feedback.errors import (
     ContextCollectionError,
     ContextIntegrityError,
@@ -25,6 +31,7 @@ class DefaultFeedbackContextCollector:
         task_provider: TaskProvider,
         retrieval_provider: RetrievalProvider | None = None,
         simulation_provider: SimulationProvider | None = None,
+        assessment_context_provider: AssessmentFeedbackContextProvider | None = None,
         *,
         provider_timeout_seconds: float = 60,
     ) -> None:
@@ -33,6 +40,7 @@ class DefaultFeedbackContextCollector:
         self._task_provider = task_provider
         self._retrieval_provider = retrieval_provider
         self._simulation_provider = simulation_provider
+        self._assessment_context_provider = assessment_context_provider
         self._provider_timeout_seconds = provider_timeout_seconds
 
     async def collect(
@@ -41,10 +49,28 @@ class DefaultFeedbackContextCollector:
         correlation_id: str,
     ) -> FeedbackContext:
         try:
-            task = await asyncio.wait_for(
-                self._task_provider.get_task(submission.task_id),
-                timeout=self._provider_timeout_seconds,
-            )
+            assessment_context = None
+            if self._assessment_context_provider is not None:
+                resolution = await asyncio.wait_for(
+                    self._assessment_context_provider.resolve(submission),
+                    timeout=self._provider_timeout_seconds,
+                )
+                if resolution.status is AssessmentContextStatus.RESOLVED:
+                    assessment_context = resolution.context
+                    assert assessment_context is not None
+                    task = assessment_context.task
+                elif resolution.status is AssessmentContextStatus.NOT_ASSESSED:
+                    task = await asyncio.wait_for(
+                        self._task_provider.get_task(submission.task_id),
+                        timeout=self._provider_timeout_seconds,
+                    )
+                else:
+                    raise ContextIntegrityError()
+            else:
+                task = await asyncio.wait_for(
+                    self._task_provider.get_task(submission.task_id),
+                    timeout=self._provider_timeout_seconds,
+                )
             if task is None:
                 raise TaskNotFoundError(submission.task_id)
             if task.task_id != submission.task_id:
@@ -77,6 +103,7 @@ class DefaultFeedbackContextCollector:
                 retrieval_request_ids=retrieval_result.request_ids,
                 simulation_context=simulation_result.context,
                 simulation_status=simulation_result.status,
+                assessment_context=assessment_context,
             )
         except (ContextIntegrityError, TaskNotFoundError):
             raise

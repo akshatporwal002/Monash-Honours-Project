@@ -47,6 +47,7 @@ EXPECTED_TABLES = {
     "learner_outcome_estimates",
     "assessment_attempts",
     "assessment_decisions",
+    "assessment_evaluation_jobs",
     "appeals_or_corrections",
     "assessor_reviews",
     "achievements",
@@ -1593,6 +1594,49 @@ def test_numeric_only_populated_history_blocks_downgrade(tmp_path: Path) -> None
     with pytest.raises(RuntimeError, match="cannot downgrade populated"):
         command.downgrade(config, "20260815_0017")
     assert database_manifest(database_path) == before_downgrade
+
+
+def test_assessment_evaluation_job_migration_backfills_pending_work_and_blocks_data_loss(
+    tmp_path: Path,
+) -> None:
+    database_path = tmp_path / "assessment-evaluation-jobs.db"
+    database_url = f"sqlite:///{database_path.as_posix()}"
+    config = migration_config(database_url)
+    command.upgrade(config, "20260816_0021")
+    engine = create_engine(database_url)
+    with Session(engine) as session:
+        attempt, response, _, _, _ = _attempt_context(session)
+        attempt_id = attempt.id
+        response_id = response.id
+    engine.dispose()
+
+    command.upgrade(config, "head")
+
+    migrated_engine = create_engine(database_url)
+    with migrated_engine.connect() as connection:
+        job = (
+            connection.execute(
+                text(
+                    "SELECT assessment_attempt_id, response_version_id, "
+                    "evaluation_idempotency_key, state, processing_attempts "
+                    "FROM assessment_evaluation_jobs"
+                )
+            )
+            .mappings()
+            .one()
+        )
+    assert job == {
+        "assessment_attempt_id": attempt_id,
+        "response_version_id": response_id,
+        "evaluation_idempotency_key": f"assessment-evaluation:{attempt_id}",
+        "state": "pending",
+        "processing_attempts": 0,
+    }
+    before_downgrade = database_manifest(database_path)
+    with pytest.raises(RuntimeError, match="cannot downgrade populated assessment evaluation jobs"):
+        command.downgrade(config, "20260816_0021")
+    assert database_manifest(database_path) == before_downgrade
+    migrated_engine.dispose()
 
 
 def test_definition_migration_upgrades_clean_database(tmp_path: Path) -> None:

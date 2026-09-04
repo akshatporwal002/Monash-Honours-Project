@@ -13,6 +13,8 @@ from app.models.assessment import (
     AssessmentApprovalState,
     AssessmentAttempt,
     AssessmentDefinitionVersion,
+    AssessmentEvaluationJob,
+    AssessmentEvaluationJobState,
     BloomTargetVersion,
     CriterionVersion,
     PassRuleVersion,
@@ -141,6 +143,16 @@ class AssessmentSubmissionService:
             state=AssessmentAttemptState.PENDING,
         )
         self.session.add(attempt)
+        self.session.flush()
+        self.session.add(
+            AssessmentEvaluationJob(
+                assessment_attempt_id=attempt.id,
+                response_version_id=response.id,
+                evaluation_idempotency_key=f"assessment-evaluation:{attempt.id}",
+                correlation_id=attempt.id,
+                state=AssessmentEvaluationJobState.PENDING,
+            )
+        )
         return attempt
 
     def mark_fault_for_response(self, response_version_id: str, reason: str) -> bool:

@@ -18,6 +18,10 @@ from fastapi import (
 from fastapi.responses import RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.api.assessment_dependencies import (
+    get_assessment_evaluation_application,
+    get_assessment_evaluation_executor,
+)
 from app.api.dependencies.roles import (
     CurrentAdministrator,
     CurrentEducator,
@@ -63,6 +67,11 @@ from app.schemas.lms import (
     TaskUpdate,
 )
 from app.schemas.student import SimulationRead, SimulationRequest
+from app.services.assessment.jobs import (
+    AssessmentEvaluationApplication,
+    AssessmentEvaluationExecutor,
+    AssessmentEvaluationJobError,
+)
 from app.services.feedback.application import (
     FeedbackBackgroundExecutor,
     FeedbackWorkflowApplication,
@@ -493,6 +502,14 @@ async def submit_student_task(
         FeedbackBackgroundExecutor,
         Depends(get_feedback_executor),
     ],
+    assessment_evaluation_application: Annotated[
+        AssessmentEvaluationApplication,
+        Depends(get_assessment_evaluation_application),
+    ],
+    assessment_evaluation_executor: Annotated[
+        AssessmentEvaluationExecutor,
+        Depends(get_assessment_evaluation_executor),
+    ],
 ) -> AttemptRead:
     attempt = service.submit(student, task_id, payload)
     request_correlation_id = getattr(request.state, "correlation_id", None)
@@ -503,10 +520,6 @@ async def submit_student_task(
             correlation_id=correlation_id,
         )
     except Exception:
-        service.mark_assessment_fault(
-            attempt.id,
-            "The feedback workflow could not start. The response is saved for review.",
-        )
         raise
     if claim.should_start:
         background_tasks.add_task(
@@ -515,6 +528,15 @@ async def submit_student_task(
             attempt.id,
             claim.execution_token,
             correlation_id,
+        )
+    try:
+        evaluation_claim = assessment_evaluation_application.start(attempt.id)
+    except AssessmentEvaluationJobError:
+        evaluation_claim = None
+    if evaluation_claim is not None:
+        background_tasks.add_task(
+            assessment_evaluation_executor.execute,
+            evaluation_claim,
         )
     return attempt
 

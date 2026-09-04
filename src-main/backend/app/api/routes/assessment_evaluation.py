@@ -4,20 +4,17 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.orm import Session
 
+from app.api.assessment_dependencies import get_assessment_evaluation_service
 from app.api.dependencies.roles import CurrentStudent
-from app.db.session import get_db
 from app.domain.assessment import AssessmentReasonCode, AssessmentResult, ResultState
 from app.services.assessment.evaluation import (
     AssessmentEvaluationConflictError,
     AssessmentEvaluationFaultError,
     AssessmentEvaluationNotFoundError,
     AssessmentEvaluationService,
-    UnavailableCriterionEvaluationPort,
-    UnavailableQualityReviewPort,
 )
 
 router = APIRouter(prefix="/assessment")
@@ -35,18 +32,6 @@ class AssessmentEvaluationRead(BaseModel):
     result_state: ResultState
     reason_code: AssessmentReasonCode
     replayed: bool
-
-
-def get_assessment_evaluation_service(
-    request: Request,
-    session: Annotated[Session, Depends(get_db)],
-) -> AssessmentEvaluationService:
-    return AssessmentEvaluationService(
-        session,
-        criterion_port=UnavailableCriterionEvaluationPort(),
-        quality_port=UnavailableQualityReviewPort(),
-        correlation_id=getattr(request.state, "correlation_id", None),
-    )
 
 
 EvaluationService = Annotated[

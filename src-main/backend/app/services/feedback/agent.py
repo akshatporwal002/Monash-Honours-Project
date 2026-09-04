@@ -7,11 +7,31 @@ from app.schemas.feedback import (
     FeedbackSourceAttribution,
     GeneratedFeedback,
 )
-from app.services.feedback.contracts import StructuredLlmClient
-from app.services.feedback.errors import FeedbackClientError, InvalidFeedbackOutputError
+from app.services.feedback.contracts import FeedbackGenerator, StructuredLlmClient
+from app.services.feedback.errors import (
+    AssessedFeedbackNotReadyError,
+    FeedbackClientError,
+    InvalidFeedbackOutputError,
+)
 from app.services.feedback.prompt import FeedbackPromptBuilder
 
 AI_GENERATED_NOTICE = "AI-generated feedback. Verify important details and report any concerns."
+
+
+class PendingAssessmentFeedbackGenerator:
+    """Fail safely until criteria-based assessed feedback is implemented in Step 4."""
+
+    def __init__(self, delegate: FeedbackGenerator) -> None:
+        self._delegate = delegate
+
+    async def generate(
+        self,
+        context: FeedbackContext,
+        regeneration: FeedbackRegenerationContext | None = None,
+    ) -> GeneratedFeedback:
+        if context.assessment_context is not None:
+            raise AssessedFeedbackNotReadyError()
+        return await self._delegate.generate(context, regeneration)
 
 
 class LlmFeedbackGenerator:

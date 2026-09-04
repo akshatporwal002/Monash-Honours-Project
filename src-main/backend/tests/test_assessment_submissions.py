@@ -11,6 +11,8 @@ from app.models.assessment import (
     AssessmentApprovalState,
     AssessmentAttempt,
     AssessmentDecision,
+    AssessmentEvaluationJob,
+    AssessmentEvaluationJobState,
     TaskApproval,
     TaskFormVersion,
 )
@@ -87,9 +89,15 @@ def test_assessed_attempt_freezes_versions_before_start(db_session: Session) -> 
     db_session.commit()
 
     attempt = db_session.scalar(select(AssessmentAttempt))
+    job = db_session.scalar(select(AssessmentEvaluationJob))
     assert attempt is not None
+    assert job is not None
     assert attempt.response_version_id == response.id
     assert attempt.task_form_version_id == form.id
+    assert job.assessment_attempt_id == attempt.id
+    assert job.response_version_id == response.id
+    assert job.state is AssessmentEvaluationJobState.PENDING
+    assert job.evaluation_idempotency_key == f"assessment-evaluation:{attempt.id}"
 
 
 def test_unassessed_task_cannot_create_formal_result(db_session: Session) -> None:

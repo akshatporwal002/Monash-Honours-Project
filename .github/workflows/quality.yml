@@ -165,9 +165,28 @@ jobs:
       - name: Audit npm full and production dependency trees
         working-directory: src-main/frontend
         run: |
-          npm ci
-          npm audit --audit-level=high
-          npm audit --omit=dev --audit-level=high
+          audit_with_retry() {
+            local label="$1"
+            shift
+
+            for attempt in 1 2 3; do
+              echo "$label audit attempt $attempt of 3"
+              if timeout 60s npm audit "$@"; then
+                return 0
+              fi
+
+              if [ "$attempt" -lt 3 ]; then
+                sleep 10
+              fi
+            done
+
+            echo "::error::$label npm audit failed after 3 attempts"
+            return 1
+          }
+
+          npm ci --audit=false
+          audit_with_retry "Full dependency tree" --audit-level=high
+          audit_with_retry "Production dependency tree" --omit=dev --audit-level=high
 
   secret-scan:
     name: Secret scan

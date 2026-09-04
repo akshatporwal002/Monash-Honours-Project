@@ -22,6 +22,11 @@ from app.core.readiness import (
 from app.db.session import SessionLocal
 from app.db.session import engine as application_engine
 from app.schemas.feedback import FeedbackContext, GeneratedFeedback, JudgeEvaluationOutcome
+from app.services.assessment.jobs import (
+    AssessmentEvaluationExecutor,
+    AssessmentEvaluationRecoveryWorker,
+)
+from app.services.assessment.runtime import build_assessment_evaluation_service
 from app.services.audit import BestEffortAuditSink, IndependentAuditRecorder
 from app.services.audit_events import FeedbackAuditEvents
 from app.services.continuation import (
@@ -251,6 +256,7 @@ class DatabaseWorker:
         continuation: WorkerPass,
         ownership: WorkerOwnership,
         *,
+        assessment_evaluation: WorkerPass | None = None,
         terminal_reconciliation: WorkerPass | None = None,
         poll_interval_seconds: float = 1,
         heartbeat_interval_seconds: float = 30,
@@ -261,6 +267,8 @@ class DatabaseWorker:
         if heartbeat_interval_seconds <= 0:
             raise ValueError("heartbeat_interval_seconds must be positive")
         passes: list[tuple[str, WorkerPass]] = [("feedback", feedback)]
+        if assessment_evaluation is not None:
+            passes.append(("assessment_evaluation", assessment_evaluation))
         if terminal_reconciliation is not None:
             passes.append(("terminal_reconciliation", terminal_reconciliation))
         passes.extend(
@@ -383,6 +391,18 @@ def build_database_worker(
         lease_duration=lease_duration,
         audit_events=audit_events,
     )
+    assessment_executor = AssessmentEvaluationExecutor(
+        session_factory,
+        build_assessment_evaluation_service,
+        now=now,
+    )
+    assessment_evaluation_pass = AssessmentEvaluationRecoveryWorker(
+        session_factory,
+        assessment_executor,
+        now=now,
+        lease_duration=lease_duration,
+        maximum_attempts=configured_settings.max_infrastructure_attempts,
+    )
     baseline_pass = _BaselineDatabasePass(
         session_factory,
         adapters,
@@ -417,6 +437,7 @@ def build_database_worker(
         baseline_pass,
         continuation_pass,
         ownership,
+        assessment_evaluation=assessment_evaluation_pass,
         terminal_reconciliation=terminal_reconciliation,
         poll_interval_seconds=configured_settings.worker_poll_seconds,
         heartbeat_interval_seconds=configured_settings.worker_heartbeat_seconds,
