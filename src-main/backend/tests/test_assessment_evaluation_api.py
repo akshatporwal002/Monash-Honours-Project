@@ -248,12 +248,6 @@ def test_result_audit_excludes_direct_id_and_full_answer_text(db_session: Sessio
     assert all("student_id" not in item and "response_version_id" not in item for item in details)
 
 
-def test_evaluation_route_has_only_binary_result_fields() -> None:
+def test_learner_direct_evaluation_route_is_not_published() -> None:
     schema = create_app().openapi()
-    operation = schema["paths"]["/api/v1/assessment/attempts/{assessment_attempt_id}/evaluate"][
-        "post"
-    ]
-    response_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
-
-    assert response_schema["$ref"].endswith("AssessmentEvaluationRead")
-    assert "score" not in json.dumps(operation).casefold()
+    assert "/api/v1/assessment/attempts/{assessment_attempt_id}/evaluate" not in schema["paths"]

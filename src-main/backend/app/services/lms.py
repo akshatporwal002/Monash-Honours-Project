@@ -638,8 +638,6 @@ class LmsService:
         assessment_submissions = AssessmentSubmissionService(self.session)
         frozen_versions = assessment_submissions.frozen_versions_for_task(task)
         payload_digest = self._submission_digest(payload)
-        if frozen_versions is not None and not payload.idempotency_key:
-            raise _unprocessable("An idempotency key is required for an assessed submission")
         if payload.idempotency_key:
             existing = self.session.scalar(
                 select(SubmissionAttempt).where(
@@ -672,6 +670,7 @@ class LmsService:
         score, _ = self._grade(task, payload) if frozen_versions is None else (None, "")
         passing_score = int(self._setting_value("passing_score"))
         attempt_id = self._uuid()
+        submission_idempotency_key = payload.idempotency_key or f"submission:{attempt_id}"
         attempt = SubmissionAttempt(
             id=attempt_id,
             draft_id=draft.id,
@@ -693,8 +692,8 @@ class LmsService:
                 frozen_versions.task_form_version_id if frozen_versions else None
             ),
             response_schema_version=("assessment.response.v1" if frozen_versions else None),
-            content_digest=(payload_digest if payload.idempotency_key else None),
-            idempotency_key=payload.idempotency_key,
+            content_digest=payload_digest,
+            idempotency_key=submission_idempotency_key,
             declared_conditions=(
                 self._declared_conditions(task, frozen_versions) if frozen_versions else None
             ),
@@ -902,7 +901,7 @@ class LmsService:
         outcome_scores: dict[str, list[int]] = defaultdict(list)
         for task in tasks:
             attempt = latest.get(task.id)
-            if attempt is not None and task.learning_outcome_id:
+            if attempt is not None and attempt.score is not None and task.learning_outcome_id:
                 outcome_scores[task.learning_outcome_id].append(attempt.score)
         if outcome_scores:
             lowest_outcome_id, scores = min(
@@ -1055,7 +1054,7 @@ class LmsService:
                     for attempt in attempts.values()
                     if attempt.status is AttemptStatus.COMPLETED
                 }
-                scores = [attempt.score for attempt in attempts.values()]
+                scores = [attempt.score for attempt in attempts.values() if attempt.score is not None]
                 overdue = sum(
                     task.id not in completed_ids
                     and task.due_at is not None
@@ -1156,8 +1155,9 @@ class LmsService:
             task = tasks.get(attempt.task_id)
             if task is None:
                 continue
-            by_type[task.task_type.value].append(attempt.score)
-            if task.learning_outcome_id:
+            if attempt.score is not None:
+                by_type[task.task_type.value].append(attempt.score)
+            if attempt.score is not None and task.learning_outcome_id:
                 by_outcome[task.learning_outcome_id].append(attempt.score)
         outcomes = (
             {
