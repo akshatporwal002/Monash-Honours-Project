@@ -14,6 +14,7 @@ from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from support.assessment import assign_assessor, seed_review_decision
+from support.assessment_authoring import seed_authoring_context
 from support.person4 import (
     COURSE_ID,
     NOW,
@@ -37,6 +38,7 @@ from app.api.analytics_dependencies import (
     get_analytics_application,
     get_analytics_pseudonymizer,
 )
+from app.api.assessment_dependencies import get_assessment_publication_policy
 from app.api.audit_dependencies import get_student_audit_tracker
 from app.api.feedback_dependencies import (
     get_authenticated_actor,
@@ -401,6 +403,15 @@ def _build_app(database_url: str):
     _seed_learning_events(learning_recorder, trusted_events, claim.workflow_run_id)
 
     app = create_app()
+
+    @app.post("/e2e/assessment-authoring-fixture")
+    def authoring_fixture():
+        with session_factory() as session:
+            return seed_authoring_context(session)
+
+    app.dependency_overrides[get_assessment_publication_policy] = lambda: (
+        lambda _actor, _course_id: True
+    )
 
     def request_database_session() -> Generator[Session, None, None]:
         with session_factory() as session:

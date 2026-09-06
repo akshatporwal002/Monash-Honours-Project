@@ -539,7 +539,7 @@
           },
           "evaluator_type": {
             "$ref": "#/components/schemas/CriterionEvaluatorType",
-            "default": "rules"
+            "default": "human"
           },
           "evidence_description": {
             "minLength": 1,

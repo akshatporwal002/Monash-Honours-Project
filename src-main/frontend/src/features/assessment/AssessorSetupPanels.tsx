@@ -162,6 +162,28 @@ function EvidenceRuleFields({ values, onUpdate }: { values: SetupValues, onUpdat
             checked={values.bloomVerified}
             onChange={(event) => onUpdate('bloomVerified', event.target.checked)}
           />
+          <Field label="Assessment method" help="Use human assessment for reasoning, explanations, circuits, or answers with several valid forms.">
+            <Select
+              value={values.evaluatorType}
+              options={[
+                { value: 'human', label: 'Human assessment' },
+                { value: 'rules', label: 'Phrase rules for recall' },
+              ]}
+              onValueChange={(value) => onUpdate('evaluatorType', value as SetupValues['evaluatorType'])}
+            />
+          </Field>
+          {values.evaluatorType === 'rules' && <>
+            <p className={styles.fieldFull}>Phrase rules check text only. Use them for a Remember target with fixed recall evidence. Separate phrases with commas.</p>
+            <Field label="All required phrases">
+              <Textarea value={values.requiredPhrases} onChange={(event) => onUpdate('requiredPhrases', event.target.value)} />
+            </Field>
+            <Field label="At least one of these phrases">
+              <Textarea value={values.alternativePhrases} onChange={(event) => onUpdate('alternativePhrases', event.target.value)} />
+            </Field>
+            <Field label="Excluded phrases">
+              <Textarea value={values.excludedPhrases} onChange={(event) => onUpdate('excludedPhrases', event.target.value)} />
+            </Field>
+          </>}
         </div>
         <aside className={styles.passRule} aria-label="Pass rule preview">
           <p className={styles.passRuleTitle}>Pass rule preview</p>

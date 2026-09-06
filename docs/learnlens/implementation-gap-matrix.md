@@ -17,6 +17,11 @@ The [repair record](negated-pass-rule-repair.md) records the base commit, failin
 68 passing targeted tests, separate Standards and Spec reviews, and verification limits.
 This adds rule-engine proof for AT8 and AT9 without reclassifying the older full-feature rows below.
 
+Remaining Task 2 now validates automatic evaluator settings at approval and runtime.
+The [evaluator settings record](evaluator-settings-repair.md) covers authoring controls, human defaults,
+test evidence, and pending human-review and published-revision limits.
+These scoped additions do not refresh the older full-feature status rows below.
+
 ## Interpretation
 
 This matrix is the Phase 0 inventory required by

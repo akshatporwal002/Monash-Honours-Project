@@ -108,7 +108,6 @@ def test_validator_resolves_every_evidence_id_through_person_b_port(
 def test_each_criterion_decision_keeps_exact_evidence_and_reason(cases: dict[str, object]) -> None:
     request = _request(cases, list(cases["valid_responses"])[0])
     outcomes = (
-        RuleCriterionEvaluator().evaluate(request),
         HumanCriterionEvaluator().evaluate(
             request,
             HumanCriterionInput(CriterionDecision.MET, "The relation is explicit."),
@@ -172,16 +171,22 @@ def test_provider_failure_is_not_not_evaluable_or_incomplete(cases: dict[str, ob
 
 
 def test_recall_only_response_does_not_meet_analyse_criterion(cases: dict[str, object]) -> None:
-    outcome = RuleCriterionEvaluator().evaluate(_request(cases, str(cases["recall_only_response"])))
-
-    assert outcome.decision is CriterionDecision.NOT_MET
-    assert "relationship" in outcome.reason
+    with pytest.raises(EvaluatorFailure, match="human assessment"):
+        RuleCriterionEvaluator().evaluate(_request(cases, str(cases["recall_only_response"])))
 
 
 def test_missing_learner_response_is_not_evaluable_after_valid_resolution(
     cases: dict[str, object],
 ) -> None:
-    outcome = RuleCriterionEvaluator().evaluate(_request(cases, ""))
+    request = _request(cases, "")
+    outcome = RuleCriterionEvaluator().evaluate(
+        CriterionEvaluationRequest(
+            request.response_text,
+            BloomProcess.REMEMBER,
+            request.approved_anchors,
+            request.evidence,
+        )
+    )
 
     assert outcome.decision is CriterionDecision.NOT_EVALUABLE
 
@@ -190,7 +195,10 @@ def test_concise_unusual_and_accessible_valid_answers_are_supported(
     cases: dict[str, object],
 ) -> None:
     outcomes = [
-        RuleCriterionEvaluator().evaluate(_request(cases, response))
+        HumanCriterionEvaluator().evaluate(
+            _request(cases, response),
+            HumanCriterionInput(CriterionDecision.MET, "The assessor accepts this evidence."),
+        )
         for response in list(cases["valid_responses"])
     ]
 

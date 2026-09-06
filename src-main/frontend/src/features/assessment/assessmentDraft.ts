@@ -22,6 +22,10 @@ export interface SetupValues {
   accessVerified: boolean
   bloomVerified: boolean
   approvalReason: string
+  evaluatorType: 'human' | 'rules'
+  requiredPhrases: string
+  alternativePhrases: string
+  excludedPhrases: string
 }
 
 export const initialSetupValues: Omit<SetupValues, 'courseId'> = {
@@ -30,6 +34,7 @@ export const initialSetupValues: Omit<SetupValues, 'courseId'> = {
   claim: '', evidence: '', criterion: '', taskId: '', taskFamily: '', tools: '',
   support: '', access: '', transfer: '', accessVerified: false, bloomVerified: false,
   approvalReason: '',
+  evaluatorType: 'human', requiredPhrases: '', alternativePhrases: '', excludedPhrases: '',
 }
 
 function list(value: string): string[] {
@@ -46,6 +51,19 @@ export function missingSetupFields(values: SetupValues): string[] {
   ].filter(([, value]) => !value.trim()).map(([name]) => name)
   if (!values.accessVerified) missing.push('access preservation verification')
   if (!values.bloomVerified) missing.push('Bloom elicitation verification')
+  if (values.evaluatorType === 'rules') {
+    if (values.bloomProcess !== 'REMEMBER') missing.push('human assessment for this Bloom target')
+    if (!list(values.requiredPhrases).length && !list(values.alternativePhrases).length) {
+      missing.push('required or alternative phrases')
+    }
+    const excluded = list(values.excludedPhrases).map((phrase) => phrase.toLocaleLowerCase())
+    const forbidden = (phrase: string) => excluded.some((item) => phrase.toLocaleLowerCase().includes(item))
+    const alternatives = list(values.alternativePhrases)
+    if (list(values.requiredPhrases).some(forbidden)
+      || (alternatives.length > 0 && alternatives.every(forbidden))) {
+      missing.push('consistent required and excluded phrases')
+    }
+  }
   return missing
 }
 
@@ -76,7 +94,13 @@ export function buildAssessmentDraft(values: SetupValues): AssessmentDraft {
       evidence_description: values.evidence.trim(), mandatory: true,
       evidence_source_types: ['learner_response'], met_rule: values.criterion.trim(),
       not_met_rule: 'The required evidence is absent or does not meet this criterion.',
-      not_evaluable_rule: 'The evidence cannot be evaluated safely.', approved_anchors: {}, critical_error_rules: {},
+      not_evaluable_rule: 'The evidence cannot be evaluated safely.',
+      evaluator_type: values.evaluatorType,
+      approved_anchors: values.evaluatorType === 'rules' ? {
+        all_of: list(values.requiredPhrases), any_of: list(values.alternativePhrases),
+        none_of: list(values.excludedPhrases),
+      } : {},
+      critical_error_rules: {},
     }],
     pass_rule_expression: {
       operator: 'ALL_OF',

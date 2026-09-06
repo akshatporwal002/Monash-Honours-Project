@@ -9,6 +9,7 @@ from typing import Any
 from app.domain.assessment import BloomProcess, CriterionDecision
 from app.models.assessment import CriterionEvaluatorType
 from app.schemas.assessment import EvidenceReference
+from app.services.assessment.rule_settings import validate_rule_settings
 
 
 class EvaluatorFailure(RuntimeError):
@@ -57,29 +58,34 @@ class RuleCriterionEvaluator:
     """Evaluate only assessor-authored phrase and relationship anchors."""
 
     def evaluate(self, request: CriterionEvaluationRequest) -> EvaluatorOutcome:
+        try:
+            settings = validate_rule_settings(request.approved_anchors, request.bloom_process)
+        except ValueError as error:
+            raise EvaluatorFailure(
+                "Invalid rule settings; human assessment is required."
+            ) from error
         if not request.response_text.strip():
             return self._outcome(
                 CriterionDecision.NOT_EVALUABLE,
                 "The required learner response is missing.",
                 request,
             )
-        anchors = request.approved_anchors if isinstance(request.approved_anchors, dict) else {}
-        required = _phrases(anchors.get("all_of"))
-        alternatives = _phrases(anchors.get("any_of"))
-        relations = _phrases(anchors.get("relation_markers"))
+        required = [phrase.casefold() for phrase in settings.all_of]
+        alternatives = [phrase.casefold() for phrase in settings.any_of]
+        relations = [phrase.casefold() for phrase in settings.relation_markers]
         text = request.response_text.casefold()
         missing_required = [phrase for phrase in required if phrase not in text]
-        if missing_required or (
-            alternatives and not any(phrase in text for phrase in alternatives)
+        if (
+            any(phrase.casefold() in text for phrase in settings.none_of)
+            or missing_required
+            or (alternatives and not any(phrase in text for phrase in alternatives))
         ):
             return self._outcome(
                 CriterionDecision.NOT_MET,
                 "The response does not show the approved criterion evidence.",
                 request,
             )
-        if request.bloom_process is BloomProcess.ANALYSE and (
-            not relations or not any(phrase in text for phrase in relations)
-        ):
+        if relations and not any(phrase in text for phrase in relations):
             return self._outcome(
                 CriterionDecision.NOT_MET,
                 "The response recalls facts but does not show the required relationship or cause.",
@@ -102,7 +108,7 @@ class RuleCriterionEvaluator:
             reason=reason,
             evidence=request.evidence,
             evaluator_type=CriterionEvaluatorType.RULES,
-            evaluator_reference="rules.anchor.v1",
+            evaluator_reference="rules.anchor.v2",
         )
 
 
@@ -172,23 +178,18 @@ class MixedCriterionEvaluator:
         request: CriterionEvaluationRequest,
         human: HumanCriterionInput,
     ) -> EvaluatorOutcome:
-        rule = RuleCriterionEvaluator().evaluate(request)
+        try:
+            rule_reason = RuleCriterionEvaluator().evaluate(request).reason
+        except EvaluatorFailure:
+            rule_reason = "Automatic phrase checking is unavailable for this criterion."
         confirmed = HumanCriterionEvaluator().evaluate(request, human)
         return EvaluatorOutcome(
             decision=confirmed.decision,
-            reason=f"Rule check: {rule.reason} Human review: {confirmed.reason}",
+            reason=f"Rule check: {rule_reason} Human review: {confirmed.reason}",
             evidence=request.evidence,
             evaluator_type=CriterionEvaluatorType.MIXED,
-            evaluator_reference="mixed.rules-human.v1",
+            evaluator_reference="mixed.rules-human.v2",
         )
-
-
-def _phrases(value: Any) -> tuple[str, ...]:
-    if not isinstance(value, list) or not all(
-        isinstance(item, str) and item.strip() for item in value
-    ):
-        return ()
-    return tuple(item.casefold() for item in value)
 
 
 def _require_reason(value: str) -> None:

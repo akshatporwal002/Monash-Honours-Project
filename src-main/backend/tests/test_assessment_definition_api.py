@@ -87,7 +87,7 @@ def _definition_payload(task_id: str, *, eligible: bool = True) -> dict[str, obj
                 "not_evaluable_rule": "The response is unavailable or invalid.",
                 "approved_anchors": {"met": ["valid explanation"]},
                 "critical_error_rules": {"errors": ["reverses the relationship"]},
-                "evaluator_type": "rules",
+                "evaluator_type": "human",
             }
         ],
         "pass_rule_expression": {
@@ -110,7 +110,11 @@ def _definition_payload(task_id: str, *, eligible: bool = True) -> dict[str, obj
     }
 
 
-def _draft_definition(client: TestClient) -> tuple[dict[str, object], dict[str, object]]:
+def _draft_definition(
+    client: TestClient,
+    *,
+    rule_anchors: dict[str, object] | None = None,
+) -> tuple[dict[str, object], dict[str, object]]:
     course = client.post(
         "/api/v1/courses", json={"code": "ASM-701", "title": "Assessment API course"}
     ).json()
@@ -141,9 +145,20 @@ def _draft_definition(client: TestClient) -> tuple[dict[str, object], dict[str, 
             "expected_answer": "evidence",
         },
     ).json()
+    payload = _definition_payload(task["id"])
+    if rule_anchors is not None:
+        payload["bloom_process"] = "REMEMBER"
+        payload["task_forms"][0]["constraints"]["elicited_bloom_processes"] = ["REMEMBER"]
+        payload["criteria"][0].update(
+            {
+                "evaluator_type": "rules",
+                "approved_anchors": rule_anchors,
+                "critical_error_rules": {},
+            }
+        )
     response = client.post(
         f"/api/v1/assessment/courses/{course['id']}/outcomes/{outcome['id']}/definitions",
-        json=_definition_payload(task["id"]),
+        json=payload,
     )
     assert response.status_code == 201, response.text
     return course, response.json()
@@ -209,6 +224,33 @@ def test_course_assessor_can_approve_complete_definition(
     assert history.json()[0]["criteria"][0]["stable_key"] == "evidence_to_claim"
     assert history.json()[0]["task_forms"][0]["learning_task_id"]
     assert "expected_answer" not in history.json()[0]
+
+
+@pytest.mark.parametrize(
+    "anchors, expected_status",
+    (
+        ({}, 422),
+        ({"met": ["Hadamard"]}, 422),
+        ({"all_of": ["Hadamard"], "none_of": ["hadamard"]}, 422),
+        ({"all_of": ["Hadamard"], "none_of": ["Pauli"]}, 200),
+    ),
+)
+def test_api_publication_validates_automatic_rule_settings(
+    assessment_api_context: tuple[TestClient, Session],
+    anchors: dict,
+    expected_status: int,
+) -> None:
+    client, session = assessment_api_context
+    _login(client, "educator")
+    course, definition = _draft_definition(client, rule_anchors=anchors)
+    _assign_assessor(client, session, str(course["id"]))
+    response = _publish(client, course, definition)
+    assert response.status_code == expected_status, response.text
+    history = client.get(
+        f"/api/v1/assessment/courses/{course['id']}/definitions/"
+        f"{definition['assessment_definition_id']}/history"
+    ).json()
+    assert history[0]["approval_state"] == ("APPROVED" if expected_status == 200 else "DRAFT")
 
 
 def test_educator_can_save_a_versioned_draft_revision(
