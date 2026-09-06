@@ -41,3 +41,13 @@ Show Awaiting assessor review with permitted learning feedback. Hide provisional
 Still needed to complete this ticket: Specify visible fields and exact wording for every lifecycle state, including withholding and voiding; record policy scope and approval.
 
 The ticket remains open for these details and any required approval evidence.
+
+## Selected option approved
+
+On 2026-09-07, the requesting user selected option A for D-01.
+Approval record: `task-08-selections-v1`.
+
+The [approved selection](../../../docs/learnlens/task-08-approved-selections.md#d-01)
+records the exact policy, scope, effective date, and remaining activation requirements.
+It controls any conflicting earlier recommendation in this ticket.
+The chosen option is settled. This ticket remains open only for its outstanding detailed records and evidence.

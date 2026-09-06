@@ -1,10 +1,10 @@
 # Task 8 feature decisions
 
-Status: `AWAITING_OWNER_INPUT`, not complete
+Status: selections approved; remaining activation details pending; Task 8 not complete
 
 Prepared: 2026-09-07
 
-Package version: `feature-decisions-v1-draft.1`
+Package version: `feature-decisions-v1-draft.2`
 
 Branch: `docs/task-8-feature-decisions`
 
@@ -14,13 +14,15 @@ The remote has not been refreshed during this task.
 ## What this package settles
 
 The saved decision tickets contain accepted directions for all twelve policy areas.
-D-10 already has an explicit implementation approval. The other eleven need their remaining policy details and owner records.
-This package keeps those distinctions and supplies concrete proposals for review.
+D-10 already has an explicit implementation approval.
+The user has now selected D-05 B, D-07 C, and A for the other offered choices.
+The [approved selections](task-08-approved-selections.md) record the exact scope, versions, date, and remaining requirements.
+Those selections control any conflicting wording in this draft. Other detailed proposals still need their own approval records.
 
 The [register](known-limits-and-deferred-decisions.md) remains the approval index.
 The [saved map](../../.scratch/learnlens-pilot-readiness/map.md) records the prior user choices.
-New proposals below are not retrospective approvals. Their effective dates remain unset until approval.
-The task list's statement that all twelve decisions remain pending is stale.
+New proposals below are not retrospective approvals. Unselected details remain proposals.
+The original audit's statement that all twelve decisions remain pending is stale.
 
 Task 8 completes only when each dependent feature has the approval its acceptance check requires.
 Recording a proposed policy does not enable production access, publish an assessment, or approve research or release.
@@ -37,9 +39,9 @@ Policy changes need a new version. Existing assessed attempts keep their frozen 
 | D-02 | [Explicit course assessor grants](../../.scratch/learnlens-pilot-readiness/issues/03-assessor-permission.md#recommended-direction-accepted) | `assessor-access-v1` | Product owner; name eligible staff and grant authorities for each course |
 | D-03 | [Separate research grants](../../.scratch/learnlens-pilot-readiness/issues/04-research-permission.md#recommended-direction-accepted) | `research-access-v1` | Product and research owners; name approved staff, courses, studies, and fields |
 | D-04 | [Prediction, explanation, fresh application](../../.scratch/learnlens-pilot-readiness/issues/05-outcome-criteria-and-evidence.md#recommended-direction-accepted) | `single-qubit-outcome-v1` | Assigned assessor; approve the outcome, sources, criteria, examples, and sufficiency rule |
-| D-05 | [Guided practice and unaided transfer](../../.scratch/learnlens-pilot-readiness/issues/06-assessed-help-and-conditions.md#recommended-direction-accepted) | `single-qubit-conditions-v1` | Assigned assessor; approve tools, hints, equivalent forms, and access conditions |
+| D-05 | [Unlimited approved conceptual hints and unaided transfer](task-08-approved-selections.md#d-05) | `single-qubit-conditions-v1-selection` | Assigned assessor; approve concrete hint content, tools, equivalent forms, and access conditions |
 | D-06 | [Fresh equivalent reassessment](../../.scratch/learnlens-pilot-readiness/issues/07-reassessment-and-current-result.md#recommended-direction-accepted) | `reassessment-v1` | Product owner and assessors; approve eligibility, selection, and review rules |
-| D-07 | [Human first, AI advisory](../../.scratch/learnlens-pilot-readiness/issues/08-evaluator-validation-and-release.md#recommended-direction-accepted) | `evaluator-validation-v1` | Assessment governance and expert reviewers; approve dataset, measures, error limits, and release process |
+| D-07 | [Validated AI suggestions with human confirmation](task-08-approved-selections.md#d-07) | `ai-assessor-suggestions-v1-selection` | Assessment governance and expert reviewers; approve dataset, measures, error limits, and release process |
 | D-08 | [Separate consent and owner-approved lifecycle](../../.scratch/learnlens-pilot-readiness/issues/09-retention-consent-and-withdrawal.md#recommended-direction-accepted) | `data-lifecycle-v1` | Privacy and research owners; supply field schedule, retention periods, and institutional decisions |
 | D-09 | [Learning and technical queues](../../.scratch/learnlens-pilot-readiness/issues/10-human-escalation.md#recommended-direction-accepted) | `human-escalation-v1` | Product and operations owners; name primary and backup staff, service hours, and targets |
 | D-10 | [Immediate retirement](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer), approved 2026-09-06 by the requesting user | `legacy-retirement-v1`, already effective for implementation | No new policy choice; implementation and migration evidence remain due |
@@ -72,13 +74,14 @@ The policy must apply to dashboard, task, history, review, and export paths.
 
 ## D-02 and D-03: scoped authority
 
-Proposed assessor eligibility is an active teaching staff account explicitly approved for the named course.
-An authorised administrator records the grant, policy version, approving owner, scope, start, optional expiry, and reason.
+The selected assessor assignment route requires course-lead approval of eligible teaching staff for the named course.
+An authorised administrator records the grant or revocation, policy version, approving owner, scope, start, optional expiry, and reason.
 Administrator or educator status alone grants no assessor powers. Grants cannot create approval authority by themselves.
 Revocation, expiry, and account deactivation apply on the next protected request and worker action.
 Earlier valid decisions stay readable and retain the authority record used at decision time.
 
-Research grants use a separate permission for named study staff and named courses.
+Research grants use a separate permission for named study staff, named courses, approved studies, and permitted fields.
+Under selected D-03 A, grants expire when the study's access period ends.
 Research processing also requires an approved study, approved fields, current consent, and permitted use under D-08.
 Recheck those conditions when jobs execute and when exports are delivered, not only when work is queued.
 Ordinary analytics permission, administrator status, a global toggle, or an assessor grant is insufficient.
@@ -135,9 +138,10 @@ Task 25 must prove the complete journey through real application services.
 
 Proposed practice conditions allow conceptual hints, simulation, checked feedback, and revision.
 Assessed prediction must be saved before results become visible.
-During the supported assessed stage, offer at most two conceptual hints from an assessor-approved sequence.
+During the supported assessed stage, allow unrestricted approved conceptual hints, with no instructional hint-count cap.
 Hints may restate the concept or ask for reasoning. They cannot give the current form's answer or completed circuit.
-Exceeding the hint boundary routes to practice or human help; it never deducts a mark.
+Requests outside the approved conceptual-help scope route to practice or human help; they never deduct a mark.
+The no-cap rule is approved under D-05 B. The exact hint content and tool conditions below still need form approval.
 
 For fresh transfer, disable instructional hints, worked solutions, external AI answers, and pre-answer simulation results.
 Allow the declared task instructions, gate reference, and approved access support.
@@ -174,7 +178,9 @@ Acceptance: test simultaneous review and reassessment actions, replay, invalid l
 
 ## D-07: evaluator evidence and release
 
-Keep human assessment for the first loop. AI output remains advisory while its separate release gate is unmet.
+After the separate validation gate passes, show AI criterion suggestions to assessors before they decide.
+Humans still confirm formal results. Until that gate passes, use human assessment and keep operational AI assessment suggestions disabled.
+This is the selected D-07 C workflow. The validation design below remains a proposal where not already required by the specification.
 Propose at least 100 distinct expert-reviewed quantum cases, covering supported task types and every critical criterion.
 Include correct, incorrect, uncertain, conflicting, unusual-valid, brief, long, and approved alternate-mode responses.
 Two trained reviewers judge independently before adjudication. Keep initial labels to measure human agreement.
@@ -261,7 +267,7 @@ This demonstrates extension effort. It does not demonstrate learning benefit in 
 
 ## D-12: release evidence
 
-Use one hosted pilot with the existing deployment approach, as already accepted.
+Use one institution-approved hosted pilot with the existing deployment package and a named operations owner, under selected D-12 A.
 The owner must name the actual host, course scope, permitted providers and models, spend limit, reviewers, and release authority.
 Do not infer those choices from available credentials or local defaults.
 
@@ -287,13 +293,14 @@ The quantum source was opened for factual checking; it still requires course-sou
 Runtime tests and CI were not run for this documentation-only draft. No release evidence is claimed.
 
 The requesting user authorised sequential task branches and merges, beginning at Task 8.
-The branch contains this decision package and register corrections only. No runtime policy has been enabled.
+The branch contains this package, the user's approved selections, linked decision-ticket records, and register corrections.
+No runtime policy has been enabled.
 The initial checkout was clean on `main` at `aca9476`. Tasks 1 through 7 appear in its existing history.
 
 To finish Task 8:
 
 1. Receive owner names, concrete scope identifiers, and the outstanding institutional and environment records.
-2. Have the authorised owners approve or amend the proposed values above.
+2. Settle remaining detailed values with authorised owners, preserving the choices already recorded in the approved selections.
 3. Record exact approvals in the existing decision tickets, with versions, dates, scope, and evidence links.
 4. Update only the register entries whose own requirements are satisfied.
 5. Validate links and the diff, then commit and merge this branch with a separate merge commit.
