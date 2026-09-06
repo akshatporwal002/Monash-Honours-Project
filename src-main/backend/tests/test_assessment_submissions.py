@@ -17,9 +17,11 @@ from app.models.assessment import (
     TaskFormVersion,
 )
 from app.models.lms import AttemptStatus, SubmissionAttempt, SubmissionDraft
-from app.models.persistence import LearningTask
+from app.models.persistence import LearningMaterial, LearningTask, MaterialChunk
+from app.models.source_history import SourcePassage, SourceUse
 from app.models.user import User, UserRole
 from app.services.assessment.submissions import AssessmentSubmissionService
+from app.services.rag.source_history import snapshot_source
 
 
 def _approved_bundle(session: Session):
@@ -79,6 +81,25 @@ def test_assessed_attempt_freezes_versions_before_start(db_session: Session) -> 
     db_session.add(response)
     db_session.flush()
 
+    material = LearningMaterial(
+        course_id=task.course_id,
+        original_filename="source.pdf",
+        mime_type="application/pdf",
+        content_hash="source-digest",
+    )
+    db_session.add(material)
+    db_session.flush()
+    chunk = MaterialChunk(
+        material_id=material.id,
+        chunk_index=0,
+        chunk_text="The exact source passage for this assessment.",
+        token_count=8,
+        chunk_hash="passage-digest",
+    )
+    db_session.add(chunk)
+    revision = snapshot_source(db_session, material, [chunk])
+    task.source_references = [chunk.id]
+
     service = AssessmentSubmissionService(db_session)
     versions = service.frozen_versions_for_task(task)
     assert versions is not None
@@ -98,6 +119,14 @@ def test_assessed_attempt_freezes_versions_before_start(db_session: Session) -> 
     assert job.response_version_id == response.id
     assert job.state is AssessmentEvaluationJobState.PENDING
     assert job.evaluation_idempotency_key == f"assessment-evaluation:{attempt.id}"
+    citation = db_session.scalar(select(SourceUse).where(SourceUse.output_id == attempt.id))
+    assert citation is not None
+    assert citation.output_type == "assessment"
+    assert citation.output_version == form.id
+    assert citation.passage_id == chunk.id
+    task.source_references = []
+    db_session.commit()
+    assert db_session.get(SourcePassage, citation.passage_id).revision_id == revision.id
 
 
 def test_unassessed_task_cannot_create_formal_result(db_session: Session) -> None:

@@ -98,6 +98,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: none for versioned storage; Task 8, D-08, for retention and destructive deletion rules. Suggested owner: retrieval and data.
 
+    Task 9 progress, 7 September 2026: implemented and locally verified. The [source-history handoff](docs/learnlens/task-09-source-history.md) records immutable revisions, approval events, preserved output citations, reviewer routes, retirement, and migration evidence. The full backend suite passed 741 tests with 85.31% service coverage; 178 frontend tests passed. Publication approval enforcement remains Task 12, and processing recovery remains Task 10.
+
     Material reprocessing deletes and recreates chunks. Current task references and hashes do not preserve a complete immutable source revision and passage. Add durable source versions, locations, approval state, and output links. Reprocessing, replacement, or retirement must preserve evidence already used by a task, feedback item, or assessment.
 
     Done when an authorised reviewer can recover the exact cited passage after a source changes. Keep course scope and page, slide, or heading locations intact.

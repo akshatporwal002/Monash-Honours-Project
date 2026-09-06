@@ -23,6 +23,7 @@ from app.models.assessment import (
 )
 from app.models.lms import SubmissionAttempt
 from app.models.persistence import LearningTask
+from app.services.rag.source_history import bind_sources
 
 
 @dataclass(frozen=True)
@@ -144,6 +145,14 @@ class AssessmentSubmissionService:
         )
         self.session.add(attempt)
         self.session.flush()
+        bind_sources(
+            self.session,
+            course_id=attempt.course_id,
+            output_type="assessment",
+            output_id=attempt.id,
+            output_version=versions.task_form_version_id,
+            references=task.source_references or [],
+        )
         self.session.add(
             AssessmentEvaluationJob(
                 assessment_attempt_id=attempt.id,

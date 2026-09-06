@@ -44,6 +44,7 @@ from app.models import (
 )
 from app.models.enums import TerminalIntegrationType
 from app.models.persistence import ResearchEvaluation
+from app.models.source_history import SourcePassage, SourceUse
 from app.models.terminal_integration import TerminalIntegrationOutbox
 from app.schemas.audit import AuditEventCommand
 from app.services.audit_events import FeedbackAuditEvents, NullStudentAuditTracker
@@ -250,6 +251,18 @@ def test_canonical_mvp_learning_loop(
     assert second_task["prerequisite_task_ids"] == [first_task["id"]]
     assert third_task["prerequisite_task_ids"] == [second_task["id"]]
     assert "Hadamard gate" in first_task["prompt"]
+    with mvp_context.session_factory() as session:
+        citations = list(
+            session.scalars(
+                select(SourceUse).where(
+                    SourceUse.output_type == "task",
+                    SourceUse.output_id.in_([task["id"] for task in generated_tasks]),
+                )
+            )
+        )
+        assert {item.output_id for item in citations} == {task["id"] for task in generated_tasks}
+        assert {item.passage_id for item in citations} == {chunk_id}
+        assert "Hadamard gate" in session.get(SourcePassage, chunk_id).chunk_text
 
     enrollment = _json(
         client.post(
@@ -383,6 +396,13 @@ def test_canonical_mvp_learning_loop(
         assert released is not None
         assert released.id == terminal_feedback["feedback"]["feedback_id"]
         assert released.source_references == [chunk_id]
+        citation = session.scalar(
+            select(SourceUse).where(
+                SourceUse.output_type == "feedback", SourceUse.output_id == released.id
+            )
+        )
+        assert citation is not None
+        assert citation.passage_id == chunk_id
         judge = session.scalar(
             select(JudgeEvaluation).where(JudgeEvaluation.feedback_id == released.id)
         )

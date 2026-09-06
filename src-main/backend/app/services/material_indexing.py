@@ -18,6 +18,7 @@ from app.services.rag.extraction.docx import DocxDocumentExtractor
 from app.services.rag.extraction.pdf import PdfDocumentExtractor
 from app.services.rag.extraction.pptx import PptxDocumentExtractor
 from app.services.rag.normalisation import ensure_document_size, normalise_text
+from app.services.rag.source_history import preserve_current_source, snapshot_source
 from app.services.rag.storage import FileStorage
 
 
@@ -33,6 +34,8 @@ class OfflineMaterialProcessor:
         material: LearningMaterial,
         force: bool = False,
     ) -> tuple[int, int]:
+        if material.retired_at is not None:
+            raise InvalidMaterialStateError()
         if material.indexing_status is MaterialIndexStatus.PROCESSING:
             raise MaterialAlreadyProcessingError()
         if material.indexing_status is MaterialIndexStatus.INDEXED and not force:
@@ -81,6 +84,9 @@ def index_material_offline(
     extractor = extractors[material.mime_type]
     if not material.storage_key:
         raise ValueError("Uploaded material has no storage key")
+    if material.retired_at is not None:
+        raise InvalidMaterialStateError()
+    preserve_current_source(session, material)
     material.indexing_status = MaterialIndexStatus.PROCESSING
     session.commit()
     try:
@@ -108,24 +114,27 @@ def index_material_offline(
         ).chunk(blocks)
         session.execute(delete(MaterialChunk).where(MaterialChunk.material_id == material.id))
         now = datetime.now(UTC)
-        session.add_all(
-            [
-                MaterialChunk(
-                    material_id=material.id,
-                    chunk_index=draft.chunk_index,
-                    chunk_text=draft.text,
-                    heading=draft.heading,
-                    location_label=draft.location_label,
-                    token_count=draft.token_count,
-                    chunk_hash=draft.chunk_hash,
-                    embedding_model="local-lexical-v1",
-                    embedding_version="v1",
-                    embedding_dimension=0,
-                    indexed_at=now,
-                )
-                for draft in drafts
-            ]
+        chunks = [
+            MaterialChunk(
+                material_id=material.id,
+                chunk_index=draft.chunk_index,
+                chunk_text=draft.text,
+                heading=draft.heading,
+                location_label=draft.location_label,
+                token_count=draft.token_count,
+                chunk_hash=draft.chunk_hash,
+                embedding_model="local-lexical-v1",
+                embedding_version="v1",
+                embedding_dimension=0,
+                indexed_at=now,
+            )
+            for draft in drafts
+        ]
+        session.add_all(chunks)
+        snapshot_source(
+            session, material, chunks, blocks=blocks, extraction_version="heading-chunker-v1"
         )
+        material.extraction_error = material.failure_stage = material.error_code = None
         material.indexing_status = MaterialIndexStatus.INDEXED
         material.extracted_at = now
         material.indexed_at = now

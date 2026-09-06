@@ -296,6 +296,9 @@ export type ApiSchemas = {
   }
   "BloomKnowledge": "FACTUAL" | "CONCEPTUAL" | "PROCEDURAL" | "METACOGNITIVE"
   "BloomProcess": "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYSE" | "EVALUATE" | "CREATE"
+  "Body_replace_material_api_v1_courses__course_id__materials__material_id__replacement_post": {
+    "file": string
+  }
   "Body_upload_course_material_api_v1_courses__course_id__materials_upload_post": {
     "file": string
   }
@@ -579,6 +582,7 @@ export type ApiSchemas = {
     "content_hash": string
     "course_id": string
     "created_at": string
+    "current_source_revision_id"?: (string) | (null)
     "error_code"?: (string) | (null)
     "extracted_at"?: (string) | (null)
     "extraction_error"?: (string) | (null)
@@ -591,6 +595,7 @@ export type ApiSchemas = {
     "module_id"?: (string) | (null)
     "original_filename"?: (string) | (null)
     "processing_revision"?: number
+    "retired_at"?: (string) | (null)
     "source_url"?: (string) | (null)
     "storage_key"?: (string) | (null)
   }
@@ -827,6 +832,59 @@ export type ApiSchemas = {
     "operations"?: Array<ApiSchemas["GateOperation"]>
     "qubits"?: number
     "shots"?: number
+  }
+  "SourceApprovalRead": {
+    "actor_id": string
+    "created_at": string
+    "id": string
+    "reason": string
+    "revision_id": string
+    "sequence": number
+    "state": string
+  }
+  "SourceApprovalRequest": {
+    "reason": string
+    "state": string
+  }
+  "SourcePassageRead": {
+    "chunk_hash": string
+    "chunk_index": number
+    "chunk_text": string
+    "course_id": string
+    "heading": (string) | (null)
+    "id": string
+    "location_label": (string) | (null)
+    "revision_id": string
+  }
+  "SourceRevisionRead": {
+    "approval_state"?: string
+    "approvals"?: Array<ApiSchemas["SourceApprovalRead"]>
+    "content_hash": string
+    "course_id": string
+    "created_at": string
+    "extraction_version": string
+    "id": string
+    "material_id": string
+    "mime_type": string
+    "module_id": (string) | (null)
+    "passages"?: Array<ApiSchemas["SourcePassageRead"]>
+    "provenance": string
+    "source_label": string
+    "storage_key": (string) | (null)
+    "version": number
+  }
+  "SourceUseRead": {
+    "approval_id": (string) | (null)
+    "course_id": string
+    "created_at": string
+    "id": string
+    "material_id": string
+    "output_id": string
+    "output_type": string
+    "output_version": string
+    "passage_id": string
+    "revision_id": string
+    "source_id": string
   }
   "StaleEvidenceReference": {
     "mismatched_fields": Array<string>

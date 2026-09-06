@@ -30,6 +30,11 @@ class RetrievalService:
         self.session, self.embedding, self.vectors = session, embedding, vectors
 
     def search(self, query: RetrievalQuery) -> RetrievalResult:
+        if query.allowed_chunk_ids:
+            # Frozen passages may no longer exist in the active vector index.
+            from app.services.rag.local_retrieval import LocalCourseRetrievalService
+
+            return LocalCourseRetrievalService(self.session).search(query)
         started = time.perf_counter()
         text = normalise_text(query.text)
         if not text or len(text) > settings.rag_query_max_chars:
@@ -52,6 +57,7 @@ class RetrievalService:
             material = self.session.get(LearningMaterial, chunk.material_id)
             if (
                 not material
+                or material.retired_at is not None
                 or material.course_id != query.course_id
                 or material.indexing_status != MaterialIndexStatus.INDEXED
             ):

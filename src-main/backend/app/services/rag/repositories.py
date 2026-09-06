@@ -21,21 +21,25 @@ class MaterialRepository:
             )
         )
 
-    def get(self, course_id: str, material_id: str) -> LearningMaterial:
+    def get(
+        self, course_id: str, material_id: str, *, include_retired: bool = False
+    ) -> LearningMaterial:
         material = self.session.scalar(
             select(LearningMaterial).where(
                 LearningMaterial.course_id == course_id,
                 LearningMaterial.id == material_id,
             )
         )
-        if material is None:
+        if material is None or (material.retired_at is not None and not include_retired):
             raise MaterialNotFoundError()
         return material
 
     def list(
         self, course_id: str, module_id: str | None = None, indexing_status: str | None = None
     ) -> list[LearningMaterial]:
-        statement = select(LearningMaterial).where(LearningMaterial.course_id == course_id)
+        statement = select(LearningMaterial).where(
+            LearningMaterial.course_id == course_id, LearningMaterial.retired_at.is_(None)
+        )
         if module_id is not None:
             statement = statement.where(LearningMaterial.module_id == module_id)
         if indexing_status is not None:

@@ -771,6 +771,8 @@ class LearningMaterial(Base):
     failure_stage: Mapped[str | None] = mapped_column(String(100), nullable=True)
     error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     processing_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    current_source_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     indexed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

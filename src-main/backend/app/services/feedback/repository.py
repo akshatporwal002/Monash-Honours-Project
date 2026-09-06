@@ -39,6 +39,7 @@ from app.services.feedback.errors import (
     LostWorkflowLeaseError,
     PipelinePersistenceError,
 )
+from app.services.rag.source_history import bind_sources
 from app.services.terminal_integrations.repository import (
     SqlAlchemyTerminalIntegrationRepository,
     TerminalIntegrationPayloadError,
@@ -770,6 +771,14 @@ class SqlAlchemyFeedbackWorkflowRepository:
                 feedback = self._feedback_record(result, attempt, accepted)
                 judge = self._judge_record(attempt)
                 records.extend([feedback, judge])
+                bind_sources(
+                    self._session,
+                    course_id=request.course_id,
+                    output_type="feedback",
+                    output_id=feedback.id,
+                    output_version=feedback.prompt_version or "unknown",
+                    references=feedback.source_references,
+                )
 
             if result.status is FeedbackPipelineStatus.FALLBACK:
                 if result.safe_fallback is None:

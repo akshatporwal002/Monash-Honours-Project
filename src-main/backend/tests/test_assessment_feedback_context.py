@@ -16,7 +16,7 @@ from app.models.assessment import (
     TaskApproval,
 )
 from app.models.lms import AttemptStatus, SubmissionAttempt
-from app.models.persistence import LearningTask
+from app.models.persistence import LearningMaterial, LearningTask, MaterialChunk
 from app.schemas.assessment import EvidenceReference
 from app.schemas.feedback import (
     AssessmentContextStatus,
@@ -37,6 +37,7 @@ from app.services.feedback.providers import SqlAlchemyTaskProvider
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.feedback.runtime import LmsSubmissionProvider
 from app.services.local_ai import LocalFeedbackJudge
+from app.services.rag.source_history import bind_sources, snapshot_source
 
 NOW = datetime(2026, 8, 21, 10, 0, tzinfo=UTC)
 
@@ -52,7 +53,34 @@ def _approved_attempt(db_session: Session):
     assert task is not None
     definition.formal_result_eligible = True
     definition.result_eligibility_declared_at = NOW
-    task.source_references = ["approved-source-1"]
+    material = LearningMaterial(
+        course_id=attempt.course_id,
+        original_filename="source.pdf",
+        mime_type="application/pdf",
+        content_hash="fixture-source",
+    )
+    db_session.add(material)
+    db_session.flush()
+    chunk = MaterialChunk(
+        id="approved-source-1",
+        material_id=material.id,
+        chunk_index=0,
+        chunk_text="The preserved source explains the interference pattern.",
+        token_count=8,
+        chunk_hash="fixture-passage",
+    )
+    db_session.add(chunk)
+    snapshot_source(db_session, material, [chunk])
+    task.source_references = [chunk.id]
+    bind_sources(
+        db_session,
+        course_id=attempt.course_id,
+        output_type="assessment",
+        output_id=attempt.id,
+        output_version=attempt.task_form_version_id,
+        references=[chunk.id],
+        strict=True,
+    )
     db_session.commit()
     definition.approval_state = AssessmentApprovalState.APPROVED
     definition.approved_at = NOW
