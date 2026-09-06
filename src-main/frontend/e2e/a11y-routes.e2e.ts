@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures/assessment'
 import type { Page, TestInfo } from '@playwright/test'
 
 /**
@@ -64,7 +64,7 @@ test('student routes have no serious accessibility violations', async ({ page },
   await expectNoSeriousViolations(page, testInfo, '/student/tasks/:taskId')
 })
 
-test('educator and assessor routes have no serious accessibility violations', async ({ page }, testInfo) => {
+test('educator routes have no serious accessibility violations', async ({ page }, testInfo) => {
   await openDemoWorkspace(page, 'Educator')
 
   await expect(page).toHaveURL(/\/educator$/)
@@ -84,18 +84,15 @@ test('educator and assessor routes have no serious accessibility violations', as
   await page.goto('/educator/analytics')
   await expect(page.getByRole('heading', { name: 'Cohort analytics' })).toBeVisible()
   await expectNoSeriousViolations(page, testInfo, '/educator/analytics')
+})
 
-  // The demo educator carries an assessor assignment when the backend seeds
-  // one; skip the assessor routes gracefully when it does not.
-  const hasAssessorAccess =
-    (await page.getByRole('link', { name: 'Assessment setup' }).count()) > 0
-  if (!hasAssessorAccess) {
-    testInfo.annotations.push({
-      type: 'skipped-routes',
-      description: 'Demo educator has no assessor assignment; /assessor/* not scanned.',
-    })
-    return
-  }
+test('assessor routes have no serious accessibility violations', async ({ page, assessmentReview }, testInfo) => {
+  await page.goto('/login')
+  await page.getByRole('radio', { name: 'Educator', exact: true }).check()
+  await page.getByLabel('Email address').fill(assessmentReview.educator_email)
+  await page.getByLabel('Password').fill(assessmentReview.educator_password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Assessment setup' })).toBeVisible()
 
   await page.goto('/assessor/setup')
   await expect(page.getByRole('heading', { name: 'Assessment setup' })).toBeVisible()
