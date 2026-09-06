@@ -14,8 +14,8 @@ from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from support.assessed_reads import seed_assessed_reads
-from support.assessment import assign_assessor, seed_review_decision
 from support.assessment_authoring import seed_authoring_context
+from support.assessment_review import seed_review_context
 from support.person4 import (
     COURSE_ID,
     NOW,
@@ -107,6 +107,7 @@ from app.services.research import (
     DatabaseResearchJobDispatcher,
     SqlAlchemyResearchJobRepository,
 )
+from app.services.research.governance import research_processing_approved
 from app.services.research_export import ResearchExportService
 from app.services.research_export_repository import SqlAlchemyResearchExportRepository
 from app.services.terminal_integrations.planner import (
@@ -253,17 +254,7 @@ def _build_app(database_url: str):
     engine = create_db_engine(database_url)
     session_factory = create_session_factory(engine)
     with session_factory() as demo_session:
-        demo_users, _ = bootstrap_demo(demo_session)
-        demo_educator = next(
-            user for user in demo_users if user.email == "educator@quantumlearn.demo"
-        )
-        assessment_attempt, _, _, assessment_owner = seed_review_decision(demo_session)
-        assign_assessor(
-            demo_session,
-            demo_educator,
-            assessment_attempt.course_id,
-            assessment_owner,
-        )
+        bootstrap_demo(demo_session)
     pseudonymizer = HmacSha256Pseudonymizer(PSEUDONYM_SECRET)
     learning_recorder = LearningEventRecorder(
         session_factory,
@@ -405,6 +396,11 @@ def _build_app(database_url: str):
 
     app = create_app()
 
+    @app.post("/e2e/assessment-review-fixture")
+    def review_fixture():
+        with session_factory() as session:
+            return seed_review_context(session)
+
     @app.post("/e2e/assessment-authoring-fixture")
     def authoring_fixture():
         with session_factory() as session:
@@ -466,6 +462,8 @@ def _build_app(database_url: str):
     app.dependency_overrides[get_analytics_application] = analytics_application_dependency
     app.dependency_overrides[get_analytics_pseudonymizer] = lambda: pseudonymizer
     app.dependency_overrides[get_research_export_access_policy] = BrowserExportPolicy
+    # Browser records are a synthetic study, not approval to export production data.
+    app.dependency_overrides[research_processing_approved] = lambda: True
     app.dependency_overrides[get_research_export_service] = export_service_dependency
     app.dependency_overrides[get_request_security_guard] = BrowserSecurityGuard
 

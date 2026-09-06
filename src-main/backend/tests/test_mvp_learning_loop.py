@@ -42,6 +42,9 @@ from app.models import (
     WorkflowRun,
     WorkflowStage,
 )
+from app.models.enums import TerminalIntegrationType
+from app.models.persistence import ResearchEvaluation
+from app.models.terminal_integration import TerminalIntegrationOutbox
 from app.schemas.audit import AuditEventCommand
 from app.services.audit_events import FeedbackAuditEvents, NullStudentAuditTracker
 from app.services.feedback.application import InProcessFeedbackExecutor
@@ -137,7 +140,11 @@ def mvp_context(
         engine.dispose()
 
 
-def test_canonical_mvp_learning_loop(mvp_context: MvpTestContext) -> None:
+@pytest.mark.parametrize("research_enabled", (False, True))
+def test_canonical_mvp_learning_loop(
+    mvp_context: MvpTestContext, monkeypatch: pytest.MonkeyPatch, research_enabled: bool
+) -> None:
+    monkeypatch.setattr(settings, "research_enabled", research_enabled)
     client = mvp_context.client
 
     educator_headers = _login(client, "educator@quantumlearn.demo", DEMO_PASSWORD)
@@ -491,6 +498,11 @@ def test_canonical_mvp_learning_loop(mvp_context: MvpTestContext) -> None:
     hidden_feedback = client.get(f"/api/v1/submissions/{first_attempt['id']}/feedback")
     assert hidden_feedback.status_code == 404
     assert hidden_feedback.json()["error"]["code"] == "feedback_not_found"
+    with mvp_context.session_factory() as session:
+        assert session.scalar(select(func.count()).select_from(ResearchEvaluation)) == 0
+        assert set(session.scalars(select(TerminalIntegrationOutbox.integration_type))) == {
+            TerminalIntegrationType.CONTINUATION
+        }
 
 
 def _login(client: TestClient, email: str, password: str) -> dict[str, str]:

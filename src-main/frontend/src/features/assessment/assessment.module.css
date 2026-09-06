@@ -3,6 +3,8 @@
 .screen {
   display: grid;
   gap: var(--space-5);
+  /* Fresh record IDs must not set the grid's minimum width on narrow screens. */
+  overflow-wrap: anywhere;
 }
 
 /* System notice: attention wash, never fault-red (Bloom guidance, conflicts) */

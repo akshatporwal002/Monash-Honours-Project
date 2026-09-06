@@ -257,10 +257,14 @@ def build_assessment_blueprint(
 
 def build_assessment_attempt(
     session: Session,
+    *,
+    suffix: str = "",
 ) -> tuple[AssessmentAttempt, SubmissionAttempt, CriterionVersion, PassRuleVersion, User]:
-    definition, bloom, criterion, rule, form, owner = build_assessment_blueprint(session)
+    definition, bloom, criterion, rule, form, owner = build_assessment_blueprint(
+        session, suffix=suffix
+    )
     student = User(
-        email="attempt-student@example.edu",
+        email=f"attempt-student{suffix}@example.edu",
         password_hash=hash_password("attempt-model-test-password"),
         full_name="Attempt Student",
         role=UserRole.STUDENT,
@@ -282,7 +286,7 @@ def build_assessment_attempt(
         task_form_version_id=form.id,
         response_schema_version="assessment.response.v1",
         content_digest=DIGEST,
-        idempotency_key="response-key-1",
+        idempotency_key=f"response-key-1{suffix}",
         declared_conditions={"tools": ["notes"]},
     )
     session.add(response)
@@ -306,12 +310,14 @@ def build_assessment_attempt(
 def build_provisional_decision(
     session: Session,
     attempt: AssessmentAttempt,
+    *,
+    suffix: str = "",
 ) -> AssessmentDecision:
     decision = AssessmentDecision(
         assessment_attempt_id=attempt.id,
         bloom_target_version_id=attempt.bloom_target_version_id,
         pass_rule_version_id=attempt.pass_rule_version_id,
-        evaluation_idempotency_key="evaluation-key-1",
+        evaluation_idempotency_key=f"evaluation-key-1{suffix}",
         result=AssessmentResult.PASS,
         result_state=ResultState.PROVISIONAL,
         evidence_references={"criterion_evaluations": []},
@@ -380,9 +386,11 @@ def assign_assessor(
 
 def seed_review_decision(
     session: Session,
+    *,
+    suffix: str = "",
 ) -> tuple[AssessmentAttempt, SubmissionAttempt, AssessmentDecision, User]:
-    attempt, response, criterion, _, owner = build_assessment_attempt(session)
-    decision = build_provisional_decision(session, attempt)
+    attempt, response, criterion, _, owner = build_assessment_attempt(session, suffix=suffix)
+    decision = build_provisional_decision(session, attempt, suffix=suffix)
     evaluation = CriterionEvaluation(
         assessment_attempt_id=attempt.id,
         criterion_version_id=criterion.id,

@@ -21,6 +21,7 @@ from app.core.readiness import (
 )
 from app.db.session import SessionLocal
 from app.db.session import engine as application_engine
+from app.models.enums import TerminalIntegrationType
 from app.schemas.feedback import FeedbackContext, GeneratedFeedback, JudgeEvaluationOutcome
 from app.services.assessment.jobs import (
     AssessmentEvaluationExecutor,
@@ -45,9 +46,7 @@ from app.services.feedback.worker import FeedbackRecoveryWorker
 from app.services.research import (
     BaselineContextProvider,
     BaselineFeedbackGenerator,
-    BaselineJobExecutor,
     BaselineMeasurementJudge,
-    SqlAlchemyResearchJobRepository,
 )
 from app.services.terminal_integrations.worker import TerminalIntegrationWorker
 
@@ -149,39 +148,11 @@ def build_offline_worker_adapters(configured_settings: Settings) -> WorkerAdapte
     )
 
 
-class _BaselineDatabasePass:
-    def __init__(
-        self,
-        session_factory: sessionmaker[Session],
-        adapters: WorkerAdapters,
-        *,
-        now: Callable[[], datetime],
-        lease_duration: timedelta,
-        provider_timeout_seconds: float,
-        maximum_attempts: int,
-    ) -> None:
-        self._session_factory = session_factory
-        self._adapters = adapters
-        self._now = now
-        self._lease_duration = lease_duration
-        self._provider_timeout_seconds = provider_timeout_seconds
-        self._maximum_attempts = maximum_attempts
+class _DisabledResearchPass:
+    """Preserve queued research without claiming it while governance is incomplete."""
 
     async def run_once(self) -> bool:
-        with self._session_factory() as session:
-            executor = BaselineJobExecutor(
-                SqlAlchemyResearchJobRepository(
-                    session,
-                    lease_duration=self._lease_duration,
-                ),
-                self._adapters.baseline_context_provider,
-                self._adapters.baseline_generator,
-                self._adapters.baseline_judge,
-                provider_timeout_seconds=self._provider_timeout_seconds,
-                now=self._now,
-                maximum_attempts=self._maximum_attempts,
-            )
-            return await executor.run_once()
+        return False
 
 
 class _ContinuationDatabasePass:
@@ -239,6 +210,8 @@ class _TerminalIntegrationDatabasePass:
                 now=self._now,
                 lease_duration=self._lease_duration,
                 maximum_attempts=self._maximum_attempts,
+                # Do not consume research intents created before the restriction.
+                integration_type=TerminalIntegrationType.CONTINUATION,
             ).run_once()
         processed = outcome.processed
         if self._additional_pass is not None:
@@ -403,14 +376,7 @@ def build_database_worker(
         lease_duration=lease_duration,
         maximum_attempts=configured_settings.max_infrastructure_attempts,
     )
-    baseline_pass = _BaselineDatabasePass(
-        session_factory,
-        adapters,
-        now=now,
-        lease_duration=lease_duration,
-        provider_timeout_seconds=configured_settings.provider_timeout_seconds,
-        maximum_attempts=configured_settings.max_infrastructure_attempts,
-    )
+    baseline_pass = _DisabledResearchPass()
     continuation_pass = _ContinuationDatabasePass(
         session_factory,
         adapters,

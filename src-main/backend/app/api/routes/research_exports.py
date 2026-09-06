@@ -25,6 +25,7 @@ from app.schemas.research_export import (
 )
 from app.services.analytics import AnalyticsPseudonymizer
 from app.services.audit import AuditError
+from app.services.research.governance import research_processing_approved
 from app.services.research_export import (
     ResearchExportError,
     ResearchExportService,
@@ -68,6 +69,7 @@ async def research_export(
     pseudonymizer: AnalyticsPseudonymizer = Depends(get_analytics_pseudonymizer),
     service: ResearchExportService = Depends(get_research_export_service),
     security: RequestSecurityGuard = Depends(get_request_security_guard),
+    research_approved: bool = Depends(research_processing_approved),
 ) -> StreamingResponse:
     await security.enforce(request, actor, "exports", mutating=False)
     authorized = await access_policy.authorized_course_ids(actor)
@@ -95,6 +97,13 @@ async def research_export(
             403,
             "research_export_forbidden",
             "Research export access is not permitted.",
+        )
+
+    if not research_approved:
+        raise FeedbackApiException(
+            503,
+            "research_governance_pending",
+            "Research exports are unavailable until study and consent controls are approved.",
         )
 
     end_at = _utc(date_to or datetime.now(UTC))

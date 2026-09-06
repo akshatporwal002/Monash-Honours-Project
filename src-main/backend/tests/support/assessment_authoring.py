@@ -2,20 +2,27 @@
 
 from uuid import uuid4
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.models.enums import TaskType
 from app.models.lms import Course, CourseModule, LearningOutcome, OutcomeKind
 from app.models.persistence import LearningTask
-from app.models.user import User
+from app.models.user import User, UserRole
 from support.assessment import assign_assessor
 
 
 def seed_authoring_context(session: Session) -> dict[str, str]:
-    educator = session.scalar(select(User).where(User.email == "educator@quantumlearn.demo"))
-    assert educator is not None
     suffix = uuid4().hex
+    password = "assessment-authoring-test-password"
+    educator = User(
+        email=f"author-{suffix}@example.edu",
+        password_hash=hash_password(password),
+        full_name="Assessment Author",
+        role=UserRole.EDUCATOR,
+    )
+    session.add(educator)
+    session.flush()
     course = Course(educator_id=educator.id, code=f"R-{suffix[:8]}", title="Recall rule authoring")
     session.add(course)
     session.flush()
@@ -48,4 +55,10 @@ def seed_authoring_context(session: Session) -> dict[str, str]:
     session.add(task)
     session.commit()
     assign_assessor(session, educator, course.id, educator)
-    return {"course_id": course.id, "outcome_id": outcome.id, "task_id": task.id}
+    return {
+        "course_id": course.id,
+        "outcome_id": outcome.id,
+        "task_id": task.id,
+        "educator_email": educator.email,
+        "educator_password": password,
+    }
