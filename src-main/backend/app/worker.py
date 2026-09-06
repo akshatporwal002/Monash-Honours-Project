@@ -49,6 +49,7 @@ from app.services.research import (
     BaselineFeedbackGenerator,
     BaselineMeasurementJudge,
 )
+from app.services.simulation_evidence import SimulationRecoveryWorker
 from app.services.terminal_integrations.worker import TerminalIntegrationWorker
 
 _FACTORY_PATH = re.compile(
@@ -233,6 +234,7 @@ class DatabaseWorker:
         *,
         assessment_evaluation: WorkerPass | None = None,
         material_processing: WorkerPass | None = None,
+        simulation_recovery: WorkerPass | None = None,
         terminal_reconciliation: WorkerPass | None = None,
         poll_interval_seconds: float = 1,
         heartbeat_interval_seconds: float = 30,
@@ -245,6 +247,8 @@ class DatabaseWorker:
         passes: list[tuple[str, WorkerPass]] = [("feedback", feedback)]
         if material_processing is not None:
             passes.append(("material_processing", material_processing))
+        if simulation_recovery is not None:
+            passes.append(("simulation_recovery", simulation_recovery))
         if assessment_evaluation is not None:
             passes.append(("assessment_evaluation", assessment_evaluation))
         if terminal_reconciliation is not None:
@@ -409,6 +413,7 @@ def build_database_worker(
         continuation_pass,
         ownership,
         assessment_evaluation=assessment_evaluation_pass,
+        simulation_recovery=SimulationRecoveryWorker(session_factory, now=now),
         material_processing=MaterialRecoveryWorker(
             session_factory,
             now=now,

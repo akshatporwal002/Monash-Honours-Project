@@ -835,12 +835,45 @@ export type ApiSchemas = {
     "circuit_text": string
     "counts": Partial<Record<string, number>>
     "engine": string
+    "engine_versions"?: Partial<Record<string, string>>
+    "measurement_mapping"?: Array<Array<number>>
+    "policy_version"?: string
     "probabilities": Partial<Record<string, number>>
+    "probability_method"?: "exact_statevector"
+    "qubit_order"?: Array<number>
+    "sampled_frequencies"?: Partial<Record<string, number>>
+    "seed"?: number
+    "shots"?: number
+    "statevector"?: Array<Array<number>>
   }
   "SimulationRequest": {
     "operations"?: Array<ApiSchemas["GateOperation"]>
     "qubits"?: number
+    "request_key"?: (string) | (null)
+    "seed"?: number
     "shots"?: number
+    "task_id"?: (string) | (null)
+  }
+  "SimulationRunRead": {
+    "circuit": Record<string, unknown>
+    "circuit_version_id": string
+    "content_digest": string
+    "course_id": (string) | (null)
+    "created_at": string
+    "deadline_at": string
+    "engine_versions": Partial<Record<string, string>>
+    "error_code": (string) | (null)
+    "finished_at": (string) | (null)
+    "owner_id": number
+    "policy_version": string
+    "purpose": "practice" | "task" | "feedback"
+    "result": (ApiSchemas["SimulationRead"]) | (null)
+    "run_id": string
+    "seed": number
+    "shots": number
+    "status": "pending" | "completed" | "failed" | "timed_out" | "interrupted"
+    "submission_id": (string) | (null)
+    "task_id": (string) | (null)
   }
   "SourceApprovalRead": {
     "actor_id": string

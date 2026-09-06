@@ -72,6 +72,75 @@ def login(client: TestClient, role: str) -> None:
     assert response.status_code == 200
 
 
+def test_simulation_api_saves_exact_evidence_and_checks_course_access(lms_context):
+    from app.models import Enrollment, EnrollmentStatus, TaskType
+    from app.models.simulation import SimulationRun
+
+    client, session = lms_context
+    task = session.scalar(
+        select(LearningTask).where(LearningTask.task_type == TaskType.QUANTUM_CIRCUIT)
+    )
+    task.prerequisite_task_ids = []
+    session.commit()
+    login(client, "student")
+    payload = {
+        "qubits": 1,
+        "operations": [{"gate": "h", "targets": [0]}],
+        "shots": 1,
+        "seed": 19,
+        "task_id": task.id,
+        "request_key": "api-run",
+    }
+    response = client.post("/api/v1/students/me/simulate", json=payload)
+    assert response.status_code == 200, response.text
+    record = response.json()
+    assert record["status"] == "completed"
+    assert record["result"]["probabilities"] == pytest.approx({"0": 0.5, "1": 0.5})
+    assert record["result"]["seed"] == 19
+    assert client.post("/api/v1/students/me/simulate", json=payload).json() == record
+    assert client.get(f"/api/v1/simulations/{record['run_id']}").json() == record
+    assert client.get(f"/api/v1/students/me/tasks/{task.id}/simulations").json() == [record]
+    assert session.scalar(select(func.count()).select_from(SimulationRun)) == 1
+    assert (
+        client.post("/api/v1/students/me/simulate", json={**payload, "seed": 20}).status_code == 409
+    )
+    enrollment = session.scalar(select(Enrollment).where(Enrollment.course_id == task.course_id))
+    enrollment.status = EnrollmentStatus.COMPLETED
+    session.commit()
+    assert client.get(f"/api/v1/simulations/{record['run_id']}").status_code == 403
+    assert client.post("/api/v1/students/me/simulate", json=payload).status_code == 403
+
+
+def test_simulation_rejects_locked_tasks_and_strict_invalid_inputs(lms_context):
+    from app.models import TaskType
+    from app.models.simulation import SimulationRun
+
+    client, session = lms_context
+    task = session.scalar(
+        select(LearningTask).where(LearningTask.task_type == TaskType.QUANTUM_CIRCUIT)
+    )
+    task.prerequisite_task_ids = ["not-completed"]
+    session.commit()
+    login(client, "student")
+    payload = {"qubits": 1, "operations": [{"gate": "h", "targets": [0]}], "task_id": task.id}
+    assert client.post("/api/v1/students/me/simulate", json=payload).status_code == 423
+    for bad in (
+        {"qubits": True},
+        {"shots": 4097},
+        {"shots": 1.5},
+        {"seed": -1},
+        {"operations": [{"gate": "h", "targets": [True]}]},
+    ):
+        assert (
+            client.post("/api/v1/students/me/simulate", json={**payload, **bad}).status_code == 422
+        )
+    assert session.scalar(select(func.count()).select_from(SimulationRun)) == 0
+    capabilities = client.get("/api/v1/simulations/capabilities").json()
+    assert capabilities["gates"] == ["h", "x", "cx"]
+    assert capabilities["probability_method"] == "exact_statevector"
+    assert capabilities["max_operations"] == 30
+
+
 def test_role_scoping_and_explicit_bootstrap(
     lms_context: tuple[TestClient, Session],
 ) -> None:

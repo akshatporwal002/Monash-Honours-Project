@@ -89,6 +89,7 @@ from app.schemas.lms import (
     TaskUpdate,
     WeeklyEngagementRead,
 )
+from app.schemas.student import SimulationRequest
 from app.services.assessment.submissions import (
     AssessmentSubmissionService,
     AssessmentTaskDeclaration,
@@ -97,10 +98,12 @@ from app.services.assessment.submissions import (
 from app.services.authentication import normalize_email
 from app.services.gamification import GamificationService, ensure_default_achievements
 from app.services.learning_events import HmacSha256Pseudonymizer
+from app.services.quantum import CircuitOperation, QuantumSimulationError
 from app.services.rag.errors import RagError
 from app.services.rag.source_history import bind_sources, output_digest, resolve_passages
 from app.services.rag.storage import FileStorage
 from app.services.rag.task_generation import GenerateTasksInput
+from app.services.simulation_evidence import SimulationEvidenceError, SimulationEvidenceService
 from app.services.task_generation_runtime import build_grounded_task_generation_service
 from app.services.task_types import (
     DEFAULT_TASK_TYPE_REGISTRY,
@@ -1623,6 +1626,68 @@ class LmsService:
             raise _not_found("Task")
         self._require_course_read(student, task.course_id)
         return task
+
+    def simulate_student_circuit(self, student: User, payload: SimulationRequest) -> dict:
+        if payload.task_id:
+            task = self._require_student_task(student, payload.task_id)
+            self._require_unlocked(student, task)
+            if task.task_type.value not in {"circuit", "quantum_circuit"}:
+                raise LmsServiceError(422, "This task does not support circuit simulation")
+        try:
+            return SimulationEvidenceService(self.session).execute(
+                owner_id=student.id,
+                task_id=payload.task_id,
+                qubits=payload.qubits,
+                operations=[
+                    CircuitOperation(op.gate, tuple(op.targets)) for op in payload.operations
+                ],
+                shots=payload.shots,
+                seed=payload.seed,
+                request_key=payload.request_key,
+            )
+        except QuantumSimulationError as error:
+            raise LmsServiceError(422, str(error)) from error
+        except SimulationEvidenceError as error:
+            raise LmsServiceError(409, str(error)) from error
+
+    def read_simulation(self, actor: User, run_id: str) -> dict:
+        from app.models.simulation import CircuitVersion, SimulationRun
+
+        run = self.session.get(SimulationRun, run_id)
+        if run is None:
+            raise _not_found("Simulation")
+        circuit = self.session.get(CircuitVersion, run.circuit_version_id)
+        if actor.role is UserRole.STUDENT:
+            if run.owner_id != actor.id:
+                raise _not_found("Simulation")
+            if circuit.course_id:
+                self._require_course_read(actor, circuit.course_id)
+        elif circuit.course_id:
+            self._require_course_read(actor, circuit.course_id)
+        else:
+            raise _not_found("Simulation")
+        return SimulationEvidenceService(self.session).read(run_id)
+
+    def list_student_simulations(self, student: User, task_id: str, limit: int) -> list[dict]:
+        from app.models.simulation import CircuitVersion, SimulationRun
+
+        self._require_student_task(student, task_id)
+        ids = self.session.scalars(
+            select(SimulationRun.id)
+            .join(
+                CircuitVersion,
+                CircuitVersion.id == SimulationRun.circuit_version_id,
+            )
+            .where(
+                CircuitVersion.task_id == task_id,
+                SimulationRun.owner_id == student.id,
+                SimulationRun.purpose == "task",
+            )
+            .order_by(SimulationRun.created_at.desc(), SimulationRun.id)
+            .limit(limit)
+        ).all()
+        service = SimulationEvidenceService(self.session)
+        return [service.read(run_id) for run_id in ids]
 
     def _require_unlocked(self, student: User, task: LearningTask) -> None:
         completed = set(

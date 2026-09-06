@@ -122,6 +122,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: none. Suggested owner: quantum services.
 
+    Task 11 progress, 7 September 2026: implemented and locally verified. The [simulation-evidence handoff](docs/learnlens/task-11-simulation-evidence.md) records process timeouts, immutable circuit and run history, exact probabilities, saved feedback references, scoped reads, replay, interrupted-run recovery, and migration protection. The final backend suite passed 782 tests with 85.52% service coverage; 180 frontend tests passed. Supported capabilities are ready for Task 12 publication checks.
+
     Simulation supports H, X, and CX, with qubit and shot limits. It lacks an operation limit and process-level timeout. Its probabilities are sampled frequencies. Feedback reruns circuits without saving a durable run there. Persist circuit versions, digest, qubit order, measurement mapping, seed, shots, engine versions, counts, and run status. Expose the supported capabilities for publication checks in Task 12.
 
     Done when runs are bounded and reproducible from saved settings. Use exact probabilities or sampling tolerances where justified. Gate presence or distribution agreement must not stand in for every state property or conceptual claim.

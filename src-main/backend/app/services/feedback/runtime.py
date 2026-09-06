@@ -40,9 +40,14 @@ from app.services.llm import (
     runtime_model_selection,
 )
 from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
-from app.services.quantum import CircuitOperation, QuantumSimulationError, simulate_circuit
+from app.services.quantum import SIMULATION_POLICY_VERSION, CircuitOperation, QuantumSimulationError
 from app.services.rag.source_history import passage_label, resolve_passages
 from app.services.research.governance import research_processing_approved
+from app.services.simulation_evidence import (
+    SimulationEvidenceError,
+    SimulationEvidenceService,
+    engine_versions,
+)
 from app.services.terminal_integrations.planner import (
     DurableTerminalIntegrationPlanner,
 )
@@ -146,29 +151,55 @@ class SubmittedCircuitSimulationProvider:
         if task.task_type not in {"quantum_circuit", "circuit"}:
             return SimulationResult(status=ContextProviderStatus.NOT_REQUESTED)
         stored = self._session.get(SubmissionAttempt, submission.submission_id)
+        persisted_task = self._session.get(LearningTask, task.task_id)
+        if (
+            stored is None
+            or stored.task_id != task.task_id
+            or str(stored.student_id) != submission.student_id
+            or submission.task_id != task.task_id
+            or submission.course_id != task.course_id
+            or persisted_task is None
+            or persisted_task.course_id != task.course_id
+        ):
+            return SimulationResult(status=ContextProviderStatus.FAILED)
         circuit = _submission_circuit(stored.circuit if stored is not None else None)
         if circuit is None:
             return SimulationResult(status=ContextProviderStatus.EMPTY)
         try:
-            result = await anyio.to_thread.run_sync(
-                lambda: simulate_circuit(
+            service = SimulationEvidenceService(self._session)
+            owner_id = stored.student_id
+            record = await anyio.to_thread.run_sync(
+                lambda: service.execute(
+                    owner_id=owner_id,
+                    task_id=task.task_id,
+                    submission_id=submission.submission_id,
+                    request_key="feedback:"
+                    + submission.submission_id
+                    + ":"
+                    + SIMULATION_POLICY_VERSION
+                    + ":"
+                    + "/".join(engine_versions().values()),
                     qubits=circuit["qubits"],
                     operations=circuit["operations"],
                     shots=circuit["shots"],
+                    seed=circuit["seed"],
                 )
             )
-        except QuantumSimulationError:
+        except (QuantumSimulationError, SimulationEvidenceError):
             return SimulationResult(status=ContextProviderStatus.FAILED)
+        if record["status"] != "completed" or record["result"] is None:
+            return SimulationResult(status=ContextProviderStatus.FAILED)
+        result = record["result"]
         return SimulationResult(
             status=ContextProviderStatus.COMPLETED,
             context=SimulationContext(
-                simulation_id=str(uuid4()),
+                simulation_id=record["run_id"],
                 task_id=task.task_id,
                 course_id=task.course_id,
                 status="completed",
-                circuit_summary=result.circuit_text[:4_000],
-                measurement_counts=result.counts,
-                probability_distribution=result.probabilities,
+                circuit_summary=result["circuit_text"][:4_000],
+                measurement_counts=result["counts"],
+                probability_distribution=result["probabilities"],
             ),
         )
 
@@ -250,10 +281,12 @@ def _submission_circuit(raw: dict[str, object] | None) -> dict[str, object] | No
         return None
     qubits = raw.get("qubits", 2)
     shots = raw.get("shots", 1024)
+    seed = raw.get("seed", 42)
     operations = raw.get("operations")
     if (
         not isinstance(qubits, int)
         or not isinstance(shots, int)
+        or not isinstance(seed, int)
         or not isinstance(operations, list)
     ):
         return None
@@ -270,7 +303,7 @@ def _submission_circuit(raw: dict[str, object] | None) -> dict[str, object] | No
         ):
             return None
         parsed.append(CircuitOperation(gate=gate, targets=tuple(targets)))
-    return {"qubits": qubits, "shots": shots, "operations": parsed}
+    return {"qubits": qubits, "shots": shots, "seed": seed, "operations": parsed}
 
 
 def _circuit_answer(raw: dict[str, object] | None) -> str:

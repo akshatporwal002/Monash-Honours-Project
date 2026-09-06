@@ -23,14 +23,12 @@ from app.schemas.student import (
     SubmissionWrite,
     TaskRead,
 )
-from app.services.quantum import QuantumSimulationError
 from app.services.student import (
     award_achievements,
     calculate_progress,
     grade_submission,
     recommendations,
     seed_demo_data,
-    simulate,
 )
 
 router = APIRouter(prefix="/students")
@@ -155,11 +153,7 @@ def list_submissions(
 def run_simulation(
     student_id: str, payload: SimulationRequest, db: Session = Depends(get_db_session)
 ) -> dict:
-    get_student(student_id, db)
-    try:
-        return simulate(payload)
-    except QuantumSimulationError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+    raise HTTPException(status_code=410, detail="Use the authenticated student simulation endpoint")
 
 
 @router.get("/{student_id}/progress", response_model=ProgressRead)

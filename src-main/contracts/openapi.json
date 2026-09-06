@@ -5618,12 +5618,74 @@
             "title": "Engine",
             "type": "string"
           },
+          "engine_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Engine Versions",
+            "type": "object"
+          },
+          "measurement_mapping": {
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Measurement Mapping",
+            "type": "array"
+          },
+          "policy_version": {
+            "default": "ideal-h-x-cx-v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
           "probabilities": {
             "additionalProperties": {
               "type": "number"
             },
             "title": "Probabilities",
             "type": "object"
+          },
+          "probability_method": {
+            "const": "exact_statevector",
+            "default": "exact_statevector",
+            "title": "Probability Method",
+            "type": "string"
+          },
+          "qubit_order": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Qubit Order",
+            "type": "array"
+          },
+          "sampled_frequencies": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Sampled Frequencies",
+            "type": "object"
+          },
+          "seed": {
+            "default": 42,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "shots": {
+            "default": 1024,
+            "title": "Shots",
+            "type": "integer"
+          },
+          "statevector": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Statevector",
+            "type": "array"
           }
         },
         "required": [
@@ -5652,15 +5714,211 @@
             "title": "Qubits",
             "type": "integer"
           },
+          "request_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Key"
+          },
+          "seed": {
+            "default": 42,
+            "maximum": 4294967295.0,
+            "minimum": 0.0,
+            "title": "Seed",
+            "type": "integer"
+          },
           "shots": {
             "default": 1024,
-            "maximum": 8192.0,
+            "maximum": 4096.0,
             "minimum": 1.0,
             "title": "Shots",
             "type": "integer"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
           }
         },
         "title": "SimulationRequest",
+        "type": "object"
+      },
+      "SimulationRunRead": {
+        "properties": {
+          "circuit": {
+            "additionalProperties": true,
+            "title": "Circuit",
+            "type": "object"
+          },
+          "circuit_version_id": {
+            "title": "Circuit Version Id",
+            "type": "string"
+          },
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "course_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deadline_at": {
+            "format": "date-time",
+            "title": "Deadline At",
+            "type": "string"
+          },
+          "engine_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Engine Versions",
+            "type": "object"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "owner_id": {
+            "title": "Owner Id",
+            "type": "integer"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "practice",
+              "task",
+              "feedback"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SimulationRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "seed": {
+            "title": "Seed",
+            "type": "integer"
+          },
+          "shots": {
+            "title": "Shots",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "completed",
+              "failed",
+              "timed_out",
+              "interrupted"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "submission_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submission Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "run_id",
+          "owner_id",
+          "task_id",
+          "course_id",
+          "circuit_version_id",
+          "content_digest",
+          "circuit",
+          "submission_id",
+          "purpose",
+          "seed",
+          "shots",
+          "policy_version",
+          "engine_versions",
+          "created_at",
+          "deadline_at",
+          "finished_at",
+          "status",
+          "error_code",
+          "result"
+        ],
+        "title": "SimulationRunRead",
         "type": "object"
       },
       "SourceApprovalRead": {
@@ -12318,6 +12576,115 @@
         ]
       }
     },
+    "/api/v1/simulations/capabilities": {
+      "get": {
+        "operationId": "get_simulation_capabilities_api_v1_simulations_capabilities_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Simulation Capabilities Api V1 Simulations Capabilities Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Simulation Capabilities",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/simulations/{run_id}": {
+      "get": {
+        "operationId": "read_simulation_api_v1_simulations__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationRunRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Simulation",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
     "/api/v1/students/me/dashboard": {
       "get": {
         "operationId": "student_dashboard_api_v1_students_me_dashboard_get",
@@ -12461,7 +12828,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SimulationRead"
+                  "$ref": "#/components/schemas/SimulationRunRead"
                 }
               }
             },
@@ -12669,6 +13036,80 @@
           }
         },
         "summary": "Save Student Draft",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/simulations": {
+      "get": {
+        "operationId": "list_student_simulations_api_v1_students_me_tasks__task_id__simulations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SimulationRunRead"
+                  },
+                  "title": "Response List Student Simulations Api V1 Students Me Tasks  Task Id  Simulations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Student Simulations",
         "tags": [
           "learning management"
         ]

@@ -248,14 +248,15 @@ export function TaskView({
 
   const runSimulation = async () => {
     setBusy(true)
+    setSimulation(null)
     setStatusMessage('')
     try {
       await api.student.saveDraft(task.id, {
         answer: '',
         circuit: { qubits: 2, operations },
       })
-      setSimulation(await api.student.simulate(operations))
-      setStatusMessage('Simulation completed with 1,024 shots.')
+      setSimulation(await api.student.simulate(operations, task.id))
+      setStatusMessage('Simulation completed and saved with 1,024 shots.')
     } catch (error) {
       setStatusMessage(messageFor(error))
     } finally {
@@ -510,15 +511,26 @@ export function TaskView({
                         <strong>Simulation result</strong>
                         <small>{simulation.engine}</small>
                       </div>
+                      <p>Counts show sampled measurements. Exact probabilities describe the ideal circuit before measurement.</p>
                       {Object.entries(simulation.counts).map(([state, count]) => (
                         <div className={styles.resultRow} key={state}>
                           <code>|{state}⟩</code>
                           <span className={styles.resultTrack}>
-                            <i className={styles.resultFill} style={{ width: `${Math.min(100, Math.max(2, count / 10.24))}%` }} />
+                            <i className={styles.resultFill} style={{ width: `${Math.min(100, Math.max(2, count / simulation.shots * 100))}%` }} />
                           </span>
                           <strong className={styles.resultCount}>{count}</strong>
                         </div>
                       ))}
+                      <table>
+                        <caption>Exact probabilities and sampled frequencies</caption>
+                        <thead><tr><th>State</th><th>Exact probability</th><th>Sampled frequency</th></tr></thead>
+                        <tbody>{Object.entries(simulation.probabilities).map(([state, probability]) => (
+                          <tr key={state}><th>{state}</th><td>{(probability * 100).toFixed(2)}%</td>
+                            <td>{((simulation.sampled_frequencies[state] ?? 0) * 100).toFixed(2)}%</td></tr>
+                        ))}</tbody>
+                      </table>
+                      <p>Matching these probabilities alone does not prove that two quantum states are the same.</p>
+                      <small>Saved run: {simulation.run_id}</small>
                       <pre className={styles.circuitText}>{simulation.circuit_text}</pre>
                     </div>
                   )}
