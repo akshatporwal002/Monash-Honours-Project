@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.models import LearningTask
 from app.models.lms import Course, Enrollment, EnrollmentStatus
-from app.models.user import User, UserRole
+from app.models.user import ScopedRole, User, UserRole
 from app.schemas.feedback_api import AuthenticatedActor
+from app.services.assessment.access import RoleAssignmentService
 from app.services.learning_events import LearningEventScope
 from app.services.rag.errors import CourseAccessDeniedError
 
@@ -126,13 +127,20 @@ class SqlAlchemyLearningEventAccessPolicy:
 
 class SqlAlchemyResearchExportAccessPolicy:
     def __init__(self, session: Session) -> None:
-        self._analytics_policy = SqlAlchemyAnalyticsAccessPolicy(session)
+        self._session = session
 
     async def authorized_course_ids(
         self,
         actor: AuthenticatedActor,
     ) -> set[str]:
-        return await self._analytics_policy.authorized_course_ids(actor.actor_reference)
+        user = _active_user(self._session, actor.actor_reference)
+        if user is None:
+            return set()
+        return {
+            assignment.course_id
+            for assignment in RoleAssignmentService(self._session).list_active_assignments(user.id)
+            if assignment.role is ScopedRole.RESEARCH
+        }
 
 
 def _active_user(session: Session, actor_reference: str) -> User | None:

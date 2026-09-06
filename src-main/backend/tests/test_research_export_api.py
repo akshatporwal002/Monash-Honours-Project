@@ -12,6 +12,7 @@ from app.api.research_export_dependencies import (
 )
 from app.main import app
 from app.schemas.feedback_api import AuthenticatedActor
+from app.services.research.governance import research_processing_approved
 from app.services.research_export import PreparedResearchExport
 
 NOW = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
@@ -61,6 +62,8 @@ class Service:
 @pytest.fixture(autouse=True)
 def overrides():
     service = Service()
+    # Exercise export mechanics under explicit test-only governance and access.
+    app.dependency_overrides[research_processing_approved] = lambda: True
     app.dependency_overrides[get_authenticated_actor] = lambda: AuthenticatedActor(
         actor_reference="researcher-1",
         role="researcher",

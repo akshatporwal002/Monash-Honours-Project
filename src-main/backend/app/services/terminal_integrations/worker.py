@@ -60,6 +60,7 @@ class TerminalIntegrationWorker:
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
         lease_duration: timedelta = timedelta(minutes=5),
         maximum_attempts: int = 3,
+        integration_type: TerminalIntegrationType | None = None,
     ) -> None:
         if not 1 <= maximum_attempts <= 3:
             raise ValueError("maximum_attempts must be between 1 and 3")
@@ -68,12 +69,14 @@ class TerminalIntegrationWorker:
         self._now = now
         self._lease_duration = lease_duration
         self._maximum_attempts = maximum_attempts
+        self._integration_type = integration_type
 
     async def run_once(self) -> TerminalIntegrationWorkerOutcome:
         observed_at = self._now()
         exhausted = self._repository.finalize_next_exhausted(
             observed_at=observed_at,
             maximum_attempts=self._maximum_attempts,
+            integration_type=self._integration_type,
         )
         if exhausted is not None:
             return TerminalIntegrationWorkerOutcome(
@@ -85,6 +88,7 @@ class TerminalIntegrationWorker:
             lease_expires_at=observed_at + self._lease_duration,
             execution_token=str(uuid4()),
             maximum_attempts=self._maximum_attempts,
+            integration_type=self._integration_type,
         )
         if claim is None:
             return TerminalIntegrationWorkerOutcome(processed=False)

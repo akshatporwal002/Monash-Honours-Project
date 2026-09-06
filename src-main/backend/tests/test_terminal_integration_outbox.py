@@ -3,11 +3,14 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.config import Settings
 from app.models.continuation import ContinuationJob
 from app.models.enums import (
     ExperimentalCondition,
@@ -43,6 +46,7 @@ from app.services.terminal_integrations.repository import (
     SqlAlchemyTerminalIntegrationRepository,
 )
 from app.services.terminal_integrations.worker import TerminalIntegrationWorker
+from app.worker import WorkerAdapters, build_database_worker
 
 NOW = datetime(2026, 7, 26, 10, 0, tzinfo=UTC)
 PSEUDONYM = f"v1_{'a' * 64}"
@@ -415,6 +419,100 @@ def test_worker_reconciles_eligible_research_pair_only_after_terminal_commit(
         "private-student",
     ):
         assert sentinel not in serialized_payloads
+
+
+@pytest.mark.parametrize("exhausted", (False, True))
+@pytest.mark.parametrize("research_enabled", (False, True))
+def test_production_worker_preserves_research_backlog_and_continues_learning(
+    db_session: Session, exhausted: bool, research_enabled: bool
+) -> None:
+    result = _result()
+    planner = DurableTerminalIntegrationPlanner(
+        Pseudonymizer(),
+        research_eligibility=Eligible(),
+        fallback_provider="provider",
+        fallback_model="model",
+    )
+    # Seed a legacy pair through the isolated, explicitly eligible test adapter.
+    # Its pending baseline must survive the production worker without a claim.
+    legacy = _result()
+    legacy_intents = asyncio.run(planner.plan(_context(legacy), legacy, ()))
+    _save(
+        db_session,
+        legacy,
+        *(
+            item
+            for item in legacy_intents
+            if item.integration_type is TerminalIntegrationType.RESEARCH_PAIR
+        ),
+    )
+    legacy_worker = TerminalIntegrationWorker(
+        db_session,
+        now=lambda: NOW + timedelta(seconds=2),
+        integration_type=TerminalIntegrationType.RESEARCH_PAIR,
+    )
+    assert asyncio.run(legacy_worker.run_once()).processed
+    legacy_rows = list(db_session.execute(select(ResearchEvaluation.__table__)))
+    assert len(legacy_rows) == 2
+    intents = asyncio.run(planner.plan(_context(result), result, ()))
+    _save(db_session, result, *intents)
+    repository = SqlAlchemyTerminalIntegrationRepository(db_session)
+    observed = NOW + timedelta(seconds=2)
+    if exhausted:
+        for sequence in range(3):
+            observed = NOW + timedelta(minutes=sequence * 6 + 1)
+            claim = repository.claim_next(
+                now=observed,
+                lease_expires_at=observed + timedelta(minutes=5),
+                execution_token=str(uuid4()),
+                maximum_attempts=3,
+                integration_type=TerminalIntegrationType.RESEARCH_PAIR,
+            )
+            assert claim is not None
+        observed += timedelta(minutes=6)
+    research = db_session.scalar(
+        select(TerminalIntegrationOutbox).where(
+            TerminalIntegrationOutbox.integration_type == TerminalIntegrationType.RESEARCH_PAIR,
+            TerminalIntegrationOutbox.workflow_run_id == result.workflow_run_id,
+        )
+    )
+    assert research is not None
+    before = db_session.execute(
+        select(TerminalIntegrationOutbox.__table__).where(
+            TerminalIntegrationOutbox.id == research.id
+        )
+    ).one()
+    adapters = WorkerAdapters(
+        feedback_pipeline_factory=Mock(),
+        baseline_context_provider=AsyncMock(),
+        baseline_generator=AsyncMock(),
+        baseline_judge=AsyncMock(),
+        progress_adapter=AsyncMock(),
+        next_task_recommender=AsyncMock(),
+    )
+    adapters.next_task_recommender.recommend_next_task.return_value = "task-2"
+    worker = build_database_worker(
+        adapters,
+        configured_settings=Settings(_env_file=None, research_enabled=research_enabled),
+        engine=db_session.get_bind(),
+        session_factory=sessionmaker(bind=db_session.get_bind()),
+        now=lambda: observed,
+    )
+    assert asyncio.run(worker.run_once()) is True
+    assert asyncio.run(worker.run_once()) is False
+    db_session.expire_all()
+    after = db_session.execute(
+        select(TerminalIntegrationOutbox.__table__).where(
+            TerminalIntegrationOutbox.id == research.id
+        )
+    ).one()
+    assert after == before
+    assert list(db_session.execute(select(ResearchEvaluation.__table__))) == legacy_rows
+    assert db_session.scalar(select(func.count()).select_from(ContinuationJob)) == 1
+    adapters.progress_adapter.record_terminal_feedback.assert_awaited_once()
+    adapters.baseline_context_provider.get_context.assert_not_awaited()
+    adapters.baseline_generator.generate.assert_not_awaited()
+    adapters.baseline_judge.evaluate.assert_not_awaited()
 
 
 def test_exact_terminal_replay_recovers_an_expired_outbox_claim(
