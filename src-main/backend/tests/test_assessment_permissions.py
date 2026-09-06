@@ -50,10 +50,14 @@ def _course(session: Session, educator: User, code: str) -> Course:
 
 
 def _actors(session: Session) -> tuple[User, User, Course, Course]:
+    from support.assessment import approve_assessor_eligibility
+
     administrator = _user(session, "admin@example.edu", UserRole.ADMINISTRATOR)
     educator = _user(session, "educator@example.edu", UserRole.EDUCATOR)
     first_course = _course(session, educator, "QNT101")
     second_course = _course(session, educator, "QNT102")
+    approve_assessor_eligibility(session, educator, first_course.id, at=NOW)
+    approve_assessor_eligibility(session, educator, second_course.id, at=NOW)
     session.commit()
     return administrator, educator, first_course, second_course
 

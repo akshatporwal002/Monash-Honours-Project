@@ -104,3 +104,27 @@ No historical run settings are inferred or backfilled.
 
 The [Task 11 handoff](task-11-simulation-evidence.md) records implementation and final local validation: 782 backend tests, 85.52% service coverage, and 180 frontend tests.
 Migration, contract, lint, format, and production-build checks passed.
+
+
+## Task 12: separate staff eligibility from assessor access
+
+Task 11 merged into local main at `42ffe03b06a47468ecc3dd41975dcee3e9dd7895`.
+Task 12 branches from that merge as `feat/task-12-educator-publication-controls`.
+
+Use the course owner as the course lead who approves teaching staff eligibility under D-02.
+Only active educator accounts qualify through this initial teaching-staff policy.
+Keep the administrator's course-scoped grant as a separate action with its own audit record.
+Link each grant to the exact course-lead approval that supports it.
+
+Store eligibility changes as append-only versions, with reasons and optional end dates.
+A grant cannot extend beyond its supporting approval.
+Withdrawal or replacement of that approval stops access through its linked grant.
+Re-approval requires a new administrator grant; it does not revive an earlier appointment.
+Preserve legacy grants without inventing missing approvals or treating them as current permissions.
+
+Add the migration without rebuilding the protected SQLite grant table.
+Keep research-role activation closed until the later governed research work.
+These controls implement the selected policy; test appointments do not appoint staff to a live course.
+Task review, source and condition checks, publication, and their user interfaces remain in progress.
+This assessor-eligibility checkpoint passed 803 backend tests with 85.64% service coverage, all 29 migration tests, and contract, lint, format, and frontend-build checks.
+See the [Task 12 handoff](task-12-publication-controls.md) for evidence and remaining work.

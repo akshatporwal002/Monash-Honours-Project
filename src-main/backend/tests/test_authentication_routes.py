@@ -129,6 +129,9 @@ def test_login_returns_active_assignments_without_changing_primary_role(
     )
     session.add(course)
     session.commit()
+    from support.assessment import approve_assessor_eligibility
+
+    approve_assessor_eligibility(session, educator, course.id, at=datetime.now(UTC))
     assignment = RoleAssignmentService(
         session,
         assignment_eligibility=lambda _subject, _role: True,

@@ -166,9 +166,21 @@ def _draft_definition(
 
 def _assign_assessor(client: TestClient, session: Session, course_id: str) -> None:
     _logout(client)
-    _login(client, "admin")
+    _login(client, "educator")
     educator = session.scalar(select(User).where(User.email == "educator@quantumlearn.demo"))
     assert educator is not None
+    approval = client.post(
+        f"/api/v1/assessment/courses/{course_id}/assessor-eligibility",
+        json={
+            "subject_user_id": educator.id,
+            "expected_version": 0,
+            "state": "APPROVED",
+            "reason": "Course-lead approval for the test course",
+        },
+    )
+    assert approval.status_code == 201, approval.text
+    _logout(client)
+    _login(client, "admin")
     response = client.post(
         f"/api/v1/assessment/admin/courses/{course_id}/assignments",
         json={

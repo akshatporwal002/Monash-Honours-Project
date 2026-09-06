@@ -54,11 +54,15 @@ def _review_service(session: Session, assessor: User) -> AssessmentReviewService
 
 
 def _assign_assessor(session: Session, assessor: User, course_id: str, assigned_by: User) -> None:
+    from support.assessment import approve_assessor_eligibility
+
+    approval = approve_assessor_eligibility(session, assessor, course_id, at=NOW)
     session.add(
         RoleAssignment(
             subject_user_id=assessor.id,
             course_id=course_id,
             role=ScopedRole.ASSESSOR,
+            eligibility_approval_id=approval.id,
             version=1,
             assigned_by_user_id=assigned_by.id,
             reason="The assessor is assigned to review formal assessment decisions.",

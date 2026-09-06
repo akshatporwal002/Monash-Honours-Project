@@ -34,6 +34,34 @@ class LmsSchema(BaseModel):
     model_config = ConfigDict(extra="forbid", from_attributes=True)
 
 
+class AssessorEligibilityWrite(LmsSchema):
+    subject_user_id: Annotated[int, Field(gt=0, strict=True)]
+    expected_version: Annotated[int, Field(ge=0, strict=True)]
+    state: Literal["APPROVED", "WITHDRAWN"]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    valid_until: datetime | None = None
+
+
+class AssessorEligibilityRead(LmsSchema):
+    id: str
+    course_id: str
+    subject_user_id: int
+    actor_user_id: int
+    version: int
+    state: Literal["APPROVED", "WITHDRAWN"]
+    reason: str
+    policy_version: str
+    created_at: datetime
+    valid_until: datetime | None
+
+    @field_validator("created_at", "valid_until")
+    @classmethod
+    def normalize_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
+
+
 class CourseCreate(LmsSchema):
     code: (
         Annotated[
@@ -158,6 +186,8 @@ class ScopedRoleAssignmentCreate(LmsSchema):
     subject_user_id: Annotated[int, Field(gt=0)]
     role: ScopedRole
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2_000)]
+    valid_from: datetime | None = None
+    valid_until: datetime | None = None
 
 
 class ScopedRoleAssignmentRevoke(LmsSchema):
@@ -176,6 +206,7 @@ class ScopedRoleAssignmentRead(LmsSchema):
     valid_from: datetime
     valid_until: datetime | None
     revoked_at: datetime | None
+    eligibility_approval_id: str | None
 
 
 class AssessmentCriterionDraft(LmsSchema):

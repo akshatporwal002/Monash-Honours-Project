@@ -270,6 +270,25 @@ export type ApiSchemas = {
     "task_form_version": number
     "task_id": string
   }
+  "AssessorEligibilityRead": {
+    "actor_user_id": number
+    "course_id": string
+    "created_at": string
+    "id": string
+    "policy_version": string
+    "reason": string
+    "state": "APPROVED" | "WITHDRAWN"
+    "subject_user_id": number
+    "valid_until": (string) | (null)
+    "version": number
+  }
+  "AssessorEligibilityWrite": {
+    "expected_version": number
+    "reason": string
+    "state": "APPROVED" | "WITHDRAWN"
+    "subject_user_id": number
+    "valid_until"?: (string) | (null)
+  }
   "AssessorReviewAction": "CONFIRM" | "OVERRIDE" | "WITHHOLD" | "VOID" | "RETURN"
   "AttemptRead": {
     "answer": string
@@ -798,11 +817,14 @@ export type ApiSchemas = {
     "reason": string
     "role": ApiSchemas["ScopedRole"]
     "subject_user_id": number
+    "valid_from"?: (string) | (null)
+    "valid_until"?: (string) | (null)
   }
   "ScopedRoleAssignmentRead": {
     "assigned_at": string
     "assigned_by_user_id": number
     "course_id": string
+    "eligibility_approval_id": (string) | (null)
     "id": string
     "reason": string
     "revoked_at": (string) | (null)

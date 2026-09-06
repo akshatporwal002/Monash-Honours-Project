@@ -85,9 +85,43 @@ class RoleAssignmentService:
 
         clean_reason = self._clean_reason(reason)
         observed_at = self._utc(self._now())
+        eligibility_approval = None
+        if role is ScopedRole.ASSESSOR:
+            from app.services.assessment.eligibility import AssessorEligibilityService
+
+            self.session.execute(
+                update(Course)
+                .where(Course.id == course_id)
+                .values(id=Course.id, updated_at=Course.updated_at)
+            )
+            try:
+                self._require_active_administrator(administrator)
+            except ScopedRoleAccessDeniedError:
+                self.session.rollback()
+                raise
+            eligibility_approval = AssessorEligibilityService(self.session, now=self._now).current(
+                course_id,
+                subject_user_id,
+                at=observed_at,
+            )
+            if eligibility_approval is None:
+                self.session.rollback()
+                raise RoleAssignmentValidationError(
+                    "Current course-lead approval is required for an assessor grant"
+                )
         starts_at = self._utc(valid_from) if valid_from is not None else observed_at
         ends_at = self._utc(valid_until) if valid_until is not None else None
+        if eligibility_approval is not None and eligibility_approval.valid_until is not None:
+            approval_end = self._utc(eligibility_approval.valid_until)
+            if ends_at is None:
+                ends_at = approval_end
+            elif ends_at > approval_end:
+                self.session.rollback()
+                raise RoleAssignmentValidationError(
+                    "The grant cannot extend beyond course-lead approval"
+                )
         if ends_at is not None and ends_at <= starts_at:
+            self.session.rollback()
             raise RoleAssignmentValidationError("valid_until must be later than valid_from")
 
         latest = self.session.scalar(
@@ -106,11 +140,13 @@ class RoleAssignmentService:
 
         latest_is_active = (
             latest is not None
+            and self._current_eligibility(latest, observed_at)
             and latest.revoked_at is None
             and self._utc(latest.valid_from) <= observed_at
             and (latest.valid_until is None or self._utc(latest.valid_until) > observed_at)
         )
         if latest_is_active and starts_at > observed_at:
+            self.session.rollback()
             raise RoleAssignmentValidationError(
                 "a future assignment cannot replace a currently active assignment"
             )
@@ -129,6 +165,7 @@ class RoleAssignmentService:
             course_id=course_id,
             role=role,
             version=version,
+            eligibility_approval_id=eligibility_approval.id if eligibility_approval else None,
             assigned_by_user_id=administrator.id,
             reason=clean_reason,
             assigned_at=observed_at,
@@ -177,7 +214,7 @@ class RoleAssignmentService:
         at: datetime | None = None,
     ) -> list[RoleAssignment]:
         observed_at = self._utc(at) if at is not None else self._utc(self._now())
-        return list(
+        rows = list(
             self.session.scalars(
                 select(RoleAssignment)
                 .join(User, User.id == RoleAssignment.subject_user_id)
@@ -198,6 +235,7 @@ class RoleAssignmentService:
                 )
             ).all()
         )
+        return [row for row in rows if self._current_eligibility(row, observed_at)]
 
     def require_assessor_access(
         self,
@@ -238,9 +276,21 @@ class RoleAssignmentService:
             .order_by(RoleAssignment.version.desc())
             .limit(1)
         )
-        if assignment is None:
+        if assignment is None or not self._current_eligibility(assignment, observed_at):
             raise ScopedRoleAccessDeniedError("active course-scoped permission required")
         return assignment
+
+    def _current_eligibility(self, assignment: RoleAssignment, at: datetime) -> bool:
+        if assignment.role is not ScopedRole.ASSESSOR:
+            return True
+        from app.services.assessment.eligibility import AssessorEligibilityService
+
+        approval = AssessorEligibilityService(self.session, now=self._now).current(
+            assignment.course_id,
+            assignment.subject_user_id,
+            at=at,
+        )
+        return approval is not None and approval.id == assignment.eligibility_approval_id
 
     def _require_active_administrator(self, actor: User) -> None:
         actor_id = self.session.scalar(

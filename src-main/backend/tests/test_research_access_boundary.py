@@ -74,11 +74,19 @@ def test_export_requires_a_current_research_grant(
     course = db_session.scalar(select(Course))
     assert course is not None
     observed = datetime.now(UTC)
+    approval_id = None
+    if grant_state == "assessor":
+        from support.assessment import approve_assessor_eligibility
+
+        approval_id = approve_assessor_eligibility(
+            db_session, educator, course.id, at=observed - timedelta(days=2)
+        ).id
     if grant_state != "missing":
         assignment = RoleAssignment(
             subject_user_id=educator.id,
             course_id=course.id,
             role=ScopedRole.ASSESSOR if grant_state == "assessor" else ScopedRole.RESEARCH,
+            eligibility_approval_id=approval_id,
             version=1,
             assigned_by_user_id=admin.id,
             reason="Explicit test-only permission.",

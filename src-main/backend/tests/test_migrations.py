@@ -50,6 +50,7 @@ EXPECTED_TABLES = {
     "assessment_evaluation_jobs",
     "appeals_or_corrections",
     "assessor_reviews",
+    "assessor_eligibility_approvals",
     "achievements",
     "alembic_version",
     "audit_events",
@@ -151,11 +152,103 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0025"
+            == "20260907_0026"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
             connection.execute(text("UPDATE simulation_outcomes SET error_code = 'changed'"))
+    engine.dispose()
+
+
+def test_assessor_eligibility_migration_preserves_unapproved_legacy_grants(tmp_path):
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from app.api.assessment_dependencies import get_scoped_role_eligibility
+    from app.models import Course, RoleAssignment, ScopedRole, User, UserRole
+    from app.models.assessor_eligibility import AssessorEligibilityApproval
+    from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
+    from app.services.assessment.eligibility import AssessorEligibilityService
+
+    url = f"sqlite:///{(tmp_path / 'eligibility.db').as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "20260907_0025")
+    engine = create_engine(url)
+    legacy_id = str(uuid4())
+    now = datetime.now(UTC)
+    with Session(engine) as session:
+        lead = User(
+            email="lead@migration.test",
+            password_hash="unused",
+            full_name="Course lead",
+            role=UserRole.EDUCATOR,
+        )
+        admin = User(
+            email="admin@migration.test",
+            password_hash="unused",
+            full_name="Administrator",
+            role=UserRole.ADMINISTRATOR,
+        )
+        session.add_all([lead, admin])
+        session.flush()
+        course = Course(educator_id=lead.id, code="MIG-ELIG", title="Eligibility migration")
+        session.add(course)
+        session.flush()
+        lead_id, admin_id, course_id = lead.id, admin.id, course.id
+        session.execute(
+            text("""INSERT INTO role_assignments
+            (id, subject_user_id, course_id, role, version, assigned_by_user_id, reason, assigned_at, valid_from)
+            VALUES (:id, :subject, :course, 'assessor', 1, :admin, 'Legacy grant', :now, :now)"""),
+            {
+                "id": legacy_id,
+                "subject": lead_id,
+                "course": course_id,
+                "admin": admin_id,
+                "now": now,
+            },
+        )
+        session.commit()
+    command.upgrade(config, "head")
+    with Session(engine) as session:
+        lead, admin = session.get(User, lead_id), session.get(User, admin_id)
+        assignments = RoleAssignmentService(
+            session, assignment_eligibility=get_scoped_role_eligibility()
+        )
+        legacy = session.get(RoleAssignment, legacy_id)
+        assert legacy.reason == "Legacy grant"
+        assert legacy.eligibility_approval_id is None
+        assert session.query(AssessorEligibilityApproval).count() == 0
+        with pytest.raises(ScopedRoleAccessDeniedError):
+            assignments.require_assessor_access(lead, course_id)
+        approval = AssessorEligibilityService(session).record(
+            lead,
+            course_id=course_id,
+            subject_user_id=lead.id,
+            expected_version=0,
+            state="APPROVED",
+            reason="Course lead confirms eligibility",
+        )
+        granted = assignments.assign(
+            admin,
+            subject_user_id=lead.id,
+            course_id=course_id,
+            role=ScopedRole.ASSESSOR,
+            reason="New approved appointment",
+        )
+        assert granted.eligibility_approval_id == approval.id
+        assert granted.version == 2
+        assert legacy.eligibility_approval_id is None
+        approval_id, grant_id = approval.id, granted.id
+    command.stamp(config, "20260907_0025")
+    command.upgrade(config, "head")
+    command.check(config)
+    with Session(engine) as session:
+        assert session.get(RoleAssignment, grant_id).eligibility_approval_id == approval_id
+    with pytest.raises(RuntimeError, match="Assessor eligibility history is protected"):
+        command.downgrade(config, "20260907_0025")
+    with pytest.raises(IntegrityError, match="append-only"):
+        with engine.begin() as connection:
+            connection.execute(text("DELETE FROM assessor_eligibility_approvals"))
     engine.dispose()
 
 
@@ -1953,6 +2046,7 @@ def test_definition_migration_upgrades_clean_database(tmp_path: Path) -> None:
         "revoked_by_user_id",
         "revocation_reason",
         "supersedes_assignment_id",
+        "eligibility_approval_id",
     } == role_assignment_columns
     assert {index["name"] for index in inspector.get_indexes("role_assignments")} >= {
         "ix_role_assignments_subject_course_role_active"

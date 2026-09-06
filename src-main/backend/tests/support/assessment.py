@@ -363,17 +363,52 @@ def build_external_criterion(
     return version
 
 
+def approve_assessor_eligibility(
+    session: Session, assessor: User, course_id: str, *, at: datetime = NOW
+):
+    from sqlalchemy import select
+
+    from app.models.assessor_eligibility import AssessorEligibilityApproval
+
+    existing = session.scalar(
+        select(AssessorEligibilityApproval)
+        .where(
+            AssessorEligibilityApproval.course_id == course_id,
+            AssessorEligibilityApproval.subject_user_id == assessor.id,
+        )
+        .order_by(AssessorEligibilityApproval.version.desc())
+        .limit(1)
+    )
+    if existing is not None:
+        return existing
+    course = session.get(Course, course_id)
+    approval = AssessorEligibilityApproval(
+        course_id=course_id,
+        subject_user_id=assessor.id,
+        actor_user_id=course.educator_id,
+        version=1,
+        state="APPROVED",
+        reason="Test fixture course-lead approval of teaching eligibility",
+        created_at=at,
+    )
+    session.add(approval)
+    session.flush()
+    return approval
+
+
 def assign_assessor(
     session: Session,
     assessor: User,
     course_id: str,
     assigned_by: User,
 ) -> None:
+    approval = approve_assessor_eligibility(session, assessor, course_id)
     session.add(
         RoleAssignment(
             subject_user_id=assessor.id,
             course_id=course_id,
             role=ScopedRole.ASSESSOR,
+            eligibility_approval_id=approval.id,
             version=1,
             assigned_by_user_id=assigned_by.id,
             reason="The assessor is assigned to review formal assessment decisions.",

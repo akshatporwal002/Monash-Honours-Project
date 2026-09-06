@@ -36,6 +36,8 @@ from app.schemas.lms import (
     AssessmentDefinitionRead,
     AssessmentTaskCriterionRead,
     AssessmentTaskFormRead,
+    AssessorEligibilityRead,
+    AssessorEligibilityWrite,
     LmsSchema,
     ScopedRoleAssignmentCreate,
     ScopedRoleAssignmentRead,
@@ -48,6 +50,7 @@ from app.services.assessment.definitions import (
     CriterionDraft,
     TaskFormDraft,
 )
+from app.services.assessment.eligibility import AssessorEligibilityService
 from app.services.assessment.repository import AssessmentDefinitionNotFoundError
 from app.services.assessment.review import (
     AssessmentReviewActionRequest,
@@ -143,6 +146,46 @@ ReviewService = Annotated[AssessmentReviewService, Depends(get_assessment_review
 
 
 @router.post(
+    "/courses/{course_id}/assessor-eligibility",
+    response_model=AssessorEligibilityRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def record_assessor_eligibility(
+    course_id: str,
+    payload: AssessorEligibilityWrite,
+    educator: CurrentEducator,
+    request: Request,
+    session: Annotated[Session, Depends(get_db)],
+):
+    try:
+        return AssessorEligibilityService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        ).record(educator, course_id=course_id, **payload.model_dump())
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
+@router.get(
+    "/courses/{course_id}/assessor-eligibility", response_model=list[AssessorEligibilityRead]
+)
+def read_assessor_eligibility(
+    course_id: str,
+    actor: CurrentUser,
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    try:
+        return AssessorEligibilityService(session).history(
+            actor, course_id, limit=limit, offset=offset
+        )
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
+@router.post(
     "/admin/courses/{course_id}/assignments",
     response_model=ScopedRoleAssignmentRead,
     status_code=status.HTTP_201_CREATED,
@@ -160,6 +203,8 @@ def assign_scoped_role(
             course_id=course_id,
             role=payload.role,
             reason=payload.reason,
+            valid_from=payload.valid_from,
+            valid_until=payload.valid_until,
         )
     except Exception as error:
         raise_assignment_http_error(error)

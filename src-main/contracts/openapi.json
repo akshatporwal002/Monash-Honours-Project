@@ -1989,6 +1989,127 @@
         "title": "AssessmentVersionReference",
         "type": "object"
       },
+      "AssessorEligibilityRead": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_user_id": {
+            "title": "Actor User Id",
+            "type": "integer"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "APPROVED",
+              "WITHDRAWN"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "subject_user_id": {
+            "title": "Subject User Id",
+            "type": "integer"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "course_id",
+          "subject_user_id",
+          "actor_user_id",
+          "version",
+          "state",
+          "reason",
+          "policy_version",
+          "created_at",
+          "valid_until"
+        ],
+        "title": "AssessorEligibilityRead",
+        "type": "object"
+      },
+      "AssessorEligibilityWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "APPROVED",
+              "WITHDRAWN"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "subject_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Subject User Id",
+            "type": "integer"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          }
+        },
+        "required": [
+          "subject_user_id",
+          "expected_version",
+          "state",
+          "reason"
+        ],
+        "title": "AssessorEligibilityWrite",
+        "type": "object"
+      },
       "AssessorReviewAction": {
         "enum": [
           "CONFIRM",
@@ -5372,6 +5493,30 @@
             "exclusiveMinimum": 0.0,
             "title": "Subject User Id",
             "type": "integer"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
           }
         },
         "required": [
@@ -5397,6 +5542,17 @@
           "course_id": {
             "title": "Course Id",
             "type": "string"
+          },
+          "eligibility_approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Approval Id"
           },
           "id": {
             "title": "Id",
@@ -5458,7 +5614,8 @@
           "assigned_at",
           "valid_from",
           "valid_until",
-          "revoked_at"
+          "revoked_at",
+          "eligibility_approval_id"
         ],
         "title": "ScopedRoleAssignmentRead",
         "type": "object"
@@ -8573,6 +8730,157 @@
           }
         },
         "summary": "Evaluate Assessment Attempt",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/assessor-eligibility": {
+      "get": {
+        "operationId": "read_assessor_eligibility_api_v1_assessment_courses__course_id__assessor_eligibility_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssessorEligibilityRead"
+                  },
+                  "title": "Response Read Assessor Eligibility Api V1 Assessment Courses  Course Id  Assessor Eligibility Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Assessor Eligibility",
+        "tags": [
+          "assessment"
+        ]
+      },
+      "post": {
+        "operationId": "record_assessor_eligibility_api_v1_assessment_courses__course_id__assessor_eligibility_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessorEligibilityWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessorEligibilityRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Assessor Eligibility",
         "tags": [
           "assessment"
         ]
