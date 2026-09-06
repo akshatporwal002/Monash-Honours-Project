@@ -107,6 +107,7 @@ from app.services.research import (
     DatabaseResearchJobDispatcher,
     SqlAlchemyResearchJobRepository,
 )
+from app.services.research.governance import research_processing_approved
 from app.services.research_export import ResearchExportService
 from app.services.research_export_repository import SqlAlchemyResearchExportRepository
 from app.services.terminal_integrations.planner import (
@@ -466,6 +467,8 @@ def _build_app(database_url: str):
     app.dependency_overrides[get_analytics_application] = analytics_application_dependency
     app.dependency_overrides[get_analytics_pseudonymizer] = lambda: pseudonymizer
     app.dependency_overrides[get_research_export_access_policy] = BrowserExportPolicy
+    # Browser records are a synthetic study, not approval to export production data.
+    app.dependency_overrides[research_processing_approved] = lambda: True
     app.dependency_overrides[get_research_export_service] = export_service_dependency
     app.dependency_overrides[get_request_security_guard] = BrowserSecurityGuard
 

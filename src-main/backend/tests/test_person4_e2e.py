@@ -133,6 +133,7 @@ from app.services.research import (
     DatabaseResearchJobDispatcher,
     SqlAlchemyResearchJobRepository,
 )
+from app.services.research.governance import research_processing_approved
 from app.services.research_export import ResearchExportService
 from app.services.research_export_repository import (
     SqlAlchemyResearchExportRepository,
@@ -408,6 +409,8 @@ def e2e_harness(tmp_path: Path) -> Generator[E2EHarness, None, None]:
     app.dependency_overrides[get_analytics_application] = analytics_application_dependency
     app.dependency_overrides[get_analytics_pseudonymizer] = lambda: pseudonymizer
     app.dependency_overrides[get_research_export_access_policy] = ExportPolicy
+    # This isolated synthetic study exercises export mechanics, not production approval.
+    app.dependency_overrides[research_processing_approved] = lambda: True
     app.dependency_overrides[get_research_export_service] = export_service_dependency
     app.dependency_overrides[get_readiness_probe] = lambda: readiness
     progress = ProgressAdapter()

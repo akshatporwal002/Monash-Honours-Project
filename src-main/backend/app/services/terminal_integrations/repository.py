@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.enums import (
     TerminalIntegrationFailureCategory,
     TerminalIntegrationState,
+    TerminalIntegrationType,
 )
 from app.models.terminal_integration import TerminalIntegrationOutbox
 from app.services.terminal_integrations.contracts import (
@@ -154,6 +155,7 @@ class SqlAlchemyTerminalIntegrationRepository:
         lease_expires_at: datetime,
         execution_token: str,
         maximum_attempts: int,
+        integration_type: TerminalIntegrationType | None = None,
     ) -> TerminalIntegrationClaim | None:
         observed_at = _utc(now)
         lease = _utc(lease_expires_at)
@@ -167,6 +169,9 @@ class SqlAlchemyTerminalIntegrationRepository:
             candidate = self._session.scalar(
                 select(TerminalIntegrationOutbox)
                 .where(
+                    (TerminalIntegrationOutbox.integration_type == integration_type)
+                    if integration_type is not None
+                    else True,
                     TerminalIntegrationOutbox.processing_attempts < maximum_attempts,
                     or_(
                         TerminalIntegrationOutbox.state == TerminalIntegrationState.PENDING,
@@ -356,6 +361,7 @@ class SqlAlchemyTerminalIntegrationRepository:
         *,
         observed_at: datetime,
         maximum_attempts: int,
+        integration_type: TerminalIntegrationType | None = None,
     ) -> str | None:
         observed = _utc(observed_at)
         if not 1 <= maximum_attempts <= 3:
@@ -364,6 +370,9 @@ class SqlAlchemyTerminalIntegrationRepository:
             candidate = self._session.scalar(
                 select(TerminalIntegrationOutbox)
                 .where(
+                    (TerminalIntegrationOutbox.integration_type == integration_type)
+                    if integration_type is not None
+                    else True,
                     TerminalIntegrationOutbox.state == TerminalIntegrationState.RUNNING,
                     TerminalIntegrationOutbox.lease_expires_at <= observed,
                     TerminalIntegrationOutbox.processing_attempts >= maximum_attempts,

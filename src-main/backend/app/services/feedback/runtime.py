@@ -42,14 +42,18 @@ from app.services.llm import (
 )
 from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
 from app.services.quantum import CircuitOperation, QuantumSimulationError, simulate_circuit
+from app.services.research.governance import research_processing_approved
 from app.services.terminal_integrations.planner import (
     DurableTerminalIntegrationPlanner,
 )
 
 
 class ConfiguredResearchEligibility:
+    """Fail closed until Task 33 supplies approved study and participant controls."""
+
     async def is_eligible(self, _: object) -> bool:
-        return settings.research_enabled
+        # A global switch is not study approval or versioned participant consent.
+        return settings.research_enabled and research_processing_approved()
 
 
 class LmsSubmissionProvider:
