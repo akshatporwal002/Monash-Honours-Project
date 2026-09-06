@@ -11,7 +11,7 @@ from app.models import TaskType
 from app.services.quantum import (
     CircuitOperation,
     QuantumSimulationError,
-    simulate_circuit,
+    validate_circuit,
 )
 
 
@@ -270,18 +270,19 @@ class QuantumCircuitHandler:
         try:
             typed_operations = [
                 CircuitOperation(
-                    gate=str(operation["gate"]),
-                    targets=tuple(int(target) for target in operation["targets"]),
+                    gate=operation["gate"],
+                    targets=tuple(operation["targets"]),
                 )
                 for operation in operations
                 if isinstance(operation, dict)
             ]
             if len(typed_operations) != len(operations):
                 raise ValueError
-            simulate_circuit(
-                qubits=int(circuit.get("qubits", 0)),
+            validate_circuit(
+                qubits=circuit.get("qubits", 0),
                 operations=typed_operations,
-                shots=int(circuit.get("shots", 1024)),
+                shots=circuit.get("shots", 1024),
+                seed=circuit.get("seed", 42),
             )
         except (KeyError, TypeError, ValueError, QuantumSimulationError) as error:
             message = (
@@ -296,6 +297,8 @@ class QuantumCircuitHandler:
             if isinstance(operation, dict)
         }
         required = {str(gate).casefold() for gate in _criteria(task).get("required_gates", [])}
+        # This legacy practice check reports gate presence only. Formal criteria
+        # use the assessment path; presence cannot prove a state property or explanation.
         return bool(required) and required <= gates
 
 

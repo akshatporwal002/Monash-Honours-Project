@@ -154,7 +154,11 @@ export interface GateOperation {
 }
 
 export interface SimulationResult {
+  run_id: string
   counts: Record<string, number>
+  probabilities: Record<string, number>
+  sampled_frequencies: Record<string, number>
+  shots: number
   circuit_text: string
   engine: string
 }

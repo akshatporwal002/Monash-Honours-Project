@@ -61,6 +61,9 @@ EXPECTED_TABLES = {
     "criterion_evaluations",
     "criterion_versions",
     "courses",
+    "circuit_versions",
+    "simulation_runs",
+    "simulation_outcomes",
     "enrollments",
     "feedback_records",
     "feedback_reports",
@@ -108,6 +111,52 @@ def migration_config(database_url: str) -> Config:
     config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
     config.set_main_option("sqlalchemy.url", database_url)
     return config
+
+
+def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp_path):
+    from app.models import User, UserRole
+    from app.services.quantum import CircuitOperation
+    from app.services.simulation_evidence import SimulationEvidenceService
+
+    url = f"sqlite:///{(tmp_path / 'simulation.db').as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "head")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        user = User(
+            email="migration@example.test",
+            password_hash="unused",
+            full_name="Migration learner",
+            role=UserRole.STUDENT,
+        )
+        session.add(user)
+        session.commit()
+        service = SimulationEvidenceService(session)
+        run_id, _ = service.prepare(
+            owner_id=user.id,
+            task_id=None,
+            qubits=1,
+            operations=[CircuitOperation("h", (0,))],
+            request_key="migration-run",
+        )
+        service.finish(run_id, status="failed", error_code="simulation_unavailable")
+        before = service.read(run_id)
+    command.stamp(config, "20260907_0024")
+    command.upgrade(config, "head")
+    command.check(config)
+    with Session(engine) as session:
+        assert SimulationEvidenceService(session).read(run_id) == before
+    with pytest.raises(RuntimeError, match="Simulation evidence is protected"):
+        command.downgrade(config, "20260907_0024")
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+            == "20260907_0025"
+        )
+    with pytest.raises(IntegrityError, match="append-only"):
+        with engine.begin() as connection:
+            connection.execute(text("UPDATE simulation_outcomes SET error_code = 'changed'"))
+    engine.dispose()
 
 
 def _load_sql_fixture(engine: Engine, fixture_path: Path) -> None:

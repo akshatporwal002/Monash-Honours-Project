@@ -514,11 +514,27 @@ export const api = {
         `/students/me/tasks/${encodeURIComponent(taskId)}/submissions`,
         { signal },
       )).map(normalizeSubmission),
-    simulate: (operations: GateOperation[]) =>
-      request<SimulationResult>(
+    simulate: async (operations: GateOperation[], taskId: string): Promise<SimulationResult> => {
+      const record = await request<{
+        run_id: string
+        status: 'pending' | 'completed' | 'failed' | 'timed_out' | 'interrupted'
+        result: Omit<SimulationResult, 'run_id'> | null
+      }>(
         '/students/me/simulate',
-        json('POST', { qubits: 2, operations, shots: 1024 }),
-      ),
+        json('POST', { qubits: 2, operations, shots: 1024, task_id: taskId, request_key: crypto.randomUUID() }),
+      )
+      if (record.status !== 'completed' || !record.result) {
+        const messages = {
+          pending: 'This simulation is still running. Its request has been saved.',
+          failed: 'Simulation failed. Your circuit and the failed run have been saved. Try again.',
+          timed_out: 'Simulation reached its time limit. Your circuit and the failed run have been saved.',
+          interrupted: 'Simulation was interrupted. Your circuit and the interrupted run have been saved.',
+          completed: 'The saved simulation result could not be read.',
+        }
+        throw new ApiError(messages[record.status], 200)
+      }
+      return { ...record.result, run_id: record.run_id }
+    },
     markNotificationRead: (notificationId: string) =>
       request<void>(
         `/students/me/reminders/${encodeURIComponent(notificationId)}/read`,

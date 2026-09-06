@@ -884,6 +884,46 @@ test('saves a circuit draft before a simulation fault', async () => {
   expect(draftPayload.circuit.operations).toEqual([{ gate: 'h', targets: [0] }])
 })
 
+test('shows saved exact probabilities separately from sampled frequencies and clears stale results after failure', async () => {
+  let runs = 0
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/draft') && (init?.method ?? 'GET') === 'GET') return response(null)
+    if (url.endsWith('/draft')) return response({ id: 'draft-run', task_id: 'task-run', answer: '', code: null,
+      circuit: { qubits: 2, operations: [{ gate: 'h', targets: [0] }] }, updated_at: '2026-09-07T08:00:00Z' })
+    if (url.endsWith('/simulate')) {
+      runs += 1
+      return response(runs === 1 ? {
+        run_id: 'saved-run-1', status: 'completed', result: {
+          counts: { '00': 768, '01': 256 }, probabilities: { '00': 0.5, '01': 0.5 },
+          sampled_frequencies: { '00': 0.75, '01': 0.25 }, shots: 1024,
+          circuit_text: 'Saved H circuit', engine: 'Qiskit AerSimulator',
+        },
+      } : { run_id: 'saved-run-2', status: 'timed_out', result: null })
+    }
+    return response([])
+  })
+  const task: LearningTask = {
+    id: 'task-run', title: 'Inspect a saved circuit', module: 'Module 3',
+    description: 'Compare exact and sampled values.', instructions: 'Add H and run.',
+    task_type: 'quantum_circuit', difficulty: 'intermediate', points: 100, position: 1,
+    status: 'in_progress', score: null,
+  }
+  render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('button', { name: 'Add H gate' }))
+  await user.click(screen.getByRole('button', { name: 'Run 1,024 shots' }))
+  await screen.findByText('Saved run: saved-run-1')
+  expect(screen.getAllByText('50.00%')).toHaveLength(2)
+  expect(screen.getByText('75.00%')).toBeInTheDocument()
+  expect(screen.getByText('25.00%')).toBeInTheDocument()
+  const simulationCall = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/simulate'))
+  expect(JSON.parse(String(simulationCall?.[1]?.body))).toMatchObject({ task_id: 'task-run', request_key: expect.any(String) })
+  await user.click(screen.getByRole('button', { name: 'Run 1,024 shots' }))
+  await screen.findByText('Simulation reached its time limit. Your circuit and the failed run have been saved.')
+  expect(screen.queryByText('Saved run: saved-run-1')).not.toBeInTheDocument()
+})
+
 test('has no detectable axe violations on the role selection and sign-in screen', async () => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({ detail: 'Not authenticated' }, 401))
   const { container } = render(<App />)

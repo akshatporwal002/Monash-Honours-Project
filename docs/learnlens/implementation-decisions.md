@@ -74,3 +74,33 @@ Source replacement resets processing state, and retirement cancels further publi
 Expose safe errors and retry dates in material reads. Keep execution tokens internal.
 Add status refresh and manual retry controls to the course editor.
 The [Task 10 handoff](task-10-material-processing-recovery.md) records validation and operational limits.
+
+## Task 11: bound simulation and preserve the distinction between state and sampling
+
+Task 10 merged into local main at `7fe68f77776018b972441f0988a39b68e3fb1cb9`.
+Task 11 branches from that merge as `feat/task-11-durable-simulation-evidence`.
+
+Run Qiskit in a child process so the parent can enforce and clean up a timed-out execution.
+Keep the existing HTTP limit of 30 operations and apply it to every core caller.
+Use a 15-second budget, two concurrent child processes per API process, and one native Aer thread per child.
+These are technical defaults, not approved assessment conditions.
+
+Store exact statevector probabilities separately from sampled frequencies.
+Keep amplitudes and explicit bit ordering so later criteria do not confuse matching distributions with matching states.
+Preserve the current ideal H/X/CX scope; additional gates and noise models need their own supported execution path.
+Circuit-format validation must not trigger an unrecorded simulation.
+
+Preserve circuit versions, execution requests, and terminal outcomes in separate append-only tables.
+Save requests before execution and results before returning successful evidence.
+Request keys identify retries of the same execution. A changed input needs a new key.
+Feedback references a stored run linked to its immutable submission, policy, and engine versions.
+Keep private practice separate from course-scoped access to task and feedback runs.
+
+After 20 seconds, the worker records an unfinished request as interrupted.
+This gives the 15-second process budget five seconds to record its outcome.
+Late output cannot replace terminal evidence. A fresh run requires a new request key.
+The legacy stateless wrapper is retired so every application execution has durable evidence.
+No historical run settings are inferred or backfilled.
+
+The [Task 11 handoff](task-11-simulation-evidence.md) records implementation and final local validation: 782 backend tests, 85.52% service coverage, and 180 frontend tests.
+Migration, contract, lint, format, and production-build checks passed.

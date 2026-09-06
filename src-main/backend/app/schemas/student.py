@@ -67,7 +67,7 @@ class SubmissionRead(StudentSchema):
 
 class GateOperation(BaseModel):
     gate: Literal["h", "x", "cx"]
-    targets: list[Annotated[int, Field(ge=0)]]
+    targets: list[Annotated[int, Field(ge=0, strict=True)]]
 
     @model_validator(mode="after")
     def validate_targets(self) -> "GateOperation":
@@ -78,9 +78,12 @@ class GateOperation(BaseModel):
 
 
 class SimulationRequest(BaseModel):
-    qubits: Annotated[int, Field(ge=1, le=5)] = 2
+    qubits: Annotated[int, Field(ge=1, le=5, strict=True)] = 2
     operations: list[GateOperation] = Field(default_factory=list, max_length=30)
-    shots: Annotated[int, Field(ge=1, le=8192)] = 1024
+    shots: Annotated[int, Field(ge=1, le=4096, strict=True)] = 1024
+    seed: Annotated[int, Field(ge=0, le=4294967295, strict=True)] = 42
+    task_id: str | None = Field(default=None, min_length=1, max_length=255)
+    request_key: str | None = Field(default=None, min_length=1, max_length=128)
 
     @model_validator(mode="after")
     def validate_qubits(self) -> "SimulationRequest":
@@ -94,6 +97,37 @@ class SimulationRead(BaseModel):
     probabilities: dict[str, float]
     circuit_text: str
     engine: str
+    sampled_frequencies: dict[str, float] = Field(default_factory=dict)
+    statevector: list[list[float]] = Field(default_factory=list)
+    engine_versions: dict[str, str] = Field(default_factory=dict)
+    qubit_order: list[int] = Field(default_factory=list)
+    measurement_mapping: list[list[int]] = Field(default_factory=list)
+    seed: int = 42
+    shots: int = 1024
+    probability_method: Literal["exact_statevector"] = "exact_statevector"
+    policy_version: str = "ideal-h-x-cx-v1"
+
+
+class SimulationRunRead(BaseModel):
+    run_id: str
+    owner_id: int
+    task_id: str | None
+    course_id: str | None
+    circuit_version_id: str
+    content_digest: str
+    circuit: dict
+    submission_id: str | None
+    purpose: Literal["practice", "task", "feedback"]
+    seed: int
+    shots: int
+    policy_version: str
+    engine_versions: dict[str, str]
+    created_at: datetime
+    deadline_at: datetime
+    finished_at: datetime | None
+    status: Literal["pending", "completed", "failed", "timed_out", "interrupted"]
+    error_code: str | None
+    result: SimulationRead | None
 
 
 class AchievementRead(BaseModel):

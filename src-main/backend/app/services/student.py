@@ -17,8 +17,7 @@ from app.models import (
     SubmissionStatus,
     TaskType,
 )
-from app.schemas.student import ProgressRead, RecommendationRead, SimulationRequest
-from app.services.quantum import CircuitOperation, simulate_circuit
+from app.schemas.student import ProgressRead, RecommendationRead
 
 DEMO_STUDENT_ID = "00000000-0000-4000-8000-000000000003"
 
@@ -261,20 +260,3 @@ def award_achievements(
         )
         newly_earned.append(achievement.name)
     return newly_earned
-
-
-def simulate(request: SimulationRequest) -> dict:
-    result = simulate_circuit(
-        qubits=request.qubits,
-        operations=[
-            CircuitOperation(gate=operation.gate, targets=tuple(operation.targets))
-            for operation in request.operations
-        ],
-        shots=request.shots,
-    )
-    return {
-        "counts": result.counts,
-        "probabilities": result.probabilities,
-        "circuit_text": result.circuit_text,
-        "engine": result.engine,
-    }

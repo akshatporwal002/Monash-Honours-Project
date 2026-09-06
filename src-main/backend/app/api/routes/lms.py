@@ -66,7 +66,7 @@ from app.schemas.lms import (
     TaskRead,
     TaskUpdate,
 )
-from app.schemas.student import SimulationRead, SimulationRequest
+from app.schemas.student import SimulationRequest, SimulationRunRead
 from app.services.assessment.jobs import (
     AssessmentEvaluationApplication,
     AssessmentEvaluationExecutor,
@@ -78,9 +78,9 @@ from app.services.feedback.application import (
 )
 from app.services.lms import LmsService, LmsServiceError, bootstrap_demo
 from app.services.material_indexing import index_material_offline
+from app.services.quantum import simulation_capabilities
 from app.services.rag.errors import RagError
 from app.services.rag.storage import FileStorage, LocalFileStorage
-from app.services.student import simulate
 
 router = APIRouter()
 
@@ -553,12 +553,33 @@ def list_student_attempts(
     return service.list_attempts(student, task_id)
 
 
-@router.post("/students/me/simulate", response_model=SimulationRead)
+@router.post("/students/me/simulate", response_model=SimulationRunRead)
 def simulate_student_circuit(
     payload: SimulationRequest,
-    _: CurrentStudent,
+    student: CurrentStudent,
+    service: Lms,
 ) -> dict:
-    return simulate(payload)
+    return service.simulate_student_circuit(student, payload)
+
+
+@router.get("/simulations/capabilities")
+def get_simulation_capabilities(_: CurrentUser) -> dict:
+    return simulation_capabilities()
+
+
+@router.get("/simulations/{run_id}", response_model=SimulationRunRead)
+def read_simulation(run_id: str, actor: CurrentUser, service: Lms) -> dict:
+    return service.read_simulation(actor, run_id)
+
+
+@router.get("/students/me/tasks/{task_id}/simulations", response_model=list[SimulationRunRead])
+def list_student_simulations(
+    task_id: str,
+    student: CurrentStudent,
+    service: Lms,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> list[dict]:
+    return service.list_student_simulations(student, task_id, limit)
 
 
 @router.patch(
