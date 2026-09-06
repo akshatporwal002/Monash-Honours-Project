@@ -30,6 +30,7 @@ import {
   cx,
 } from './ui'
 import styles from './CourseEditor.module.css'
+import { TaskReviewPanel } from './TaskReviewPanel'
 
 const steps = [
   { number: 1, label: 'Course details' },
@@ -81,6 +82,7 @@ export function CourseEditor() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [archiveConfirm, setArchiveConfirm] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const indexedMaterialCount = materials.filter(
     (material) => material.status === 'indexed',
   ).length
@@ -884,10 +886,16 @@ export function CourseEditor() {
                 onClick={() => void publish()}
                 disabled={busy || course?.status === 'published' || course?.status === 'archived'}
               >
-                {course?.status === 'published' ? 'Course published' : 'Approve and publish'}
+                {course?.status === 'published' ? 'Course published' : 'Publish course'}
                 <CheckCircle2 size={16} aria-hidden="true" />
               </Button>
             </div>
+            {course && <>
+              <Button variant="quiet" onClick={() => setReviewOpen((open) => !open)}>
+                {reviewOpen ? 'Close task review' : 'Review saved tasks'}
+              </Button>
+              {reviewOpen && <TaskReviewPanel key={`${course.id}-${generatedTasks.map((task) => task.id).join(',')}`} courseId={course.id} />}
+            </>}
           </div>
         )}
 

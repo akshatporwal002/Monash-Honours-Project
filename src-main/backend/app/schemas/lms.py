@@ -373,6 +373,7 @@ class TaskCreate(LmsSchema):
 
 
 class TaskUpdate(LmsSchema):
+    expected_revision_id: UuidString | None = None
     title: Title | None = None
     prompt: NonEmpty | None = None
     instructions: NonEmpty | None = None

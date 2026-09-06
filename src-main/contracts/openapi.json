@@ -6973,6 +6973,268 @@
         "title": "TaskRead",
         "type": "object"
       },
+      "TaskReviewEventRead": {
+        "properties": {
+          "actor_user_id": {
+            "title": "Actor User Id",
+            "type": "integer"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "source_approvals": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Source Approvals",
+            "type": "object"
+          },
+          "state": {
+            "enum": [
+              "SUBMITTED",
+              "APPROVED",
+              "REJECTED",
+              "WITHDRAWN"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_revision_id": {
+            "title": "Task Revision Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "task_revision_id",
+          "course_id",
+          "version",
+          "state",
+          "actor_user_id",
+          "reason",
+          "source_approvals",
+          "policy_version"
+        ],
+        "title": "TaskReviewEventRead",
+        "type": "object"
+      },
+      "TaskReviewHistoryRead": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TaskReviewEventRead"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/TaskRevisionRead"
+          }
+        },
+        "required": [
+          "revision",
+          "events"
+        ],
+        "title": "TaskReviewHistoryRead",
+        "type": "object"
+      },
+      "TaskReviewSummary": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "content_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Digest"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "review_version": {
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          },
+          "state": {
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "APPROVED",
+              "REJECTED",
+              "WITHDRAWN"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision_id",
+          "revision",
+          "content_digest",
+          "state",
+          "review_version",
+          "available",
+          "issues"
+        ],
+        "title": "TaskReviewSummary",
+        "type": "object"
+      },
+      "TaskReviewWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_review_version": {
+            "minimum": 0.0,
+            "title": "Expected Review Version",
+            "type": "integer"
+          },
+          "expected_revision_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Expected Revision Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "SUBMITTED",
+              "APPROVED",
+              "REJECTED",
+              "WITHDRAWN"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision_id",
+          "expected_review_version",
+          "state",
+          "reason"
+        ],
+        "title": "TaskReviewWrite",
+        "type": "object"
+      },
+      "TaskRevisionRead": {
+        "properties": {
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "provenance": {
+            "enum": [
+              "AUTHORED",
+              "GENERATED",
+              "LEGACY"
+            ],
+            "title": "Provenance",
+            "type": "string"
+          },
+          "snapshot": {
+            "additionalProperties": true,
+            "title": "Snapshot",
+            "type": "object"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "task_id",
+          "course_id",
+          "version",
+          "snapshot",
+          "content_digest",
+          "provenance",
+          "actor_user_id"
+        ],
+        "title": "TaskRevisionRead",
+        "type": "object"
+      },
       "TaskType": {
         "enum": [
           "multiple_choice",
@@ -7029,6 +7291,19 @@
               }
             ],
             "title": "Expected Answer"
+          },
+          "expected_revision_id": {
+            "anyOf": [
+              {
+                "maxLength": 36,
+                "minLength": 36,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Revision Id"
           },
           "instructions": {
             "anyOf": [
@@ -13902,6 +14177,215 @@
         "summary": "Update Task",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/tasks/{task_id}/review": {
+      "get": {
+        "operationId": "get_review_api_v1_tasks__task_id__review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskReviewSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Review",
+        "tags": [
+          "task review"
+        ]
+      },
+      "post": {
+        "operationId": "record_review_api_v1_tasks__task_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskReviewWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskReviewEventRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Review",
+        "tags": [
+          "task review"
+        ]
+      }
+    },
+    "/api/v1/tasks/{task_id}/review/history": {
+      "get": {
+        "operationId": "get_history_api_v1_tasks__task_id__review_history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskReviewHistoryRead"
+                  },
+                  "title": "Response Get History Api V1 Tasks  Task Id  Review History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get History",
+        "tags": [
+          "task review"
         ]
       }
     }

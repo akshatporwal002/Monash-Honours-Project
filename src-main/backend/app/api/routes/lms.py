@@ -81,6 +81,7 @@ from app.services.material_indexing import index_material_offline
 from app.services.quantum import simulation_capabilities
 from app.services.rag.errors import RagError
 from app.services.rag.storage import FileStorage, LocalFileStorage
+from app.services.task_review import TaskReviewError
 
 router = APIRouter()
 
@@ -94,7 +95,8 @@ def get_lms_service(
             session,
             correlation_id=getattr(request.state, "correlation_id", None),
         )
-    except LmsServiceError as error:
+    except (LmsServiceError, TaskReviewError) as error:
+        session.rollback()
         raise HTTPException(
             status_code=error.status_code,
             detail=error.detail,

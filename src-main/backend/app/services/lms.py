@@ -105,6 +105,7 @@ from app.services.rag.storage import FileStorage
 from app.services.rag.task_generation import GenerateTasksInput
 from app.services.simulation_evidence import SimulationEvidenceError, SimulationEvidenceService
 from app.services.task_generation_runtime import build_grounded_task_generation_service
+from app.services.task_review import TaskReviewService
 from app.services.task_types import (
     DEFAULT_TASK_TYPE_REGISTRY,
     InvalidTaskSubmissionError,
@@ -527,6 +528,7 @@ class LmsService:
         except ValueError as error:
             self.session.rollback()
             raise _unprocessable(str(error)) from error
+        TaskReviewService(self.session).capture(task, educator.id)
         self._audit(educator, "task.created", "task", task.id)
         self._commit()
         return self._task_read(task)
@@ -562,6 +564,7 @@ class LmsService:
             raise _unprocessable(str(error)) from error
         for task in tasks:
             task.due_at = payload.due_at
+            TaskReviewService(self.session).capture(task, educator.id)
             self._audit(educator, "task.generated", "task", task.id)
         self._commit()
         return [self._task_read(task) for task in tasks]
@@ -576,6 +579,8 @@ class LmsService:
         course = self._require_course_owner(educator, task.course_id or "")
         self._require_not_archived(course)
         values = payload.model_dump(exclude_unset=True)
+        review = TaskReviewService(self.session)
+        review.prepare_edit(task, values.pop("expected_revision_id", None))
         final_position = values.get("position", task.position)
         prerequisites = values.get("prerequisite_task_ids", task.prerequisite_task_ids)
         self._validate_prerequisites(course.id, prerequisites, final_position, task.id)
@@ -585,6 +590,8 @@ class LmsService:
                 values.get("source_references", task.source_references),
             )
         mapping = {"prompt": "description"}
+        if review.latest_revision(task.id) is None:
+            review.capture(task, provenance="LEGACY")
         for name, value in values.items():
             setattr(task, mapping.get(name, name), value)
         try:
@@ -600,6 +607,7 @@ class LmsService:
         except ValueError as error:
             self.session.rollback()
             raise _unprocessable(str(error)) from error
+        review.capture(task, educator.id)
         self._audit(educator, "task.updated", "task", task.id)
         self._commit()
         return self._task_read(task)

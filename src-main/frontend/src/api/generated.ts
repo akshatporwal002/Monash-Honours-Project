@@ -1038,11 +1038,54 @@ export type ApiSchemas = {
     "task_type": ApiSchemas["TaskType"]
     "title": string
   }
+  "TaskReviewEventRead": {
+    "actor_user_id": number
+    "course_id": string
+    "created_at": string
+    "id": string
+    "policy_version": string
+    "reason": string
+    "source_approvals": Partial<Record<string, string>>
+    "state": "SUBMITTED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+    "task_revision_id": string
+    "version": number
+  }
+  "TaskReviewHistoryRead": {
+    "events": Array<ApiSchemas["TaskReviewEventRead"]>
+    "revision": ApiSchemas["TaskRevisionRead"]
+  }
+  "TaskReviewSummary": {
+    "available": boolean
+    "content_digest": (string) | (null)
+    "issues": Array<string>
+    "review_version": number
+    "revision": number
+    "revision_id": (string) | (null)
+    "state": "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+  }
+  "TaskReviewWrite": {
+    "expected_review_version": number
+    "expected_revision_id": string
+    "reason": string
+    "state": "SUBMITTED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+  }
+  "TaskRevisionRead": {
+    "actor_user_id": (number) | (null)
+    "content_digest": string
+    "course_id": string
+    "created_at": string
+    "id": string
+    "provenance": "AUTHORED" | "GENERATED" | "LEGACY"
+    "snapshot": Record<string, unknown>
+    "task_id": string
+    "version": number
+  }
   "TaskType": "multiple_choice" | "multiple_answer" | "short_answer" | "code_explanation" | "code_completion" | "quantum_circuit" | "quiz" | "code" | "circuit"
   "TaskUpdate": {
     "difficulty"?: ("beginner" | "intermediate" | "advanced") | (null)
     "due_at"?: (string) | (null)
     "expected_answer"?: (string) | (null)
+    "expected_revision_id"?: (string) | (null)
     "instructions"?: (string) | (null)
     "marking_criteria"?: (Record<string, unknown>) | (null)
     "points"?: (number) | (null)

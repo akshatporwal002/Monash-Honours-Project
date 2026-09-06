@@ -1,6 +1,7 @@
 # Task 12: educator review and publication controls
 
-Status: partially implemented; assessor eligibility and grant controls are in place. Task review, publication, and their UI remain unfinished.
+Status: partially implemented. Assessor eligibility, task review storage, reviewer routes, and the first review screen are implemented.
+Learner publication enforcement, formal publication, and the remaining approval screens are unfinished.
 
 Branch: `feat/task-12-educator-publication-controls`.
 Base: Task 11 merge `42ffe03b06a47468ecc3dd41975dcee3e9dd7895`.
@@ -80,10 +81,54 @@ Test fixtures do not establish approval for a live course.
 
 ## Next work
 
-Inspect the task-generation, course-publication, role-assignment, and assessment-definition routes and their UI consumers.
-Add the task review lifecycle and user interfaces for course-lead approvals and administrator grants.
+Connect task availability checks to learner lists, task access, and course publication while preserving historical attempts.
+Add user interfaces for source review, course-lead approvals, and administrator grants.
 Then connect the publication policy to current approved sources, task versions, conditions, and supported circuit capabilities.
 Verify the actual UI-to-API journey, stale approvals, changed content, revoked grants, missing sources, and unsupported circuits.
 Check read access for an assigned assessor who is not the course owner, including source history and setup screens.
 Provide administrator grant-history reads alongside the new course-lead eligibility history.
 Update contracts, migration protection, the decision log, and the remaining-task record before the next local merge.
+
+## Task revision and review implementation
+
+`TaskRevision` stores immutable snapshots with exact outcome content, task text, answers, source references, and generation provenance.
+`TaskReviewEvent` records explicit submission, approval, rejection, and withdrawal, including reasons and the exact source approval IDs.
+Task creation, edits, and generation save revisions inside their authoring transactions without implicit approval.
+The course educator records review actions. Current assigned assessors and administrators have read-only review access.
+Learners cannot read the archive or its marking guidance.
+
+`GET /tasks/{task_id}/review` returns the current review state and unmet checks.
+`GET /tasks/{task_id}/review/history` returns paginated revisions and their review events.
+`POST /tasks/{task_id}/review` records an explicit action with expected revision and review versions.
+Task edits accept an expected revision ID and reject stale writes when supplied.
+Date values in review responses use UTC.
+
+The course editor now opens a saved-task review screen with editing, review actions, reasons, and earlier content.
+Unsaved edits disable review actions. Conflicts remain visible and do not produce a false success state.
+The course publication button is labelled separately from individual task approval.
+Marking criteria and circuit settings are currently displayed for inspection; typed editing of those settings remains due.
+
+Current approval checks require valid module and outcome scope, teaching content, marking guidance, and supported circuit settings.
+Generated tasks require approved external source passages. The formal publication path must invoke the stronger source requirement.
+Teacher-authored practice can use its reviewed content without external source passages.
+Edits, changed outcome content, source retirement, and changed source approval events invalidate availability.
+These checks are implemented in the review service; learner entry points still need to enforce them.
+
+Migration `20260907_0027` adds the archive and backfills existing course tasks as unapproved legacy revisions.
+Replay preserves the archive. SQL update, delete, and replacement attempts fail.
+Populated history blocks downgrade before schema changes. Restore a verified pre-upgrade backup for recovery.
+
+The full backend suite passed 832 tests with 85.83% service coverage.
+It includes all 30 migration tests, 27 review-service checks, and the mounted authoring and review API journey.
+The API journey verifies stale edits and review actions, protected marking answers, revision history, and UTC dates.
+Concurrent review requests create one event; the second request returns a conflict.
+The evidence recovery test verifies that backfilled task history stays protected and restores the pre-upgrade backup.
+
+All 183 frontend tests across 53 files passed.
+The new screen tests exercise review reasons, expected versions, edits, history, and stale-request failures.
+Backend lint, formatting across 336 files, OpenAPI drift, frontend contract drift, frontend lint, and the production build passed.
+The build retains the existing large-bundle warning.
+Native browser and complete publication journeys remain due with the rest of Task 12.
+
+Local logs are in `src-main/backend/.tmp-task12/review-full02.log`, `review-frontend-tests02.log`, and `review-frontend-build02.log`.
+These ignored logs support this checkpoint; the task remains unmerged and is not release-approved.

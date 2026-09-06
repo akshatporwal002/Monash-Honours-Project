@@ -411,6 +411,18 @@ function normalizeSettings(raw: RawSettings): SystemSettings {
 }
 
 export const api = {
+  taskReview: {
+    tasks: (courseId: string, signal?: AbortSignal) =>
+      request<ApiSchemas['TaskRead'][]>(`/courses/${encodeURIComponent(courseId)}/tasks`, { signal }),
+    summary: (taskId: string, signal?: AbortSignal) =>
+      request<ApiSchemas['TaskReviewSummary']>(`/tasks/${encodeURIComponent(taskId)}/review`, { signal }),
+    history: (taskId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['TaskReviewHistoryRead'][]>(`/tasks/${encodeURIComponent(taskId)}/review/history?limit=20&offset=${offset}`, { signal }),
+    record: (taskId: string, payload: ApiSchemas['TaskReviewWrite']) =>
+      request<ApiSchemas['TaskReviewEventRead']>(`/tasks/${encodeURIComponent(taskId)}/review`, json('POST', payload)),
+    edit: (taskId: string, payload: ApiSchemas['TaskUpdate']) =>
+      request<ApiSchemas['TaskRead']>(`/tasks/${encodeURIComponent(taskId)}`, json('PATCH', payload)),
+  },
   auth: {
     me: async (signal?: AbortSignal) =>
       normalizeAuthUser(await request<RawAuthUser>('/auth/me', { signal })),

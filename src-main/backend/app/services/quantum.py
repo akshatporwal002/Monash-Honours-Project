@@ -69,7 +69,12 @@ def simulation_capabilities() -> dict:
 
 
 def validate_circuit(
-    *, qubits: int, operations: list[CircuitOperation], shots: int = 1024, seed: int = 42
+    *,
+    qubits: int,
+    operations: list[CircuitOperation],
+    shots: int = 1024,
+    seed: int = 42,
+    allow_empty: bool = False,
 ) -> None:
     if type(qubits) is not int or not 1 <= qubits <= MAX_QUBITS:
         raise QuantumSimulationError("Circuits must contain between 1 and 5 qubits.")
@@ -77,7 +82,7 @@ def validate_circuit(
         raise QuantumSimulationError("Shot count must be between 1 and 4096.")
     if type(seed) is not int or not 0 <= seed <= 2**32 - 1:
         raise QuantumSimulationError("The simulation seed must be a valid unsigned 32-bit integer.")
-    if not isinstance(operations, list) or not operations:
+    if not isinstance(operations, list) or (not operations and not allow_empty):
         raise QuantumSimulationError("Add at least one gate before running the circuit.")
     if len(operations) > MAX_OPERATIONS:
         raise QuantumSimulationError("Circuits may contain at most 30 operations.")

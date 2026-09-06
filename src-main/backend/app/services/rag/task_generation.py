@@ -19,6 +19,7 @@ from app.services.rag.contracts import (
 from app.services.rag.errors import RagError
 from app.services.rag.retrieval import RetrievalService
 from app.services.rag.source_history import bind_sources, output_digest
+from app.services.task_review import TaskReviewService
 from app.services.task_types import DEFAULT_TASK_TYPE_REGISTRY
 
 
@@ -188,6 +189,7 @@ class GroundedTaskGenerationService:
                 references=task.source_references,
                 strict=True,
             )
+            TaskReviewService(self.session).capture(task)
         if commit:
             self.session.commit()
         else:

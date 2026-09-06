@@ -37,6 +37,8 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "task_revisions",
+    "task_review_events",
     "assessment_definition_versions",
     "assessment_definitions",
     "assessment_legacy_history",
@@ -152,7 +154,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0026"
+            == "20260907_0027"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -249,6 +251,55 @@ def test_assessor_eligibility_migration_preserves_unapproved_legacy_grants(tmp_p
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
             connection.execute(text("DELETE FROM assessor_eligibility_approvals"))
+    engine.dispose()
+
+
+def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tmp_path):
+    from sqlalchemy import func, select
+
+    from app.models import LearningTask
+    from app.models.task_review import TaskReviewEvent, TaskRevision
+    from app.services.lms import bootstrap_demo
+    from app.services.task_review import TaskReviewService, snapshot_digest, task_snapshot
+
+    database_path = tmp_path / "task-review.db"
+    url = f"sqlite:///{database_path.as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "20260907_0026")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        bootstrap_demo(session)
+        tasks = list(session.scalars(select(LearningTask)))
+        expected = {task.id: task_snapshot(session, task) for task in tasks}
+    command.upgrade(config, "head")
+    command.check(config)
+    with Session(engine) as session:
+        revisions = list(session.scalars(select(TaskRevision)))
+        assert len(revisions) == len(expected) > 0
+        for revision in revisions:
+            assert revision.snapshot == expected[revision.task_id]
+            assert revision.content_digest == snapshot_digest(expected[revision.task_id])
+            assert revision.provenance == "LEGACY"
+            assert revision.actor_user_id is None
+            assert not TaskReviewService(session).summary(
+                session.get(LearningTask, revision.task_id)
+            )["available"]
+        assert session.scalar(select(func.count()).select_from(TaskReviewEvent)) == 0
+    before = database_manifest(database_path)
+    command.stamp(config, "20260907_0026")
+    command.upgrade(config, "head")
+    assert database_manifest(database_path) == before
+    with pytest.raises(RuntimeError, match="Task review history is protected"):
+        command.downgrade(config, "20260907_0026")
+    assert database_manifest(database_path) == before
+    for statement in (
+        "UPDATE task_revisions SET version = version + 1",
+        "DELETE FROM task_revisions",
+        "INSERT OR REPLACE INTO task_revisions SELECT * FROM task_revisions",
+    ):
+        with pytest.raises(IntegrityError, match="append-only"):
+            with engine.begin() as connection:
+                connection.execute(text(statement))
     engine.dispose()
 
 

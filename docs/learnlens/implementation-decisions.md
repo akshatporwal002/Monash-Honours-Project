@@ -128,3 +128,34 @@ These controls implement the selected policy; test appointments do not appoint s
 Task review, source and condition checks, publication, and their user interfaces remain in progress.
 This assessor-eligibility checkpoint passed 803 backend tests with 85.64% service coverage, all 29 migration tests, and contract, lint, format, and frontend-build checks.
 See the [Task 12 handoff](task-12-publication-controls.md) for evidence and remaining work.
+
+## Task 12: review exact teaching content
+
+Store each authored or generated task revision as immutable content with a digest.
+Include the outcome statement, task prompt, instructions, marking guidance, sources, and circuit settings.
+Keep generation provenance distinct from educator approval.
+Save review actions separately, with the actor, reason, sequence, and exact source approval IDs.
+Editing a task creates a new revision and requires a fresh review.
+Changed outcome content, retired sources, and replaced or revoked source approvals invalidate current availability.
+
+Use an explicit submitted, approved, rejected, and withdrawn review lifecycle.
+The course educator records teaching-content reviews. Administrators and current course assessors can inspect history.
+Learners cannot read the review archive or its marking answers.
+The review screen sends expected revision and review versions so stale browser tabs cannot overwrite reviewed work.
+Task generation and task editing never create implicit approvals.
+
+Teacher-authored practice may use the reviewed task itself as its teaching content without external passages.
+Generated tasks and all formal assessment forms require approved external source passages.
+This distinction preserves the existing authored-practice path without weakening formal source approval.
+Circuit approval validates the current H/X/CX limits and rejects unsupported settings without executing a simulation.
+Empty starter circuits are valid authoring templates; execution still requires at least one gate.
+
+Migration `20260907_0027` archives existing course tasks as unapproved legacy snapshots.
+It never invents a historical reviewer or approval date.
+The archive blocks destructive downgrade, including when the records came from migration backfill.
+Recovery uses a verified backup taken before the upgrade.
+
+Task 12 remains unmerged. Learner publication enforcement, formal publication, source review screens,
+and staff appointment screens still need integration and verification.
+The task-review checkpoint passed 832 backend tests with 85.83% service coverage and all 183 frontend tests.
+Migration, contract, lint, format, and production-build checks passed. Native publication journeys remain due.
