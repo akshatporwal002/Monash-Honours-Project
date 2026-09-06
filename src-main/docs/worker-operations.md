@@ -5,6 +5,40 @@ the singleton durable heartbeat slot before scanning any queue; a second live pr
 After the ownership timestamp becomes stale, one replacement process may take over. Apply migrations
 before starting either the API or worker.
 
+## Local Windows launcher
+
+Run `./start-quantumlearn.ps1` from the repository root with Python 3.11, uv, and Node.js 22 installed.
+The launcher prepares dependencies, validates backend settings, applies migrations, then starts the API, frontend, and durable worker.
+It copies `.env.example` only when `.env` is missing. Review the backend file before choosing a database.
+The local template selects the built-in offline adapters and disables research processing.
+The API and worker inherit the same environment and use the same backend working directory.
+
+Startup succeeds only after the frontend responds and the actual API readiness route passes every required check.
+The default route is `http://127.0.0.1:8000/api/v1/ready`; a configured API prefix is respected.
+Checks cover the database, migrations, worker heartbeat, pseudonym secret, production adapters, and model credentials.
+`/health` alone does not establish worker readiness. A missing or stale heartbeat blocks startup success.
+
+The default setup deadline is 600 seconds. The service readiness deadline is 90 seconds.
+Use `-SetupTimeoutSeconds`, `-StartupTimeoutSeconds`, and `-NoBrowser` to change those launch options.
+Ports 8000 and 5173 must be free. The launcher reports a conflict without stopping the existing listener.
+Child startup failures and readiness timeouts produce a nonzero exit and stop the owned process tree.
+Messages expose service roles, exit codes, and allowed readiness check names, without provider output or credentials.
+
+Keep the launcher open while using the app. Press Ctrl+C to stop its services.
+An explicit stop file also supports controlled shutdown:
+
+```powershell
+./start-quantumlearn.ps1 -NoBrowser -StopFile "$PWD/.scratch/my-session.stop"
+# From another PowerShell session, create the exact file supplied above.
+New-Item -ItemType File -Path "$PWD/.scratch/my-session.stop"
+```
+
+Choose a new, absent stop-file path for each run. A pre-existing stop file is rejected.
+Windows Job Objects own the hidden helper processes and their descendants before execution begins.
+Normal shutdown, startup failure, or supervisor termination closes that ownership boundary and stops those processes.
+Unrelated processes are never selected by port, command name, or a saved PID for termination.
+This local launcher does not provide a hosted service manager or automatic worker restart.
+
 ## Feedback jobs
 
 An API request creates or reclaims a durable workflow claim. Claims use a UUID execution token,
@@ -39,6 +73,11 @@ continuation creation are idempotent by workflow UUID. The following baseline pa
 pending baseline after the research pair is durable.
 
 ## Baseline jobs
+
+Built-in production composition currently preserves research outbox rows and baseline jobs without claiming them.
+Research exports remain restricted by the separate course grant and closed governance gate.
+The global research flag cannot approve a study or consent. Task 33 owns governed activation.
+The generic baseline mechanisms below remain available for isolated tests and future approved integration.
 
 Baseline claims use the same token/lease fencing and reclaim expired `running` rows. A claim
 performs exactly one same-model generation and one evaluation-only judge call, with no ordinary
@@ -76,6 +115,8 @@ output.
 2. Run `uv run --frozen alembic upgrade head`.
 3. Configure `WORKER_ADAPTER_FACTORY` as `package.module:create_worker_adapters`. The callable
    receives `Settings` and must return `app.worker.WorkerAdapters`; missing adapters fail closed.
+   Local offline use selects `app.worker:build_offline_worker_adapters` with `RESEARCH_ENABLED=false`.
+   External adapters remain trusted application code and require review before deployment.
 4. Start `uv run --frozen quantumlearn-worker` and wait for its durable heartbeat.
 5. Verify readiness: database connectivity, Alembic head, durable worker heartbeat, pseudonym
 secret, and every required production adapter. Readiness must not invoke an LLM.
@@ -94,6 +135,23 @@ For continuation work, inspect only state, attempt count, lease, retry time, and
 category. Do not clear `progress_recorded`: it is the restart-safe idempotency checkpoint. Readiness
 will remain unavailable until the restarted worker writes a fresh durable heartbeat.
 Checking readiness for a missing SQLite path must not create an empty database file.
+
+The recovery acceptance test uses a disposable migrated database and one accepted LMS submission.
+It pauses a real worker after claim acquisition, rejects a duplicate worker, and kills the paused process.
+After the real 30-second test leases expire, the production worker entry point resumes that same submission.
+No second submission request is sent. The test checks one durable feedback result, replay identity, and stale-token fencing.
+The initial API claim uses an injected one-millisecond lease.
+Worker claims and ownership use supported 30-second settings. Stored timestamps are never edited to force recovery.
+The API background executor and first worker pipeline use explicit fault-injection substitutes.
+Recovery uses the built-in local feedback pipeline with a grounded synthetic task.
+This evidence covers formative feedback recovery. Existing assessment tests retain the withheld learner-result boundary.
+
+Launcher acceptance uses actual Windows subprocesses for port conflicts, child failures, bounded setup and readiness waits,
+explicit shutdown, and supervisor death with a grandchild process. An unrelated process survives owned shutdown.
+A slow HTTP response test checks the total probe deadline, including responses that keep sending bytes.
+The combined PowerShell smoke also checked all six readiness checks, exit zero, and closed service ports after shutdown.
+Task 7 logs remain under ignored `.scratch/task7-verification/` in its validation checkout.
+These local checks do not approve research processing, provisional learner-result visibility, or pilot deployment.
 
 SQLite should reside on durable storage with backups appropriate to the deployment. Never copy
 the live database file directly. During a maintenance window, stop the API and worker, then run:
