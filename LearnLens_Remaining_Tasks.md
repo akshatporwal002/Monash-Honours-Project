@@ -86,7 +86,9 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: none. Suggested owners: product owner, assessors, privacy, research, and operations.
 
-    All 12 entries in the decision register remain `PENDING`. Record named owners, approved values, versions, dates, and affected scope. Start with one quantum outcome and its real criteria, tools, help rules, and learner result policy. Also resolve reassessment, role assignment, evaluator release, retention, escalation, legacy retirement, reuse, and release environments.
+    Eleven entries in the decision register remain `PENDING`. D-10 already approves immediate legacy retirement for implementation. Record named owners, approved values, versions, dates, and affected scope for the remaining entries. Start with one quantum outcome and its real criteria, tools, help rules, and learner result policy. Also resolve reassessment, role assignment, evaluator release, retention, escalation, reuse, and release environments.
+
+    Task 8 progress, 7 September 2026: [decision package](docs/learnlens/task-08-decision-package.md) prepared from the saved accepted directions. Remaining policy details and named owner approvals are still required. Task 8 is not complete.
 
     Done when each dependent feature has the specific approval it needs. Unrelated implementation can continue while a decision remains pending. Test fixture settings do not approve live policy.
 

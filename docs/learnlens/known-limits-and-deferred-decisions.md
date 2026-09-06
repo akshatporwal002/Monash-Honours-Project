@@ -2,7 +2,7 @@
 
 Status: one decision approved for implementation; remaining owner decisions pending
 
-Last reviewed: 2026-09-06
+Last reviewed: 2026-09-07
 
 ## Purpose
 
@@ -50,6 +50,11 @@ Sources: `docs/01-implementation-requirements.md:17-32`,
 | D-12 | Approved environments and reviewers for native Safari, screen-reader, manual zoom, hosted availability, load, cost, and usability evidence | `PENDING` | Accessibility, operations, and product owners | Named environment, reviewer, schedule, and evidence location | NFR1-NFR8, NFR18, NFR22, AC17, AC18, and pilot-ready claim |
 
 ## Recording an approval
+
+The [Task 8 decision package](task-08-decision-package.md) links all saved accepted directions
+and supplies proposed values for owner review. Eleven entries still need complete approval records.
+Accepted directions do not supply missing owner names, course scope, ethics decisions, or release evidence.
+The package remains a draft and does not change any runtime policy.
 
 Before an entry changes from `PENDING`, add an approval record with:
 
