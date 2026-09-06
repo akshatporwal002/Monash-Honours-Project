@@ -10,6 +10,13 @@ Plan commit: `1316bbd` on `codex/person-b-platform`
 
 Last evidence pass: 2026-08-14
 
+## Scoped evidence added on 2026-09-06
+
+Remaining Task 1 now preserves unknown evidence through negated pass rules.
+The [repair record](negated-pass-rule-repair.md) records the base commit, failing regression,
+68 passing targeted tests, separate Standards and Spec reviews, and verification limits.
+This adds rule-engine proof for AT8 and AT9 without reclassifying the older full-feature rows below.
+
 ## Interpretation
 
 This matrix is the Phase 0 inventory required by

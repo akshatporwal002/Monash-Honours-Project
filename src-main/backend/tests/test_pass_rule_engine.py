@@ -53,12 +53,114 @@ def test_all_mandatory_criteria_met_returns_pass() -> None:
     assert result.met_criterion_version_ids == ("criterion-1", "criterion-2")
 
 
+@pytest.mark.parametrize("negations", (1, 2, 3))
+@pytest.mark.parametrize(
+    "decisions, expected_reason",
+    (
+        ((), AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE),
+        ((CriterionDecision.NOT_EVALUABLE,), AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE),
+        (
+            (CriterionDecision.MET, CriterionDecision.NOT_MET),
+            AssessmentReasonCode.UNRESOLVED_EVIDENCE_CONFLICT,
+        ),
+    ),
+)
+def test_negation_preserves_unknown_evidence(
+    negations: int,
+    decisions: tuple[CriterionDecision, ...],
+    expected_reason: AssessmentReasonCode,
+) -> None:
+    clause: dict[str, object] = {"criterion_version_id": "b"}
+    for _ in range(negations):
+        clause = {"operator": "NOT", "clauses": [clause]}
+    result = PassRuleEngine().evaluate(
+        PassRuleEvaluationRequest(
+            expression={
+                "operator": "ALL_OF",
+                "clauses": [{"criterion_version_id": "a"}, clause],
+            },
+            approved_criterion_version_ids=frozenset({"a", "b"}),
+            mandatory_criterion_version_ids=frozenset({"a"}),
+            criterion_outcomes=(
+                _outcome("a", CriterionDecision.MET),
+                *(_outcome("b", decision) for decision in decisions),
+            ),
+        )
+    )
+
+    assert result.result is AssessmentResult.INCOMPLETE
+    assert result.reason_code is expected_reason
+    assert result.missing_criterion_version_ids == (() if decisions else ("b",))
+    assert result.conflicting_criterion_version_ids == (("b",) if len(decisions) > 1 else ())
+    assert result.not_evaluable_criterion_version_ids == (
+        ("b",) if CriterionDecision.NOT_EVALUABLE in decisions else ()
+    )
+
+
 def test_missing_mandatory_criterion_returns_incomplete() -> None:
     result = PassRuleEngine().evaluate(_request(_outcome("criterion-1", CriterionDecision.MET)))
 
     assert result.result is AssessmentResult.INCOMPLETE
     assert result.reason_code is AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE
     assert result.missing_criterion_version_ids == ("criterion-2",)
+
+
+@pytest.mark.parametrize(
+    "operator, definite, expected",
+    (
+        ("ALL_OF", CriterionDecision.MET, AssessmentResult.INCOMPLETE),
+        ("ANY_OF", CriterionDecision.NOT_MET, AssessmentResult.INCOMPLETE),
+        ("ALL_OF", CriterionDecision.NOT_MET, AssessmentResult.PASS),
+        ("ANY_OF", CriterionDecision.MET, AssessmentResult.INCOMPLETE),
+    ),
+)
+@pytest.mark.parametrize("reverse", (False, True))
+def test_negated_compound_rule_preserves_uncertainty_and_definite_evidence(
+    operator: str, definite: CriterionDecision, expected: AssessmentResult, reverse: bool
+) -> None:
+    clauses = [{"criterion_version_id": "b"}, {"criterion_version_id": "c"}]
+    if reverse:
+        clauses.reverse()
+    result = PassRuleEngine().evaluate(
+        PassRuleEvaluationRequest(
+            expression={
+                "operator": "ALL_OF",
+                "clauses": [
+                    {"criterion_version_id": "a"},
+                    {"operator": "NOT", "clauses": [{"operator": operator, "clauses": clauses}]},
+                ],
+            },
+            approved_criterion_version_ids=frozenset({"a", "b", "c"}),
+            mandatory_criterion_version_ids=frozenset({"a"}),
+            criterion_outcomes=(
+                _outcome("a", CriterionDecision.MET),
+                _outcome("b", CriterionDecision.NOT_EVALUABLE),
+                _outcome("c", definite),
+            ),
+        )
+    )
+
+    assert result.result is expected
+    assert result.not_evaluable_criterion_version_ids == ("b",)
+    assert result.reason_code is (
+        AssessmentReasonCode.TARGET_EVIDENCE_MET
+        if expected is AssessmentResult.PASS
+        else AssessmentReasonCode.MISSING_REQUIRED_EVIDENCE
+    )
+
+
+@pytest.mark.parametrize("decision", tuple(CriterionDecision))
+def test_negation_cannot_bypass_mandatory_criterion(decision: CriterionDecision) -> None:
+    result = PassRuleEngine().evaluate(
+        PassRuleEvaluationRequest(
+            expression={"operator": "NOT", "clauses": [{"criterion_version_id": "a"}]},
+            approved_criterion_version_ids=frozenset({"a"}),
+            mandatory_criterion_version_ids=frozenset({"a"}),
+            criterion_outcomes=(_outcome("a", decision),),
+        )
+    )
+
+    assert result.result is AssessmentResult.INCOMPLETE
 
 
 def test_same_versions_return_same_result_and_criterion_order() -> None:
