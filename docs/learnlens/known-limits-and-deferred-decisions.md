@@ -1,8 +1,8 @@
 # LearnLens known limits and deferred decisions
 
-Status: pending owner decisions
+Status: one decision approved for implementation; remaining owner decisions pending
 
-Last reviewed: 2026-08-19
+Last reviewed: 2026-09-06
 
 ## Purpose
 
@@ -45,7 +45,7 @@ Sources: `docs/01-implementation-requirements.md:17-32`,
 | D-07 | AI evaluator dataset, agreement statistic, fairness review, and release thresholds | `PENDING` | Assessment governance | Approved evaluation protocol, dataset definition, statistic, threshold, and release decision | Automated evaluator release; BP10-BP11 and NFR12-NFR14 |
 | D-08 | Assessment, audit, and research retention, withdrawal, deletion, and missing-data rules | `PENDING` | Privacy owner and research governance | Approved data plan, consent version, retention schedule, withdrawal handling, and effective version | Destructive lifecycle actions, live participant enrolment, and final privacy/pilot claim; BP12-BP14, NFR16, NFR25, NFR30 |
 | D-09 | Human escalation owner, severity mapping, and response/service target | `PENDING` | Product owner and operations | Approved escalation policy, assignment queue, target, and effective version | Escalation service-level claim; PD7 and NFR20 |
-| D-10 | Legacy numeric-score compatibility window and client-version shutdown plan | `PENDING` | Product owner and technical owner | Approved compatibility period, affected clients, migration notice, and retirement date | Final legacy-column removal and old-client shutdown; Plan 005 Step 3 and AT1-AT3 |
+| D-10 | Legacy numeric-score compatibility window and client-version shutdown plan | `APPROVED_FOR_IMPLEMENTATION` | Requesting user, through this conversation | [Recorded retirement decision](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer), including scope, version, effective date, and verification requirements | Policy choice settled; final legacy-column removal and old-client shutdown still require implementation and validation |
 | D-11 | Approved NFR24 reuse target | `PENDING` | Product owner | Approved second-subject reuse measure and threshold | NFR24 completion claim |
 | D-12 | Approved environments and reviewers for native Safari, screen-reader, manual zoom, hosted availability, load, cost, and usability evidence | `PENDING` | Accessibility, operations, and product owners | Named environment, reviewer, schedule, and evidence location | NFR1-NFR8, NFR18, NFR22, AC17, AC18, and pilot-ready claim |
 
@@ -65,6 +65,9 @@ Do not record learner identities, full responses, credentials, or sensitive rese
 document.
 
 ## Implementation guardrails
+
+The [legacy retirement decision](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer) records the user's explicit implementation approval.
+Its full policy and scope live in that ticket. It does not approve deletion of protected history or replace migration evidence.
 
 - An unset decision remains visible and blocks only the feature that depends on it.
 - Test fixtures may exercise policy machinery using explicit test values, but they do not approve
