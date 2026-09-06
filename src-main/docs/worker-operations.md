@@ -39,6 +39,30 @@ Normal shutdown, startup failure, or supervisor termination closes that ownershi
 Unrelated processes are never selected by port, command name, or a saved PID for termination.
 This local launcher does not provide a hosted service manager or automatic worker restart.
 
+## Material processing
+
+The worker recovers saved uploads, due retries, and expired material claims without another POST.
+Offline and semantic processing share the same token and lease checks.
+The publication transaction checks ownership before replacing chunks and before accepting the source revision.
+Old or expired executions cannot overwrite a later accepted result.
+
+`MATERIAL_PROCESSING_LEASE_SECONDS` defaults to 300 seconds.
+`MATERIAL_PROCESSING_RETRY_SECONDS` defaults to 5 seconds.
+The existing `MAX_INFRASTRUCTURE_ATTEMPTS` limit defaults to three attempts per processing revision.
+The final interrupted claim becomes a terminal error with the original upload retained.
+An educator can review that error and use the course editor's retry action to start a fresh run.
+Do not reset stored tokens or counters manually.
+
+The shipped worker runs offline extraction. Semantic recovery needs the optional
+`WorkerAdapters.material_processor_factory(session, backend)` extension and its configured index and embedding adapters.
+Missing adapters produce a bounded configuration error. Recovery does not silently change the processing backend.
+The API and worker must use the same database and upload directory.
+
+Extraction runs in a thread so the ownership heartbeat remains active.
+Lease expiry blocks stale publication but does not kill a blocked parser or provider call.
+After process termination, restart the worker and let it reclaim expired work.
+See the [Task 10 handoff](../../docs/learnlens/task-10-material-processing-recovery.md) for migration and test evidence.
+
 ## Feedback jobs
 
 An API request creates or reclaims a durable workflow claim. Claims use a UUID execution token,

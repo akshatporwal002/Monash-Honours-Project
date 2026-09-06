@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated
 
@@ -64,7 +64,18 @@ class LearningMaterialRead(LearningMaterialCreate):
     processing_revision: Annotated[int, Field(ge=0)] = 0
     current_source_revision_id: str | None = None
     retired_at: datetime | None = None
+    processing_attempts: int = 0
+    processing_lease_expires_at: datetime | None = None
+    processing_retry_at: datetime | None = None
+    processing_backend: str = "offline"
     created_at: datetime
+
+    @field_validator("processing_lease_expires_at", "processing_retry_at")
+    @classmethod
+    def processing_dates_are_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
 class SourceApprovalRequest(ContentSchema):

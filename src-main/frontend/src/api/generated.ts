@@ -594,6 +594,10 @@ export type ApiSchemas = {
     "mime_type": string
     "module_id"?: (string) | (null)
     "original_filename"?: (string) | (null)
+    "processing_attempts"?: number
+    "processing_backend"?: string
+    "processing_lease_expires_at"?: (string) | (null)
+    "processing_retry_at"?: (string) | (null)
     "processing_revision"?: number
     "retired_at"?: (string) | (null)
     "source_url"?: (string) | (null)
@@ -634,12 +638,17 @@ export type ApiSchemas = {
   "MaterialRead": {
     "course_id": string
     "created_at": string
+    "error_code"?: (string) | (null)
+    "extraction_error"?: (string) | (null)
     "file_size_bytes": (number) | (null)
     "id": string
     "indexing_status": ApiSchemas["MaterialIndexStatus"]
     "mime_type": string
     "module_id": (string) | (null)
     "original_filename": (string) | (null)
+    "processing_attempts"?: number
+    "processing_lease_expires_at"?: (string) | (null)
+    "processing_retry_at"?: (string) | (null)
     "source_url": (string) | (null)
   }
   "MetricValue": {

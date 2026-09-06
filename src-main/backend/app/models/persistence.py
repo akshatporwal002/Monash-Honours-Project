@@ -750,6 +750,19 @@ class LearningMaterial(Base):
             "file_size_bytes IS NULL OR file_size_bytes >= 0", name="learning_material_file_size"
         ),
         CheckConstraint("processing_revision >= 0", name="learning_material_processing_revision"),
+        CheckConstraint(
+            "processing_attempts BETWEEN 0 AND 3", name="learning_material_processing_attempts"
+        ),
+        CheckConstraint(
+            "processing_backend IN ('offline', 'semantic')",
+            name="learning_material_processing_backend",
+        ),
+        Index(
+            "ix_learning_materials_recovery",
+            "indexing_status",
+            "processing_retry_at",
+            "processing_lease_expires_at",
+        ),
         Index("ix_learning_materials_course_id", "course_id"),
     )
 
@@ -771,6 +784,19 @@ class LearningMaterial(Base):
     failure_stage: Mapped[str | None] = mapped_column(String(100), nullable=True)
     error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     processing_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    processing_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    processing_lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    processing_retry_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    processing_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    processing_backend: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="offline", server_default="offline"
+    )
     current_source_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

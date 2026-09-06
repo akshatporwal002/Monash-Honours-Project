@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -609,7 +609,19 @@ class MaterialRead(LmsSchema):
     mime_type: str
     indexing_status: MaterialIndexStatus
     file_size_bytes: int | None
+    extraction_error: str | None = None
+    error_code: str | None = None
+    processing_attempts: int = 0
+    processing_retry_at: datetime | None = None
+    processing_lease_expires_at: datetime | None = None
     created_at: datetime
+
+    @field_validator("processing_lease_expires_at", "processing_retry_at")
+    @classmethod
+    def processing_dates_are_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
 class AdminUserCreate(LmsSchema):

@@ -212,6 +212,9 @@ def delete_material(
         preserve_current_source(db, material)
         if material.retired_at is None:
             material.retired_at = datetime.now(UTC)
+            material.processing_token = None
+            material.processing_lease_expires_at = None
+            material.processing_retry_at = None
         db.commit()
     except RagError as error:
         db.rollback()
@@ -241,6 +244,15 @@ def process_material(
         )
     except RagError as error:
         raise _http_error(error) from error
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "material_processing_failed",
+                "message": "The upload is saved. Check its processing status for retry details.",
+            },
+        ) from error
 
 
 @router.get("/{material_id}/revisions", response_model=list[SourceRevisionRead])
@@ -415,6 +427,11 @@ def replace_material(
         material.file_size_bytes = staged.file_size_bytes
         material.indexing_status = MaterialIndexStatus.PENDING
         material.processing_revision += 1
+        material.processing_attempts = 0
+        material.processing_token = None
+        material.processing_lease_expires_at = None
+        material.processing_retry_at = None
+        material.processing_backend = "offline"
         material.extraction_error = material.error_code = material.failure_stage = None
         db.commit()
         db.refresh(material)

@@ -49,3 +49,28 @@ Use bounded local test concurrency when running these suites together.
 Use a separate branch and merge commit for each task's integrated work.
 Keep exact test results, outstanding scope, and resume instructions in the task's handoff document.
 Manual context clearing is unavailable through the current tools. Do not claim it has occurred.
+
+## Task 10: recover material processing through the existing worker
+
+Task 9 merged into local main at `3f0ce614855957a5e28003a6664c48d6494e9013`.
+Task 10 branches from that merge as `feat/task-10-material-processing-recovery`.
+
+Store the processing claim on the material row, alongside its existing lifecycle state and revision counter.
+Both processors use one claim service for ownership, expiry, retries, and publication.
+The final SQL transaction checks the claim before changing chunks and again before committing the source revision.
+An expired or replaced claim cannot publish or overwrite a newer result.
+
+Use the existing database worker for saved uploads, due retries, and interrupted processing.
+Extraction runs outside its event loop so worker ownership heartbeats can continue.
+Keep the selected processing backend on the claim. Missing semantic adapters produce a visible bounded failure.
+Do not silently replace semantic processing with offline indexing during recovery.
+
+Technical defaults are a 300-second lease and a 5-second retry delay.
+Use the existing infrastructure-attempt limit, which defaults to three and cannot exceed three.
+These limits govern processing work, not the learner's approved hint allowance or assessment attempts.
+An explicit educator retry starts a fresh processing revision after automatic work stops.
+Source replacement resets processing state, and retirement cancels further publication.
+
+Expose safe errors and retry dates in material reads. Keep execution tokens internal.
+Add status refresh and manual retry controls to the course editor.
+The [Task 10 handoff](task-10-material-processing-recovery.md) records validation and operational limits.

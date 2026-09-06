@@ -213,11 +213,23 @@ interface RawDraft {
   updated_at: string
 }
 
+export interface CourseMaterial {
+  id: string
+  filename: string
+  status: string
+  error?: string | null
+  retryAt?: string | null
+  processingAttempts?: number
+}
+
 interface RawMaterial {
   id: string
   original_filename: string | null
   source_url: string | null
   indexing_status: string
+  extraction_error?: string | null
+  processing_retry_at?: string | null
+  processing_attempts?: number
 }
 
 interface RawSettings {
@@ -376,11 +388,14 @@ function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   }
 }
 
-function normalizeMaterial(raw: RawMaterial): { id: string; filename: string; status: string } {
+function normalizeMaterial(raw: RawMaterial): CourseMaterial {
   return {
     id: raw.id,
     filename: raw.original_filename ?? raw.source_url ?? 'Linked learning source',
     status: raw.indexing_status,
+    error: raw.extraction_error ?? null,
+    retryAt: raw.processing_retry_at ?? null,
+    processingAttempts: raw.processing_attempts ?? 0,
   }
 }
 
@@ -643,6 +658,13 @@ export const api = {
         { method: 'POST' },
       )
       return normalizeMaterial(processed.material)
+    },
+    retryMaterial: async (courseId: string, materialId: string) => {
+      const result = await request<{ material: RawMaterial }>(
+        `/courses/${encodeURIComponent(courseId)}/materials/${encodeURIComponent(materialId)}/process?force=true`,
+        { method: 'POST' },
+      )
+      return normalizeMaterial(result.material)
     },
     listMaterials: async (courseId: string) =>
       (await request<RawMaterial[]>(`/courses/${encodeURIComponent(courseId)}/materials/list`)).map(normalizeMaterial),

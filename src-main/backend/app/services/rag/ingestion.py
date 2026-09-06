@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.models import LearningMaterial, MaterialChunk, MaterialIndexStatus
 from app.services.rag.chunking import HeadingAwareChunker, WhitespaceTokenCounter
 from app.services.rag.contracts import (
@@ -16,9 +17,10 @@ from app.services.rag.contracts import (
     VectorRecord,
     VectorStore,
 )
-from app.services.rag.errors import InvalidMaterialStateError, MaterialAlreadyProcessingError
+from app.services.rag.errors import InvalidMaterialStateError
 from app.services.rag.normalisation import ensure_document_size, normalise_text
-from app.services.rag.source_history import preserve_current_source, snapshot_source
+from app.services.rag.processing_claims import LostMaterialClaim, MaterialProcessingClaims, utc_now
+from app.services.rag.source_history import snapshot_source
 from app.services.rag.storage import FileStorage
 
 
@@ -30,7 +32,13 @@ class MaterialProcessor:
         extractors: dict[str, DocumentExtractor],
         embedding: EmbeddingProvider,
         vectors: VectorStore,
+        *,
+        now: Callable[[], datetime] = utc_now,
+        configured_settings: Settings = settings,
     ) -> None:
+        self.claims = MaterialProcessingClaims(
+            session, now=now, configured_settings=configured_settings
+        )
         self.session, self.storage, self.extractors, self.embedding, self.vectors = (
             session,
             storage,
@@ -39,25 +47,16 @@ class MaterialProcessor:
             vectors,
         )
 
-    def process(self, material: LearningMaterial, force: bool = False) -> tuple[int, int]:
+    def process(
+        self, material: LearningMaterial, force: bool = False, *, recover: bool = False
+    ) -> tuple[int, int]:
+        self.session.refresh(material)
         if material.retired_at is not None:
             raise InvalidMaterialStateError()
-        if material.indexing_status == MaterialIndexStatus.PROCESSING:
-            raise MaterialAlreadyProcessingError()
         if material.indexing_status == MaterialIndexStatus.INDEXED and not force:
+            self.session.expire(material, ["chunks"])
             return len(material.chunks), len(material.chunks)
-        if material.indexing_status not in {
-            MaterialIndexStatus.PENDING,
-            MaterialIndexStatus.FAILED,
-            MaterialIndexStatus.EXTRACTED,
-            MaterialIndexStatus.INDEXED,
-        }:
-            raise InvalidMaterialStateError()
-        preserve_current_source(self.session, material)
-        material.indexing_status = MaterialIndexStatus.PROCESSING
-        if force:
-            material.processing_revision += 1
-        self.session.commit()
+        claim = self.claims.claim(material, backend="semantic", force=force, recover=recover)
         try:
             extractor = self.extractors[material.mime_type]
             if not material.storage_key:
@@ -75,17 +74,19 @@ class MaterialProcessor:
                 for block in extracted.blocks
             ]
             ensure_document_size(
-                [block.text for block in normalised], settings.rag_max_extracted_chars
+                [block.text for block in normalised], self.claims.config.rag_max_extracted_chars
             )
             drafts = HeadingAwareChunker(
                 WhitespaceTokenCounter(),
-                settings.rag_chunk_target_tokens,
-                settings.rag_chunk_max_tokens,
-                settings.rag_chunk_overlap_tokens,
+                self.claims.config.rag_chunk_target_tokens,
+                self.claims.config.rag_chunk_max_tokens,
+                self.claims.config.rag_chunk_overlap_tokens,
             ).chunk(tuple(normalised))
             embeddings = self.embedding.embed_documents([draft.text for draft in drafts])
             if len(embeddings) != len(drafts):
                 raise ValueError("Embedding count does not match extracted passages")
+            self.claims.guard_publication(claim)
+            self.session.refresh(material)
             self.session.execute(
                 delete(MaterialChunk).where(MaterialChunk.material_id == material.id)
             )
@@ -144,19 +145,15 @@ class MaterialProcessor:
             )
             material.indexing_status, material.indexed_at = MaterialIndexStatus.INDEXED, now
             material.extraction_error = material.failure_stage = material.error_code = None
-            self.session.commit()
+            self.claims.complete(claim)
+            self.session.refresh(material)
             return len(chunks), len(chunks)
-        except Exception:
+        except LostMaterialClaim:
             self.session.rollback()
-            material = self.session.get(LearningMaterial, material.id)
-            if material:
-                material.indexing_status, material.failure_stage, material.error_code = (
-                    MaterialIndexStatus.FAILED,
-                    "processing",
-                    "processing_failed",
-                )
-                material.extraction_error = "Material processing could not be completed."
-                self.session.commit()
+            raise
+        except Exception as error:
+            self.claims.fail(claim, error)
+            self.session.refresh(material)
             raise
 
     @staticmethod
