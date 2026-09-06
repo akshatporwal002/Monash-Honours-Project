@@ -248,12 +248,13 @@ def test_result_audit_excludes_direct_id_and_full_answer_text(db_session: Sessio
     assert all("student_id" not in item and "response_version_id" not in item for item in details)
 
 
-def test_evaluation_route_has_only_binary_result_fields() -> None:
+def test_retired_evaluation_route_has_no_success_or_result_contract() -> None:
     schema = create_app().openapi()
     operation = schema["paths"]["/api/v1/assessment/attempts/{assessment_attempt_id}/evaluate"][
         "post"
     ]
-    response_schema = operation["responses"]["201"]["content"]["application/json"]["schema"]
-
-    assert response_schema["$ref"].endswith("AssessmentEvaluationRead")
-    assert "score" not in json.dumps(operation).casefold()
+    assert operation["deprecated"] is True
+    assert "403" in operation["responses"]
+    assert not any(code.startswith("2") for code in operation["responses"])
+    assert "requestBody" not in operation
+    assert "AssessmentEvaluationRead" not in schema["components"]["schemas"]
