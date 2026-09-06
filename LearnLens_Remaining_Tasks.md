@@ -110,6 +110,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Task 9. Suggested owner: retrieval and worker.
 
+    Task 10 progress, 7 September 2026: implemented and locally verified. The [processing-recovery handoff](docs/learnlens/task-10-material-processing-recovery.md) records durable claims, restart recovery, bounded retries, publication checks, educator controls, and migration evidence. The final backend suite passed 754 tests with 85.69% service coverage; 179 frontend tests passed.
+
     Processing saves `PROCESSING` before extraction. Later requests reject material already in that state, and the worker has no material recovery pass. Add durable processing claims, stale-claim recovery, bounded retries, and clear terminal errors.
 
     Done when a saved upload finishes or reports a recoverable failure after interruption. Concurrent workers must not publish duplicate or partial source revisions. Retain the original upload and useful processing status.

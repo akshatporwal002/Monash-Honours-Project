@@ -4085,6 +4085,40 @@
             ],
             "title": "Original Filename"
           },
+          "processing_attempts": {
+            "default": 0,
+            "title": "Processing Attempts",
+            "type": "integer"
+          },
+          "processing_backend": {
+            "default": "offline",
+            "title": "Processing Backend",
+            "type": "string"
+          },
+          "processing_lease_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Lease Expires At"
+          },
+          "processing_retry_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Retry At"
+          },
           "processing_revision": {
             "default": 0,
             "minimum": 0.0,
@@ -4317,6 +4351,28 @@
             "title": "Created At",
             "type": "string"
           },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "extraction_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extraction Error"
+          },
           "file_size_bytes": {
             "anyOf": [
               {
@@ -4360,6 +4416,35 @@
               }
             ],
             "title": "Original Filename"
+          },
+          "processing_attempts": {
+            "default": 0,
+            "title": "Processing Attempts",
+            "type": "integer"
+          },
+          "processing_lease_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Lease Expires At"
+          },
+          "processing_retry_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Retry At"
           },
           "source_url": {
             "anyOf": [

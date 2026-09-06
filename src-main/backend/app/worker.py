@@ -43,6 +43,7 @@ from app.services.feedback.application import (
     PipelineFactory,
 )
 from app.services.feedback.worker import FeedbackRecoveryWorker
+from app.services.rag.processing_recovery import MaterialProcessorFactory, MaterialRecoveryWorker
 from app.services.research import (
     BaselineContextProvider,
     BaselineFeedbackGenerator,
@@ -88,6 +89,7 @@ class WorkerAdapters:
     next_task_recommender: NextTaskRecommender
     feedback_audit_events: FeedbackAuditEvents | None = None
     terminal_reconciliation: WorkerPass | None = None
+    material_processor_factory: MaterialProcessorFactory | None = None
 
 
 class _OfflineBaselineContextProvider:
@@ -230,6 +232,7 @@ class DatabaseWorker:
         ownership: WorkerOwnership,
         *,
         assessment_evaluation: WorkerPass | None = None,
+        material_processing: WorkerPass | None = None,
         terminal_reconciliation: WorkerPass | None = None,
         poll_interval_seconds: float = 1,
         heartbeat_interval_seconds: float = 30,
@@ -240,6 +243,8 @@ class DatabaseWorker:
         if heartbeat_interval_seconds <= 0:
             raise ValueError("heartbeat_interval_seconds must be positive")
         passes: list[tuple[str, WorkerPass]] = [("feedback", feedback)]
+        if material_processing is not None:
+            passes.append(("material_processing", material_processing))
         if assessment_evaluation is not None:
             passes.append(("assessment_evaluation", assessment_evaluation))
         if terminal_reconciliation is not None:
@@ -404,6 +409,12 @@ def build_database_worker(
         continuation_pass,
         ownership,
         assessment_evaluation=assessment_evaluation_pass,
+        material_processing=MaterialRecoveryWorker(
+            session_factory,
+            now=now,
+            configured_settings=configured_settings,
+            processor_factory=adapters.material_processor_factory,
+        ),
         terminal_reconciliation=terminal_reconciliation,
         poll_interval_seconds=configured_settings.worker_poll_seconds,
         heartbeat_interval_seconds=configured_settings.worker_heartbeat_seconds,
@@ -436,6 +447,10 @@ def _valid_adapters(adapters: WorkerAdapters) -> bool:
         (adapters.progress_adapter, "record_terminal_feedback"),
         (adapters.next_task_recommender, "recommend_next_task"),
     )
+    if adapters.material_processor_factory is not None and not callable(
+        adapters.material_processor_factory
+    ):
+        return False
     return callable(adapters.feedback_pipeline_factory) and all(
         callable(getattr(adapter, method, None)) for adapter, method in required_methods
     )
