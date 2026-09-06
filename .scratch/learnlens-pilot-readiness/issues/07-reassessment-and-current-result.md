@@ -41,3 +41,13 @@ Offer a fresh equivalent task after feedback and preserve earlier decisions.
 Still needed to complete this ticket: Set reassessment eligibility, attempt limits if any, current-result selection, outcome evidence sufficiency, and review triggers.
 
 The ticket remains open for these details and any required approval evidence.
+
+## Selected option approved
+
+On 2026-09-07, the requesting user selected option A for D-06.
+Approval record: `task-08-selections-v1`.
+
+The [approved selection](../../../docs/learnlens/task-08-approved-selections.md#d-06)
+records the exact policy, scope, effective date, and remaining activation requirements.
+It controls any conflicting earlier recommendation in this ticket.
+The chosen option is settled. This ticket remains open only for its outstanding detailed records and evidence.
