@@ -67,7 +67,7 @@ class CriterionDraft:
     not_evaluable_rule: str
     approved_anchors: dict[str, Any] | list[Any]
     critical_error_rules: dict[str, Any] | list[Any]
-    evaluator_type: CriterionEvaluatorType = CriterionEvaluatorType.RULES
+    evaluator_type: CriterionEvaluatorType = CriterionEvaluatorType.HUMAN
 
 
 @dataclass(frozen=True)

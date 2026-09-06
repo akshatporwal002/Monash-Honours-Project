@@ -160,6 +160,7 @@ test('stale save preserves local values and offers conflict recovery', async () 
       operator: 'ALL_OF',
       clauses: [{ criterion: 'required_evidence' }],
     },
+    criteria: [expect.objectContaining({ evaluator_type: 'human', approved_anchors: {} })],
     task_forms: [{
       constraints: {
         access_modes: ['Screen reader compatible text circuit'],

@@ -19,6 +19,7 @@ from app.services.assessment.evaluators import (
     EvaluatorOutcome,
     RuleCriterionEvaluator,
 )
+from app.services.assessment.rule_settings import validate_rule_settings
 
 
 class SqlAlchemyRuleCriterionEvaluationPort:
@@ -39,6 +40,16 @@ class SqlAlchemyRuleCriterionEvaluationPort:
             raise CriterionEvaluationUnavailableError(
                 "this criterion requires an approved human or validated evaluator"
             )
+        if criterion.critical_error_rules:
+            raise CriterionEvaluationUnavailableError(
+                "critical errors require explicit phrase exclusions or human assessment"
+            )
+        try:
+            validate_rule_settings(criterion.approved_anchors, bloom_process)
+        except ValueError as error:
+            raise CriterionEvaluationUnavailableError(
+                "invalid rule settings require human assessment"
+            ) from error
         response = self._session.get(SubmissionAttempt, assessment.response_version_id)
         if (
             response is None

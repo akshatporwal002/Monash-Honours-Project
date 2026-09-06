@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_attempt
 
-from app.domain.assessment import AssessmentAttemptState, CriterionDecision
+from app.domain.assessment import AssessmentAttemptState, BloomProcess, CriterionDecision
 from app.models.assessment import (
     AssessmentApprovalState,
     AssessmentDecision,
@@ -19,7 +19,9 @@ from app.models.assessment import (
     AssessmentEvaluationFailureCategory,
     AssessmentEvaluationJob,
     AssessmentEvaluationJobState,
+    BloomTargetVersion,
     CriterionEvaluation,
+    CriterionEvaluatorType,
     TaskApproval,
 )
 from app.schemas.assessment import EvidenceReference
@@ -264,6 +266,12 @@ def test_advisory_evaluator_cannot_create_a_provisional_result(db_session: Sessi
 
 def test_production_rule_adapter_uses_only_the_frozen_response(db_session: Session) -> None:
     attempt, response, criterion = _ready_attempt(db_session)
+    bloom = db_session.get(BloomTargetVersion, attempt.bloom_target_version_id)
+    assert bloom is not None
+    bloom.bloom_process = BloomProcess.REMEMBER
+    criterion.approved_anchors = {"all_of": ["observation"]}
+    criterion.critical_error_rules = {}
+    db_session.commit()
     service = AssessmentEvaluationService(
         db_session,
         criterion_port=SqlAlchemyRuleCriterionEvaluationPort(db_session),
@@ -285,3 +293,47 @@ def test_production_rule_adapter_uses_only_the_frozen_response(db_session: Sessi
     assert reference.content_digest == response.content_digest
     assert reference.source_record_id == response.id
     assert criterion_outcome.criterion_version_id == criterion.id
+
+
+@pytest.mark.parametrize(
+    "evaluator_type, anchors, critical_errors",
+    (
+        (CriterionEvaluatorType.RULES, {}, {}),
+        (CriterionEvaluatorType.RULES, {"met": ["observation"]}, {}),
+        (CriterionEvaluatorType.RULES, {"all_of": ["observation"], "none_of": ["observation"]}, {}),
+        (
+            CriterionEvaluatorType.RULES,
+            {"all_of": ["observation"]},
+            {"errors": ["unsupported rule"]},
+        ),
+        (CriterionEvaluatorType.HUMAN, {}, {}),
+    ),
+)
+def test_unsafe_or_human_rules_leave_attempt_for_review_without_result(
+    db_session: Session,
+    evaluator_type: CriterionEvaluatorType,
+    anchors: dict,
+    critical_errors: dict,
+) -> None:
+    attempt, _, criterion = _ready_attempt(db_session)
+    bloom = db_session.get(BloomTargetVersion, attempt.bloom_target_version_id)
+    assert bloom is not None
+    bloom.bloom_process = BloomProcess.REMEMBER
+    criterion.evaluator_type = evaluator_type
+    criterion.approved_anchors = anchors
+    criterion.critical_error_rules = critical_errors
+    db_session.commit()
+    service = AssessmentEvaluationService(
+        db_session,
+        criterion_port=SqlAlchemyRuleCriterionEvaluationPort(db_session),
+        quality_port=UnavailableQualityReviewPort(),
+        retain_pending_on_fault=True,
+    )
+    with pytest.raises(AssessmentEvaluationFaultError) as captured:
+        service.evaluate(
+            assessment_attempt_id=attempt.id, evaluation_idempotency_key=f"settings:{attempt.id}"
+        )
+    assert captured.value.retryable is False
+    assert captured.value.failure_category == "provider_unavailable"
+    assert attempt.state is AssessmentAttemptState.PENDING
+    assert db_session.scalar(select(AssessmentDecision)) is None

@@ -6,7 +6,8 @@ from collections.abc import Iterable
 from typing import Any
 
 from app.domain.assessment import BloomProcess
-from app.models.assessment import CriterionVersion, TaskFormVersion
+from app.models.assessment import CriterionEvaluatorType, CriterionVersion, TaskFormVersion
+from app.services.assessment.rule_settings import RuleSettings, validate_rule_settings
 
 
 class AssessmentAlignmentError(ValueError):
@@ -61,6 +62,20 @@ def validate_definition_alignment(
         _require_text(criterion.not_evaluable_rule, "criterion not-evaluable rule")
         if not _is_nonempty_structure(criterion.evidence_source_types):
             raise AssessmentAlignmentError("criteria require declared evidence source types")
+        if criterion.evaluator_type in {CriterionEvaluatorType.RULES, CriterionEvaluatorType.MIXED}:
+            try:
+                if criterion.evaluator_type is CriterionEvaluatorType.RULES:
+                    validate_rule_settings(criterion.approved_anchors, bloom_process)
+                    if criterion.critical_error_rules:
+                        raise ValueError(
+                            "use none_of phrases or human assessment for critical errors"
+                        )
+                else:
+                    RuleSettings.model_validate(criterion.approved_anchors)
+            except ValueError as error:
+                raise AssessmentAlignmentError(
+                    f"invalid criterion rule settings: {error}"
+                ) from error
 
     form_rows = list(task_forms)
     if not form_rows:

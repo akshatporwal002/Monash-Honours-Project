@@ -47,6 +47,10 @@ const bloomVerificationInputs = new Set<keyof SetupValues>([
   'tools',
   'support',
   'transfer',
+  'evaluatorType',
+  'requiredPhrases',
+  'alternativePhrases',
+  'excludedPhrases',
 ])
 const accessVerificationInputs = new Set<keyof SetupValues>([
   ...bloomVerificationInputs,

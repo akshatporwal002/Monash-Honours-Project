@@ -9,6 +9,7 @@ from app.domain.assessment import AssessmentPurpose, BloomKnowledge, BloomProces
 from app.models.assessment import (
     AssessmentApprovalState,
     AssessmentDefinitionVersion,
+    CriterionEvaluatorType,
     OutcomeVersion,
     TaskApproval,
 )
@@ -347,3 +348,43 @@ def test_approval_is_atomic_and_keeps_prior_versions(db_session: Session) -> Non
     assert second.version == 2
     assert db_session.scalars(select(TaskApproval)).all()
     assert len(db_session.scalars(select(TaskApproval)).all()) == 2
+
+
+@pytest.mark.parametrize(
+    "anchors", ({}, {"met": ["explanation"]}, {"all_of": ["phase"], "none_of": ["phase"]})
+)
+def test_invalid_rule_settings_block_approval_atomically(
+    db_session: Session, anchors: dict
+) -> None:
+    from dataclasses import replace
+
+    course_id, outcome_id, owner_id, outcome_version_id = _setup(db_session)
+    draft = _draft(outcome_version_id=outcome_version_id, task_id=_task_id(db_session))
+    draft = replace(
+        draft,
+        bloom_process=BloomProcess.REMEMBER,
+        criteria=[
+            replace(
+                draft.criteria[0],
+                evaluator_type=CriterionEvaluatorType.RULES,
+                approved_anchors=anchors,
+            )
+        ],
+    )
+    service = _service(db_session)
+    created = service.create_draft(
+        course_id=course_id, learning_outcome_id=outcome_id, actor_user_id=owner_id, draft=draft
+    )
+    with pytest.raises(AssessmentDefinitionValidationError, match="rule settings"):
+        service.approve(
+            course_id=course_id,
+            assessment_definition_id=created.assessment_definition_id,
+            expected_version=1,
+            actor_user_id=owner_id,
+            approval_reason="Checked rules.",
+        )
+    assert created.approval_state is AssessmentApprovalState.DRAFT
+    assert all(
+        row.approval_state is AssessmentApprovalState.DRAFT for row in created.criterion_versions
+    )
+    assert db_session.scalars(select(TaskApproval)).all() == []
