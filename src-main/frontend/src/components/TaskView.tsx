@@ -28,6 +28,11 @@ const defaultOptions = [
   { id: 'd', text: 'It removes all quantum interference.' },
 ]
 
+function attemptLabel(attempt: TaskSubmission): string {
+  if (attempt.formal_assessment) return 'Assessment response saved'
+  return attempt.score === null ? 'Response saved' : `${attempt.score}%`
+}
+
 function taskMode(task: LearningTask): 'mcq' | 'multi' | 'code-explanation' | 'code-completion' | 'circuit' | 'text' {
   if (['multiple_choice', 'quiz'].includes(task.task_type)) return 'mcq'
   if (task.task_type === 'multiple_answer') return 'multi'
@@ -542,11 +547,11 @@ export function TaskView({
           {submission && (
             <Card eyebrow="Attempt recorded" className={styles.submissionCard} role="status">
               <h2 className={styles.submissionTitle}>
-                {submission.score === null ? 'Assessment response saved' : `${submission.score}%`}
+                {attemptLabel(submission)}
               </h2>
               <p className={styles.submissionText}>
-                {submission.score === null
-                  ? 'Your response is saved for assessment and review.'
+                {submission.formal_assessment
+                  ? 'Your response is saved for assessment and review. The formal result is not available.'
                   : 'Your response is saved. Validated AI feedback is prepared separately below.'}
               </p>
             </Card>
@@ -567,7 +572,8 @@ export function TaskView({
                   <li key={item.id ?? `${item.attempt_number}-${item.submitted_at}`} className={styles.attempt}>
                     <span className={styles.attemptNumber}>#{item.attempt_number ?? attempts.length - index}</span>
                     <div className={styles.attemptBody}>
-                      <strong>{item.score === null ? 'Assessment response saved' : `${item.score}%`}</strong>
+                      <strong>{attemptLabel(item)}</strong>
+                      {item.formal_assessment && <small>Formal result unavailable.</small>}
                       <small className={styles.attemptStatus}>{item.status.replace('_', ' ')}</small>
                     </div>
                     {item.submitted_at ? (

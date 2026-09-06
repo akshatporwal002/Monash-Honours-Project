@@ -7,6 +7,7 @@ import type {
   EducatorStudent,
   GateOperation,
   AssessmentConditions,
+  FormalAssessmentSummary,
   GeneratedTaskPreview,
   LearningOutcome,
   LearningState,
@@ -109,6 +110,7 @@ interface RawTask {
   access_status?: 'locked' | 'available' | 'in_progress' | 'completed'
   attempt_count?: number
   latest_score?: number | null
+  latest_attempt?: ApiSchemas['LatestAttemptSummary'] | null
   assessment?: AssessmentConditions | null
 }
 
@@ -118,7 +120,7 @@ interface RawStudentDashboard {
     completed_tasks: number
     total_tasks: number
     completion_percentage: number
-    average_score: number
+    average_score: number | null
     points: number
     level: number
     next_level_points: number
@@ -166,7 +168,8 @@ interface RawEducatorDashboard {
   recent_activity: Array<{
     student_name: string
     task_title: string
-    score: number
+    score: number | null
+    formal_assessment?: FormalAssessmentSummary | null
     occurred_at: string
   }>
 }
@@ -180,7 +183,7 @@ interface RawEducatorStudent {
   completed_tasks: number
   total_tasks: number
   completion_percentage: number
-  average_score: number
+  average_score: number | null
   last_active: string | null
   at_risk: boolean
   overdue_tasks: number
@@ -189,6 +192,7 @@ interface RawEducatorStudent {
 interface RawSubmission {
   id?: string
   score?: number | null
+  formal_assessment?: FormalAssessmentSummary | null
   feedback?: string | null
   feedback_reference?: string | null
   status?: string
@@ -267,6 +271,7 @@ function normalizeTask(task: RawTask): LearningTask {
     position: task.position,
     status: learningState(task.access_status),
     score: task.latest_score ?? null,
+    formal_assessment: task.latest_attempt?.formal_assessment ?? null,
     starter_code: task.starter_code,
     due_at: task.due_at,
     options: task.choices ?? [],
@@ -358,6 +363,7 @@ function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   return {
     id: raw.id,
     score: raw.score ?? null,
+    formal_assessment: raw.formal_assessment ?? null,
     feedback: raw.feedback ?? null,
     feedback_reference: raw.feedback_reference ?? null,
     status: (raw.status as LearningState | undefined) ?? 'draft',
@@ -517,7 +523,10 @@ export const api = {
         recent_activity: raw.recent_activity.map((item, index) => ({
           id: `${item.student_name}-${item.occurred_at}-${index}`,
           actor: item.student_name,
-          action: `${item.task_title} · ${item.score}%`,
+          action: `${item.task_title} · ${item.formal_assessment
+            ? 'Assessment response submitted. Formal result unavailable.'
+            : item.score === null ? 'Response submitted.' : `${item.score}% practice`}`,
+          formal_assessment: item.formal_assessment ?? null,
           occurred_at: item.occurred_at,
         })),
         courses: raw.courses.map(normalizeCourse),

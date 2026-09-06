@@ -2095,6 +2095,16 @@
             ],
             "title": "Feedback Reference"
           },
+          "formal_assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormalAssessmentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -2835,8 +2845,15 @@
             "type": "boolean"
           },
           "average_score": {
-            "title": "Average Score",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Score"
           },
           "completed_tasks": {
             "title": "Completed Tasks",
@@ -3332,6 +3349,24 @@
         "title": "FeedbackWorkflowStatus",
         "type": "string"
       },
+      "FormalAssessmentSummary": {
+        "additionalProperties": false,
+        "description": "Keep formal results separate and withheld until visibility is approved.",
+        "properties": {
+          "result": {
+            "title": "Result",
+            "type": "null"
+          },
+          "visibility": {
+            "const": "withheld",
+            "default": "withheld",
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "title": "FormalAssessmentSummary",
+        "type": "object"
+      },
       "FormalResultSummary": {
         "additionalProperties": false,
         "properties": {
@@ -3802,13 +3837,30 @@
             "title": "Attempt Number",
             "type": "integer"
           },
+          "formal_assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormalAssessmentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "title": "Id",
             "type": "string"
           },
           "score": {
-            "title": "Score",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
           },
           "status": {
             "$ref": "#/components/schemas/AttemptStatus"
@@ -4800,14 +4852,31 @@
       "RecentActivityRead": {
         "additionalProperties": false,
         "properties": {
+          "formal_assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormalAssessmentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "occurred_at": {
             "format": "date-time",
             "title": "Occurred At",
             "type": "string"
           },
           "score": {
-            "title": "Score",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
           },
           "student_name": {
             "title": "Student Name",
@@ -5643,8 +5712,15 @@
         "additionalProperties": false,
         "properties": {
           "average_score": {
-            "title": "Average Score",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Score"
           },
           "completed_tasks": {
             "title": "Completed Tasks",
