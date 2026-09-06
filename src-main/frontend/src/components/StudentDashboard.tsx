@@ -197,7 +197,7 @@ export function StudentDashboard({
         <p className={styles.pointsText}>
           Level {progress.level} · {progress.points} points
           {progress.points_to_next_level ? ` · ${progress.points_to_next_level} to the next level` : ''}
-          {progress.average_score ? ` · ${progress.average_score}% practice average` : ''}
+          {progress.average_score !== null ? ` · ${progress.average_score}% practice average` : ''}
         </p>
         <p className={styles.pointsNote}>Points come from practice activity only. They never affect a formal result.</p>
       </Card>

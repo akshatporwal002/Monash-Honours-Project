@@ -53,7 +53,7 @@ from app.schemas.lms import (
     AdminUserRead,
     AdminUserUpdate,
     AssessmentConditionsRead,
-    AssessmentTaskCriterionRead,
+    AssessmentCriterionRead,
     AttemptRead,
     BulkReminderCreate,
     CourseCreate,
@@ -65,6 +65,7 @@ from app.schemas.lms import (
     EducatorDashboardRead,
     EducatorStudentRead,
     EnrollmentRead,
+    FormalAssessmentSummary,
     LabelScoreRead,
     LatestAttemptSummary,
     LeaderboardEntryRead,
@@ -851,7 +852,7 @@ class LmsService:
                 else 0,
                 average_score=round(sum(latest_scores) / len(latest_scores))
                 if latest_scores
-                else 0,
+                else None,
                 points=profile.points,
                 level=self.gamification.level(profile.points, points_per_level),
                 next_level_points=points_per_level - profile.points % points_per_level,
@@ -902,7 +903,12 @@ class LmsService:
         outcome_scores: dict[str, list[int]] = defaultdict(list)
         for task in tasks:
             attempt = latest.get(task.id)
-            if attempt is not None and task.learning_outcome_id:
+            if (
+                attempt is not None
+                and attempt.score is not None
+                and attempt.task_form_version_id is None
+                and task.learning_outcome_id
+            ):
                 outcome_scores[task.learning_outcome_id].append(attempt.score)
         if outcome_scores:
             lowest_outcome_id, scores = min(
@@ -1055,14 +1061,18 @@ class LmsService:
                     for attempt in attempts.values()
                     if attempt.status is AttemptStatus.COMPLETED
                 }
-                scores = [attempt.score for attempt in attempts.values()]
+                scores = [
+                    attempt.score
+                    for attempt in attempts.values()
+                    if attempt.score is not None and attempt.task_form_version_id is None
+                ]
                 overdue = sum(
                     task.id not in completed_ids
                     and task.due_at is not None
                     and _aware(task.due_at) < now
                     for task in tasks
                 )
-                average = round(sum(scores) / len(scores)) if scores else 0
+                average = round(sum(scores) / len(scores)) if scores else None
                 result.append(
                     EducatorStudentRead(
                         student_id=profile.id,
@@ -1081,7 +1091,8 @@ class LmsService:
                             (attempt.submitted_at for attempt in attempts.values()),
                             default=None,
                         ),
-                        at_risk=bool(attempts) and (average < threshold or overdue > 0),
+                        at_risk=bool(attempts)
+                        and ((average is not None and average < threshold) or overdue > 0),
                         overdue_tasks=overdue,
                     )
                 )
@@ -1154,7 +1165,7 @@ class LmsService:
         by_outcome: dict[str, list[int]] = defaultdict(list)
         for attempt in attempts:
             task = tasks.get(attempt.task_id)
-            if task is None:
+            if task is None or attempt.score is None or attempt.task_form_version_id is not None:
                 continue
             by_type[task.task_type.value].append(attempt.score)
             if task.learning_outcome_id:
@@ -1221,7 +1232,8 @@ class LmsService:
                 RecentActivityRead(
                     student_name=users[attempt.student_id].full_name,
                     task_title=tasks[attempt.task_id].title,
-                    score=attempt.score,
+                    score=attempt.score if attempt.task_form_version_id is None else None,
+                    formal_assessment=self._formal_assessment_read(attempt),
                     occurred_at=attempt.submitted_at,
                 )
                 for attempt in attempts[:10]
@@ -1715,10 +1727,24 @@ class LmsService:
             starter_circuit=criteria.get("starter_circuit"),
             access_status=access_status,
             attempt_count=attempt_count,
-            latest_score=latest.score if latest else None,
-            latest_attempt=LatestAttemptSummary.model_validate(latest) if latest else None,
+            latest_score=latest.score if latest and latest.task_form_version_id is None else None,
+            latest_attempt=LatestAttemptSummary(
+                id=latest.id,
+                attempt_number=latest.attempt_number,
+                status=latest.status,
+                score=latest.score if latest.task_form_version_id is None else None,
+                submitted_at=latest.submitted_at,
+                formal_assessment=self._formal_assessment_read(latest),
+            )
+            if latest
+            else None,
             assessment=self._assessment_conditions_read(assessment),
         )
+
+    @staticmethod
+    def _formal_assessment_read(attempt: SubmissionAttempt) -> FormalAssessmentSummary | None:
+        # Do not infer assessment or a grade from a missing numeric score.
+        return FormalAssessmentSummary() if attempt.task_form_version_id is not None else None
 
     @staticmethod
     def _assessment_conditions_read(
@@ -1732,7 +1758,7 @@ class LmsService:
             knowledge_dimension=declaration.knowledge_dimension,
             claim=declaration.claim,
             criteria=[
-                AssessmentTaskCriterionRead(description=description, mandatory=mandatory)
+                AssessmentCriterionRead(description=description, mandatory=mandatory)
                 for description, mandatory in declaration.criteria
             ],
             task_conditions=declaration.task_conditions,
@@ -1796,7 +1822,8 @@ class LmsService:
             task_id=attempt.task_id,
             attempt_number=attempt.attempt_number,
             status=attempt.status,
-            score=attempt.score,
+            score=attempt.score if attempt.task_form_version_id is None else None,
+            formal_assessment=LmsService._formal_assessment_read(attempt),
             answer=attempt.answer,
             code=attempt.code,
             circuit=attempt.circuit,

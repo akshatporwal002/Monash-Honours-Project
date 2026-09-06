@@ -288,6 +288,7 @@ export type ApiSchemas = {
     "code": (string) | (null)
     "feedback": string
     "feedback_reference": (string) | (null)
+    "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
     "id": string
     "points_awarded": number
     "score": (number) | (null)
@@ -408,7 +409,7 @@ export type ApiSchemas = {
   }
   "EducatorStudentRead": {
     "at_risk": boolean
-    "average_score": number
+    "average_score": (number) | (null)
     "completed_tasks": number
     "completion_percentage": number
     "course_id": string
@@ -485,6 +486,10 @@ export type ApiSchemas = {
     "workflow_run_id": string
   }
   "FeedbackWorkflowStatus": "processing" | "validated" | "fallback" | "failed"
+  "FormalAssessmentSummary": {
+    "result"?: null
+    "visibility"?: "withheld"
+  }
   "FormalResultSummary": {
     "assessment_attempt_id": string
     "assessment_definition_id": string
@@ -558,8 +563,9 @@ export type ApiSchemas = {
   }
   "LatestAttemptSummary": {
     "attempt_number": number
+    "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
     "id": string
-    "score": number
+    "score": (number) | (null)
     "status": ApiSchemas["AttemptStatus"]
     "submitted_at": string
   }
@@ -713,8 +719,9 @@ export type ApiSchemas = {
     "status": "ready" | "not_ready"
   }
   "RecentActivityRead": {
+    "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
     "occurred_at": string
-    "score": number
+    "score": (number) | (null)
     "student_name": string
     "task_title": string
   }
@@ -852,7 +859,7 @@ export type ApiSchemas = {
     "user_id": number
   }
   "StudentSummaryRead": {
-    "average_score": number
+    "average_score": (number) | (null)
     "completed_tasks": number
     "completion_percentage": number
     "level": number

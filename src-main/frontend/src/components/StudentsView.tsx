@@ -261,7 +261,7 @@ export function StudentsView() {
                       </td>
                       <td>
                         <strong className={styles.average}>
-                          {student.completed_tasks ? `${student.average_score}%` : '—'}
+                          {student.average_score !== null ? `${student.average_score}%` : 'No practice score'}
                         </strong>
                       </td>
                       <td>{formatLastActive(student.last_active)}</td>

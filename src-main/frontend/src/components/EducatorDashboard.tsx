@@ -189,7 +189,8 @@ export function EducatorDashboard({ onCreateCourse, onViewStudents }: {
                   <div className={styles.riskBody}>
                     <p className={styles.riskName}>{student.display_name}</p>
                     <p className={styles.riskDetail}>
-                      {student.completion_percent}% complete · {student.average_score}% average
+                      {student.completion_percent}% complete
+                      {student.average_score !== null ? ` · ${student.average_score}% practice average` : ''}
                     </p>
                     <EstimateChip uncertainty="Estimate from completion activity">
                       At risk

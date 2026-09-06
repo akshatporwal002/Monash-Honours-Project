@@ -13,6 +13,7 @@ from alembic import command
 from fastapi import Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from support.assessed_reads import seed_assessed_reads
 from support.assessment import assign_assessor, seed_review_decision
 from support.assessment_authoring import seed_authoring_context
 from support.person4 import (
@@ -408,6 +409,11 @@ def _build_app(database_url: str):
     def authoring_fixture():
         with session_factory() as session:
             return seed_authoring_context(session)
+
+    @app.post("/e2e/assessed-read-fixture")
+    def assessed_read_fixture():
+        with session_factory() as session:
+            return seed_assessed_reads(session)
 
     app.dependency_overrides[get_assessment_publication_policy] = lambda: (
         lambda _actor, _course_id: True

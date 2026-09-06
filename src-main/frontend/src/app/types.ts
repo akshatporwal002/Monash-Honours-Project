@@ -1,3 +1,7 @@
+import type { ApiSchemas } from '../api/generated'
+
+export type FormalAssessmentSummary = ApiSchemas['FormalAssessmentSummary']
+
 export type UserRole = 'student' | 'educator' | 'admin'
 
 export interface AuthUser {
@@ -42,6 +46,7 @@ export interface LearningTask {
   position: number
   status: LearningState | null
   score: number | null
+  formal_assessment?: FormalAssessmentSummary | null
   starter_code?: string | null
   due_at?: string | null
   options?: Array<{ id: string; text: string }>
@@ -80,7 +85,7 @@ export interface StudentProgress {
   completed_tasks: number
   total_tasks: number
   completion_percent: number
-  average_score: number
+  average_score: number | null
   points: number
   points_to_next_level?: number
   streak_days: number
@@ -128,6 +133,7 @@ export interface TaskDraft {
 export interface TaskSubmission {
   id?: string
   score: number | null
+  formal_assessment?: FormalAssessmentSummary | null
   feedback: string | null
   feedback_reference?: string | null
   status: LearningState
@@ -163,6 +169,7 @@ export interface ActivityItem {
   id: string
   actor: string
   action: string
+  formal_assessment?: FormalAssessmentSummary | null
   occurred_at: string
 }
 
@@ -208,7 +215,7 @@ export interface EducatorStudent {
   completed_tasks: number
   total_tasks: number
   completion_percent: number
-  average_score: number
+  average_score: number | null
   last_active: string | null
   risk?: StudentRisk
   overdue_tasks?: number

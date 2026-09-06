@@ -52,9 +52,11 @@ NOW = datetime(2026, 8, 16, 9, 0, tzinfo=UTC)
 DIGEST = "sha256:" + "a" * 64
 
 
-def _lms_scope(session: Session) -> tuple[User, Course, LearningOutcome, LearningTask]:
+def _lms_scope(
+    session: Session, suffix: str = ""
+) -> tuple[User, Course, LearningOutcome, LearningTask]:
     owner = User(
-        email="assessor@example.edu",
+        email=f"assessor{suffix}@example.edu",
         password_hash=hash_password("assessment-model-test-password"),
         full_name="Assessment Owner",
         role=UserRole.EDUCATOR,
@@ -63,7 +65,7 @@ def _lms_scope(session: Session) -> tuple[User, Course, LearningOutcome, Learnin
     session.flush()
     course = Course(
         educator_id=owner.id,
-        code="QNT301",
+        code=f"QNT301{suffix}",
         title="Assessment model course",
         state=CourseState.DRAFT,
     )
@@ -83,7 +85,7 @@ def _lms_scope(session: Session) -> tuple[User, Course, LearningOutcome, Learnin
     session.add(outcome)
     session.flush()
     task = LearningTask(
-        slug="assessment-model-task",
+        slug=f"assessment-model-task{suffix}",
         title="Interference explanation",
         module="Quantum evidence",
         description="Provide an evidence-based explanation.",
@@ -229,6 +231,8 @@ def _assessment_versions(
 
 def build_assessment_blueprint(
     session: Session,
+    *,
+    suffix: str = "",
 ) -> tuple[
     AssessmentDefinitionVersion,
     BloomTargetVersion,
@@ -237,7 +241,7 @@ def build_assessment_blueprint(
     TaskFormVersion,
     User,
 ]:
-    owner, course, outcome, task = _lms_scope(session)
+    owner, course, outcome, task = _lms_scope(session, suffix)
     definition, definition_version = _definition_version(session, owner, course, outcome)
     bloom, criterion, rule, form = _assessment_versions(
         session,

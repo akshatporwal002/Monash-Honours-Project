@@ -449,6 +449,7 @@ test('shows formal assessment conditions and saves a response without a numeric 
       id: 'formal-attempt-1',
       status: 'submitted',
       score: null,
+      formal_assessment: { result: null, visibility: 'withheld' },
       feedback_reference: null,
     })
   })

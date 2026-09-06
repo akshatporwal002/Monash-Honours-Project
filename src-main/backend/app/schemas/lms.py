@@ -379,11 +379,19 @@ class TaskGenerateRequest(LmsSchema):
         return value
 
 
+class FormalAssessmentSummary(LmsSchema):
+    """Keep formal results separate and withheld until visibility is approved."""
+
+    result: None = None
+    visibility: Literal["withheld"] = "withheld"
+
+
 class LatestAttemptSummary(LmsSchema):
     id: str
     attempt_number: int
     status: AttemptStatus
-    score: int
+    score: int | None
+    formal_assessment: FormalAssessmentSummary | None = None
     submitted_at: datetime
 
 
@@ -457,6 +465,7 @@ class AttemptRead(LmsSchema):
     attempt_number: int
     status: AttemptStatus
     score: int | None
+    formal_assessment: FormalAssessmentSummary | None = None
     answer: str
     code: str | None
     circuit: dict[str, Any] | None
@@ -501,7 +510,7 @@ class StudentSummaryRead(LmsSchema):
     completed_tasks: int
     total_tasks: int
     completion_percentage: int
-    average_score: int
+    average_score: int | None
     points: int
     level: int
     next_level_points: int
@@ -527,7 +536,7 @@ class EducatorStudentRead(LmsSchema):
     completed_tasks: int
     total_tasks: int
     completion_percentage: int
-    average_score: int
+    average_score: int | None
     last_active: datetime | None
     at_risk: bool
     overdue_tasks: int
@@ -536,7 +545,8 @@ class EducatorStudentRead(LmsSchema):
 class RecentActivityRead(LmsSchema):
     student_name: str
     task_title: str
-    score: int
+    score: int | None
+    formal_assessment: FormalAssessmentSummary | None = None
     occurred_at: datetime
 
 

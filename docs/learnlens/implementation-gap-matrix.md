@@ -22,6 +22,11 @@ The [evaluator settings record](evaluator-settings-repair.md) covers authoring c
 test evidence, and pending human-review and published-revision limits.
 These scoped additions do not refresh the older full-feature status rows below.
 
+Remaining Task 3 now preserves absent scores across assessed task, history, and dashboard reads.
+The [assessed-read repair record](assessed-read-repair.md) covers mixed practice history,
+the withheld formal-result marker, 676 backend tests, 178 frontend tests, and four browser checks.
+This scoped proof does not close legacy retirement or pending result-visibility policy.
+
 ## Interpretation
 
 This matrix is the Phase 0 inventory required by
