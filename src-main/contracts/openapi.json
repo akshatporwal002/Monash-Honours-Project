@@ -1289,52 +1289,6 @@
         "title": "AssessmentDefinitionRead",
         "type": "object"
       },
-      "AssessmentEvaluationCreate": {
-        "additionalProperties": false,
-        "properties": {
-          "evaluation_idempotency_key": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Evaluation Idempotency Key",
-            "type": "string"
-          }
-        },
-        "required": [
-          "evaluation_idempotency_key"
-        ],
-        "title": "AssessmentEvaluationCreate",
-        "type": "object"
-      },
-      "AssessmentEvaluationRead": {
-        "properties": {
-          "decision_id": {
-            "title": "Decision Id",
-            "type": "string"
-          },
-          "reason_code": {
-            "$ref": "#/components/schemas/AssessmentReasonCode"
-          },
-          "replayed": {
-            "title": "Replayed",
-            "type": "boolean"
-          },
-          "result": {
-            "$ref": "#/components/schemas/AssessmentResult"
-          },
-          "result_state": {
-            "$ref": "#/components/schemas/ResultState"
-          }
-        },
-        "required": [
-          "decision_id",
-          "result",
-          "result_state",
-          "reason_code",
-          "replayed"
-        ],
-        "title": "AssessmentEvaluationRead",
-        "type": "object"
-      },
       "AssessmentPurpose": {
         "enum": [
           "DIAGNOSTIC",
@@ -7883,6 +7837,8 @@
     },
     "/api/v1/assessment/attempts/{assessment_attempt_id}/evaluate": {
       "post": {
+        "deprecated": true,
+        "description": "Submission jobs own evaluation; D-01 does not permit learner result visibility.",
         "operationId": "evaluate_assessment_attempt_api_v1_assessment_attempts__assessment_attempt_id__evaluate_post",
         "parameters": [
           {
@@ -7911,23 +7867,11 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssessmentEvaluationCreate"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
-          "201": {
+          "403": {
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssessmentEvaluationRead"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
