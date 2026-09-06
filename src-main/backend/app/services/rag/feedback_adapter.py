@@ -35,7 +35,7 @@ class RagFeedbackRetrievalProvider:
                 retrieval_request_id=result.request_id,
                 task_id=task.task_id,
                 course_id=task.course_id,
-                source_id=hit.material_id,
+                source_id=hit.chunk_id,
                 document_id=hit.material_id,
                 chunk_id=hit.chunk_id,
                 chunk_text=hit.chunk_text,

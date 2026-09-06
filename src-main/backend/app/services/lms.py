@@ -28,7 +28,6 @@ from app.models import (
     LearningMaterial,
     LearningOutcome,
     LearningTask,
-    MaterialChunk,
     MaterialIndexStatus,
     OutcomeKind,
     OutcomeVersion,
@@ -99,6 +98,7 @@ from app.services.authentication import normalize_email
 from app.services.gamification import GamificationService, ensure_default_achievements
 from app.services.learning_events import HmacSha256Pseudonymizer
 from app.services.rag.errors import RagError
+from app.services.rag.source_history import bind_sources, output_digest, resolve_passages
 from app.services.rag.storage import FileStorage
 from app.services.rag.task_generation import GenerateTasksInput
 from app.services.task_generation_runtime import build_grounded_task_generation_service
@@ -511,6 +511,19 @@ class LmsService:
         )
         self.session.add(task)
         self.session.flush()
+        try:
+            task.source_references = bind_sources(
+                self.session,
+                course_id=course.id,
+                output_type="task",
+                output_id=task.id,
+                output_version=output_digest([task.instructions, task.source_references]),
+                references=task.source_references,
+                strict=True,
+            )
+        except ValueError as error:
+            self.session.rollback()
+            raise _unprocessable(str(error)) from error
         self._audit(educator, "task.created", "task", task.id)
         self._commit()
         return self._task_read(task)
@@ -571,6 +584,19 @@ class LmsService:
         mapping = {"prompt": "description"}
         for name, value in values.items():
             setattr(task, mapping.get(name, name), value)
+        try:
+            task.source_references = bind_sources(
+                self.session,
+                course_id=course.id,
+                output_type="task",
+                output_id=task.id,
+                output_version=output_digest([task.instructions, task.source_references]),
+                references=task.source_references,
+                strict=True,
+            )
+        except ValueError as error:
+            self.session.rollback()
+            raise _unprocessable(str(error)) from error
         self._audit(educator, "task.updated", "task", task.id)
         self._commit()
         return self._task_read(task)
@@ -1305,7 +1331,9 @@ class LmsService:
         return list(
             self.session.scalars(
                 select(LearningMaterial)
-                .where(LearningMaterial.course_id == course_id)
+                .where(
+                    LearningMaterial.course_id == course_id, LearningMaterial.retired_at.is_(None)
+                )
                 .order_by(LearningMaterial.created_at.desc())
             ).all()
         )
@@ -1323,7 +1351,7 @@ class LmsService:
                 LearningMaterial.course_id == course_id,
             )
         )
-        if material is None:
+        if material is None or material.retired_at is not None:
             raise _not_found("Learning material")
         return material
 
@@ -1997,23 +2025,14 @@ class LmsService:
             raise _unprocessable(
                 "Generated tasks require at least one authorised course source reference"
             )
-        chunk_ids = set(
-            self.session.scalars(
-                select(MaterialChunk.id)
-                .join(
-                    LearningMaterial,
-                    LearningMaterial.id == MaterialChunk.material_id,
-                )
-                .where(
-                    LearningMaterial.course_id == course_id,
-                    MaterialChunk.id.in_(normalized),
-                    func.length(func.trim(MaterialChunk.chunk_text)) > 0,
-                )
-            ).all()
-        )
+        chunk_ids = {
+            reference
+            for reference, passage, _ in resolve_passages(self.session, course_id, normalized)
+            if passage.chunk_text.strip()
+        }
         if set(normalized) != chunk_ids:
             raise _unprocessable(
-                "Generated task source references must identify indexed chunks in this course"
+                "Generated task source references must identify preserved passages in this course"
             )
         return normalized
 

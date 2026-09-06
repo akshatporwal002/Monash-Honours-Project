@@ -20,6 +20,7 @@ from app.models import (
 from app.services.rag.contracts import RetrievalHit, RetrievalQuery, RetrievalResult
 from app.services.rag.normalisation import normalise_text
 from app.services.rag.retrieval import NO_RESULT_MESSAGE
+from app.services.rag.source_history import passage_label, resolve_passages
 
 _MODEL_ID = "local-lexical-v1"
 _WORD_PATTERN = re.compile(r"[a-z0-9]+")
@@ -67,6 +68,7 @@ class LocalCourseRetrievalService:
             .where(
                 LearningMaterial.course_id == query.course_id,
                 LearningMaterial.indexing_status == MaterialIndexStatus.INDEXED,
+                LearningMaterial.retired_at.is_(None),
             )
         )
         if query.module_id is not None:
@@ -76,7 +78,22 @@ class LocalCourseRetrievalService:
 
         query_terms = _terms(text)
         ranked: list[tuple[float, MaterialChunk, LearningMaterial]] = []
-        for chunk, material in self.session.execute(statement).all():
+        labels = {}
+        if query.allowed_chunk_ids:
+            candidates = []
+            for _, passage, revision in resolve_passages(
+                self.session, query.course_id, query.allowed_chunk_ids
+            ):
+                material = self.session.get(LearningMaterial, revision.material_id)
+                if material is None or material.retired_at is not None:
+                    continue
+                if query.module_id is not None and revision.module_id != query.module_id:
+                    continue
+                labels[passage.id] = passage_label(passage, revision)
+                candidates.append((passage, material))
+        else:
+            candidates = self.session.execute(statement).all()
+        for chunk, material in candidates:
             chunk_terms = _terms(chunk.chunk_text)
             overlap = len(query_terms & chunk_terms)
             if overlap == 0:
@@ -93,7 +110,7 @@ class LocalCourseRetrievalService:
                 material_id=material.id,
                 course_id=material.course_id,
                 chunk_text=chunk.chunk_text,
-                source_label=_source_label(material, chunk),
+                source_label=labels.get(chunk.id) or _source_label(material, chunk),
                 relevance_score=relevance,
                 chunk_index=chunk.chunk_index,
             )

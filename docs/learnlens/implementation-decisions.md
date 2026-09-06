@@ -22,16 +22,27 @@ This preserves that direction without inventing approval owners, research consen
 
 ## Task 9: immutable sources and passage references
 
-Status: design in progress; not implemented or verified yet.
+Status: implemented; final validation is recorded in the [Task 9 handoff](task-09-source-history.md).
 
 Preserve each successful extracted source revision and its passages instead of deleting old chunks during reprocessing.
-New retrieval uses the current approved revision. Existing output references continue to identify their original passages.
+Current search uses the latest indexed extraction. Existing output references identify their original passages.
+Keep the search projection separate from the immutable archive, so index rebuilding cannot erase citations.
+Record source approval and revocation as append-only events, retaining the approval linked to each output when used.
+Task 12 will enforce approval within the complete publication lifecycle.
 Retirement removes a source from new retrieval, while authorised reviewers retain access to its preserved history.
 Do not enable destructive source deletion while the retention schedule remains unresolved.
 Backfill existing material and chunk records without treating legacy content as newly approved by a named educator.
 
-Verification must cover both online and offline ingestion, source changes, output references, course access, and migrations.
+Use content hashes in upload filenames to preserve earlier files during replacement.
+Keep retired sources accessible through course-scoped reviewer routes, including lookup by output and passage ID.
+Backfilled references use `legacy-unverified`; do not reconstruct missing historical approvals or passages from current content.
+
+Verification covers online and offline ingestion, source changes, output references, course access, and migrations.
 Complete processing claim recovery belongs to Task 10; Task 9 must still avoid publishing a partial revision.
+
+The first frontend suite run had one timeout while backend and build checks ran in parallel.
+The complete frontend suite passed with two workers and unchanged test deadlines.
+Use bounded local test concurrency when running these suites together.
 
 ## Task boundaries and context
 

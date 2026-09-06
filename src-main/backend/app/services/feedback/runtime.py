@@ -6,7 +6,6 @@ import json
 from uuid import uuid4
 
 import anyio
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -42,6 +41,7 @@ from app.services.llm import (
 )
 from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
 from app.services.quantum import CircuitOperation, QuantumSimulationError, simulate_circuit
+from app.services.rag.source_history import passage_label, resolve_passages
 from app.services.research.governance import research_processing_approved
 from app.services.terminal_integrations.planner import (
     DurableTerminalIntegrationPlanner,
@@ -102,54 +102,29 @@ class TaskSourceRetrievalProvider:
         del submission
         if not task.source_references:
             return RetrievalResult(status=ContextProviderStatus.EMPTY)
-        references = set(task.source_references)
-        direct_materials = list(
-            self._session.scalars(
-                select(LearningMaterial).where(
-                    LearningMaterial.id.in_(references),
-                    LearningMaterial.course_id == task.course_id,
-                )
-            ).all()
-        )
-        direct_material_ids = {material.id for material in direct_materials}
-        chunks = list(
-            self._session.scalars(
-                select(MaterialChunk)
-                .where(
-                    (MaterialChunk.id.in_(references))
-                    | (MaterialChunk.material_id.in_(direct_material_ids))
-                )
-                .order_by(MaterialChunk.chunk_index)
-                .limit(50)
-            ).all()
-        )
-        materials = {
-            material.id: material
-            for material in self._session.scalars(
-                select(LearningMaterial).where(
-                    LearningMaterial.id.in_({chunk.material_id for chunk in chunks}),
-                    LearningMaterial.course_id == task.course_id,
-                )
-            ).all()
-        }
         request_id = str(uuid4())
-        items = [
-            RetrievalContext(
-                retrieval_request_id=request_id,
-                task_id=task.task_id,
-                course_id=task.course_id,
-                source_id=(
-                    chunk.material_id if chunk.material_id in direct_material_ids else chunk.id
-                ),
-                document_id=chunk.material_id,
-                chunk_id=chunk.id,
-                chunk_text=chunk.chunk_text,
-                relevance_score=1,
-                source_label=_source_label(materials[chunk.material_id], chunk),
+        items = []
+        for _reference, passage, revision in resolve_passages(
+            self._session, task.course_id, task.source_references
+        ):
+            material = self._session.get(LearningMaterial, revision.material_id)
+            if material is None or material.retired_at is not None:
+                continue
+            items.append(
+                RetrievalContext(
+                    retrieval_request_id=request_id,
+                    task_id=task.task_id,
+                    course_id=task.course_id,
+                    source_id=passage.id,
+                    document_id=revision.material_id,
+                    chunk_id=passage.id,
+                    chunk_text=passage.chunk_text,
+                    relevance_score=1,
+                    source_label=passage_label(passage, revision),
+                )
             )
-            for chunk in chunks
-            if chunk.material_id in materials
-        ]
+            if len(items) == 50:
+                break
         if not items:
             return RetrievalResult(status=ContextProviderStatus.EMPTY)
         return RetrievalResult(

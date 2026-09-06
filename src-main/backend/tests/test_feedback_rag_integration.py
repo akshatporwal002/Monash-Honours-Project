@@ -135,10 +135,10 @@ def test_feedback_composition_returns_only_task_grounded_course_hits(tmp_path: P
 
     assert len(context.retrieval_context) == 1
     assert context.retrieval_context[0].chunk_id == course_one.chunks[0].id
-    assert context.retrieval_context[0].source_id == course_one.id
+    assert context.retrieval_context[0].source_id == course_one.chunks[0].id
 
 
-def test_feedback_composition_handles_no_retrieval_hits(tmp_path: Path) -> None:
+def test_feedback_composition_recovers_frozen_source_after_vector_loss(tmp_path: Path) -> None:
     session, storage, vectors = (
         _session(tmp_path),
         LocalFileStorage(tmp_path / "uploads", 1024 * 1024),
@@ -153,4 +153,5 @@ def test_feedback_composition_handles_no_retrieval_hits(tmp_path: Path) -> None:
 
     context = asyncio.run(collector.collect(submission, "00000000-0000-4000-8000-000000000001"))
 
-    assert context.retrieval_context == []
+    assert len(context.retrieval_context) == 1
+    assert context.retrieval_context[0].chunk_id == material.chunks[0].id

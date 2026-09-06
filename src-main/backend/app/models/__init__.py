@@ -1,3 +1,4 @@
+from app.models import source_history  # noqa: F401
 from app.models.assessment import (
     AppealOrCorrection,
     AssessmentApprovalState,

@@ -18,6 +18,7 @@ from app.services.rag.contracts import (
 )
 from app.services.rag.errors import InvalidMaterialStateError, MaterialAlreadyProcessingError
 from app.services.rag.normalisation import ensure_document_size, normalise_text
+from app.services.rag.source_history import preserve_current_source, snapshot_source
 from app.services.rag.storage import FileStorage
 
 
@@ -39,6 +40,8 @@ class MaterialProcessor:
         )
 
     def process(self, material: LearningMaterial, force: bool = False) -> tuple[int, int]:
+        if material.retired_at is not None:
+            raise InvalidMaterialStateError()
         if material.indexing_status == MaterialIndexStatus.PROCESSING:
             raise MaterialAlreadyProcessingError()
         if material.indexing_status == MaterialIndexStatus.INDEXED and not force:
@@ -50,6 +53,7 @@ class MaterialProcessor:
             MaterialIndexStatus.INDEXED,
         }:
             raise InvalidMaterialStateError()
+        preserve_current_source(self.session, material)
         material.indexing_status = MaterialIndexStatus.PROCESSING
         if force:
             material.processing_revision += 1
@@ -79,6 +83,9 @@ class MaterialProcessor:
                 settings.rag_chunk_max_tokens,
                 settings.rag_chunk_overlap_tokens,
             ).chunk(tuple(normalised))
+            embeddings = self.embedding.embed_documents([draft.text for draft in drafts])
+            if len(embeddings) != len(drafts):
+                raise ValueError("Embedding count does not match extracted passages")
             self.session.execute(
                 delete(MaterialChunk).where(MaterialChunk.material_id == material.id)
             )
@@ -99,8 +106,7 @@ class MaterialProcessor:
                 MaterialIndexStatus.EXTRACTED,
                 datetime.now(UTC),
             )
-            self.session.commit()
-            embeddings = self.embedding.embed_documents([chunk.chunk_text for chunk in chunks])
+            self.session.flush()
             self.vectors.delete_material(material.id)
             self.vectors.upsert(
                 [
@@ -129,7 +135,15 @@ class MaterialProcessor:
                     chunk.embedding_dimension,
                     chunk.indexed_at,
                 ) = self.embedding.model_id, "v1", self.embedding.dimension, now
+            snapshot_source(
+                self.session,
+                material,
+                chunks,
+                blocks=normalised,
+                extraction_version="heading-chunker-v1",
+            )
             material.indexing_status, material.indexed_at = MaterialIndexStatus.INDEXED, now
+            material.extraction_error = material.failure_stage = material.error_code = None
             self.session.commit()
             return len(chunks), len(chunks)
         except Exception:
