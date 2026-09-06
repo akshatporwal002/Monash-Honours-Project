@@ -62,7 +62,9 @@ class PassRuleEngine:
             for criterion_id in request.mandatory_criterion_version_ids
         )
         result = (
-            AssessmentResult.PASS if rule_met and mandatory_met else AssessmentResult.INCOMPLETE
+            AssessmentResult.PASS
+            if rule_met is True and mandatory_met
+            else AssessmentResult.INCOMPLETE
         )
 
         return PassRuleEvaluation(
@@ -198,17 +200,27 @@ def _summarise_decisions(
 
 def _evaluate_expression(
     expression: dict[str, Any], decisions: dict[str, set[CriterionDecision]]
-) -> bool:
+) -> bool | None:
+    """Keep unknown evidence distinct from false, including beneath negation."""
     if "criterion_version_id" in expression:
-        return decisions.get(expression["criterion_version_id"]) == {CriterionDecision.MET}
+        criterion_decisions = decisions.get(expression["criterion_version_id"])
+        if criterion_decisions == {CriterionDecision.MET}:
+            return True
+        if criterion_decisions == {CriterionDecision.NOT_MET}:
+            return False
+        return None
     clauses = [_evaluate_expression(clause, decisions) for clause in expression["clauses"]]
     match expression["operator"]:
         case "ALL_OF":
-            return all(clauses)
+            if any(clause is False for clause in clauses):
+                return False
+            return None if None in clauses else True
         case "ANY_OF":
-            return any(clauses)
+            if any(clause is True for clause in clauses):
+                return True
+            return None if None in clauses else False
         case "NOT":
-            return not clauses[0]
+            return None if clauses[0] is None else not clauses[0]
     raise AssertionError("parsed pass-rule operator was not recognised")
 
 
