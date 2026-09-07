@@ -9,12 +9,17 @@ from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 from app.domain.assessment import AssessmentAttemptState, ResultState
-from app.models.assessment import AssessmentAttempt, AssessmentDecision
+from app.models.assessment import (
+    AssessmentApprovalState,
+    AssessmentAttempt,
+    AssessmentDecision,
+    TaskApproval,
+)
 from app.models.episode import EpisodeHelpUse, EpisodeStageStart
 from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.lms import SubmissionAttempt
 from app.models.persistence import LearningTask
-from app.models.task_review import TaskRevision
+from app.models.task_review import TaskReviewEvent, TaskRevision
 from app.schemas.assessment import EvidenceReference, ResolvedEvidenceReference
 from app.schemas.feedback import (
     AssessmentContextStatus,
@@ -104,6 +109,15 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
                 )
                 for criterion in bundle.criteria
             ]
+            approval = self._session.scalar(
+                select(TaskApproval).where(
+                    TaskApproval.task_form_version_id == form.id,
+                    TaskApproval.assessment_definition_version_id == definition.id,
+                    TaskApproval.course_id == attempt.course_id,
+                    TaskApproval.approval_state == AssessmentApprovalState.APPROVED,
+                )
+            )
+            review = self._session.get(TaskReviewEvent, approval.task_review_event_id)
             task = TaskContext(
                 task_id=attempt.task_id,
                 course_id=attempt.course_id,
@@ -121,6 +135,7 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
                 learning_outcome_id=reference.outcome_id,
                 source_references=list(snapshot.get("source_references") or []),
                 assessed=True,
+                source_approvals=dict(review.source_approvals),
             )
             help_ids = (
                 list(

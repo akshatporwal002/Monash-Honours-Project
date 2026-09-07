@@ -219,3 +219,35 @@ def test_cached_source_changes_withhold_feedback_without_rewriting_history(db_se
         db_session.get(SubmissionAttempt, attempt.response_version_id).content_digest
         == context.assessment_context.response_content_digest
     )
+
+
+def test_first_feedback_after_source_reapproval_requires_original_task_review_binding(db_session):
+    from app.models.source_history import SourcePassage, SourceRevision
+    from app.services.rag.source_history import latest_approval, record_approval
+
+    _, actor, attempt, response_id = setup_human(db_session)
+    original = collected(db_session, attempt)
+    passage = db_session.get(SourcePassage, original.task.source_references[0])
+    revision = db_session.get(SourceRevision, passage.revision_id)
+    original_binding = original.task.source_approvals[passage.id]
+    original_digest = db_session.get(SubmissionAttempt, response_id).content_digest
+    for state in ("REVOKED", "APPROVED"):
+        record_approval(
+            db_session,
+            course_id=attempt.course_id,
+            material_id=revision.material_id,
+            revision_id=revision.id,
+            actor_id=str(actor.id),
+            state=state,
+            reason="Synthetic source review changed before first feedback.",
+            expected_sequence=latest_approval(db_session, revision.id).sequence,
+        )
+    db_session.commit()
+    context = collected(db_session, attempt)
+    assert context.task.source_approvals[passage.id] == original_binding
+    assert latest_approval(db_session, revision.id).id != original_binding
+    assert not context.retrieval_context
+    result, _ = run_pipeline(db_session, context)
+    assert result.status is FeedbackPipelineStatus.FALLBACK
+    assert db_session.get(SubmissionAttempt, response_id).content_digest == original_digest
+    assert db_session.get(SourcePassage, passage.id).chunk_text == passage.chunk_text

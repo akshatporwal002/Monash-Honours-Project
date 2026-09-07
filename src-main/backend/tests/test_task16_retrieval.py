@@ -12,6 +12,7 @@ from app.services.rag.feedback_adapter import (
     RagFeedbackRetrievalProvider,
 )
 from app.services.rag.local_retrieval import LocalCourseRetrievalService
+from app.services.rag.source_history import latest_approval
 
 
 def source(
@@ -81,6 +82,12 @@ def retrieve(session: Session, references: list[str], *, assessed=True, answer="
         learning_outcome_id="outcome",
         source_references=references,
         assessed=assessed,
+        source_approvals={
+            reference: approval.id
+            for reference in references
+            if (passage := session.get(SourcePassage, reference))
+            and (approval := latest_approval(session, passage.revision_id))
+        },
     )
     submission = SubmissionContext(
         submission_id="response",

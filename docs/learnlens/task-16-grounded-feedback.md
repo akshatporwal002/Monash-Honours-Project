@@ -121,7 +121,7 @@ Tasks 17, 24, and all other numbered tasks remain outside this change.
 - Legacy retrieval follow-up: eight tests passed. Real worker kill and recovery: one test passed.
 - Initial complete backend run: 1,031 passed, nine failed, with 86.53% service coverage.
   Eight failures shared the synthetic source index-state omission. One exposed missing legacy passage metadata.
-  Both fixes passed the focused checks above. A complete corrected run and PR CI remain required.
+  Both fixes passed focused checks. The corrected full run passed 1,040 tests with 86.69% service coverage.
 - All 31 migration cases passed in that complete run. The sole head remains `20260907_0031`.
 - Ruff lint and formatting, OpenAPI drift, and frontend contract drift passed.
 - Locked Python dependency checks and Python/full npm/production npm audits passed with no known vulnerabilities.
@@ -133,5 +133,21 @@ Headed Firefox had visibility/setup failures on this Windows desktop; the suppor
 A prior agent helper survived its usage-limit interruption. Its exact owned process tree was identified and stopped.
 The final authenticated run used fresh data and stopped its own server trees.
 
-Independent final Standards and Spec reviews are outstanding because the review agents hit the account usage limit.
-This does not count as a review pass. Do not merge until both reviews and the exact-head CI gates pass.
+## Review and delivery record
+
+Implementation commit: `722533bb167e128aeb7d6a45674f224b9575bed6`.
+Base: `ef0a13d7fce3c6368bb50c9f36ce33251568e64b`.
+[Task 16 PR 11](https://github.com/akshatporwal002/Monash-Honours-Project/pull/11) targets `main`.
+The branch is `feat/task-16-grounded-assessed-feedback`.
+
+Fresh independent reviews ran after earlier workers reached their usage limit.
+Standards passed with one optional suggestion to share source eligibility checks.
+Spec found one blocking issue: fresh generation accepted a replacement source approval without renewed task review.
+The fix carries the exact review's source approval bindings into retrieval and cached release checks.
+A real-service revoke, reapprove, then first-generation regression now reaches safe fallback and preserves evidence.
+The affected context, retrieval, release, and integration suite passed all 36 tests (`review-fix.log`).
+Historical source and response records remain readable. The new approval cannot replace an old reviewed binding.
+
+Final independent re-review and CI on the corrected commit remain required before merge.
+The PR records exact head checks and the auditable merge commit. Post-merge CI and clean local main must be verified.
+Do not infer completed delivery from earlier passing checks.

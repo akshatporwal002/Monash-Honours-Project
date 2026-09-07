@@ -53,7 +53,8 @@ class RagFeedbackRetrievalProvider:
                 continue
             approval = latest_approval(session, revision.id)
             if (approval is not None and approval.state != "APPROVED") or (
-                task.assessed and approval is None
+                task.assessed
+                and (approval is None or approval.id != task.source_approvals.get(reference))
             ):
                 continue
             eligible.append(reference)
@@ -124,6 +125,7 @@ def cached_sources_available(session, claims, task):
             or material.indexing_status != MaterialIndexStatus.INDEXED
             or approval.state != "APPROVED"
             or approval.id != claim.get("approval_id")
+            or approval.id != task.source_approvals.get(passage.id)
             or revision.id != claim.get("source_revision_id")
             or revision.content_hash != claim.get("source_digest")
             or passage.chunk_hash != claim.get("passage_digest")

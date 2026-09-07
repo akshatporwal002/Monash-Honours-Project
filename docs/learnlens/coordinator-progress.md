@@ -226,6 +226,10 @@ No database migration or lockfile change was needed.
 
 The [Task 16 handoff](task-16-grounded-feedback.md) records implementation and acceptance evidence.
 Final quality gates and separate Standards and Spec reviews remain required before merge.
-Review workers hit the account usage limit during the final verification phase. This is not review approval.
-The coordinator continues available local checks and will not bypass the independent review gate.
+[PR 11](https://github.com/akshatporwal002/Monash-Honours-Project/pull/11) contains implementation commit `722533b`.
+The corrected full local backend run passed 1,040 tests with 86.69% service coverage.
+Fresh Standards review passed; Spec review found an approval-version binding gap before first generation.
+That gap is fixed with a real-service regression; 36 affected checks passed.
+Final re-review and CI remain required. Earlier account usage limits were bypassed only by successful fresh reviews,
+never by treating a missing verdict as approval.
 Tasks 17, 24, and other numbered tasks have not started.

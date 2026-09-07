@@ -115,6 +115,7 @@ class FeedbackAgentOutput(FeedbackContract):
 
 class TaskContext(FeedbackContract):
     assessed: bool = False
+    source_approvals: dict[ExternalId, ExternalId] = Field(default_factory=dict, max_length=100)
     task_id: ExternalId
     course_id: ExternalId
     task_type: ExternalId
