@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from support.task_review import bootstrap_reviewed_demo
 
 from app.api.assessment_dependencies import (
     get_assessment_publication_policy,
@@ -18,7 +19,7 @@ from app.main import create_app
 from app.models.assessment import AssessmentDefinition, OutcomeVersion
 from app.models.lms import PlatformAuditEvent
 from app.models.user import RoleAssignment, User, UserRole
-from app.services.lms import DEMO_PASSWORD, bootstrap_demo
+from app.services.lms import DEMO_PASSWORD
 
 
 @pytest.fixture
@@ -27,7 +28,7 @@ def assessment_api_context(tmp_path: Path) -> Generator[tuple[TestClient, Sessio
     Base.metadata.create_all(engine)
     factory = create_session_factory(engine)
     session = factory()
-    bootstrap_demo(session)
+    bootstrap_reviewed_demo(session)
     app = create_app()
     app.dependency_overrides[get_db] = lambda: session
     app.dependency_overrides[get_scoped_role_eligibility] = lambda: (

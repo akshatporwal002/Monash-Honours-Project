@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
@@ -248,6 +248,12 @@ class LmsService:
         state: CourseState,
     ) -> CourseRead:
         course = self._require_course_owner(educator, course_id)
+        self.session.execute(
+            update(Course)
+            .where(Course.id == course_id)
+            .values(id=Course.id, updated_at=Course.updated_at)
+        )
+        self.session.refresh(course)
         if state is CourseState.PUBLISHED:
             if course.state is CourseState.ARCHIVED:
                 raise _conflict("Archived courses cannot be published")
@@ -475,6 +481,8 @@ class LmsService:
         return [
             self._task_read(task, actor if actor.role is UserRole.STUDENT else None)
             for task in tasks
+            if actor.role is not UserRole.STUDENT
+            or TaskReviewService(self.session).summary(task)["available"]
         ]
 
     def create_task(
@@ -580,7 +588,7 @@ class LmsService:
         self._require_not_archived(course)
         values = payload.model_dump(exclude_unset=True)
         review = TaskReviewService(self.session)
-        review.prepare_edit(task, values.pop("expected_revision_id", None))
+        review.prepare_edit(educator, task, values.pop("expected_revision_id", None))
         final_position = values.get("position", task.position)
         prerequisites = values.get("prerequisite_task_ids", task.prerequisite_task_ids)
         self._validate_prerequisites(course.id, prerequisites, final_position, task.id)
@@ -617,6 +625,8 @@ class LmsService:
         if not task.course_id:
             raise _not_found("Task")
         self._require_course_read(actor, task.course_id)
+        if actor.role is UserRole.STUDENT:
+            TaskReviewService(self.session).require_available(task)
         return self._task_read(task, actor if actor.role is UserRole.STUDENT else None)
 
     def get_student_task(self, student: User, task_id: str) -> TaskRead:
@@ -655,7 +665,7 @@ class LmsService:
         return DraftRead.model_validate(draft)
 
     def get_draft(self, student: User, task_id: str) -> DraftRead | None:
-        task = self._require_student_task(student, task_id)
+        task = self._require_student_task(student, task_id, require_available=False)
         draft = self.session.scalar(
             select(SubmissionDraft).where(
                 SubmissionDraft.student_id == student.id,
@@ -814,7 +824,7 @@ class LmsService:
         return self._attempt_read(attempt, points_awarded)
 
     def list_attempts(self, student: User, task_id: str) -> list[AttemptRead]:
-        self._require_student_task(student, task_id)
+        self._require_student_task(student, task_id, require_available=False)
         attempts = list(
             self.session.scalars(
                 select(SubmissionAttempt)
@@ -1628,11 +1638,15 @@ class LmsService:
             raise _conflict("Student profile setup is incomplete")
         return profile
 
-    def _require_student_task(self, student: User, task_id: str) -> LearningTask:
+    def _require_student_task(
+        self, student: User, task_id: str, *, require_available: bool = True
+    ) -> LearningTask:
         task = self._get_task(task_id)
         if not task.course_id:
             raise _not_found("Task")
         self._require_course_read(student, task.course_id)
+        if require_available:
+            TaskReviewService(self.session).require_available(task)
         return task
 
     def simulate_student_circuit(self, student: User, payload: SimulationRequest) -> dict:
@@ -1679,7 +1693,7 @@ class LmsService:
     def list_student_simulations(self, student: User, task_id: str, limit: int) -> list[dict]:
         from app.models.simulation import CircuitVersion, SimulationRun
 
-        self._require_student_task(student, task_id)
+        self._require_student_task(student, task_id, require_available=False)
         ids = self.session.scalars(
             select(SimulationRun.id)
             .join(
@@ -1729,13 +1743,15 @@ class LmsService:
         )
         if not course_ids:
             return []
-        return list(
+        tasks = list(
             self.session.scalars(
                 select(LearningTask)
                 .where(LearningTask.course_id.in_(course_ids))
                 .order_by(LearningTask.position)
             ).all()
         )
+        review = TaskReviewService(self.session)
+        return [task for task in tasks if review.summary(task)["available"]]
 
     def _get_or_create_draft(self, student_id: int, task_id: str) -> SubmissionDraft:
         draft = self.session.scalar(
@@ -2148,11 +2164,14 @@ class LmsService:
             if modules
             else 0
         )
-        tasks = self.session.scalar(
-            select(func.count(LearningTask.id)).where(LearningTask.course_id == course.id)
+        tasks = list(
+            self.session.scalars(select(LearningTask).where(LearningTask.course_id == course.id))
         )
         if not modules or not outcomes or not tasks:
             raise _conflict("Add a module, learning outcome, and task before publishing")
+        review = TaskReviewService(self.session)
+        if any(not review.summary(task)["available"] for task in tasks):
+            raise _conflict("Every task needs current educator approval before publishing")
 
     def _course_read(self, course: Course) -> CourseRead:
         module_count = (
@@ -2395,7 +2414,7 @@ def bootstrap_demo(session: Session) -> tuple[list[User], Course]:
             code="QL-101",
             title="Quantum Computing Foundations",
             description="A compact introduction to qubits, circuits, and measurement.",
-            state=CourseState.PUBLISHED,
+            state=CourseState.DRAFT,
         )
         session.add(course)
         session.flush()
@@ -2556,6 +2575,8 @@ def bootstrap_demo(session: Session) -> tuple[list[User], Course]:
                 prerequisite_task_ids=[previous_id] if previous_id else [],
             )
             session.add(task)
+            session.flush()
+            TaskReviewService(session).capture(task)
             previous_id = task.id
     enrollment = session.scalar(
         select(Enrollment).where(

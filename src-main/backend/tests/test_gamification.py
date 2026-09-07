@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 
 from app.models import (
     Achievement,
@@ -22,11 +23,11 @@ from app.models import (
 )
 from app.schemas.lms import SubmissionCreate
 from app.services.gamification import GamificationService
-from app.services.lms import LmsService, bootstrap_demo
+from app.services.lms import LmsService
 
 
 def test_gamification_awards_each_task_once_and_recalculates_level(db_session) -> None:
-    users, _ = bootstrap_demo(db_session)
+    users, _ = bootstrap_reviewed_demo(db_session)
     student = next(user for user in users if user.role is UserRole.STUDENT)
     profile = db_session.scalar(select(StudentProfile).where(StudentProfile.user_id == student.id))
     task = db_session.scalar(select(LearningTask).order_by(LearningTask.position))
@@ -137,6 +138,7 @@ def test_production_achievement_defaults_award_and_display_for_non_demo_student(
     session.add_all([task, enrollment])
     session.commit()
 
+    approve_fixture_task(session, task)
     service = LmsService(session)
     attempt = service.submit(
         student,

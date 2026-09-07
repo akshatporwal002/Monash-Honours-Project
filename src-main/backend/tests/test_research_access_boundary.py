@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from support.task_review import bootstrap_reviewed_demo
 
 from app.api.research_export_dependencies import get_research_export_service
 from app.core.config import settings
@@ -21,7 +22,7 @@ from app.services.access import (
     SqlAlchemyResearchExportAccessPolicy,
 )
 from app.services.feedback.runtime import ConfiguredResearchEligibility
-from app.services.lms import DEMO_PASSWORD, bootstrap_demo
+from app.services.lms import DEMO_PASSWORD
 from app.services.research_export import PreparedResearchExport
 
 
@@ -29,7 +30,7 @@ from app.services.research_export import PreparedResearchExport
 def test_ordinary_analytics_access_cannot_export_research(
     db_session: Session, monkeypatch: pytest.MonkeyPatch, role: str
 ) -> None:
-    bootstrap_demo(db_session)
+    bootstrap_reviewed_demo(db_session)
     monkeypatch.setattr(settings, "rate_limit_enabled", False)
     service = Mock()
     service.prepare.return_value = PreparedResearchExport(
@@ -68,7 +69,7 @@ def test_global_research_flag_cannot_replace_study_and_consent_approval(
 def test_export_requires_a_current_research_grant(
     db_session: Session, monkeypatch: pytest.MonkeyPatch, grant_state: str
 ) -> None:
-    users, _ = bootstrap_demo(db_session)
+    users, _ = bootstrap_reviewed_demo(db_session)
     educator = next(user for user in users if user.role is UserRole.EDUCATOR)
     admin = next(user for user in users if user.role is UserRole.ADMINISTRATOR)
     course = db_session.scalar(select(Course))
@@ -129,7 +130,7 @@ def test_research_grants_are_course_scoped_and_revocation_preserves_analytics(
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    users, _ = bootstrap_demo(db_session)
+    users, _ = bootstrap_reviewed_demo(db_session)
     educator = next(user for user in users if user.role is UserRole.EDUCATOR)
     admin = next(user for user in users if user.role is UserRole.ADMINISTRATOR)
     owned_course = db_session.scalar(select(Course).where(Course.educator_id == educator.id))

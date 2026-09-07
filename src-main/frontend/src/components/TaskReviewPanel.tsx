@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '../app/api'
 import type { ApiSchemas } from '../api/generated'
+import { TaskMarkingEditor } from './TaskMarkingEditor'
 import { Button, Field, Input, Select, Tag, Textarea } from './ui'
 import styles from './TaskReviewPanel.module.css'
 
@@ -26,6 +27,9 @@ function RevisionReview({ taskId }: { taskId: string }) {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [history, setHistory] = useState<History[]>([])
   const [form, setForm] = useState({ title: '', prompt: '', instructions: '', expected_answer: '', starter_code: '' })
+  const [criteria, setCriteria] = useState<Record<string, unknown>>({})
+  const [criteriaDirty, setCriteriaDirty] = useState(false)
+  const [taskType, setTaskType] = useState('')
   const [reason, setReason] = useState('')
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -51,6 +55,10 @@ function RevisionReview({ taskId }: { taskId: string }) {
         starter_code: text(snapshot.starter_code),
       })
       setDirty(false)
+      const marking = snapshot.marking_criteria
+      setCriteria(marking !== null && typeof marking === 'object' && !Array.isArray(marking) ? marking as Record<string, unknown> : {})
+      setCriteriaDirty(false)
+      setTaskType(text(snapshot.task_type))
     }).catch((caught: unknown) => {
       if (!controller.signal.aborted) setError(message(caught))
     })
@@ -69,7 +77,11 @@ function RevisionReview({ taskId }: { taskId: string }) {
     setError('')
     setNotice('')
     try {
-      await api.taskReview.edit(taskId, { ...form, expected_revision_id: summary.revision_id })
+      const markingCriteria = Object.fromEntries(Object.entries(criteria).map(([key, value]) => [key,
+        ['required_keywords', 'required_terms', 'required_code_fragments', 'correct_answers', 'required_gates', 'allowed_gates'].includes(key) && Array.isArray(value)
+          ? value.filter((item) => typeof item !== 'string' || item.trim()).map((item) => typeof item === 'string' ? item.trim() : item) : value,
+      ]))
+      await api.taskReview.edit(taskId, { ...form, ...(criteriaDirty ? { marking_criteria: markingCriteria } : {}), expected_revision_id: summary.revision_id })
       setSummary(null)
       setReason('')
       setReload((value) => value + 1)
@@ -139,6 +151,7 @@ function RevisionReview({ taskId }: { taskId: string }) {
         <Textarea disabled={busy} value={form.expected_answer} onChange={(event) => edit('expected_answer', event.target.value)} />
       </Field>
       {form.starter_code && <Field label="Starter code"><Textarea disabled={busy} value={form.starter_code} onChange={(event) => edit('starter_code', event.target.value)} /></Field>}
+      <TaskMarkingEditor taskType={taskType} value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
       <Button onClick={() => void save()} disabled={busy || !dirty || !summary.revision_id}>Save task revision</Button>
       <Field label="Review reason" required><Textarea maxLength={2000} disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
       {dirty && <p>Save your edits before recording a review.</p>}

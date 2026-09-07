@@ -270,6 +270,12 @@ export type ApiSchemas = {
     "task_form_version": number
     "task_id": string
   }
+  "AssessorCandidateRead": {
+    "currently_eligible": boolean
+    "full_name": string
+    "latest_approval": (ApiSchemas["AssessorEligibilityRead"]) | (null)
+    "subject_user_id": number
+  }
   "AssessorEligibilityRead": {
     "actor_user_id": number
     "course_id": string
@@ -820,6 +826,23 @@ export type ApiSchemas = {
     "valid_from"?: (string) | (null)
     "valid_until"?: (string) | (null)
   }
+  "ScopedRoleAssignmentHistoryRead": {
+    "assigned_at": string
+    "assigned_by_user_id": number
+    "course_id": string
+    "currently_active": boolean
+    "eligibility_approval_id": (string) | (null)
+    "id": string
+    "reason": string
+    "revocation_reason": (string) | (null)
+    "revoked_at": (string) | (null)
+    "revoked_by_user_id": (number) | (null)
+    "role": ApiSchemas["ScopedRole"]
+    "subject_user_id": number
+    "valid_from": string
+    "valid_until": (string) | (null)
+    "version": number
+  }
   "ScopedRoleAssignmentRead": {
     "assigned_at": string
     "assigned_by_user_id": number
@@ -907,6 +930,7 @@ export type ApiSchemas = {
     "state": string
   }
   "SourceApprovalRequest": {
+    "expected_sequence"?: (number) | (null)
     "reason": string
     "state": string
   }

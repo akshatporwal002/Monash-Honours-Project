@@ -67,11 +67,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!response.ok) {
     let detail = 'The request could not be completed.'
     try {
-      const payload = (await response.json()) as { detail?: string | Array<{ msg?: string }> }
+      const payload = (await response.json()) as { detail?: string | Array<{ msg?: string }> | { message?: string } }
       if (typeof payload.detail === 'string') detail = payload.detail
       if (Array.isArray(payload.detail)) {
         detail = payload.detail.map((item) => item.msg).filter(Boolean).join(' ') || detail
       }
+      if (payload.detail && typeof payload.detail === 'object' && 'message' in payload.detail && typeof payload.detail.message === 'string') detail = payload.detail.message
     } catch {
       // Reduce non-JSON failures to a safe message without exposing server internals.
     }
@@ -411,6 +412,26 @@ function normalizeSettings(raw: RawSettings): SystemSettings {
 }
 
 export const api = {
+  assessorAccess: {
+    candidates: (courseId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['AssessorCandidateRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/assessor-candidates?limit=20&offset=${offset}`, { signal }),
+    eligibilityHistory: (courseId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['AssessorEligibilityRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/assessor-eligibility?limit=20&offset=${offset}`, { signal }),
+    recordEligibility: (courseId: string, payload: ApiSchemas['AssessorEligibilityWrite']) =>
+      request<ApiSchemas['AssessorEligibilityRead']>(`/assessment/courses/${encodeURIComponent(courseId)}/assessor-eligibility`, json('POST', payload)),
+    grantHistory: (courseId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['ScopedRoleAssignmentHistoryRead'][]>(`/assessment/admin/courses/${encodeURIComponent(courseId)}/assignments?limit=20&offset=${offset}`, { signal }),
+    grant: (courseId: string, payload: ApiSchemas['ScopedRoleAssignmentCreate']) =>
+      request<ApiSchemas['ScopedRoleAssignmentRead']>(`/assessment/admin/courses/${encodeURIComponent(courseId)}/assignments`, json('POST', payload)),
+    revoke: (assignmentId: string, reason: string) =>
+      request<ApiSchemas['ScopedRoleAssignmentRead']>(`/assessment/admin/assignments/${encodeURIComponent(assignmentId)}`, json('DELETE', { reason })),
+  },
+  sourceReview: {
+    history: (courseId: string, materialId: string, signal?: AbortSignal) =>
+      request<ApiSchemas['SourceRevisionRead'][]>(`/courses/${encodeURIComponent(courseId)}/materials/${encodeURIComponent(materialId)}/revisions`, { signal }),
+    record: (courseId: string, materialId: string, revisionId: string, payload: ApiSchemas['SourceApprovalRequest']) =>
+      request<ApiSchemas['SourceApprovalRead']>(`/courses/${encodeURIComponent(courseId)}/materials/${encodeURIComponent(materialId)}/revisions/${encodeURIComponent(revisionId)}/approvals`, json('POST', payload)),
+  },
   taskReview: {
     tasks: (courseId: string, signal?: AbortSignal) =>
       request<ApiSchemas['TaskRead'][]>(`/courses/${encodeURIComponent(courseId)}/tasks`, { signal }),

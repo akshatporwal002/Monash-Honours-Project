@@ -155,6 +155,41 @@ class AssessorEligibilityService:
     def history(
         self, actor: User, course_id: str, *, limit: int = 100, offset: int = 0
     ) -> list[AssessorEligibilityApproval]:
+        self._require_lead_or_admin(actor, course_id)
+        return list(
+            self.session.scalars(
+                select(AssessorEligibilityApproval)
+                .where(AssessorEligibilityApproval.course_id == course_id)
+                .order_by(
+                    AssessorEligibilityApproval.created_at.desc(), AssessorEligibilityApproval.id
+                )
+                .limit(min(max(limit, 1), 100))
+                .offset(max(offset, 0))
+            )
+        )
+
+    def candidates(
+        self, actor: User, course_id: str, *, limit: int = 20, offset: int = 0
+    ) -> list[dict]:
+        self._require_lead_or_admin(actor, course_id)
+        staff = self.session.scalars(
+            select(User)
+            .where(User.role == UserRole.EDUCATOR, User.is_active.is_(True))
+            .order_by(User.full_name, User.id)
+            .limit(min(max(limit, 1), 100))
+            .offset(max(offset, 0))
+        )
+        return [
+            {
+                "subject_user_id": subject.id,
+                "full_name": subject.full_name,
+                "latest_approval": self.latest(course_id, subject.id),
+                "currently_eligible": self.current(course_id, subject.id) is not None,
+            }
+            for subject in staff
+        ]
+
+    def _require_lead_or_admin(self, actor: User, course_id: str) -> None:
         current_actor = self.session.get(User, actor.id, populate_existing=True)
         course = self.session.get(Course, course_id)
         if (
@@ -167,16 +202,3 @@ class AssessorEligibilityService:
             )
         ):
             raise ScopedRoleAccessDeniedError("Course lead or administrator access is required")
-        return list(
-            self.session.scalars(
-                select(AssessorEligibilityApproval)
-                .where(
-                    AssessorEligibilityApproval.course_id == course_id,
-                )
-                .order_by(
-                    AssessorEligibilityApproval.created_at.desc(), AssessorEligibilityApproval.id
-                )
-                .limit(min(max(limit, 1), 100))
-                .offset(max(offset, 0))
-            )
-        )

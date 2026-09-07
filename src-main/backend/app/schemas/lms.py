@@ -62,6 +62,13 @@ class AssessorEligibilityRead(LmsSchema):
         return value
 
 
+class AssessorCandidateRead(LmsSchema):
+    subject_user_id: int
+    full_name: str
+    latest_approval: AssessorEligibilityRead | None
+    currently_eligible: bool
+
+
 class CourseCreate(LmsSchema):
     code: (
         Annotated[
@@ -207,6 +214,19 @@ class ScopedRoleAssignmentRead(LmsSchema):
     valid_until: datetime | None
     revoked_at: datetime | None
     eligibility_approval_id: str | None
+
+    @field_validator("assigned_at", "valid_from", "valid_until", "revoked_at")
+    @classmethod
+    def normalize_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
+
+
+class ScopedRoleAssignmentHistoryRead(ScopedRoleAssignmentRead):
+    currently_active: bool
+    revocation_reason: str | None
+    revoked_by_user_id: int | None
 
 
 class AssessmentCriterionDraft(LmsSchema):

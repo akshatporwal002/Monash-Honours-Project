@@ -79,6 +79,7 @@ class LearningMaterialRead(LearningMaterialCreate):
 
 
 class SourceApprovalRequest(ContentSchema):
+    expected_sequence: Annotated[int, Field(ge=0)] | None = None
     state: Annotated[str, StringConstraints(pattern="^(APPROVED|REVOKED)$")]
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 
@@ -91,6 +92,11 @@ class SourceApprovalRead(ContentSchema):
     actor_id: str
     reason: str
     created_at: datetime
+
+    @field_validator("created_at")
+    @classmethod
+    def normalize_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 class SourcePassageRead(ContentSchema):
@@ -134,6 +140,11 @@ class SourceRevisionRead(ContentSchema):
     approval_state: str = "UNREVIEWED"
     approvals: list[SourceApprovalRead] = Field(default_factory=list)
     passages: list[SourcePassageRead] = Field(default_factory=list)
+
+    @field_validator("created_at")
+    @classmethod
+    def normalize_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 class MaterialChunkCreate(ContentSchema):

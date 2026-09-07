@@ -1,7 +1,7 @@
 # Task 12: educator review and publication controls
 
-Status: partially implemented. Assessor eligibility, task review storage, reviewer routes, and the first review screen are implemented.
-Learner publication enforcement, formal publication, and the remaining approval screens are unfinished.
+Status: partially implemented. Staff eligibility and grant screens, source review, task editing and review,
+and learner publication enforcement are implemented. Formal assessment publication remains unfinished.
 
 Branch: `feat/task-12-educator-publication-controls`.
 Base: Task 11 merge `42ffe03b06a47468ecc3dd41975dcee3e9dd7895`.
@@ -64,7 +64,7 @@ The existing dependency exports remain intact.
 
 `AssessmentDefinitionService` already drafts and freezes outcome, criterion, condition, and task-form versions.
 Inspect its approval validation and HTTP authoring workflow before extending it.
-`LmsService._validate_publishable` currently checks course content but lacks a general task review lifecycle.
+`LmsService._validate_publishable` now checks current educator approval for every task in the course.
 
 Task 9 supplies immutable source revisions, passages, approval events, and output references.
 Task 11 supplies `simulation_capabilities()` and `validate_circuit()` for supported circuit checks.
@@ -81,12 +81,9 @@ Test fixtures do not establish approval for a live course.
 
 ## Next work
 
-Connect task availability checks to learner lists, task access, and course publication while preserving historical attempts.
-Add user interfaces for source review, course-lead approvals, and administrator grants.
-Then connect the publication policy to current approved sources, task versions, conditions, and supported circuit capabilities.
+Connect the formal publication policy to current approved sources, task revisions, conditions, and supported circuit capabilities.
 Verify the actual UI-to-API journey, stale approvals, changed content, revoked grants, missing sources, and unsupported circuits.
 Check read access for an assigned assessor who is not the course owner, including source history and setup screens.
-Provide administrator grant-history reads alongside the new course-lead eligibility history.
 Update contracts, migration protection, the decision log, and the remaining-task record before the next local merge.
 
 ## Task revision and review implementation
@@ -106,13 +103,14 @@ Date values in review responses use UTC.
 The course editor now opens a saved-task review screen with editing, review actions, reasons, and earlier content.
 Unsaved edits disable review actions. Conflicts remain visible and do not produce a false success state.
 The course publication button is labelled separately from individual task approval.
-Marking criteria and circuit settings are currently displayed for inspection; typed editing of those settings remains due.
+Educators can edit answer choices, required terms, code fragments, gates, and starter or expected circuit settings.
+Edits preserve other saved marking fields. Circuit controls expose gate targets, qubits, shots, and seed.
 
 Current approval checks require valid module and outcome scope, teaching content, marking guidance, and supported circuit settings.
 Generated tasks require approved external source passages. The formal publication path must invoke the stronger source requirement.
 Teacher-authored practice can use its reviewed content without external source passages.
 Edits, changed outcome content, source retirement, and changed source approval events invalidate availability.
-These checks are implemented in the review service; learner entry points still need to enforce them.
+Learner lists, task access, draft writes, submission, simulation, and course publication enforce these checks.
 
 Migration `20260907_0027` adds the archive and backfills existing course tasks as unapproved legacy revisions.
 Replay preserves the archive. SQL update, delete, and replacement attempts fail.
@@ -132,3 +130,53 @@ Native browser and complete publication journeys remain due with the rest of Tas
 
 Local logs are in `src-main/backend/.tmp-task12/review-full02.log`, `review-frontend-tests02.log`, and `review-frontend-build02.log`.
 These ignored logs support this checkpoint; the task remains unmerged and is not release-approved.
+
+## Learner access, source review, and staff screens
+
+Unapproved tasks are absent from learner course lists, dashboards, recommendations, and new reminder selection.
+Direct task reads and new work return a conflict when current approval is absent or stale.
+Withdrawing approval preserves the learner's own saved drafts, attempts, and simulation history under existing course access rules.
+The task page offers a read-only saved-work view after an availability conflict.
+Partial history failures show a load error while keeping successfully loaded work visible.
+
+Demo setup creates a draft course and unreviewed task revisions. It no longer publishes a new course implicitly.
+Tests that need available tasks now record source and task approvals explicitly through the real services.
+These fixture approvals are test evidence, not authority for a live course.
+
+The source panel shows exact saved passages, revisions, review reasons, and approval history.
+Review writes send the expected approval sequence and reject stale changes.
+Retired materials cannot receive a new approval. Reapproving a source requires fresh task review before learner use resumes.
+Current assigned assessors can read source revisions, passages, and output citations without changing approvals.
+Withdrawing their eligibility removes these reads on the next request.
+
+The course editor provides eligibility approval, withdrawal, optional expiry, and paginated history.
+Its staff picker returns active teaching account names and IDs, current eligibility, and each latest decision.
+Only the course lead and administrators can read that directory.
+The administrator course screen records separate assessor grants and shows their current effective access state.
+Grant history includes the original actor, reason, dates, linked approval, and revocation details.
+Historical grants remain visible when their eligibility approval expires or is withdrawn.
+
+Saved task review is reachable from every course-editor step.
+The browser check exposed that the old final-step placement could prevent review while another source was still pending.
+
+## Current validation checkpoint
+
+The full backend suite passed 839 tests with 85.96% service coverage.
+This includes the ordinary authenticated staff approval and grant path, private history reads,
+withdrawal and reapproval behavior, unsupported circuits, source revocation, saved work, and migration checks.
+Backend lint, formatting, OpenAPI drift, and generated frontend contract checks passed.
+
+All 193 frontend tests across 56 files passed, along with lint and the production build.
+The final placement change for the saved-task review button received a separate targeted check.
+Logs are `staff-full01.log`, `staff-frontend02.log`, `staff-build03.log`, and `staff-editor03.log` in `.tmp-task12`.
+
+The isolated Chrome check used `tests/task12_browser_server.py` with a newly migrated local database and demo accounts.
+It used ordinary authentication, CSRF checks, and application policies, with no dependency overrides.
+The browser verified blocked course publication, source approval, saved circuit edits,
+rejected six-qubit approval, fresh review after correction, and successful one-qubit task approval.
+It also recorded course-lead eligibility and the separate administrator grant, showing an active history entry.
+The user explicitly approved that fixture permission test after automatic approval review initially blocked it.
+Browser grant revocation was separately blocked and awaits the user's reply to the follow-up request.
+API coverage for revocation passes. Complete formal publication and its browser journey remain due.
+
+No Task 12 merge or remote publication has occurred.

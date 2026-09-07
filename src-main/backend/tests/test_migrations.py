@@ -257,9 +257,15 @@ def test_assessor_eligibility_migration_preserves_unapproved_legacy_grants(tmp_p
 def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tmp_path):
     from sqlalchemy import func, select
 
-    from app.models import LearningTask
+    from app.models import (
+        Course,
+        CourseModule,
+        LearningOutcome,
+        LearningTask,
+        OutcomeKind,
+        TaskType,
+    )
     from app.models.task_review import TaskReviewEvent, TaskRevision
-    from app.services.lms import bootstrap_demo
     from app.services.task_review import TaskReviewService, snapshot_digest, task_snapshot
 
     database_path = tmp_path / "task-review.db"
@@ -268,7 +274,49 @@ def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tm
     command.upgrade(config, "20260907_0026")
     engine = create_engine(url)
     with Session(engine) as session:
-        bootstrap_demo(session)
+        owner = User(
+            email="legacy-task@test.example",
+            full_name="Legacy educator",
+            password_hash="unused",
+            role=UserRole.EDUCATOR,
+        )
+        session.add(owner)
+        session.flush()
+        course = Course(educator_id=owner.id, code="TASK-LEGACY", title="Legacy task course")
+        session.add(course)
+        session.flush()
+        module = CourseModule(course_id=course.id, title="Gates", position=1)
+        session.add(module)
+        session.flush()
+        outcome = LearningOutcome(
+            module_id=module.id,
+            title="Hadamard",
+            statement="Predict Hadamard measurement",
+            kind=OutcomeKind.TOPIC,
+            position=1,
+        )
+        session.add(outcome)
+        session.flush()
+        session.add(
+            LearningTask(
+                slug="legacy-hadamard",
+                title="Predict",
+                module="Gates",
+                description="Predict H on zero",
+                instructions="Explain your answer",
+                task_type=TaskType.SHORT_ANSWER,
+                difficulty="beginner",
+                points=100,
+                position=1,
+                expected_answer="Equal probabilities",
+                marking_criteria={"required_keywords": ["equal"]},
+                source_references=[],
+                course_id=course.id,
+                module_id=module.id,
+                learning_outcome_id=outcome.id,
+            )
+        )
+        session.commit()
         tasks = list(session.scalars(select(LearningTask)))
         expected = {task.id: task_snapshot(session, task) for task in tasks}
     command.upgrade(config, "head")

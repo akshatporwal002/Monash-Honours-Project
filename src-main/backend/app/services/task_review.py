@@ -124,9 +124,12 @@ class TaskReviewService:
             .limit(1)
         )
 
-    def prepare_edit(self, task: LearningTask, expected_revision_id: str | None) -> None:
+    def prepare_edit(
+        self, actor: User, task: LearningTask, expected_revision_id: str | None
+    ) -> None:
         self._lock_course(task.course_id)
         self.session.refresh(task)
+        self._require_owner(actor, task.course_id)
         revision = self.latest_revision(task.id)
         if expected_revision_id is not None and (
             revision is None

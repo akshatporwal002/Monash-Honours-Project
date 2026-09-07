@@ -33,6 +33,7 @@ from support.person4 import (
     judge_outcome,
     migration_config,
 )
+from support.task_review import bootstrap_reviewed_demo
 
 from app.api.analytics_dependencies import (
     get_analytics_access_policy,
@@ -101,7 +102,6 @@ from app.services.learning_events import (
     LearningEventScope,
     TrustedLearningEventHooks,
 )
-from app.services.lms import bootstrap_demo
 from app.services.research import (
     BaselineJobExecutor,
     DatabaseResearchJobDispatcher,
@@ -254,7 +254,7 @@ def _build_app(database_url: str):
     engine = create_db_engine(database_url)
     session_factory = create_session_factory(engine)
     with session_factory() as demo_session:
-        bootstrap_demo(demo_session)
+        bootstrap_reviewed_demo(demo_session)
     pseudonymizer = HmacSha256Pseudonymizer(PSEUDONYM_SECRET)
     learning_recorder = LearningEventRecorder(
         session_factory,

@@ -1989,6 +1989,41 @@
         "title": "AssessmentVersionReference",
         "type": "object"
       },
+      "AssessorCandidateRead": {
+        "additionalProperties": false,
+        "properties": {
+          "currently_eligible": {
+            "title": "Currently Eligible",
+            "type": "boolean"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "latest_approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessorEligibilityRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subject_user_id": {
+            "title": "Subject User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject_user_id",
+          "full_name",
+          "latest_approval",
+          "currently_eligible"
+        ],
+        "title": "AssessorCandidateRead",
+        "type": "object"
+      },
       "AssessorEligibilityRead": {
         "additionalProperties": false,
         "properties": {
@@ -5527,6 +5562,128 @@
         "title": "ScopedRoleAssignmentCreate",
         "type": "object"
       },
+      "ScopedRoleAssignmentHistoryRead": {
+        "additionalProperties": false,
+        "properties": {
+          "assigned_at": {
+            "format": "date-time",
+            "title": "Assigned At",
+            "type": "string"
+          },
+          "assigned_by_user_id": {
+            "title": "Assigned By User Id",
+            "type": "integer"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "currently_active": {
+            "title": "Currently Active",
+            "type": "boolean"
+          },
+          "eligibility_approval_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eligibility Approval Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "revocation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revocation Reason"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_by_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked By User Id"
+          },
+          "role": {
+            "$ref": "#/components/schemas/ScopedRole"
+          },
+          "subject_user_id": {
+            "title": "Subject User Id",
+            "type": "integer"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "subject_user_id",
+          "course_id",
+          "role",
+          "version",
+          "reason",
+          "assigned_by_user_id",
+          "assigned_at",
+          "valid_from",
+          "valid_until",
+          "revoked_at",
+          "eligibility_approval_id",
+          "currently_active",
+          "revocation_reason",
+          "revoked_by_user_id"
+        ],
+        "title": "ScopedRoleAssignmentHistoryRead",
+        "type": "object"
+      },
       "ScopedRoleAssignmentRead": {
         "additionalProperties": false,
         "properties": {
@@ -6126,6 +6283,18 @@
       "SourceApprovalRequest": {
         "additionalProperties": false,
         "properties": {
+          "expected_sequence": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Sequence"
+          },
           "reason": {
             "maxLength": 2000,
             "minLength": 1,
@@ -8885,6 +9054,89 @@
       }
     },
     "/api/v1/assessment/admin/courses/{course_id}/assignments": {
+      "get": {
+        "operationId": "read_scoped_role_history_api_v1_assessment_admin_courses__course_id__assignments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScopedRoleAssignmentHistoryRead"
+                  },
+                  "title": "Response Read Scoped Role History Api V1 Assessment Admin Courses  Course Id  Assignments Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Scoped Role History",
+        "tags": [
+          "assessment"
+        ]
+      },
       "post": {
         "operationId": "assign_scoped_role_api_v1_assessment_admin_courses__course_id__assignments_post",
         "parameters": [
@@ -9005,6 +9257,91 @@
           }
         },
         "summary": "Evaluate Assessment Attempt",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/assessor-candidates": {
+      "get": {
+        "operationId": "read_assessor_candidates_api_v1_assessment_courses__course_id__assessor_candidates_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssessorCandidateRead"
+                  },
+                  "title": "Response Read Assessor Candidates Api V1 Assessment Courses  Course Id  Assessor Candidates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Assessor Candidates",
         "tags": [
           "assessment"
         ]

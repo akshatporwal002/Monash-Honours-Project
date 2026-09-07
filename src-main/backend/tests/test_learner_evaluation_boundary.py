@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from support.assessment import build_assessment_blueprint
+from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 
 from app.api.assessment_dependencies import (
     get_assessment_evaluation_executor,
@@ -37,6 +38,7 @@ from app.models.lms import (
     PlatformAuditEvent,
     SubmissionAttempt,
 )
+from app.models.persistence import LearningTask
 from app.models.user import User, UserRole
 from app.schemas.lms import SubmissionCreate
 from app.services.assessment.evaluation import AssessmentEvaluationService
@@ -47,11 +49,11 @@ from app.services.assessment.jobs import (
     SqlAlchemyAssessmentEvaluationJobRepository,
 )
 from app.services.assessment.runtime import build_assessment_evaluation_service
-from app.services.lms import DEMO_PASSWORD, LmsService, bootstrap_demo
+from app.services.lms import DEMO_PASSWORD, LmsService
 
 
 def _published_task(session: Session):
-    users, _ = bootstrap_demo(session)
+    users, _ = bootstrap_reviewed_demo(session)
     student = next(user for user in users if user.role is UserRole.STUDENT)
     definition, bloom, criterion, _, form, owner = build_assessment_blueprint(session)
     course = session.get(Course, definition.course_id)
@@ -80,6 +82,7 @@ def _published_task(session: Session):
         )
     )
     session.commit()
+    approve_fixture_task(session, session.get(LearningTask, form.learning_task_id))
     return student, course, form.learning_task_id
 
 

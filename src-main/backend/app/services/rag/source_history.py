@@ -7,13 +7,13 @@ import json
 from dataclasses import asdict
 from typing import Any, Iterable
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.models import LearningMaterial, MaterialChunk
 from app.models.source_history import SourceApproval, SourcePassage, SourceRevision, SourceUse
 from app.services.rag.contracts import ExtractedBlock
-from app.services.rag.errors import MaterialNotFoundError
+from app.services.rag.errors import MaterialNotFoundError, RagError
 
 
 def snapshot_source(
@@ -104,13 +104,33 @@ def record_approval(
     actor_id: str,
     state: str,
     reason: str,
+    expected_sequence: int | None = None,
 ) -> SourceApproval:
+    session.flush()
+    session.execute(
+        update(LearningMaterial)
+        .where(LearningMaterial.id == material_id)
+        .values(
+            content_hash=LearningMaterial.content_hash,
+        )
+    )
     revision = session.get(SourceRevision, revision_id)
     if revision is None or revision.course_id != course_id or revision.material_id != material_id:
         raise MaterialNotFoundError()
     if state not in {"APPROVED", "REVOKED"} or not reason.strip() or not actor_id.strip():
         raise ValueError("Approval requires a valid state, actor, and reason")
     previous = latest_approval(session, revision_id)
+    if expected_sequence is not None and expected_sequence != (
+        previous.sequence if previous else 0
+    ):
+        raise RagError(
+            "source_approval_conflict",
+            "Source review changed; reload before recording another action",
+            409,
+        )
+    material = session.get(LearningMaterial, material_id, populate_existing=True)
+    if state == "APPROVED" and material.retired_at is not None:
+        raise RagError("retired_source", "Retired material cannot receive a new approval", 409)
     approval = SourceApproval(
         revision_id=revision_id,
         sequence=previous.sequence + 1 if previous else 1,

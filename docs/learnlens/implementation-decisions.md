@@ -155,7 +155,36 @@ It never invents a historical reviewer or approval date.
 The archive blocks destructive downgrade, including when the records came from migration backfill.
 Recovery uses a verified backup taken before the upgrade.
 
-Task 12 remains unmerged. Learner publication enforcement, formal publication, source review screens,
-and staff appointment screens still need integration and verification.
-The task-review checkpoint passed 832 backend tests with 85.83% service coverage and all 183 frontend tests.
-Migration, contract, lint, format, and production-build checks passed. Native publication journeys remain due.
+The initial task-review checkpoint passed 832 backend tests with 85.83% service coverage and all 183 frontend tests.
+Migration, contract, lint, format, and production-build checks passed.
+
+## Task 12: current approvals govern new work
+
+Learners can start or submit work only against currently approved teaching content.
+Withdrawing approval blocks new work while preserving their own saved drafts, attempts, and simulation history.
+The read-only saved-work screen keeps successful reads visible when another history request fails.
+Course publication requires approval for every saved task. New demo courses start as drafts without inferred approvals.
+Test fixtures record explicit review actions when a test needs available content.
+
+Source review records the expected sequence to prevent stale writes.
+Source reapproval does not revive an old task approval. The educator must review that task again.
+Current assigned assessors can read source history, but only course owners and administrators can change source approval.
+
+Staff selection reveals only active teaching account names and IDs, latest eligibility, and current eligibility state.
+The course lead and administrators can read this course-scoped directory; other accounts cannot.
+Administrator grant history distinguishes effective access from historical or scheduled appointments.
+Eligibility approval still requires the separate administrator grant defined by D-02.
+
+Task review is available from every course-editor step, including when source processing is incomplete.
+Typed marking fields preserve unrelated saved criteria. Circuit editing exposes H, X, CX, qubits, shots, and seed.
+Drafts can retain invalid settings for correction, but approval rejects unsupported circuits.
+
+This checkpoint passed 839 backend tests with 85.96% service coverage and 193 frontend tests.
+The final task-review placement change passed seven targeted frontend tests and a fresh lint and build check.
+The Chrome fixture verified source approval, circuit correction, task approval, course publication rejection,
+and the separate course-lead and administrator appointment steps through ordinary application policies.
+The user explicitly approved staff permission testing within this synthetic localhost fixture.
+Automatic approval review separately blocked browser revocation, which awaits the follow-up reply.
+
+Task 12 remains unmerged. Formal publication still needs exact task-review binding and an authorised assessor path.
+Complete its publication and withdrawal journeys before marking the task done.

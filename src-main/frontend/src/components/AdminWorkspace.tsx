@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import { api } from '../app/api'
+import { AssessorAccessPanel } from './AssessorAccessPanel'
 import type { AdminUser, CourseSummary, SystemSettings, UserRole } from '../app/types'
 import {
   AlertDialog,
@@ -54,6 +55,7 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [pendingUser, setPendingUser] = useState<AdminUser | null>(null)
   const [pendingCourse, setPendingCourse] = useState<CourseSummary | null>(null)
+  const [accessCourseId, setAccessCourseId] = useState('')
   const [pendingRole, setPendingRole] = useState<{ user: AdminUser; role: UserRole } | null>(null)
   const [newUser, setNewUser] = useState({
     full_name: '',
@@ -367,6 +369,9 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
                     ]}
                   />
                   <div className={styles.courseAction}>
+                    <Button variant="secondary" onClick={() => setAccessCourseId((current) => current === course.id ? '' : course.id)}>
+                      {accessCourseId === course.id ? 'Close assessor grants' : `Manage assessors for ${course.title}`}
+                    </Button>
                     <Button
                       variant="quiet"
                       disabled={course.status === 'archived'}
@@ -375,6 +380,7 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
                       Archive course
                     </Button>
                   </div>
+                  {accessCourseId === course.id && <AssessorAccessPanel key={course.id} courseId={course.id} administrator />}
                 </Card>
               ))}
             </div>

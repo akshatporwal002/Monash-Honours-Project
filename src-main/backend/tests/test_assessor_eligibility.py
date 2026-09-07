@@ -196,6 +196,7 @@ def test_http_course_lead_approval_path_has_no_policy_override(lms_context):
     client, session = lms_context
     course = session.scalar(select(Course))
     path = f"/api/v1/assessment/courses/{course.id}/assessor-eligibility"
+    candidates_path = f"/api/v1/assessment/courses/{course.id}/assessor-candidates"
     assert client.get(path).status_code == 401
     grant_path = f"/api/v1/assessment/admin/courses/{course.id}/assignments"
     grant_payload = {
@@ -207,6 +208,17 @@ def test_http_course_lead_approval_path_has_no_policy_override(lms_context):
     assert client.post(grant_path, json=grant_payload).status_code == 422
     client.post("/api/v1/auth/logout")
     login(client, "educator")
+    candidates = client.get(candidates_path)
+    assert candidates.status_code == 200, candidates.text
+    assert candidates.json() == [
+        {
+            "subject_user_id": course.educator_id,
+            "full_name": session.get(User, course.educator_id).full_name,
+            "latest_approval": None,
+            "currently_eligible": False,
+        }
+    ]
+    assert client.get(grant_path).status_code == 403
     payload = {
         "subject_user_id": course.educator_id,
         "expected_version": 0,
@@ -225,6 +237,12 @@ def test_http_course_lead_approval_path_has_no_policy_override(lms_context):
     grant = client.post(grant_path, json=grant_payload)
     assert grant.status_code == 201, grant.text
     assert grant.json()["eligibility_approval_id"] == approved.json()["id"]
+    history = client.get(grant_path)
+    assert history.status_code == 200, history.text
+    assert history.json()[0]["currently_active"] is True
+    assert history.json()[0]["assigned_at"].endswith("Z")
+    assert client.get(f"{grant_path}?limit=1&offset=1").json() == []
+    assert client.get(candidates_path).json()[0]["currently_eligible"] is True
     client.post("/api/v1/auth/logout")
     login(client, "educator")
     assert len(client.get("/api/v1/auth/me").json()["scoped_assignments"]) == 1
@@ -233,9 +251,49 @@ def test_http_course_lead_approval_path_has_no_policy_override(lms_context):
         == 201
     )
     assert client.get("/api/v1/auth/me").json()["scoped_assignments"] == []
+    assert client.get(candidates_path).json()[0]["currently_eligible"] is False
+    client.post("/api/v1/auth/logout")
+    login(client, "admin")
+    inactive = client.get(grant_path).json()[0]
+    assert inactive["currently_active"] is False
+    assert inactive["eligibility_approval_id"] == approved.json()["id"]
+    revoked = client.request(
+        "DELETE",
+        f"/api/v1/assessment/admin/assignments/{grant.json()['id']}",
+        json={"reason": "Appointment ended"},
+    )
+    assert revoked.status_code == 200, revoked.text
+    assert client.get(grant_path).json()[0]["revocation_reason"] == "Appointment ended"
     client.post("/api/v1/auth/logout")
     login(client, "student")
     assert client.get(path).status_code == 403
+    assert client.get(candidates_path).status_code == 403
+    assert client.get(grant_path).status_code == 403
+
+
+def test_candidate_directory_is_scoped_and_paginated(db_session, eligibility_context):
+    service, actors, course, _ = eligibility_context
+    _approve(eligibility_context)
+    first = service.candidates(actors["lead"], course.id, limit=1)
+    second = service.candidates(actors["admin"], course.id, limit=1, offset=1)
+    assert len(first) == len(second) == 1
+    assert first[0]["subject_user_id"] != second[0]["subject_user_id"]
+    assert set(first[0]) == {
+        "subject_user_id",
+        "full_name",
+        "latest_approval",
+        "currently_eligible",
+    }
+    for name in ("staff", "outsider", "student"):
+        with pytest.raises(ScopedRoleAccessDeniedError):
+            service.candidates(actors[name], course.id)
+        with pytest.raises(ScopedRoleAccessDeniedError):
+            RoleAssignmentService(db_session).history(actors[name], course.id)
+    actors["staff"].is_active = False
+    db_session.commit()
+    assert actors["staff"].id not in {
+        row["subject_user_id"] for row in service.candidates(actors["lead"], course.id)
+    }
 
 
 def test_reapproval_needs_a_new_admin_grant_and_retains_old_history(

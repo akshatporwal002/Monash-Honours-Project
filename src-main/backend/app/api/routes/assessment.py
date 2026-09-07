@@ -36,10 +36,12 @@ from app.schemas.lms import (
     AssessmentDefinitionRead,
     AssessmentTaskCriterionRead,
     AssessmentTaskFormRead,
+    AssessorCandidateRead,
     AssessorEligibilityRead,
     AssessorEligibilityWrite,
     LmsSchema,
     ScopedRoleAssignmentCreate,
+    ScopedRoleAssignmentHistoryRead,
     ScopedRoleAssignmentRead,
     ScopedRoleAssignmentRevoke,
 )
@@ -206,6 +208,53 @@ def assign_scoped_role(
             valid_from=payload.valid_from,
             valid_until=payload.valid_until,
         )
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
+@router.get("/courses/{course_id}/assessor-candidates", response_model=list[AssessorCandidateRead])
+def read_assessor_candidates(
+    course_id: str,
+    actor: CurrentUser,
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    try:
+        return AssessorEligibilityService(session).candidates(
+            actor, course_id, limit=limit, offset=offset
+        )
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
+@router.get(
+    "/admin/courses/{course_id}/assignments",
+    response_model=list[ScopedRoleAssignmentHistoryRead],
+)
+def read_scoped_role_history(
+    course_id: str,
+    administrator: CurrentAdministrator,
+    assignments: RoleAssignments,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    try:
+        rows = assignments.history(administrator, course_id, limit=limit, offset=offset)
+        return [
+            {
+                **ScopedRoleAssignmentRead.model_validate(row).model_dump(),
+                "currently_active": any(
+                    active.id == row.id
+                    for active in assignments.list_active_assignments(row.subject_user_id)
+                ),
+                "revocation_reason": row.revocation_reason,
+                "revoked_by_user_id": row.revoked_by_user_id,
+            }
+            for row in rows
+        ]
     except Exception as error:
         raise_assignment_http_error(error)
         raise

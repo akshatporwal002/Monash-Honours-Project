@@ -57,6 +57,22 @@ class RoleAssignmentService:
         self._now = now or (lambda: datetime.now(UTC))
         self._assignment_eligibility = assignment_eligibility
 
+    def history(
+        self, administrator: User, course_id: str, *, limit: int = 20, offset: int = 0
+    ) -> list[RoleAssignment]:
+        self._require_active_administrator(administrator)
+        if self.session.get(Course, course_id) is None:
+            raise RoleAssignmentNotFoundError("The course does not exist")
+        return list(
+            self.session.scalars(
+                select(RoleAssignment)
+                .where(RoleAssignment.course_id == course_id)
+                .order_by(RoleAssignment.assigned_at.desc(), RoleAssignment.id)
+                .limit(min(max(limit, 1), 100))
+                .offset(max(offset, 0))
+            )
+        )
+
     def assign(
         self,
         administrator: User,

@@ -10,6 +10,7 @@ from docx import Document
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 
 from app.api.feedback_dependencies import get_feedback_application
 from app.api.routes.lms import get_lms_material_storage
@@ -32,7 +33,7 @@ from app.models import (
     SubmissionAttempt,
     TaskPointAward,
 )
-from app.services.lms import DEMO_PASSWORD, bootstrap_demo
+from app.services.lms import DEMO_PASSWORD
 from app.services.rag.storage import LocalFileStorage
 
 
@@ -43,7 +44,7 @@ def lms_context(tmp_path: Path) -> Generator[tuple[TestClient, Session], None, N
     Base.metadata.create_all(engine)
     factory = create_session_factory(engine)
     session = factory()
-    bootstrap_demo(session)
+    bootstrap_reviewed_demo(session)
 
     app = create_app()
     app.dependency_overrides[get_db] = lambda: session
@@ -82,6 +83,7 @@ def test_simulation_api_saves_exact_evidence_and_checks_course_access(lms_contex
     )
     task.prerequisite_task_ids = []
     session.commit()
+    approve_fixture_task(session, task)
     login(client, "student")
     payload = {
         "qubits": 1,
@@ -121,6 +123,7 @@ def test_simulation_rejects_locked_tasks_and_strict_invalid_inputs(lms_context):
     )
     task.prerequisite_task_ids = ["not-completed"]
     session.commit()
+    approve_fixture_task(session, task)
     login(client, "student")
     payload = {"qubits": 1, "operations": [{"gate": "h", "targets": [0]}], "task_id": task.id}
     assert client.post("/api/v1/students/me/simulate", json=payload).status_code == 423
@@ -168,7 +171,7 @@ def test_role_scoping_and_explicit_bootstrap(
     assert client.get("/api/v1/educator/dashboard").status_code == 403
 
     # The helper is idempotent and no read endpoint invokes it.
-    users, course = bootstrap_demo(session)
+    users, course = bootstrap_reviewed_demo(session)
     assert len(users) == 3
     assert session.scalar(select(func.count()).select_from(Course)) == 1
     assert course.code == "QL-101"
@@ -316,6 +319,18 @@ def test_course_configuration_scaffolding_and_educator_scope(
     assert invented_source.status_code == 422
     assert "in this course" in invented_source.json()["detail"]
 
+    assert client.post(f"/api/v1/courses/{course['id']}/publish").status_code == 409
+    from app.models.source_history import SourcePassage, SourceRevision
+
+    passage = session.get(SourcePassage, tasks[0]["source_references"][0])
+    revision = session.get(SourceRevision, passage.revision_id)
+    approval = client.post(
+        f"/api/v1/courses/{course['id']}/materials/{revision.material_id}/revisions/{revision.id}/approvals",
+        json={"state": "APPROVED", "reason": "Educator checked the exact lesson content"},
+    )
+    assert approval.status_code == 201, approval.text
+    for generated_task in tasks:
+        approve_fixture_task(session, session.get(LearningTask, generated_task["id"]))
     published = client.post(f"/api/v1/courses/{course['id']}/publish")
     assert published.status_code == 200
     assert published.json()["state"] == "published"
@@ -564,6 +579,7 @@ def test_reminders_monitoring_and_admin_lifecycle(
     assert task is not None
     task.due_at = datetime.now(UTC) - timedelta(days=2)
     session.commit()
+    approve_fixture_task(session, task)
 
     login(client, "student")
     first = client.get("/api/v1/students/me/dashboard").json()

@@ -4,12 +4,13 @@ from pathlib import Path
 from threading import Barrier
 
 from sqlalchemy import Engine, select
+from support.task_review import bootstrap_reviewed_demo
 
 from app.db.base import Base
 from app.db.session import create_db_engine, create_session_factory
 from app.models import LearningTask, SubmissionAttempt, User
 from app.schemas.lms import SubmissionCreate
-from app.services.lms import LmsService, bootstrap_demo
+from app.services.lms import LmsService
 from scripts.verify_sqlite_backup import create_verified_backup, database_manifest
 
 
@@ -18,7 +19,7 @@ def _seed_database(database_path: Path) -> tuple[Engine, str]:
     Base.metadata.create_all(engine)
     factory = create_session_factory(engine)
     with factory() as session:
-        bootstrap_demo(session)
+        bootstrap_reviewed_demo(session)
         task_id = session.scalar(select(LearningTask.id).order_by(LearningTask.position))
     assert task_id is not None
     return engine, task_id

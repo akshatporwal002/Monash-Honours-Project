@@ -86,6 +86,28 @@ def _require_read(policy: CourseAccessPolicy, actor_id: str, course_id: str) -> 
         raise _http_error(error) from error
 
 
+def _require_source_review_read(
+    policy: CourseAccessPolicy, actor_id: str, course_id: str, db: Session
+) -> None:
+    try:
+        policy.require_manage(actor_id, course_id)
+        return
+    except CourseAccessDeniedError:
+        pass
+    from app.services.task_review import TaskReviewError, TaskReviewService
+
+    try:
+        actor = db.get(User, int(actor_id), populate_existing=True)
+    except ValueError:
+        actor = None
+    if actor is None:
+        raise HTTPException(status_code=403, detail="Source review access denied")
+    try:
+        TaskReviewService(db).require_review_access(actor, course_id)
+    except TaskReviewError as error:
+        raise HTTPException(status_code=403, detail="Source review access denied") from error
+
+
 @router.post("/uploads", response_model=LearningMaterialRead, status_code=status.HTTP_201_CREATED)
 def upload_material(
     course_id: str,
@@ -263,7 +285,7 @@ def list_source_revisions(
     policy: CourseAccessPolicy = Depends(get_course_access_policy),
     db: Session = Depends(get_db_session),
 ) -> list[SourceRevisionRead]:
-    _require_manage(policy, actor_id, course_id)
+    _require_source_review_read(policy, actor_id, course_id, db)
     try:
         MaterialRepository(db).get(course_id, material_id, include_retired=True)
     except RagError as error:
@@ -290,7 +312,7 @@ def read_source_revision(
     policy: CourseAccessPolicy = Depends(get_course_access_policy),
     db: Session = Depends(get_db_session),
 ) -> SourceRevisionRead:
-    _require_manage(policy, actor_id, course_id)
+    _require_source_review_read(policy, actor_id, course_id, db)
     revision = db.get(SourceRevision, revision_id)
     if revision is None or revision.material_id != material_id or revision.course_id != course_id:
         raise HTTPException(status_code=404, detail="Source revision not found")
@@ -305,7 +327,7 @@ def read_source_passage(
     policy: CourseAccessPolicy = Depends(get_course_access_policy),
     db: Session = Depends(get_db_session),
 ) -> SourcePassage:
-    _require_manage(policy, actor_id, course_id)
+    _require_source_review_read(policy, actor_id, course_id, db)
     passage = db.get(SourcePassage, passage_id)
     if passage is None or passage.course_id != course_id:
         raise HTTPException(status_code=404, detail="Source passage not found")
@@ -324,7 +346,7 @@ def read_output_citations(
     policy: CourseAccessPolicy = Depends(get_course_access_policy),
     db: Session = Depends(get_db_session),
 ) -> list[SourceUseRead]:
-    _require_manage(policy, actor_id, course_id)
+    _require_source_review_read(policy, actor_id, course_id, db)
     statement = (
         select(SourceUse, SourcePassage.revision_id, SourceRevision.material_id)
         .join(SourcePassage, SourceUse.passage_id == SourcePassage.id)
@@ -384,6 +406,7 @@ def approve_source_revision(
             actor_id=actor_id,
             state=payload.state,
             reason=payload.reason,
+            expected_sequence=payload.expected_sequence,
         )
         db.commit()
         db.refresh(approval)

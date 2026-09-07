@@ -31,6 +31,8 @@ import {
 } from './ui'
 import styles from './CourseEditor.module.css'
 import { TaskReviewPanel } from './TaskReviewPanel'
+import { SourceReviewPanel } from './SourceReviewPanel'
+import { AssessorAccessPanel } from './AssessorAccessPanel'
 
 const steps = [
   { number: 1, label: 'Course details' },
@@ -83,6 +85,8 @@ export function CourseEditor() {
   const [error, setError] = useState('')
   const [archiveConfirm, setArchiveConfirm] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [sourceReviewId, setSourceReviewId] = useState('')
+  const [accessOpen, setAccessOpen] = useState(false)
   const indexedMaterialCount = materials.filter(
     (material) => material.status === 'indexed',
   ).length
@@ -500,6 +504,15 @@ export function CourseEditor() {
         }
       />
 
+      {course && <>
+        <Button variant="secondary" onClick={() => setAccessOpen((value) => !value)}>{accessOpen ? 'Close assessor eligibility' : 'Manage assessor eligibility'}</Button>
+        {accessOpen && <AssessorAccessPanel key={course.id} courseId={course.id} />}
+        <Button variant="quiet" onClick={() => setReviewOpen((open) => !open)}>
+          {reviewOpen ? 'Close task review' : 'Review saved tasks'}
+        </Button>
+        {reviewOpen && <TaskReviewPanel key={`${course.id}-${generatedTasks.map((task) => task.id).join(',')}`} courseId={course.id} />}
+      </>}
+
       <nav aria-label="Course creation progress">
         <Stepper
           steps={steps.map((item) => ({
@@ -667,10 +680,15 @@ export function CourseEditor() {
                             Retry processing
                           </Button>
                         )}
+                        <Button variant="quiet" onClick={() => setSourceReviewId(material.id)} aria-label={`Review source ${material.filename}`}>Review source</Button>
                       </li>
                     )
                   })}
                 </ul>
+                {course && sourceReviewId && materials.some((material) => material.id === sourceReviewId) && <>
+                  <SourceReviewPanel key={`${course.id}-${sourceReviewId}`} courseId={course.id} materialId={sourceReviewId} />
+                  <Button variant="quiet" onClick={() => setSourceReviewId('')}>Close source review</Button>
+                </>}
               </div>
             )}
             <div className={styles.actions}>
@@ -890,12 +908,6 @@ export function CourseEditor() {
                 <CheckCircle2 size={16} aria-hidden="true" />
               </Button>
             </div>
-            {course && <>
-              <Button variant="quiet" onClick={() => setReviewOpen((open) => !open)}>
-                {reviewOpen ? 'Close task review' : 'Review saved tasks'}
-              </Button>
-              {reviewOpen && <TaskReviewPanel key={`${course.id}-${generatedTasks.map((task) => task.id).join(',')}`} courseId={course.id} />}
-            </>}
           </div>
         )}
 

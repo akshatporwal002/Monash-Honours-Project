@@ -263,6 +263,40 @@ def test_canonical_mvp_learning_loop(
         assert {item.output_id for item in citations} == {task["id"] for task in generated_tasks}
         assert {item.passage_id for item in citations} == {chunk_id}
         assert "Hadamard gate" in session.get(SourcePassage, chunk_id).chunk_text
+        source_revision_id = session.get(SourcePassage, chunk_id).revision_id
+
+    assert (
+        client.post(
+            f"/api/v1/courses/{course['id']}/publish",
+            headers=educator_headers,
+        ).status_code
+        == 409
+    )
+    _json(
+        client.post(
+            f"/api/v1/courses/{course['id']}/materials/{material['id']}/revisions/{source_revision_id}/approvals",
+            headers=educator_headers,
+            json={"state": "APPROVED", "reason": "Educator verified the exact source passages"},
+        ),
+        201,
+    )
+    for generated_task in generated_tasks:
+        review_url = f"/api/v1/tasks/{generated_task['id']}/review"
+        for state in ("SUBMITTED", "APPROVED"):
+            review = _json(client.get(review_url), 200)
+            _json(
+                client.post(
+                    review_url,
+                    headers=educator_headers,
+                    json={
+                        "expected_revision_id": review["revision_id"],
+                        "expected_review_version": review["review_version"],
+                        "state": state,
+                        "reason": "Educator verified task content and supported conditions",
+                    },
+                ),
+                200,
+            )
 
     enrollment = _json(
         client.post(

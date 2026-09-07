@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 
 from app.models import User, UserRole
 from app.models.simulation import CircuitVersion, SimulationOutcome, SimulationRun
@@ -219,6 +220,8 @@ def test_worker_recovers_expired_requests(db_session, evidence):
 
 
 def test_feedback_reuses_persisted_submission_simulation_and_rejects_wrong_scope(db_session):
+    from test_task_review import _source
+
     from app.models import LearningTask, TaskType
     from app.schemas.feedback import ContextProviderStatus
     from app.schemas.lms import SubmissionCreate
@@ -227,16 +230,27 @@ def test_feedback_reuses_persisted_submission_simulation_and_rejects_wrong_scope
         LmsSubmissionProvider,
         SubmittedCircuitSimulationProvider,
     )
-    from app.services.lms import LmsService, bootstrap_demo
+    from app.services.lms import LmsService
+    from app.services.rag.source_history import record_approval
 
-    bootstrap_demo(db_session)
+    bootstrap_reviewed_demo(db_session)
     student = db_session.scalar(select(User).where(User.role == UserRole.STUDENT))
     task = db_session.scalar(
         select(LearningTask).where(LearningTask.task_type == TaskType.QUANTUM_CIRCUIT)
     )
     task.prerequisite_task_ids = []
-    task.source_references = ["test-source-context"]
+    material, revision = _source(db_session, task)
+    record_approval(
+        db_session,
+        course_id=task.course_id,
+        material_id=material.id,
+        revision_id=revision.id,
+        actor_id="fixture-educator",
+        state="APPROVED",
+        reason="Source checked for simulation feedback fixture",
+    )
     db_session.commit()
+    approve_fixture_task(db_session, task)
     attempt = LmsService(db_session).submit(
         student,
         task.id,

@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from support.person4 import migration_config
+from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 
 from app.api.feedback_dependencies import get_feedback_application, get_feedback_executor
 from app.core.config import settings
@@ -33,7 +34,8 @@ from app.models.terminal_integration import TerminalIntegrationOutbox
 from app.services.feedback.application import FeedbackWorkflowApplication
 from app.services.feedback.errors import LostWorkflowLeaseError
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
-from app.services.lms import DEMO_PASSWORD, bootstrap_demo
+from app.services.lms import DEMO_PASSWORD
+from app.services.rag.source_history import record_approval, resolve_passages
 
 BACKEND = Path(__file__).resolve().parents[1]
 
@@ -61,7 +63,7 @@ def test_accepted_submission_recovers_after_worker_kill_without_second_post(tmp_
     engine = create_db_engine(database_url)
     factory = create_session_factory(engine)
     with factory() as session:
-        bootstrap_demo(session)
+        bootstrap_reviewed_demo(session)
         task_id = session.scalar(select(LearningTask.id).order_by(LearningTask.position))
         task = session.get(LearningTask, task_id)
         material = LearningMaterial(
@@ -81,6 +83,18 @@ def test_accepted_submission_recovers_after_worker_kill_without_second_post(tmp_
         session.flush()
         task.source_references = [chunk.id]
         session.commit()
+        _, _, revision = resolve_passages(session, task.course_id, task.source_references)[0]
+        record_approval(
+            session,
+            course_id=task.course_id,
+            material_id=material.id,
+            revision_id=revision.id,
+            actor_id="test-fixture-educator",
+            state="APPROVED",
+            reason="Reviewed worker test source",
+        )
+        session.commit()
+        approve_fixture_task(session, task)
 
     monkeypatch.setattr(settings, "llm_api_key", None)
     monkeypatch.setattr(settings, "research_enabled", False)
