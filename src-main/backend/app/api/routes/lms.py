@@ -36,6 +36,7 @@ from app.schemas.lms import (
     AdminUserCreate,
     AdminUserRead,
     AdminUserUpdate,
+    AssessmentStartWrite,
     AttemptRead,
     BootstrapRead,
     BulkReminderCreate,
@@ -99,7 +100,11 @@ def get_lms_service(
         session.rollback()
         raise HTTPException(
             status_code=error.status_code,
-            detail=error.detail,
+            detail=(
+                {"message": error.detail, "code": error.code}
+                if isinstance(error, LmsServiceError) and error.code
+                else error.detail
+            ),
         ) from error
 
 
@@ -472,6 +477,16 @@ def get_student_draft(
     service: Lms,
 ) -> DraftRead | None:
     return service.get_draft(student, task_id)
+
+
+@router.post("/students/me/tasks/{task_id}/start", response_model=DraftRead)
+def start_student_assessment(
+    task_id: str,
+    payload: AssessmentStartWrite,
+    student: CurrentStudent,
+    service: Lms,
+) -> DraftRead:
+    return service.start_assessment_work(student, task_id, payload.task_form_version_id)
 
 
 @router.put("/students/me/tasks/{task_id}/draft", response_model=DraftRead)

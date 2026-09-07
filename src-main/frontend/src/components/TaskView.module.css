@@ -500,3 +500,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+.assessmentConditions > div {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+}

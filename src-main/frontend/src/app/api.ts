@@ -28,6 +28,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -66,17 +67,21 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     let detail = 'The request could not be completed.'
+    let code: string | undefined
     try {
-      const payload = (await response.json()) as { detail?: string | Array<{ msg?: string }> | { message?: string } }
+      const payload = (await response.json()) as { detail?: string | Array<{ msg?: string }> | { message?: string; code?: string } }
       if (typeof payload.detail === 'string') detail = payload.detail
       if (Array.isArray(payload.detail)) {
         detail = payload.detail.map((item) => item.msg).filter(Boolean).join(' ') || detail
       }
-      if (payload.detail && typeof payload.detail === 'object' && 'message' in payload.detail && typeof payload.detail.message === 'string') detail = payload.detail.message
+      if (payload.detail && typeof payload.detail === 'object' && !Array.isArray(payload.detail)) {
+        if (typeof payload.detail.message === 'string') detail = payload.detail.message
+        if (typeof payload.detail.code === 'string') code = payload.detail.code
+      }
     } catch {
       // Reduce non-JSON failures to a safe message without exposing server internals.
     }
-    throw new ApiError(detail, response.status)
+    throw new ApiError(detail, response.status, code)
   }
 
   if (response.status === 204) return undefined as T
@@ -191,6 +196,7 @@ interface RawEducatorStudent {
 }
 
 interface RawSubmission {
+  assessment_work_start_id?: string | null
   id?: string
   score?: number | null
   formal_assessment?: FormalAssessmentSummary | null
@@ -206,6 +212,7 @@ interface RawSubmission {
 }
 
 interface RawDraft {
+  assessment_work_start_id?: string | null
   id: string
   task_id: string
   answer: string
@@ -374,6 +381,7 @@ function normalizeStudent(student: RawEducatorStudent): EducatorStudent {
 
 function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   return {
+    assessment_work_start_id: raw.assessment_work_start_id,
     id: raw.id,
     score: raw.score ?? null,
     formal_assessment: raw.formal_assessment ?? null,
@@ -521,10 +529,16 @@ export const api = {
         `/students/me/tasks/${encodeURIComponent(taskId)}/draft`,
         { signal },
       ),
+    startAssessment: (taskId: string, taskFormVersionId: string, signal?: AbortSignal) =>
+      request<RawDraft>(
+        `/students/me/tasks/${encodeURIComponent(taskId)}/start`,
+        { ...json('POST', { task_form_version_id: taskFormVersionId }), signal },
+      ),
     saveDraft: (
       taskId: string,
       payload: {
         answer: string
+        assessment_work_start_id?: string | null
         code?: string
         circuit?: { qubits: number; operations: GateOperation[] }
       },
@@ -536,6 +550,7 @@ export const api = {
       taskId: string,
       payload: {
         answer: string
+        assessment_work_start_id?: string | null
         code?: string
         circuit?: { qubits: number; operations: GateOperation[] }
         idempotency_key?: string

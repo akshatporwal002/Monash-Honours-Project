@@ -86,6 +86,7 @@ export type ApiSchemas = {
     "purpose": ApiSchemas["AssessmentPurpose"]
     "review_rule": string
     "task_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "task_form_version_id": string
     "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
   }
   "AssessmentCriterionDraft": {
@@ -238,6 +239,9 @@ export type ApiSchemas = {
     "label": string
     "material_id": string
   }
+  "AssessmentStartWrite": {
+    "task_form_version_id": string
+  }
   "AssessmentTaskCriterionRead": {
     "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
     "evidence_description": string
@@ -315,6 +319,7 @@ export type ApiSchemas = {
   "AssessorReviewAction": "CONFIRM" | "OVERRIDE" | "WITHHOLD" | "VOID" | "RETURN"
   "AttemptRead": {
     "answer": string
+    "assessment_work_start_id"?: (string) | (null)
     "attempt_number": number
     "circuit": (Record<string, unknown>) | (null)
     "code": (string) | (null)
@@ -411,6 +416,7 @@ export type ApiSchemas = {
   "CriterionEvaluatorType": "rules" | "human" | "validated_ai" | "mixed"
   "DraftRead": {
     "answer": string
+    "assessment_work_start_id"?: (string) | (null)
     "circuit": (Record<string, unknown>) | (null)
     "code": (string) | (null)
     "id": string
@@ -428,6 +434,7 @@ export type ApiSchemas = {
   }
   "DraftWrite": {
     "answer"?: string
+    "assessment_work_start_id"?: (string) | (null)
     "circuit"?: (Record<string, unknown>) | (null)
     "code"?: (string) | (null)
   }
@@ -1022,6 +1029,7 @@ export type ApiSchemas = {
   }
   "SubmissionCreate": {
     "answer"?: string
+    "assessment_work_start_id"?: (string) | (null)
     "circuit"?: (Record<string, unknown>) | (null)
     "code"?: (string) | (null)
     "idempotency_key"?: (string) | (null)
