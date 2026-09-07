@@ -28,9 +28,20 @@ from app.domain.assessment import (
     CriterionDecision,
     ResultState,
 )
-from app.models.assessment import AssessmentDefinitionVersion
+from app.models.assessment import (
+    AssessmentAttemptState,
+    AssessmentDefinitionVersion,
+    AssessmentEvaluationFailureCategory,
+    AssessmentEvaluationJobState,
+    CriterionEvaluatorType,
+)
 from app.models.lms import Course
 from app.models.user import RoleAssignment, UserRole
+from app.schemas.assessment_review import (
+    FrozenAssessmentContextRead,
+    HistoricalResponseEvidenceRead,
+)
+from app.schemas.episode import FrozenResponseRead
 from app.schemas.lms import (
     AssessmentAuthoringTaskRead,
     AssessmentDefinitionApproval,
@@ -56,6 +67,11 @@ from app.services.assessment.definitions import (
     TaskFormDraft,
 )
 from app.services.assessment.eligibility import AssessorEligibilityService
+from app.services.assessment.human_review import (
+    HumanAssessmentRequest,
+    HumanAssessmentService,
+    HumanCriterionInput,
+)
 from app.services.assessment.repository import AssessmentDefinitionNotFoundError
 from app.services.assessment.review import (
     AssessmentReviewActionRequest,
@@ -88,13 +104,21 @@ class AssessmentReviewActionCreate(LmsSchema):
 class AssessmentReviewCriterionRead(LmsSchema):
     criterion_version_id: str
     criterion_version: int
-    decision: CriterionDecision
+    decision: CriterionDecision | None
     reason: str
     evidence_references: dict[str, Any] | list[Any]
     evaluator_reference: str
     model_version: str | None
     prompt_version: str | None
     retrieval_version: str | None
+    learner_description: str = ""
+    evidence_description: str = ""
+    mandatory: bool = True
+    met_rule: str = ""
+    not_met_rule: str = ""
+    not_evaluable_rule: str = ""
+    approved_anchors: dict[str, Any] | list[Any] | None = None
+    evidence_source_types: list[str] | None = None
 
 
 class AssessmentReviewHistoryRead(LmsSchema):
@@ -114,6 +138,12 @@ class AssessmentReviewDetailRead(LmsSchema):
     outcome_id: str
     response_text: str
     response_conditions: dict[str, Any] | list[Any]
+    response: FrozenResponseRead | None = None
+    response_issues: list[str] = Field(default_factory=list)
+    response_history: list[FrozenResponseRead] = Field(default_factory=list)
+    historical_evidence: list[HistoricalResponseEvidenceRead] = Field(default_factory=list)
+    frozen_context: FrozenAssessmentContextRead | None = None
+    simulations: list[dict[str, Any]] = Field(default_factory=list)
     result: AssessmentResult | None
     result_state: ResultState
     system_reason: AssessmentReasonCode
@@ -140,14 +170,173 @@ def get_assessment_review_service(
     session: Annotated[Session, Depends(get_db)],
     assignments: RoleAssignments,
 ) -> AssessmentReviewService:
+    from app.services.episode_responses import SqlAlchemyFrozenResponseReader
+
     return AssessmentReviewService(
         session,
+        reader=SqlAlchemyFrozenResponseReader(session),
         assignments=assignments,
         correlation_id=getattr(request.state, "correlation_id", None),
     )
 
 
 ReviewService = Annotated[AssessmentReviewService, Depends(get_assessment_review_service)]
+
+
+class HumanCriterionWrite(LmsSchema):
+    criterion_version_id: str
+    decision: CriterionDecision
+    reason: Annotated[str, Field(min_length=1, max_length=2000)]
+    evidence_ids: Annotated[list[str], Field(min_length=1, max_length=100)]
+
+
+class HumanAssessmentWrite(LmsSchema):
+    idempotency_key: Annotated[str, Field(min_length=1, max_length=128)]
+    expected_token: Annotated[str, Field(min_length=64, max_length=64)]
+    reason: Annotated[str, Field(min_length=1, max_length=2000)]
+    criteria: Annotated[list[HumanCriterionWrite], Field(min_length=1, max_length=100)]
+
+
+class UnresolvedCriterionRead(LmsSchema):
+    criterion_version_id: str
+    criterion_version: int
+    learner_description: str
+    evidence_description: str
+    mandatory: bool
+    evidence_source_types: list[str]
+    met_rule: str
+    not_met_rule: str
+    not_evaluable_rule: str
+    approved_anchors: dict[str, Any] | list[Any]
+    critical_error_rules: dict[str, Any] | list[Any]
+    evaluator_type: CriterionEvaluatorType
+    decision: CriterionDecision | None
+    reason: str | None
+
+
+class HumanCriterionHistoryRead(LmsSchema):
+    criterion_version_id: str
+    decision: CriterionDecision
+    reason: str
+    evidence_references: list[dict[str, Any]]
+    evaluator_reference: str
+
+
+class HumanActionHistoryRead(LmsSchema):
+    action_id: str
+    revision: int
+    assessor_user_id: int
+    reason: str
+    result: AssessmentResult
+    result_state: ResultState
+    created_at: datetime
+    criteria: list[HumanCriterionHistoryRead]
+
+
+class UnresolvedAssessmentRead(LmsSchema):
+    assessment_attempt_id: str
+    course_id: str
+    state: AssessmentAttemptState
+    job_state: AssessmentEvaluationJobState | None
+    failure_category: AssessmentEvaluationFailureCategory | None
+    expected_token: str
+    response: FrozenResponseRead | None
+    response_history: list[FrozenResponseRead] = Field(default_factory=list)
+    historical_evidence: list[HistoricalResponseEvidenceRead] = Field(default_factory=list)
+    frozen_context: FrozenAssessmentContextRead | None = None
+    criteria: list[UnresolvedCriterionRead]
+    versions: dict[str, Any]
+    simulations: list[dict[str, Any]]
+    history: list[HumanActionHistoryRead]
+    issues: list[str]
+    can_finalise: bool
+    created_at: datetime
+
+
+class HumanAssessmentReceipt(LmsSchema):
+    action_id: str
+    assessment_attempt_id: str
+    decision_id: str
+    result: AssessmentResult
+    result_state: ResultState
+    revision: int
+    replayed: bool
+
+
+def get_human_assessment_service(
+    request: Request, session: Annotated[Session, Depends(get_db)], assignments: RoleAssignments
+) -> HumanAssessmentService:
+    from app.services.episode_responses import SqlAlchemyFrozenResponseReader
+
+    return HumanAssessmentService(
+        session,
+        assignments=assignments,
+        reader=SqlAlchemyFrozenResponseReader(session),
+        correlation_id=getattr(request.state, "correlation_id", None),
+    )
+
+
+HumanReviewService = Annotated[HumanAssessmentService, Depends(get_human_assessment_service)]
+
+
+@router.get(
+    "/courses/{course_id}/unresolved-attempts", response_model=list[UnresolvedAssessmentRead]
+)
+def unresolved_assessment_queue(
+    course_id: str,
+    actor: CurrentUser,
+    service: HumanReviewService,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    try:
+        return service.queue(actor, course_id=course_id, limit=limit, offset=offset)
+    except Exception as error:
+        _raise_review_http_error(error)
+
+
+@router.get(
+    "/attempts/{assessment_attempt_id}/human-review", response_model=UnresolvedAssessmentRead
+)
+def unresolved_assessment_detail(
+    assessment_attempt_id: str, actor: CurrentUser, service: HumanReviewService
+):
+    try:
+        return service.detail(actor, assessment_attempt_id=assessment_attempt_id)
+    except Exception as error:
+        _raise_review_http_error(error)
+
+
+@router.post(
+    "/attempts/{assessment_attempt_id}/human-review", response_model=HumanAssessmentReceipt
+)
+def finalise_human_assessment(
+    assessment_attempt_id: str,
+    payload: HumanAssessmentWrite,
+    actor: CurrentUser,
+    service: HumanReviewService,
+):
+    try:
+        return service.finalise(
+            actor,
+            assessment_attempt_id=assessment_attempt_id,
+            request=HumanAssessmentRequest(
+                idempotency_key=payload.idempotency_key,
+                expected_token=payload.expected_token,
+                reason=payload.reason,
+                criteria=tuple(
+                    HumanCriterionInput(
+                        criterion_version_id=entry.criterion_version_id,
+                        decision=entry.decision,
+                        reason=entry.reason,
+                        evidence_ids=tuple(entry.evidence_ids),
+                    )
+                    for entry in payload.criteria
+                ),
+            ),
+        )
+    except Exception as error:
+        _raise_review_http_error(error)
 
 
 @router.get(
@@ -537,6 +726,12 @@ def _review_detail_read(detail: AssessmentReviewDetail) -> AssessmentReviewDetai
         outcome_id=detail.outcome_id,
         response_text=detail.response_text,
         response_conditions=detail.response_conditions,
+        response=detail.response,
+        response_issues=list(detail.response_issues),
+        response_history=list(detail.response_history),
+        simulations=list(detail.simulations),
+        historical_evidence=list(detail.historical_evidence),
+        frozen_context=detail.frozen_context,
         result=detail.result,
         result_state=detail.result_state,
         system_reason=detail.system_reason,

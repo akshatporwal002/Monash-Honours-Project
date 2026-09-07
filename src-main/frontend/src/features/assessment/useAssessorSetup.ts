@@ -51,6 +51,9 @@ const bloomVerificationInputs = new Set<keyof SetupValues>([
   'requiredPhrases',
   'alternativePhrases',
   'excludedPhrases',
+  'circuitQubits',
+  'circuitOperations',
+  'circuitStage',
 ])
 const accessVerificationInputs = new Set<keyof SetupValues>([
   ...bloomVerificationInputs,

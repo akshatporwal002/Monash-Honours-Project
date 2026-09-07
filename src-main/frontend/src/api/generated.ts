@@ -63,6 +63,7 @@ export type ApiSchemas = {
     "task_types"?: Array<string>
   }
   "AssessmentApprovalState": "DRAFT" | "APPROVED" | "RETIRED"
+  "AssessmentAttemptState": "PENDING" | "EVALUATED" | "FAULTED" | "VOID"
   "AssessmentAuthoringTaskRead": {
     "content_digest": (string) | (null)
     "issues": Array<string>
@@ -179,6 +180,8 @@ export type ApiSchemas = {
     "transfer_rule": (Record<string, unknown>) | (Array<unknown>)
     "version": number
   }
+  "AssessmentEvaluationFailureCategory": "provider_unavailable" | "provider_fault" | "version_conflict" | "persistence_unavailable"
+  "AssessmentEvaluationJobState": "pending" | "running" | "retry_scheduled" | "completed" | "review_required"
   "AssessmentPurpose": "DIAGNOSTIC" | "FORMATIVE" | "AS_LEARNING" | "SUMMATIVE" | "RESEARCH"
   "AssessmentReasonCode": "TARGET_EVIDENCE_MET" | "MISSING_REQUIRED_EVIDENCE" | "CRITERIA_NOT_MET" | "TARGET_BLOOM_ACTION_NOT_SHOWN" | "CRITICAL_CONCEPT_GAP" | "INDEPENDENT_EVIDENCE_NOT_SHOWN" | "TRANSFER_EVIDENCE_NOT_SHOWN" | "UNRESOLVED_EVIDENCE_CONFLICT" | "TASK_UNDER_HUMAN_REVIEW"
   "AssessmentResult": "PASS" | "INCOMPLETE"
@@ -198,12 +201,20 @@ export type ApiSchemas = {
     "review_revision": number
   }
   "AssessmentReviewCriterionRead": {
+    "approved_anchors"?: (Record<string, unknown>) | (Array<unknown>) | (null)
     "criterion_version": number
     "criterion_version_id": string
-    "decision": ApiSchemas["CriterionDecision"]
+    "decision": (ApiSchemas["CriterionDecision"]) | (null)
     "evaluator_reference": string
+    "evidence_description"?: string
     "evidence_references": (Record<string, unknown>) | (Array<unknown>)
+    "evidence_source_types"?: (Array<string>) | (null)
+    "learner_description"?: string
+    "mandatory"?: boolean
+    "met_rule"?: string
     "model_version": (string) | (null)
+    "not_evaluable_rule"?: string
+    "not_met_rule"?: string
     "prompt_version": (string) | (null)
     "reason": string
     "retrieval_version": (string) | (null)
@@ -213,15 +224,21 @@ export type ApiSchemas = {
     "created_at": string
     "criteria": Array<ApiSchemas["AssessmentReviewCriterionRead"]>
     "decision_id": string
+    "frozen_context"?: (ApiSchemas["FrozenAssessmentContextRead"]) | (null)
+    "historical_evidence"?: Array<ApiSchemas["HistoricalResponseEvidenceRead"]>
     "history": Array<ApiSchemas["AssessmentReviewHistoryRead"]>
     "missing_criterion_version_ids": Array<string>
     "outcome_id": string
     "quality_review_status": string
+    "response"?: (ApiSchemas["FrozenResponseRead"]) | (null)
     "response_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "response_history"?: Array<ApiSchemas["FrozenResponseRead"]>
+    "response_issues"?: Array<string>
     "response_text": string
     "result": (ApiSchemas["AssessmentResult"]) | (null)
     "result_state": ApiSchemas["ResultState"]
     "review_revision": number
+    "simulations"?: Array<Record<string, unknown>>
     "system_reason": ApiSchemas["AssessmentReasonCode"]
     "versions": Partial<Record<string, (string) | (number)>>
   }
@@ -628,6 +645,31 @@ export type ApiSchemas = {
     "result"?: (ApiSchemas["AssessmentResult"]) | (null)
     "result_state": ApiSchemas["ResultState"]
   }
+  "FrozenAssessmentContextRead": {
+    "bloom_process": string
+    "knowledge_dimension": string
+    "outcome_statement": string
+    "outcome_title": string
+    "pass_rule_expression": Record<string, unknown>
+    "starter_circuit"?: (Record<string, unknown>) | (null)
+    "starter_code"?: (string) | (null)
+    "supported_instructions": string
+    "supported_prompt": string
+    "task_revision_id": string
+    "task_title": string
+    "transfer_instructions"?: (string) | (null)
+    "transfer_prompt"?: (string) | (null)
+    "transfer_starter_circuit"?: (Record<string, unknown>) | (null)
+    "transfer_starter_code"?: (string) | (null)
+  }
+  "FrozenResponseRead": {
+    "assessment_work_start_id": (string) | (null)
+    "content": ApiSchemas["ResponseContent"]
+    "declared_conditions": (Record<string, unknown>) | (Array<unknown>)
+    "episode": (ApiSchemas["EpisodePayloadV1"]) | (null)
+    "reference": ApiSchemas["EvidenceReference"]
+    "task_form_version_id": (string) | (null)
+  }
   "FunnelStage": {
     "count": number
     "event_type": ApiSchemas["LearningEventType"]
@@ -660,6 +702,50 @@ export type ApiSchemas = {
   }
   "HealthResponse": {
     "status": "ok"
+  }
+  "HistoricalResponseEvidenceRead": {
+    "issues"?: Array<string>
+    "response"?: (ApiSchemas["FrozenResponseRead"]) | (null)
+    "response_version_id": string
+    "simulations"?: Array<Record<string, unknown>>
+  }
+  "HumanActionHistoryRead": {
+    "action_id": string
+    "assessor_user_id": number
+    "created_at": string
+    "criteria": Array<ApiSchemas["HumanCriterionHistoryRead"]>
+    "reason": string
+    "result": ApiSchemas["AssessmentResult"]
+    "result_state": ApiSchemas["ResultState"]
+    "revision": number
+  }
+  "HumanAssessmentReceipt": {
+    "action_id": string
+    "assessment_attempt_id": string
+    "decision_id": string
+    "replayed": boolean
+    "result": ApiSchemas["AssessmentResult"]
+    "result_state": ApiSchemas["ResultState"]
+    "revision": number
+  }
+  "HumanAssessmentWrite": {
+    "criteria": Array<ApiSchemas["HumanCriterionWrite"]>
+    "expected_token": string
+    "idempotency_key": string
+    "reason": string
+  }
+  "HumanCriterionHistoryRead": {
+    "criterion_version_id": string
+    "decision": ApiSchemas["CriterionDecision"]
+    "evaluator_reference": string
+    "evidence_references": Array<Record<string, unknown>>
+    "reason": string
+  }
+  "HumanCriterionWrite": {
+    "criterion_version_id": string
+    "decision": ApiSchemas["CriterionDecision"]
+    "evidence_ids": Array<string>
+    "reason": string
   }
   "InactiveLearner": {
     "last_activity_at": (string) | (null)
@@ -1259,6 +1345,41 @@ export type ApiSchemas = {
     "part_id": string
     "process": ApiSchemas["EpisodeStageResponseV1"]
     "stage_start_id": string
+  }
+  "UnresolvedAssessmentRead": {
+    "assessment_attempt_id": string
+    "can_finalise": boolean
+    "course_id": string
+    "created_at": string
+    "criteria": Array<ApiSchemas["UnresolvedCriterionRead"]>
+    "expected_token": string
+    "failure_category": (ApiSchemas["AssessmentEvaluationFailureCategory"]) | (null)
+    "frozen_context"?: (ApiSchemas["FrozenAssessmentContextRead"]) | (null)
+    "historical_evidence"?: Array<ApiSchemas["HistoricalResponseEvidenceRead"]>
+    "history": Array<ApiSchemas["HumanActionHistoryRead"]>
+    "issues": Array<string>
+    "job_state": (ApiSchemas["AssessmentEvaluationJobState"]) | (null)
+    "response": (ApiSchemas["FrozenResponseRead"]) | (null)
+    "response_history"?: Array<ApiSchemas["FrozenResponseRead"]>
+    "simulations": Array<Record<string, unknown>>
+    "state": ApiSchemas["AssessmentAttemptState"]
+    "versions": Record<string, unknown>
+  }
+  "UnresolvedCriterionRead": {
+    "approved_anchors": (Record<string, unknown>) | (Array<unknown>)
+    "criterion_version": number
+    "criterion_version_id": string
+    "critical_error_rules": (Record<string, unknown>) | (Array<unknown>)
+    "decision": (ApiSchemas["CriterionDecision"]) | (null)
+    "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
+    "evidence_description": string
+    "evidence_source_types": Array<string>
+    "learner_description": string
+    "mandatory": boolean
+    "met_rule": string
+    "not_evaluable_rule": string
+    "not_met_rule": string
+    "reason": (string) | (null)
   }
   "UserRole": "student" | "educator" | "administrator"
   "ValidatedFeedbackView": {

@@ -9,7 +9,7 @@ from typing import Any
 from app.domain.assessment import BloomProcess, CriterionDecision
 from app.models.assessment import CriterionEvaluatorType
 from app.schemas.assessment import EvidenceReference
-from app.services.assessment.rule_settings import validate_rule_settings
+from app.services.assessment.rule_settings import RuleSettings, validate_rule_settings
 
 
 class EvaluatorFailure(RuntimeError):
@@ -64,6 +64,10 @@ class RuleCriterionEvaluator:
             raise EvaluatorFailure(
                 "Invalid rule settings; human assessment is required."
             ) from error
+        if not isinstance(settings, RuleSettings):
+            raise EvaluatorFailure(
+                "Circuit checking requires the frozen structured response adapter."
+            )
         if not request.response_text.strip():
             return self._outcome(
                 CriterionDecision.NOT_EVALUABLE,

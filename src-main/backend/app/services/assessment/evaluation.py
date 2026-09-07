@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol
+from datetime import UTC, datetime
+from typing import Callable, Protocol
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -25,6 +26,8 @@ from app.models.assessment import (
     AssessmentAttempt,
     AssessmentDecision,
     AssessmentDefinitionVersion,
+    AssessmentEvaluationJob,
+    AssessmentEvaluationJobState,
     BloomTargetVersion,
     CriterionEvaluation,
     CriterionVersion,
@@ -150,7 +153,11 @@ class AssessmentEvaluationService:
         assessment_attempt_id: str,
         evaluation_idempotency_key: str,
         actor_user_id: int | None = None,
+        claim_execution_token: str | None = None,
+        claim_processing_attempts: int | None = None,
+        evaluation_clock: Callable[[], datetime] | None = None,
     ) -> AssessmentEvaluationResult:
+        clock = evaluation_clock or (lambda: datetime.now(UTC))
         if not evaluation_idempotency_key.strip() or len(evaluation_idempotency_key) > 255:
             raise AssessmentEvaluationConflictError("evaluation idempotency key is invalid")
         attempt = self.session.get(AssessmentAttempt, assessment_attempt_id)
@@ -177,6 +184,10 @@ class AssessmentEvaluationService:
             self.session.commit()
             return self._result(existing, replayed=True)
 
+        if claim_execution_token is not None:
+            self._fence_worker(
+                attempt.id, claim_execution_token, claim_processing_attempts, clock()
+            )
         try:
             bundle = self._load_bundle(attempt)
         except AssessmentEvaluationConflictError as error:
@@ -254,6 +265,10 @@ class AssessmentEvaluationService:
                 retryable=True,
             )
 
+        if claim_execution_token is not None:
+            self._fence_worker(
+                attempt.id, claim_execution_token, claim_processing_attempts, clock()
+            )
         for criterion, outcome in zip(bundle.criteria, outcomes, strict=True):
             self.session.add(
                 CriterionEvaluation(
@@ -318,12 +333,39 @@ class AssessmentEvaluationService:
             ) from error
         return self._result(decision, replayed=False)
 
-    def _load_bundle(self, attempt: AssessmentAttempt) -> "_EvaluationBundle":
-        if attempt.state is not AssessmentAttemptState.PENDING:
+    def _fence_worker(self, attempt_id, execution_token, processing_attempts, observed_at):
+        # This conditional write shares the human action transaction lock. A stale
+        # worker cannot append evaluations after a human has claimed the attempt.
+        result = self.session.execute(
+            update(AssessmentEvaluationJob)
+            .where(
+                AssessmentEvaluationJob.assessment_attempt_id == attempt_id,
+                AssessmentEvaluationJob.state == AssessmentEvaluationJobState.RUNNING,
+                AssessmentEvaluationJob.execution_token == execution_token,
+                AssessmentEvaluationJob.processing_attempts == processing_attempts,
+                AssessmentEvaluationJob.lease_expires_at > observed_at,
+            )
+            .values(updated_at=AssessmentEvaluationJob.updated_at)
+        )
+        if result.rowcount != 1:
+            self.session.rollback()
+            raise AssessmentEvaluationConflictError(
+                "Assessment worker lease was replaced or human review completed"
+            )
+
+    def load_review_bundle(self, attempt: AssessmentAttempt):
+        """Load the exact submitted standard for authorized human inspection."""
+        return self._load_bundle(attempt, for_review=True)
+
+    def _load_bundle(
+        self, attempt: AssessmentAttempt, *, for_review: bool = False
+    ) -> "_EvaluationBundle":
+        if not for_review and attempt.state is not AssessmentAttemptState.PENDING:
             raise AssessmentEvaluationConflictError("assessment attempt is not pending evaluation")
         response = self.session.get(SubmissionAttempt, attempt.response_version_id)
         definition = self.session.get(
-            AssessmentDefinitionVersion, attempt.assessment_definition_version_id
+            AssessmentDefinitionVersion,
+            attempt.assessment_definition_version_id,
         )
         form = self.session.get(TaskFormVersion, attempt.task_form_version_id)
         bloom = self.session.get(BloomTargetVersion, attempt.bloom_target_version_id)
@@ -369,7 +411,8 @@ class AssessmentEvaluationService:
         )
         if approved_form is None:
             raise AssessmentEvaluationConflictError("assessment task form is no longer approved")
-        AssessmentSubmissionService(self.session).assert_current_form_matches(attempt)
+        if not for_review:
+            AssessmentSubmissionService(self.session).assert_current_form_matches(attempt)
         newer_rule = self.session.scalar(
             select(PassRuleVersion.id).where(
                 PassRuleVersion.pass_rule_id == rule.pass_rule_id,
@@ -377,7 +420,7 @@ class AssessmentEvaluationService:
                 PassRuleVersion.approval_state == AssessmentApprovalState.APPROVED,
             )
         )
-        if newer_rule is not None:
+        if newer_rule is not None and not for_review:
             raise AssessmentEvaluationConflictError(
                 "pass rule changed after the response was recorded"
             )

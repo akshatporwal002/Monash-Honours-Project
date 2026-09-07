@@ -59,6 +59,7 @@ from app.models.enums import (
     WorkflowStage,
 )
 from app.models.episode import EpisodeCheckpoint, EpisodeHelpUse, EpisodeStageStart
+from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.lms import (
     AttemptStatus,
     Course,
@@ -120,6 +121,8 @@ __all__ = [
     "AssessorReview",
     "ContinuationFailureCategory",
     "ContinuationJob",
+    "HumanAssessmentAction",
+    "HumanCriterionDecision",
     "EpisodeCheckpoint",
     "EpisodeHelpUse",
     "EpisodeStageStart",

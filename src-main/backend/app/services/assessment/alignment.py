@@ -7,6 +7,7 @@ from typing import Any
 
 from app.domain.assessment import BloomProcess
 from app.models.assessment import CriterionEvaluatorType, CriterionVersion, TaskFormVersion
+from app.services.assessment.circuit_rules import CircuitRuleSettings
 from app.services.assessment.rule_settings import RuleSettings, validate_rule_settings
 
 
@@ -52,6 +53,7 @@ def validate_definition_alignment(
     _validate_access_modes(access_conditions)
 
     criterion_rows = list(criteria)
+    transfer_circuit_required = False
     if not criterion_rows or not any(row.mandatory for row in criterion_rows):
         raise AssessmentAlignmentError("an approved definition requires a mandatory criterion")
     for criterion in criterion_rows:
@@ -64,11 +66,18 @@ def validate_definition_alignment(
             raise AssessmentAlignmentError("criteria require declared evidence source types")
         if criterion.evaluator_type in {CriterionEvaluatorType.RULES, CriterionEvaluatorType.MIXED}:
             try:
-                if criterion.evaluator_type is CriterionEvaluatorType.RULES:
-                    validate_rule_settings(criterion.approved_anchors, bloom_process)
+                circuit_rules = isinstance(criterion.approved_anchors, dict) and (
+                    criterion.approved_anchors.get("kind") == "circuit_v1"
+                )
+                if criterion.evaluator_type is CriterionEvaluatorType.RULES or circuit_rules:
+                    settings = validate_rule_settings(criterion.approved_anchors, bloom_process)
+                    if isinstance(settings, CircuitRuleSettings):
+                        if "learner_response" not in criterion.evidence_source_types:
+                            raise ValueError("circuit rules require learner_response evidence")
+                        transfer_circuit_required |= settings.stage == "transfer"
                     if criterion.critical_error_rules:
                         raise ValueError(
-                            "use none_of phrases or human assessment for critical errors"
+                            "use approved exclusions or human assessment for critical errors"
                         )
                 else:
                     RuleSettings.model_validate(criterion.approved_anchors)
@@ -81,6 +90,12 @@ def validate_definition_alignment(
     if not form_rows:
         raise AssessmentAlignmentError("an approved definition requires an approved task form")
     for form in form_rows:
+        if transfer_circuit_required and (
+            not isinstance(form.constraints, dict) or not form.constraints.get("episode_plan")
+        ):
+            raise AssessmentAlignmentError(
+                "transfer circuit rules require an approved episode plan"
+            )
         declared_processes = _declared_processes(form.constraints)
         if bloom_process.value not in declared_processes:
             raise AssessmentAlignmentError(
