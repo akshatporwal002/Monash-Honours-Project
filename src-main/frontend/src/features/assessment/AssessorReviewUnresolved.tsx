@@ -153,7 +153,7 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
     {hasMore && <Button variant="secondary" disabled={busy} onClick={() => void load(true)}>Load more unresolved attempts</Button>}
     {reviewedAttemptId && <Button variant="secondary" disabled={busy} onClick={() => void inspect(reviewedAttemptId)}>Record or correct criteria for the selected review record</Button>}
     {selected && <div className={styles.detail}>
-      <AssessorReviewResponse response={selected.response} history={selected.response_history} simulations={selected.simulations} issues={selected.issues} />
+      <AssessorReviewResponse response={selected.response} history={selected.response_history} historicalEvidence={selected.historical_evidence} frozenContext={selected.frozen_context} simulations={selected.simulations} issues={selected.issues} />
       <details><summary>Inspect frozen standard versions</summary><CodeBlock code={JSON.stringify(selected.versions, null, 2)} label="Frozen standard versions" /></details>
       {selected.history.length > 0 && <details open><summary>Earlier human decisions</summary><CodeBlock code={JSON.stringify(selected.history, null, 2)} label="Append-only human decision history" /></details>}
       <form onSubmit={(event) => void submit(event)}>

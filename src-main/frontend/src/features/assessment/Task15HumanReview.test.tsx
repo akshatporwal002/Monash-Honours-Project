@@ -128,4 +128,25 @@ describe('Task 15 human assessment', () => {
     else expect(calls[0][1].idempotency_key).not.toBe(calls[1][1].idempotency_key)
   })
 
+  it('shows the exact frozen question and separates historical simulation evidence', () => {
+    render(<AssessorReviewResponse response={frozenRecord().response} frozenContext={{
+      task_revision_id: 'saved-revision', task_title: 'Original circuit task', supported_prompt: 'Explain the original circuit.',
+      supported_instructions: 'Use the recorded prediction.', transfer_prompt: 'Apply H in the saved fresh scenario.',
+      transfer_instructions: 'Use the independent response.', outcome_title: 'Saved outcome', outcome_statement: 'Explain the circuit effect.',
+      bloom_process: 'APPLY', knowledge_dimension: 'CONCEPTUAL', pass_rule_expression: { all: ['criterion-15'] },
+    }} historicalEvidence={[{ response_version_id: 'earlier-response', response: frozenRecord().response,
+      simulations: [{ run_id: 'earlier-run', status: 'timed_out', shots: 1024, seed: 42, error_code: 'simulation_timeout' }],
+      issues: ['Earlier simulation had a technical fault.'],
+    }]} />)
+    expect(screen.getByText('Explain the original circuit.')).toBeInTheDocument()
+    expect(screen.getByText('Apply H in the saved fresh scenario.')).toBeInTheDocument()
+    expect(screen.getByText('Explain the circuit effect.')).toBeInTheDocument()
+    expect(screen.getByText('Bloom process: APPLY. Knowledge dimension: CONCEPTUAL.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Frozen pass rule expression')).toHaveTextContent('criterion-15')
+    const history = screen.getByRole('region', { name: 'Earlier immutable responses' })
+    expect(within(history).getByText('Simulation earlier-run: timed_out')).toBeInTheDocument()
+    expect(within(history).getByText('Shots: 1024. Seed: 42.')).toBeInTheDocument()
+    expect(within(history).getByText('Earlier simulation had a technical fault.')).toBeInTheDocument()
+  })
+
 })

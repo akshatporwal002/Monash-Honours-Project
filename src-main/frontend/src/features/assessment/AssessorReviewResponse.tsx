@@ -46,21 +46,50 @@ function FrozenContent({ response }: { response: FrozenResponse }) {
   </section>
 }
 
-export function AssessorReviewResponse({ response, history = [], simulations = [], issues = [], fallbackText }: {
+export function AssessorReviewResponse({ response, history = [], historicalEvidence = [], frozenContext, simulations = [], issues = [], fallbackText }: {
   response?: FrozenResponse | null
   history?: FrozenResponse[]
+  historicalEvidence?: ApiSchemas['HistoricalResponseEvidenceRead'][]
+  frozenContext?: ApiSchemas['FrozenAssessmentContextRead'] | null
   simulations?: Record<string, unknown>[]
   issues?: string[]
   fallbackText?: string
 }) {
   return <>
     {issues.map((issue) => <p key={issue} className={styles.alert} role="alert">{issue}</p>)}
+    {frozenContext && <section aria-label="Frozen assessment question and standard" className={styles.section}>
+      <h3>Frozen question and standard</h3>
+      <h4>{frozenContext.task_title}</h4>
+      <p style={{ whiteSpace: 'pre-wrap' }}>{frozenContext.supported_prompt}</p>
+      <p style={{ whiteSpace: 'pre-wrap' }}>{frozenContext.supported_instructions}</p>
+      {frozenContext.starter_code != null && <CodeBlock code={frozenContext.starter_code} label="Frozen supported starter code" />}
+      {frozenContext.starter_circuit != null && <CodeBlock code={JSON.stringify(frozenContext.starter_circuit, null, 2)} label="Frozen supported starter circuit" />}
+      {frozenContext.transfer_prompt != null && <>
+        <h4>Fresh transfer question</h4>
+        <p style={{ whiteSpace: 'pre-wrap' }}>{frozenContext.transfer_prompt}</p>
+        <p style={{ whiteSpace: 'pre-wrap' }}>{frozenContext.transfer_instructions}</p>
+        {frozenContext.transfer_starter_code != null && <CodeBlock code={frozenContext.transfer_starter_code} label="Frozen transfer starter code" />}
+        {frozenContext.transfer_starter_circuit != null && <CodeBlock code={JSON.stringify(frozenContext.transfer_starter_circuit, null, 2)} label="Frozen transfer starter circuit" />}
+      </>}
+      <h4>Approved learning outcome</h4>
+      <p>{frozenContext.outcome_title}</p><p>{frozenContext.outcome_statement}</p>
+      <p>Bloom process: {frozenContext.bloom_process}. Knowledge dimension: {frozenContext.knowledge_dimension}.</p>
+      <details><summary>Exact frozen pass rule</summary><CodeBlock code={JSON.stringify(frozenContext.pass_rule_expression, null, 2)} label="Frozen pass rule expression" /></details>
+      <p>Reviewed task revision: {frozenContext.task_revision_id}</p>
+    </section>}
     {response ? <FrozenContent response={response} /> : <p>{fallbackText || 'Frozen response is unavailable. Keep this work under review.'}</p>}
-    {history.length > 0 && <section aria-label="Earlier immutable responses">
+    {!historicalEvidence.length && history.length > 0 && <section aria-label="Earlier immutable responses">
       <h3>Earlier responses</h3>
       {history.map((earlier) => <details key={earlier.reference.evidence_id}>
         <summary>Inspect earlier response {earlier.reference.evidence_id}</summary>
         <FrozenContent response={earlier} />
+      </details>)}
+    </section>}
+    {historicalEvidence.length > 0 && <section aria-label="Earlier immutable responses">
+      <h3>Earlier responses</h3>
+      {historicalEvidence.map((earlier) => <details key={earlier.response_version_id}>
+        <summary>Inspect earlier response {earlier.response_version_id}</summary>
+        <AssessorReviewResponse response={earlier.response} simulations={earlier.simulations} issues={earlier.issues} />
       </details>)}
     </section>}
     {simulations.length > 0 && <section aria-label="Recorded simulation evidence">

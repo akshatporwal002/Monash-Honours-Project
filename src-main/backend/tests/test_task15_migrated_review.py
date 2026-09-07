@@ -46,13 +46,38 @@ def migrated(tmp_path):
     engine.dispose()
 
 
-def setup_human(session, *, revision=False):
+def setup_human(session, *, revision=False, simulation_status=None):
     from support.assessment import assign_assessor
 
     from app.models.lms import Course
 
     lms, student, task, started = setup_episode(session)
     payload = complete(lms, student, task, started)
+    if simulation_status:
+        from app.models.simulation import SimulationRun
+        from app.services.quantum import CircuitOperation
+        from app.services.simulation_evidence import SimulationEvidenceService
+
+        simulations = SimulationEvidenceService(session)
+        run_id, _ = simulations.prepare(
+            owner_id=student.id,
+            task_id=task.id,
+            qubits=1,
+            operations=[CircuitOperation("h", (0,))],
+            shots=1024,
+            seed=42,
+            prediction_checkpoint_id=payload.episode.supported.prediction_checkpoint_id,
+        )
+        if simulation_status == "completed":
+            simulations.finish(run_id, status="completed", result={"counts": {"0": 512, "1": 512}})
+        elif simulation_status == "timed_out":
+            simulations.finish(run_id, status="timed_out", error_code="simulation_timeout")
+        run = session.get(SimulationRun, run_id)
+        raw = payload.episode.model_dump(mode="json")
+        raw["supported"]["simulation_references"] = [
+            {"run_id": run_id, "circuit_version_id": run.circuit_version_id}
+        ]
+        payload = payload.model_copy(update={"episode": EpisodePayloadV1.model_validate(raw)})
     first = lms.submit(
         student,
         task.id,
@@ -65,6 +90,7 @@ def setup_human(session, *, revision=False):
             "previous_response_version_id": first.id,
             "reason": "A clearer explanation",
         }
+        raw["supported"]["simulation_references"] = []
         revised = payload.model_copy(update={"episode": EpisodePayloadV1.model_validate(raw)})
         response_id = lms.submit(
             student,
@@ -224,8 +250,8 @@ def test_real_simulation_inputs_and_faults_are_read_without_recovery_writes(migr
         task_id=task.id,
         qubits=1,
         operations=[CircuitOperation("h", (0,))],
-        shots=64,
-        seed=91,
+        shots=1024,
+        seed=42,
         prediction_checkpoint_id=payload.episode.supported.prediction_checkpoint_id,
     )
     if status == "completed":
@@ -255,8 +281,8 @@ def test_real_simulation_inputs_and_faults_are_read_without_recovery_writes(migr
     )
     human = make_service(session)
     detail = human.detail(actor, assessment_attempt_id=attempt.id)
-    assert detail["simulations"][0]["shots"] == 64
-    assert detail["simulations"][0]["seed"] == 91
+    assert detail["simulations"][0]["shots"] == 1024
+    assert detail["simulations"][0]["seed"] == 42
     assert detail["simulations"][0]["status"] == status
     assert (
         detail["simulations"][0]["prediction_checkpoint_id"]
@@ -309,3 +335,73 @@ def test_authorised_review_uses_intact_submitted_standard_after_new_rule(migrate
     decision = session.get(AssessmentDecision, receipt["decision_id"])
     assert decision.pass_rule_version_id == rule.id
     assert decision.result == "PASS"
+
+
+@pytest.mark.parametrize("status", ["completed", "pending", "timed_out"])
+def test_earlier_response_keeps_its_own_simulation_evidence(migrated, status):
+    session, _ = migrated
+    human, actor, attempt, original_id = setup_human(
+        session, revision=True, simulation_status=status
+    )
+    detail = human.detail(actor, assessment_attempt_id=attempt.id)
+    assert detail["simulations"] == ()
+    earlier = detail["historical_evidence"][0]
+    assert earlier.response_version_id == original_id
+    assert earlier.response.reference.assessment.response_version_id == original_id
+    run = earlier.simulations[0]
+    assert run["shots"] == 1024 and run["seed"] == 42
+    assert run["circuit"] == {"qubits": 1, "operations": [{"gate": "h", "targets": [0]}]}
+    assert run["status"] == status
+    assert bool(earlier.issues) == (status != "completed")
+    assert detail["can_finalise"]
+    if status == "completed":
+        assert run["result"]["counts"] == {"0": 512, "1": 512}
+        human.finalise(
+            actor, assessment_attempt_id=attempt.id, request=request(human, actor, attempt.id)
+        )
+        from app.services.assessment.review import AssessmentReviewService
+
+        review = AssessmentReviewService(
+            session,
+            assignments=RoleAssignmentService(session),
+            reader=SqlAlchemyFrozenResponseReader(session),
+        )
+        detail_after = review.get_detail(
+            actor, decision_id=session.scalar(select(AssessmentDecision)).id
+        )
+        assert detail_after.historical_evidence[0].simulations[0]["run_id"] == run["run_id"]
+
+
+def test_assessor_context_uses_reviewed_revision_and_frozen_outcome(migrated):
+    from app.models.assessment import (
+        AssessmentDefinitionVersion,
+        OutcomeVersion,
+        PassRuleVersion,
+        TaskFormVersion,
+    )
+    from app.models.lms import LearningOutcome
+    from app.models.persistence import LearningTask
+    from app.models.task_review import TaskRevision
+
+    session, _ = migrated
+    human, actor, attempt, _ = setup_human(session)
+    form = session.get(TaskFormVersion, attempt.task_form_version_id)
+    revision = session.get(TaskRevision, form.task_revision_id)
+    definition = session.get(AssessmentDefinitionVersion, attempt.assessment_definition_version_id)
+    outcome = session.get(OutcomeVersion, definition.outcome_version_id)
+    session.get(
+        LearningTask, attempt.task_id
+    ).description = "Later mutable question that must not replace frozen evidence"
+    session.get(LearningOutcome, outcome.learning_outcome_id).statement = "Later mutable outcome"
+    session.commit()
+    context = human.detail(actor, assessment_attempt_id=attempt.id)["frozen_context"]
+    assert context.task_revision_id == revision.id
+    assert context.supported_prompt == revision.snapshot["description"]
+    assert context.supported_instructions == revision.snapshot["instructions"]
+    assert context.transfer_prompt == "SYNTHETIC PRIVATE fresh Hadamard application"
+    assert context.outcome_statement == outcome.statement
+    assert context.bloom_process and context.knowledge_dimension
+    assert (
+        context.pass_rule_expression
+        == session.get(PassRuleVersion, attempt.pass_rule_version_id).expression
+    )

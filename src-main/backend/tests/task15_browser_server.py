@@ -38,7 +38,9 @@ def main():
     config.set_main_option("script_location", str(ROOT / "migrations"))
     command.upgrade(config, "head")
     with Session(engine) as session:
-        service, assessor, attempt, original_id = setup_human(session, revision=True)
+        service, assessor, attempt, original_id = setup_human(
+            session, revision=True, simulation_status="completed"
+        )
         data = {
             "assessor_email": assessor.email,
             "attempt_id": attempt.id,
@@ -56,6 +58,9 @@ def main():
         detail = service.detail(assessor, assessment_attempt_id=attempt.id)
         assert detail["job_state"].value == "review_required"
         assert detail["can_finalise"]
+        data["frozen_prompt"] = detail["frozen_context"].supported_prompt
+        data["transfer_prompt"] = detail["frozen_context"].transfer_prompt
+        data["historical_run_id"] = detail["historical_evidence"][0].simulations[0]["run_id"]
         (SCRATCH / "context.json").write_text(json.dumps(data), encoding="utf-8")
     import uvicorn
 

@@ -270,6 +270,7 @@ function EvidenceDetail({ selected }: { selected: AssessmentReviewDetail }) {
           <section className={styles.section}>
             <h3>Original response</h3>
             <AssessorReviewResponse response={selected.response} history={selected.response_history}
+              historicalEvidence={selected.historical_evidence} frozenContext={selected.frozen_context}
               simulations={selected.simulations} issues={selected.response_issues} fallbackText={selected.response_text} />
           </section>
         </div>

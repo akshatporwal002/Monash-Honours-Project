@@ -353,6 +353,10 @@ class AssessmentEvaluationService:
                 "Assessment worker lease was replaced or human review completed"
             )
 
+    def load_review_bundle(self, attempt: AssessmentAttempt):
+        """Load the exact submitted standard for authorized human inspection."""
+        return self._load_bundle(attempt, for_review=True)
+
     def _load_bundle(
         self, attempt: AssessmentAttempt, *, for_review: bool = False
     ) -> "_EvaluationBundle":

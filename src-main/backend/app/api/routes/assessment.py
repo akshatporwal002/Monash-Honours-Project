@@ -37,6 +37,10 @@ from app.models.assessment import (
 )
 from app.models.lms import Course
 from app.models.user import RoleAssignment, UserRole
+from app.schemas.assessment_review import (
+    FrozenAssessmentContextRead,
+    HistoricalResponseEvidenceRead,
+)
 from app.schemas.episode import FrozenResponseRead
 from app.schemas.lms import (
     AssessmentAuthoringTaskRead,
@@ -137,6 +141,8 @@ class AssessmentReviewDetailRead(LmsSchema):
     response: FrozenResponseRead | None = None
     response_issues: list[str] = Field(default_factory=list)
     response_history: list[FrozenResponseRead] = Field(default_factory=list)
+    historical_evidence: list[HistoricalResponseEvidenceRead] = Field(default_factory=list)
+    frozen_context: FrozenAssessmentContextRead | None = None
     simulations: list[dict[str, Any]] = Field(default_factory=list)
     result: AssessmentResult | None
     result_state: ResultState
@@ -236,6 +242,8 @@ class UnresolvedAssessmentRead(LmsSchema):
     expected_token: str
     response: FrozenResponseRead | None
     response_history: list[FrozenResponseRead] = Field(default_factory=list)
+    historical_evidence: list[HistoricalResponseEvidenceRead] = Field(default_factory=list)
+    frozen_context: FrozenAssessmentContextRead | None = None
     criteria: list[UnresolvedCriterionRead]
     versions: dict[str, Any]
     simulations: list[dict[str, Any]]
@@ -722,6 +730,8 @@ def _review_detail_read(detail: AssessmentReviewDetail) -> AssessmentReviewDetai
         response_issues=list(detail.response_issues),
         response_history=list(detail.response_history),
         simulations=list(detail.simulations),
+        historical_evidence=list(detail.historical_evidence),
+        frozen_context=detail.frozen_context,
         result=detail.result,
         result_state=detail.result_state,
         system_reason=detail.system_reason,

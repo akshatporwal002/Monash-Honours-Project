@@ -37,3 +37,13 @@ The branch consumed pure episode contract `d8a26e989c7a04f7b2de8fe869725962e45f2
 A downgrade refuses to delete recorded human assessment history. Restore a verified backup for rollback after data exists. Do not erase assessor decisions to force a downgrade.
 
 The coordinator owns shared authoring, generated contracts, final migration ordering, independent review, push, and integration. Task 14's pending migration and historical-condition follow-up must be consumed before the final combined migration gate.
+
+## Independent review fixes
+
+Both P2 findings are addressed. The assessor sees the exact reviewed task revision, supported and fresh transfer questions, starter content, frozen outcome wording, Bloom target, and pass-rule expression. Current mutable teaching content is never substituted.
+
+Each earlier response has its own validated simulation inputs, versions, outcomes, and fault status. Historical technical faults remain visible without blocking a complete later response. Current required evidence still blocks unsafe confirmation. Both unresolved and existing review APIs use the same read-only evidence reader.
+
+The P3 circular private coupling was removed. The human service uses a public review transaction operation for confirmation. Existing review reads use the independent frozen evidence reader.
+
+Review-fix checks passed: 37 backend tests, 19 frontend tests, Ruff, ESLint, and production build. The fresh browser04 journey inspected both questions, the pass rule, and an earlier-only completed simulation before recording all three criterion decisions. Keyboard actions, reload, human provenance, zero Axe violations, and zero browser page errors passed. Its frozen-evidence screenshot was inspected.

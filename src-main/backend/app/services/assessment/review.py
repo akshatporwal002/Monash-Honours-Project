@@ -34,6 +34,10 @@ from app.models.assessment import (
 )
 from app.models.lms import PlatformAuditEvent, SubmissionAttempt
 from app.models.user import User
+from app.schemas.assessment_review import (
+    FrozenAssessmentContextRead,
+    HistoricalResponseEvidenceRead,
+)
 from app.schemas.episode import FrozenResponseRead
 from app.services.assessment.access import RoleAssignmentService
 from app.services.assessment.pass_rules import referenced_criterion_version_ids
@@ -120,6 +124,8 @@ class AssessmentReviewDetail:
     response_issues: tuple[str, ...] = ()
     response_history: tuple[FrozenResponseRead, ...] = ()
     simulations: tuple[dict[str, Any], ...] = ()
+    historical_evidence: tuple[HistoricalResponseEvidenceRead, ...] = ()
+    frozen_context: FrozenAssessmentContextRead | None = None
 
 
 @dataclass(frozen=True)
@@ -476,9 +482,14 @@ class AssessmentReviewService:
                 if criterion_id in criteria
             ]
             evaluations_by_id = {row.criterion_version_id: row for row in evaluation_rows}
-            full_response, response_issues, response_history, simulations = self._response_context(
-                attempt
-            )
+            (
+                full_response,
+                response_issues,
+                response_history,
+                simulations,
+                historical_evidence,
+                frozen_context,
+            ) = self._response_context(attempt)
             details.append(
                 AssessmentReviewDetail(
                     decision_id=decision.id,
@@ -493,6 +504,8 @@ class AssessmentReviewService:
                     response_issues=response_issues,
                     response_history=response_history,
                     simulations=simulations,
+                    historical_evidence=historical_evidence,
+                    frozen_context=frozen_context,
                     response_conditions=response.declared_conditions
                     if response is not None
                     else {},
@@ -570,19 +583,59 @@ class AssessmentReviewService:
 
     def _response_context(self, attempt):
         if self.reader is None:
-            return None, (), (), ()
-        from app.services.assessment.human_review import HumanAssessmentService
+            return None, (), (), (), (), None
+        from app.services.assessment.frozen_review import FrozenReviewEvidenceReader
 
-        service = HumanAssessmentService(
-            self.session, assignments=self.assignments, reader=self.reader
-        )
-        detail = service._detail(attempt)
+        detail = FrozenReviewEvidenceReader(self.session, self.reader).read(attempt)
         return (
             detail["response"],
             tuple(detail["issues"]),
-            tuple(detail.get("response_history", ())),
-            tuple(detail["simulations"]),
+            detail["response_history"],
+            detail["simulations"],
+            detail["historical_evidence"],
+            detail["frozen_context"],
         )
+
+    def confirm_calculated_result(self, actor, decision, result, reason):
+        """Append a reviewed calculated result within the caller's locked transaction."""
+        self.assignments.require_assessor_access(actor, decision.assessment_attempt.course_id)
+        if decision.result_state is ResultState.VOID:
+            raise AssessmentReviewConflictError("A void decision cannot be finalised")
+        if decision.result == result and decision.result_state in {
+            ResultState.CONFIRMED,
+            ResultState.OVERRIDDEN,
+        }:
+            return None
+        action = (
+            AssessorReviewAction.CONFIRM
+            if decision.result == result
+            else AssessorReviewAction.OVERRIDE
+        )
+        request = AssessmentReviewActionRequest(
+            action=action,
+            reason=reason,
+            expected_result_state=decision.result_state,
+            expected_review_revision=len(self._reviews(decision.id)),
+            new_result=result if action is AssessorReviewAction.OVERRIDE else None,
+        )
+        self._validate_action(decision, request)
+        at = self._utc(self._now())
+        review = AssessorReview(
+            assessment_decision_id=decision.id,
+            assessor_user_id=actor.id,
+            action=action,
+            review_revision=request.expected_review_revision + 1,
+            prior_result=self._prior_result(decision, action),
+            new_result=result,
+            reason=reason.strip(),
+            reviewed_at=at,
+        )
+        self.session.add(review)
+        self.session.flush()
+        self._apply_action(decision, request, actor.id, at)
+        self._audit("assessment_review.recorded", decision, actor, review, replayed=False)
+        self.session.flush()
+        return review
 
     def _reviews(self, decision_id: str) -> list[AssessorReview]:
         return list(

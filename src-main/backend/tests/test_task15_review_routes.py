@@ -30,12 +30,19 @@ def payload(value):
 
 
 def test_real_new_routes_expose_complete_criteria_and_confirm(db_session):
-    service, actor, attempt, _ = setup_human(db_session)
+    service, actor, attempt, _ = setup_human(
+        db_session, revision=True, simulation_status="completed"
+    )
     client = client_for(db_session, actor)
     queue = client.get(f"/api/v1/assessment/courses/{attempt.course_id}/unresolved-attempts")
     assert queue.status_code == 200
     detail = client.get(f"/api/v1/assessment/attempts/{attempt.id}/human-review")
     assert detail.status_code == 200
+    assert (
+        detail.json()["frozen_context"]["transfer_prompt"]
+        == "SYNTHETIC PRIVATE fresh Hadamard application"
+    )
+    assert detail.json()["historical_evidence"][0]["simulations"][0]["status"] == "completed"
     assert detail.json()["criteria"] and detail.json()["criteria"][0]["decision"] is None
     assert detail.json()["response"]["episode"]["transfer"]["content"]["code"] == "  h(0)\n"
     response = client.post(
@@ -46,12 +53,14 @@ def test_real_new_routes_expose_complete_criteria_and_confirm(db_session):
     assert response.json()["result_state"] == "CONFIRMED"
     reviewed = client.get(f"/api/v1/assessment/decisions/{response.json()['decision_id']}/review")
     assert reviewed.status_code == 200
+    assert reviewed.json()["frozen_context"] == detail.json()["frozen_context"]
+    assert reviewed.json()["historical_evidence"] == detail.json()["historical_evidence"]
     assert reviewed.json()["criteria"][0]["evaluator_reference"].startswith(f"human:{actor.id}:")
     assert reviewed.json()["response"]["episode"]["transfer"]["content"]["code"] == "  h(0)\n"
 
 
 @pytest.mark.parametrize(
-    "denial", ["revoked", "expired", "inactive", "foreign_educator", "general_admin"]
+    "denial", ["revoked", "expired", "inactive", "foreign_educator", "general_admin", "learner"]
 )
 def test_all_new_routes_recheck_course_scope_and_active_access(db_session, denial):
     service, actor, attempt, _ = setup_human(db_session)
@@ -86,6 +95,10 @@ def test_all_new_routes_recheck_course_scope_and_active_access(db_session, denia
             reason="A bounded teaching period",
             valid_until=datetime.now(UTC) + timedelta(minutes=1),
         )
+    elif denial == "learner":
+        from app.models.user import User
+
+        actor = db_session.get(User, attempt.student_id)
     elif denial == "inactive":
         actor.is_active = False
     else:
@@ -107,4 +120,7 @@ def test_all_new_routes_recheck_course_scope_and_active_access(db_session, denia
         client.post(f"/api/v1/assessment/attempts/{attempt.id}/human-review", json=body),
     ]
     assert [response.status_code for response in responses] == [404, 404, 404]
-    assert all("Fresh application" not in response.text for response in responses)
+    assert all(
+        "Fresh application" not in response.text and "SYNTHETIC PRIVATE" not in response.text
+        for response in responses
+    )

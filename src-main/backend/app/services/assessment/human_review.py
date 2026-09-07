@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session
 
 from app.domain.assessment import (
     AssessmentAttemptState,
-    AssessorReviewAction,
     CriterionDecision,
     ResultState,
 )
@@ -33,11 +32,9 @@ from app.models.user import User
 from app.services.assessment.access import RoleAssignmentService
 from app.services.assessment.evaluation import (
     AssessmentEvaluationConflictError,
-    AssessmentEvaluationService,
-    UnavailableCriterionEvaluationPort,
-    UnavailableQualityReviewPort,
 )
 from app.services.assessment.evidence import EvidenceValidationError, FrozenEvidenceValidator
+from app.services.assessment.frozen_review import FrozenReviewEvidenceReader
 from app.services.assessment.pass_rules import (
     CriterionRuleOutcome,
     PassRuleEngine,
@@ -45,7 +42,6 @@ from app.services.assessment.pass_rules import (
 )
 from app.services.assessment.response_evidence import ResponseEvidenceResolver
 from app.services.assessment.review import (
-    AssessmentReviewActionRequest,
     AssessmentReviewConflictError,
     AssessmentReviewNotFoundError,
     AssessmentReviewService,
@@ -117,11 +113,7 @@ class HumanAssessmentService:
         return attempt
 
     def _bundle(self, attempt):
-        return AssessmentEvaluationService(
-            self.session,
-            criterion_port=UnavailableCriterionEvaluationPort(),
-            quality_port=UnavailableQualityReviewPort(),
-        )._load_bundle(attempt, for_review=True)
+        return FrozenReviewEvidenceReader(self.session, self.reader).bundle(attempt)
 
     def _actions(self, attempt_id):
         return self.session.scalars(
@@ -172,12 +164,11 @@ class HumanAssessmentService:
 
     def _detail(self, attempt):
         job = self.session.get(AssessmentEvaluationJob, attempt.id, populate_existing=True)
-        response = None
-        response_history = ()
-        simulations = ()
+        evidence = FrozenReviewEvidenceReader(self.session, self.reader).read(attempt)
+        simulations = evidence["simulations"]
         criteria = []
         versions = {}
-        issues = []
+        issues = list(evidence["issues"])
         try:
             bundle = self._bundle(attempt)
             versions = bundle.reference.model_dump()
@@ -209,9 +200,6 @@ class HumanAssessmentService:
                         "reason": evaluation.reason if evaluation else None,
                     }
                 )
-            response = self.reader.read(assessment=bundle.reference)
-            simulations = self.resolver.simulations(bundle.reference, response)
-            response_history = self._response_history(attempt, response)
         except (AssessmentEvaluationConflictError, FrozenResponseError, ValueError):
             issues.append(
                 "Frozen evidence or approved versions are unavailable or stale. Technical review is required."
@@ -227,10 +215,6 @@ class HumanAssessmentService:
         ):
             issues.append(
                 "An assessment worker is still processing this response. Reload after it finishes."
-            )
-        if any(item["status"] != "completed" for item in simulations):
-            issues.append(
-                "Required simulation evidence is pending or has a technical fault. Do not issue an incomplete result."
             )
         actions = self._actions(attempt.id)
         history = []
@@ -266,8 +250,10 @@ class HumanAssessmentService:
             "job_state": job.state if job else None,
             "failure_category": job.failure_category if job else None,
             "expected_token": self._token(attempt),
-            "response": response,
-            "response_history": response_history,
+            "response": evidence["response"],
+            "response_history": evidence["response_history"],
+            "historical_evidence": evidence["historical_evidence"],
+            "frozen_context": evidence["frozen_context"],
             "criteria": criteria,
             "versions": versions,
             "simulations": simulations,
@@ -276,48 +262,6 @@ class HumanAssessmentService:
             "can_finalise": not issues,
             "created_at": attempt.created_at,
         }
-
-    def _response_history(self, attempt, response):
-        history = []
-        pending = [response]
-        seen = {attempt.response_version_id}
-        while pending:
-            current = pending.pop()
-            if current.episode is None:
-                continue
-            stages = [current.episode.supported]
-            if current.episode.transfer:
-                stages.append(current.episode.transfer.process)
-            ids = {
-                stage.revision.previous_response_version_id for stage in stages if stage.revision
-            }
-            for response_id in ids:
-                if response_id in seen:
-                    continue
-                if len(seen) >= 100:
-                    raise FrozenResponseError(
-                        "Response revision history exceeds the inspection limit"
-                    )
-                prior = self.session.scalar(
-                    select(AssessmentAttempt).where(
-                        AssessmentAttempt.response_version_id == response_id
-                    )
-                )
-                if (
-                    prior is None
-                    or prior.student_id != attempt.student_id
-                    or prior.task_id != attempt.task_id
-                    or prior.course_id != attempt.course_id
-                ):
-                    raise FrozenResponseError(
-                        "A previous response is unavailable in this learner task scope"
-                    )
-                previous_bundle = self._bundle(prior)
-                previous = self.reader.read(assessment=previous_bundle.reference)
-                seen.add(response_id)
-                history.append(previous)
-                pending.append(previous)
-        return tuple(history)
 
     def finalise(self, actor: User, *, assessment_attempt_id: str, request: HumanAssessmentRequest):
         self._validate_request(request)
@@ -517,44 +461,9 @@ class HumanAssessmentService:
             raise AssessmentReviewConflictError("Assessment worker changed before the human claim")
 
     def _confirm(self, actor, decision, result, reason):
-        service = AssessmentReviewService(self.session, assignments=self.assignments, now=self.now)
-        if decision.result_state is ResultState.VOID:
-            raise AssessmentReviewConflictError("A void decision cannot be finalised")
-        if decision.result == result and decision.result_state in {
-            ResultState.CONFIRMED,
-            ResultState.OVERRIDDEN,
-        }:
-            return None
-        action = (
-            AssessorReviewAction.CONFIRM
-            if decision.result == result
-            else AssessorReviewAction.OVERRIDE
-        )
-        request = AssessmentReviewActionRequest(
-            action=action,
-            reason=reason,
-            expected_result_state=decision.result_state,
-            expected_review_revision=len(service._reviews(decision.id)),
-            new_result=result if action is AssessorReviewAction.OVERRIDE else None,
-        )
-        service._validate_action(decision, request)
-        at = _utc(self.now())
-        review = AssessorReview(
-            assessment_decision_id=decision.id,
-            assessor_user_id=actor.id,
-            action=action,
-            review_revision=request.expected_review_revision + 1,
-            prior_result=service._prior_result(decision, action),
-            new_result=result,
-            reason=reason.strip(),
-            reviewed_at=at,
-        )
-        self.session.add(review)
-        self.session.flush()
-        service._apply_action(decision, request, actor.id, at)
-        service._audit("assessment_review.recorded", decision, actor, review, replayed=False)
-        self.session.flush()
-        return review
+        return AssessmentReviewService(
+            self.session, assignments=self.assignments, now=self.now
+        ).confirm_calculated_result(actor, decision, result, reason)
 
     @staticmethod
     def _validate_request(request):
