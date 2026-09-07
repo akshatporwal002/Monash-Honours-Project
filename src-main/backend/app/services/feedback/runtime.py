@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from uuid import uuid4
 
 import anyio
 from sqlalchemy.orm import Session
@@ -13,7 +12,6 @@ from app.models import LearningMaterial, LearningTask, MaterialChunk
 from app.models.lms import SubmissionAttempt
 from app.schemas.feedback import (
     ContextProviderStatus,
-    RetrievalContext,
     RetrievalResult,
     SimulationContext,
     SimulationResult,
@@ -25,8 +23,8 @@ from app.services.assessment.feedback_context import (
 )
 from app.services.feedback.agent import (
     LlmFeedbackGenerator,
-    PendingAssessmentFeedbackGenerator,
 )
+from app.services.feedback.assessed import AssessedFeedbackGenerator, AssessedFeedbackJudge
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.judge import LlmFeedbackJudge
 from app.services.feedback.pipeline import FeedbackPipeline
@@ -41,7 +39,8 @@ from app.services.llm import (
 )
 from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
 from app.services.quantum import SIMULATION_POLICY_VERSION, CircuitOperation, QuantumSimulationError
-from app.services.rag.source_history import passage_label, resolve_passages
+from app.services.rag.feedback_adapter import RagFeedbackRetrievalProvider
+from app.services.rag.local_retrieval import LocalCourseRetrievalService
 from app.services.research.governance import research_processing_approved
 from app.services.simulation_evidence import (
     SimulationEvidenceError,
@@ -78,6 +77,7 @@ class LmsSubmissionProvider:
             attempt.answer.strip()
             or (attempt.code or "").strip()
             or _circuit_answer(attempt.circuit)
+            or ("Frozen multipart response" if attempt.episode else "")
         )
         if not submitted_answer:
             return None
@@ -94,47 +94,18 @@ class LmsSubmissionProvider:
 
 
 class TaskSourceRetrievalProvider:
-    """Load only the course chunks already approved for the task."""
+    """Retrieve checked passages through the existing scoped retrieval adapter."""
 
     def __init__(self, session: Session) -> None:
-        self._session = session
+        self._provider = RagFeedbackRetrievalProvider(LocalCourseRetrievalService(session))
 
     async def get_retrieval_context(
-        self,
-        task: TaskContext,
-        submission: SubmissionContext,
+        self, task: TaskContext, submission: SubmissionContext
     ) -> RetrievalResult:
-        del submission
-        if not task.source_references:
-            return RetrievalResult(status=ContextProviderStatus.EMPTY)
-        request_id = str(uuid4())
-        items = []
-        for _reference, passage, revision in resolve_passages(
-            self._session, task.course_id, task.source_references
-        ):
-            material = self._session.get(LearningMaterial, revision.material_id)
-            if material is None or material.retired_at is not None:
-                continue
-            items.append(
-                RetrievalContext(
-                    retrieval_request_id=request_id,
-                    task_id=task.task_id,
-                    course_id=task.course_id,
-                    source_id=passage.id,
-                    document_id=revision.material_id,
-                    chunk_id=passage.id,
-                    chunk_text=passage.chunk_text,
-                    relevance_score=1,
-                    source_label=passage_label(passage, revision),
-                )
-            )
-            if len(items) == 50:
-                break
-        if not items:
-            return RetrievalResult(status=ContextProviderStatus.EMPTY)
+        items = await self._provider.get_retrieval_context(task, submission)
         return RetrievalResult(
-            status=ContextProviderStatus.COMPLETED,
-            request_ids=[request_id],
+            status=ContextProviderStatus.COMPLETED if items else ContextProviderStatus.EMPTY,
+            request_ids=sorted({item.retrieval_request_id for item in items}),
             items=items,
         )
 
@@ -148,7 +119,7 @@ class SubmittedCircuitSimulationProvider:
         task: TaskContext,
         submission: SubmissionContext,
     ) -> SimulationResult:
-        if task.task_type not in {"quantum_circuit", "circuit"}:
+        if task.assessed or task.task_type not in {"quantum_circuit", "circuit"}:
             return SimulationResult(status=ContextProviderStatus.NOT_REQUESTED)
         stored = self._session.get(SubmissionAttempt, submission.submission_id)
         persisted_task = self._session.get(LearningTask, task.task_id)
@@ -212,8 +183,10 @@ def build_feedback_pipeline(
     base_generator = (
         LlmFeedbackGenerator(client) if client is not None else LocalFeedbackGenerator()
     )
-    generator = PendingAssessmentFeedbackGenerator(base_generator)
-    judge = LlmFeedbackJudge(client) if client is not None else LocalFeedbackJudge()
+    generator = AssessedFeedbackGenerator(base_generator)
+    judge = AssessedFeedbackJudge(
+        LlmFeedbackJudge(client) if client is not None else LocalFeedbackJudge()
+    )
     collector = DefaultFeedbackContextCollector(
         SqlAlchemyTaskProvider(session),
         retrieval_provider=TaskSourceRetrievalProvider(session),

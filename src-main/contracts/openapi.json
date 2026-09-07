@@ -390,6 +390,149 @@
         "title": "AnalyticsFilterSnapshot",
         "type": "object"
       },
+      "AssessedFeedbackView": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_hints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Approved Hints",
+            "type": "array"
+          },
+          "assessment": {
+            "$ref": "#/components/schemas/AssessmentVersionReference"
+          },
+          "assessment_attempt_id": {
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "learnlens.assessed-feedback.v1",
+            "default": "learnlens.assessed-feedback.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionFeedback"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "current_human_action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Human Action Id"
+          },
+          "help_use_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Help Use Ids",
+            "type": "array"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "permitted_next_action": {
+            "title": "Permitted Next Action",
+            "type": "string"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "reflection_prompt": {
+            "title": "Reflection Prompt",
+            "type": "string"
+          },
+          "response_version_id": {
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "rule_policy_version": {
+            "title": "Rule Policy Version",
+            "type": "string"
+          },
+          "simulation_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SimulationProvenance"
+            },
+            "title": "Simulation Evidence",
+            "type": "array"
+          },
+          "source_claims": {
+            "items": {
+              "$ref": "#/components/schemas/GroundedSourceClaim"
+            },
+            "title": "Source Claims",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "task_form_id": {
+            "title": "Task Form Id",
+            "type": "string"
+          },
+          "task_form_version": {
+            "title": "Task Form Version",
+            "type": "integer"
+          },
+          "task_form_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Form Version Id"
+          },
+          "task_revision_id": {
+            "title": "Task Revision Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "assessment_attempt_id",
+          "response_version_id",
+          "content_digest",
+          "task_revision_id",
+          "task_form_id",
+          "task_form_version",
+          "task_form_version_id",
+          "current_human_action_id",
+          "summary",
+          "criteria",
+          "source_claims",
+          "simulation_evidence",
+          "approved_hints",
+          "reflection_prompt",
+          "permitted_next_action",
+          "help_use_ids",
+          "rule_policy_version",
+          "prompt_version",
+          "model_version"
+        ],
+        "title": "AssessedFeedbackView",
+        "type": "object"
+      },
       "AssessmentApprovalState": {
         "enum": [
           "DRAFT",
@@ -3048,6 +3191,56 @@
         "title": "CriterionEvaluatorType",
         "type": "string"
       },
+      "CriterionFeedback": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion_id": {
+            "title": "Criterion Id",
+            "type": "string"
+          },
+          "criterion_version": {
+            "title": "Criterion Version",
+            "type": "integer"
+          },
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ResponseFieldEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "guidance": {
+            "title": "Guidance",
+            "type": "string"
+          },
+          "learner_description": {
+            "title": "Learner Description",
+            "type": "string"
+          },
+          "simulation_references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Simulation References",
+            "type": "array"
+          }
+        },
+        "required": [
+          "criterion_id",
+          "criterion_version_id",
+          "criterion_version",
+          "learner_description",
+          "evidence",
+          "guidance",
+          "simulation_references"
+        ],
+        "title": "CriterionFeedback",
+        "type": "object"
+      },
       "DraftRead": {
         "additionalProperties": false,
         "properties": {
@@ -4890,6 +5083,87 @@
         "title": "GeneratedTaskRead",
         "type": "object"
       },
+      "GroundedSourceClaim": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "chunk_id": {
+            "title": "Chunk Id",
+            "type": "string"
+          },
+          "claim": {
+            "title": "Claim",
+            "type": "string"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "end_offset": {
+            "exclusiveMinimum": 0.0,
+            "title": "End Offset",
+            "type": "integer"
+          },
+          "passage_digest": {
+            "title": "Passage Digest",
+            "type": "string"
+          },
+          "retrieval_request_id": {
+            "title": "Retrieval Request Id",
+            "type": "string"
+          },
+          "retrieval_version": {
+            "title": "Retrieval Version",
+            "type": "string"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_label": {
+            "title": "Source Label",
+            "type": "string"
+          },
+          "source_revision_id": {
+            "title": "Source Revision Id",
+            "type": "string"
+          },
+          "start_offset": {
+            "minimum": 0.0,
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "support_quote": {
+            "title": "Support Quote",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "source_label",
+          "document_id",
+          "chunk_id",
+          "source_revision_id",
+          "source_digest",
+          "passage_digest",
+          "approval_id",
+          "retrieval_request_id",
+          "retrieval_version",
+          "support_quote",
+          "start_offset",
+          "end_offset",
+          "claim"
+        ],
+        "title": "GroundedSourceClaim",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -6700,6 +6974,40 @@
         "title": "ResponseContent",
         "type": "object"
       },
+      "ResponseFieldEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "recorded": {
+            "title": "Recorded",
+            "type": "boolean"
+          },
+          "response_version_id": {
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "response_version_id",
+          "content_digest",
+          "path",
+          "recorded",
+          "statement"
+        ],
+        "title": "ResponseFieldEvidence",
+        "type": "object"
+      },
       "ResultState": {
         "enum": [
           "NOT_ASSESSED",
@@ -7312,6 +7620,72 @@
           }
         },
         "title": "SettingsUpdate",
+        "type": "object"
+      },
+      "SimulationProvenance": {
+        "additionalProperties": false,
+        "properties": {
+          "circuit_version_id": {
+            "title": "Circuit Version Id",
+            "type": "string"
+          },
+          "engine_versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Engine Versions",
+            "type": "object"
+          },
+          "episode_stage_start_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Episode Stage Start Id"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "prediction_checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Checkpoint Id"
+          },
+          "result_digest": {
+            "title": "Result Digest",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "circuit_version_id",
+          "prediction_checkpoint_id",
+          "episode_stage_start_id",
+          "status",
+          "result_digest",
+          "policy_version",
+          "engine_versions"
+        ],
+        "title": "SimulationProvenance",
         "type": "object"
       },
       "SimulationRead": {
@@ -9465,6 +9839,16 @@
             "minLength": 1,
             "title": "Ai Generated Notice",
             "type": "string"
+          },
+          "assessed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessedFeedbackView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "explanation": {
             "anyOf": [

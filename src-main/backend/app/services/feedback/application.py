@@ -6,7 +6,12 @@ from uuid import uuid4
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models.enums import WorkflowStage
-from app.schemas.feedback import FeedbackPipelineStatus, FeedbackResponseClassification
+from app.schemas.assessed_feedback import AssessedFeedbackView
+from app.schemas.feedback import (
+    AssessmentContextStatus,
+    FeedbackPipelineStatus,
+    FeedbackResponseClassification,
+)
 from app.schemas.feedback_api import (
     AuthenticatedActor,
     FeedbackFailureView,
@@ -107,6 +112,53 @@ class FeedbackWorkflowApplication:
         return self._repository.get_workflow_claim(
             submission_id,
             observed_at=self._now(),
+        )
+
+    async def response(self, claim: WorkflowClaim) -> FeedbackWorkflowResponse:
+        """Recheck release timing and human history before returning cached feedback."""
+        from app.services.assessment.feedback_context import (
+            SqlAlchemyAssessmentFeedbackContextProvider,
+        )
+        from app.services.feedback.fallback import ASSESSED_SAFE_FALLBACK_CONTENT
+        from app.services.feedback.runtime import LmsSubmissionProvider
+        from app.services.rag.feedback_adapter import cached_sources_available
+
+        session = self._repository.session
+        submission = await LmsSubmissionProvider(session).get_submission(claim.submission_id)
+        if submission is None:
+            return workflow_response(claim)
+        resolution = await SqlAlchemyAssessmentFeedbackContextProvider(session).resolve(submission)
+        if resolution.status is AssessmentContextStatus.NOT_ASSESSED:
+            return workflow_response(claim)
+        result = claim.terminal_result
+        if result is None:
+            return workflow_response(claim)
+        current = resolution.context
+        generated = result.validated_feedback
+        saved = generated.feedback_content.get("assessed", {}) if generated else {}
+        safe = (
+            current is not None
+            and current.feedback_release_allowed
+            and not current.active_transfer
+            and (
+                not generated
+                or (
+                    isinstance(saved, dict)
+                    and saved.get("current_human_action_id") == current.current_human_action_id
+                    and saved.get("content_digest") == current.response_content_digest
+                    and cached_sources_available(session, saved.get("source_claims"), current.task)
+                )
+            )
+        )
+        if safe:
+            return workflow_response(claim)
+        return FeedbackWorkflowResponse(
+            workflow_run_id=claim.workflow_run_id,
+            submission_id=claim.submission_id,
+            status=FeedbackWorkflowStatus.FALLBACK,
+            feedback=SafeFallbackView(
+                feedback_id=result.feedback_id, **ASSESSED_SAFE_FALLBACK_CONTENT
+            ),
         )
 
     def released_submission_id(self, feedback_id: str) -> str | None:
@@ -215,12 +267,23 @@ def workflow_response(claim: WorkflowClaim) -> FeedbackWorkflowResponse:
         if generated is None:
             raise ValueError("validated workflow is missing released feedback")
         content = generated.feedback_content
+        assessed = (
+            AssessedFeedbackView.model_validate(content["assessed"])
+            if "assessed" in content
+            else None
+        )
+        if assessed is not None:
+            content = {
+                "summary": assessed.summary,
+                "recommended_next_step": assessed.permitted_next_action,
+            }
         return FeedbackWorkflowResponse(
             workflow_run_id=claim.workflow_run_id,
             submission_id=claim.submission_id,
             status=FeedbackWorkflowStatus.VALIDATED,
             feedback=ValidatedFeedbackView(
                 feedback_id=result.feedback_id,
+                assessed=assessed,
                 response_classification=_classification(content.get("response_classification")),
                 summary=_required_text(content, "summary"),
                 identified_error=_optional_text(content, "identified_error"),

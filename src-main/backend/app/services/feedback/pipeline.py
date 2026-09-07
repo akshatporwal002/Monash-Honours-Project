@@ -310,6 +310,20 @@ class FeedbackPipeline:
             )
             return GeneratedFeedback.model_validate(payload)
         except Exception:
+            if context.assessment_context is not None:
+                assessed = context.assessment_context
+                return GeneratedFeedback(
+                    feedback_content={
+                        "generation_error": "Assessed feedback generation failed or returned invalid output.",
+                        "assessment_reference": assessed.assessment.model_dump(mode="json"),
+                        "response_content_digest": assessed.response_content_digest,
+                        "task_source_version": assessed.task_source_version,
+                        "task_source_digest": assessed.task_source_digest,
+                    },
+                    provider="unavailable",
+                    model="unavailable",
+                    prompt_version="assessed-generation-error-v1",
+                )
             return None
 
     async def _evaluate(
@@ -317,6 +331,18 @@ class FeedbackPipeline:
         context: FeedbackContext,
         feedback: GeneratedFeedback,
     ) -> JudgeEvaluationOutcome:
+        if (
+            context.assessment_context is not None
+            and "generation_error" in feedback.feedback_content
+        ):
+            return JudgeEvaluationOutcome(
+                evaluation_status=JudgeEvaluationStatus.PROVIDER_ERROR,
+                reason="Assessed feedback generation failed or returned invalid output.",
+                error_category="assessed_generation_error",
+                provider=feedback.provider,
+                model=feedback.model,
+                prompt_version=feedback.prompt_version,
+            )
         try:
             evaluated = await asyncio.wait_for(
                 self._judge.evaluate(context, feedback),
@@ -396,7 +422,7 @@ class FeedbackPipeline:
         context: FeedbackContext,
         execution_token: str | None,
     ) -> FeedbackPipelineResult:
-        fallback = safe_fallback_feedback()
+        fallback = safe_fallback_feedback(assessed=context.assessment_context is not None)
         usage, cost = _aggregate_usage(attempts)
         final_judge = attempts[-1].judge_evaluation.judge_result if attempts else None
         result = FeedbackPipelineResult(

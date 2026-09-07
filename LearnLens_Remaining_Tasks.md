@@ -197,7 +197,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 9, 11, 12, and 15; Task 8, D-05. Suggested owner: feedback and retrieval.
 
-    Frozen assessment context already exists. However, the production generator rejects every assessed context and releases a fixed fallback. Implement criterion-linked feedback and permitted revision guidance. Connect task-scoped retrieval that checks material availability and relevance. Record claim-to-passage support beyond citation membership. Extend checks for answer leakage, inappropriate help, unsupported learner claims, and missing reflection.
+    Implemented on `feat/task-16-grounded-assessed-feedback`; independent final review and delivery gates remain pending. The existing workflow now supplies bounded criterion-linked feedback from exact frozen responses, reviewed sources, and current human history. Retrieval checks scope, approval, availability, and relevance. Deterministic checks protect passage support, learner claims, help timing, and reflection. See the [Task 16 handoff](docs/learnlens/task-16-grounded-feedback.md) for interfaces, evidence, and limits.
 
     Done when approved feedback states missing evidence without exceeding allowed help. Preserve one regeneration, fixed fallback, rejection reasons, and source/model/prompt/rule versions. Feedback approval must not confirm an assessment result.
 

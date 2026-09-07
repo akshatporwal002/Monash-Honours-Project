@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_attempt
 from support.task_review import bind_reviewed_fixture_form
@@ -54,6 +55,7 @@ def _approved_attempt(db_session: Session):
     assert definition is not None
     assert task is not None
     definition.formal_result_eligible = True
+    definition.transfer_rule = {"required": False}
     definition.result_eligibility_declared_at = NOW
     material = LearningMaterial(
         course_id=attempt.course_id,
@@ -116,6 +118,25 @@ def _approved_attempt(db_session: Session):
         )
     )
     db_session.commit()
+    from app.schemas.episode import ResponseContent
+    from app.services.episode_evidence import canonical_response_digest
+
+    digest = canonical_response_digest(
+        content=ResponseContent(
+            answer=response.answer, code=response.code, circuit=response.circuit
+        ),
+        episode=None,
+        schema_version=response.response_schema_version,
+        assessment_work_start_id=response.assessment_work_start_id,
+        task_form_version_id=response.task_form_version_id,
+        declared_conditions=response.declared_conditions,
+    )
+    db_session.execute(
+        update(SubmissionAttempt)
+        .where(SubmissionAttempt.id == response.id)
+        .values(content_digest=digest)
+    )
+    db_session.commit()
     return attempt, response, criterion, rule
 
 
@@ -176,9 +197,8 @@ def test_provider_resolves_frozen_assessment_and_criterion_evidence(
     assert resolved.status is AssessmentContextStatus.RESOLVED
     assert resolved.context is not None
     evaluation = resolved.context.criteria[0].evaluation
-    assert evaluation is not None
-    assert evaluation.decision is CriterionDecision.MET
-    assert evaluation.evidence_references == [evidence]
+    # Automated evidence is preserved but is not a current human judgement.
+    assert evaluation is None
 
 
 def test_collector_uses_frozen_task_context_without_legacy_marking_fields(
@@ -215,7 +235,7 @@ def test_provider_fails_closed_for_cross_course_stale_and_missing_context(
     assert (
         asyncio.run(provider.resolve(cross_course)).status is AssessmentContextStatus.ACCESS_DENIED
     )
-    assert asyncio.run(provider.resolve(stale_task)).status is AssessmentContextStatus.STALE
+    assert asyncio.run(provider.resolve(stale_task)).status is AssessmentContextStatus.ACCESS_DENIED
 
     missing_response = SubmissionAttempt(
         draft_id=response.draft_id,

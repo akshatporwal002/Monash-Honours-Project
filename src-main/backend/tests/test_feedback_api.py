@@ -31,6 +31,7 @@ from app.schemas.feedback import (
     TokenUsage,
 )
 from app.schemas.feedback_api import AuthenticatedActor
+from app.services.feedback.application import workflow_response
 from app.services.feedback.contracts import (
     FeedbackReportWriteResult,
     WorkflowClaim,
@@ -112,6 +113,9 @@ class FakeApplication:
 
     def get(self, submission_id: str) -> WorkflowClaim | None:
         return self.claim
+
+    async def response(self, claim):
+        return workflow_response(claim)
 
     def released_submission_id(self, feedback_id: str) -> str | None:
         return self.released_submission

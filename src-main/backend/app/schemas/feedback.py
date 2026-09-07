@@ -22,6 +22,7 @@ from app.domain.assessment import (
 )
 from app.models.enums import JudgeDecision, JudgeEvaluationStatus
 from app.schemas.assessment import AssessmentVersionReference, EvidenceReference
+from app.schemas.episode import FrozenResponseRead
 
 ExternalId = Annotated[
     str,
@@ -113,6 +114,7 @@ class FeedbackAgentOutput(FeedbackContract):
 
 
 class TaskContext(FeedbackContract):
+    assessed: bool = False
     task_id: ExternalId
     course_id: ExternalId
     task_type: ExternalId
@@ -175,6 +177,16 @@ class AssessmentFeedbackContext(FeedbackContract):
     contract_version: Literal["learnlens.assessed-feedback-context.v1"] = (
         "learnlens.assessed-feedback-context.v1"
     )
+    simulation_evidence: list[dict[str, JsonValue]] = Field(default_factory=list)
+    frozen_response: FrozenResponseRead | None = None
+    task_revision_id: ExternalId | None = None
+    current_human_action_id: ExternalId | None = None
+    feedback_release_allowed: bool = False
+    active_transfer: bool = False
+    approved_hints: list[ShortOutputText] = Field(default_factory=list, max_length=100)
+    required_reflection: bool = True
+    help_use_ids: list[ExternalId] = Field(default_factory=list)
+    context_warnings: list[ShortOutputText] = Field(default_factory=list)
     assessment: AssessmentVersionReference
     task: TaskContext
     response_schema_version: ExternalId
@@ -242,6 +254,11 @@ class SubmissionContext(FeedbackContract):
 
 
 class RetrievalContext(FeedbackContract):
+    source_revision_id: ExternalId | None = None
+    source_digest: ExternalId | None = None
+    passage_digest: ExternalId | None = None
+    approval_id: ExternalId | None = None
+    retrieval_version: ExternalId | None = None
     retrieval_request_id: ExternalId
     task_id: ExternalId | None = None
     course_id: ExternalId | None = None

@@ -7,6 +7,7 @@ from fastapi import Depends, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.audit_dependencies import get_feedback_audit_events
@@ -14,7 +15,7 @@ from app.api.dependencies.authentication import get_current_user
 from app.core.config import settings
 from app.db.session import SessionLocal, get_db_session
 from app.models import LearningTask
-from app.models.lms import Course, SubmissionAttempt
+from app.models.lms import Course, CourseState, Enrollment, EnrollmentStatus, SubmissionAttempt
 from app.models.user import User, UserRole
 from app.schemas.feedback_api import AuthenticatedActor, FeedbackApiErrorResponse
 from app.services.audit_events import FeedbackAuditEvents
@@ -141,7 +142,26 @@ class DatabaseFeedbackAccessPolicy:
         if role is UserRole.ADMINISTRATOR:
             return True
         if role is UserRole.STUDENT:
-            return attempt.student_id == actor_id
+            if attempt.student_id != actor_id:
+                return False
+            task = self._session.get(LearningTask, attempt.task_id)
+            if task is None:
+                return False
+            if task.course_id is None:
+                return True
+            course = self._session.get(Course, task.course_id)
+            return (
+                course is not None
+                and course.state is CourseState.PUBLISHED
+                and self._session.scalar(
+                    select(Enrollment.id).where(
+                        Enrollment.course_id == course.id,
+                        Enrollment.student_id == actor_id,
+                        Enrollment.status == EnrollmentStatus.ACTIVE,
+                    )
+                )
+                is not None
+            )
         if role is not UserRole.EDUCATOR:
             return False
         task = self._session.get(LearningTask, attempt.task_id)

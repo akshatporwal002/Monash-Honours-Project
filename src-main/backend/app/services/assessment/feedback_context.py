@@ -1,29 +1,21 @@
-"""Read-only frozen assessment context for the feedback pipeline."""
+"""Read-only, exact reviewed evidence for assessed feedback."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from pydantic import ValidationError
-from sqlalchemy import select
+from pydantic_core import to_jsonable_python
+from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
-from app.models.assessment import (
-    AssessmentApprovalState,
-    AssessmentAttempt,
-    AssessmentDefinitionVersion,
-    BloomTargetVersion,
-    CriterionEvaluation,
-    CriterionVersion,
-    OutcomeVersion,
-    PassRuleVersion,
-    TaskApproval,
-    TaskFormVersion,
-)
+from app.domain.assessment import AssessmentAttemptState, ResultState
+from app.models.assessment import AssessmentAttempt, AssessmentDecision
+from app.models.episode import EpisodeHelpUse, EpisodeStageStart
+from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.lms import SubmissionAttempt
 from app.models.persistence import LearningTask
-from app.models.source_history import SourceUse
-from app.schemas.assessment import AssessmentVersionReference, EvidenceReference
+from app.models.task_review import TaskRevision
+from app.schemas.assessment import EvidenceReference, ResolvedEvidenceReference
 from app.schemas.feedback import (
     AssessmentContextStatus,
     AssessmentFeedbackContext,
@@ -33,119 +25,126 @@ from app.schemas.feedback import (
     SubmissionContext,
     TaskContext,
 )
-from app.services.assessment.pass_rules import referenced_criterion_version_ids
-from app.services.assessment.submissions import AssessmentSubmissionService
+from app.services.assessment.evaluation import AssessmentEvaluationConflictError
+from app.services.assessment.frozen_review import FrozenReviewEvidenceReader
+from app.services.episode_contract import FrozenResponseError, FrozenResponseReader
+from app.services.episode_responses import SqlAlchemyFrozenResponseReader
 
 
 class SqlAlchemyAssessmentFeedbackContextProvider:
-    """Resolve one immutable assessment bundle without exposing result mutation."""
+    """Read preserved standards and current human decisions without recovery writes."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, reader: FrozenResponseReader | None = None) -> None:
         self._session = session
+        self._reader = reader or SqlAlchemyFrozenResponseReader(session)
 
-    async def resolve(
-        self,
-        submission: SubmissionContext,
-    ) -> AssessmentFeedbackContextResolution:
+    async def resolve(self, submission: SubmissionContext) -> AssessmentFeedbackContextResolution:
+        with self._session.no_autoflush:
+            return self._resolve(submission)
+
+    def _resolve(self, submission):
         response = self._session.get(SubmissionAttempt, submission.submission_id)
         if response is None:
             return _unresolved(AssessmentContextStatus.MISSING, "RESPONSE_VERSION_MISSING")
-
+        if (
+            str(response.student_id) != submission.student_id
+            or response.task_id != submission.task_id
+        ):
+            return _unresolved(AssessmentContextStatus.ACCESS_DENIED, "ASSESSMENT_SCOPE_DENIED")
         attempt = self._session.scalar(
             select(AssessmentAttempt).where(
                 AssessmentAttempt.response_version_id == submission.submission_id
             )
         )
         if attempt is None:
-            if response.task_form_version_id is not None or (
-                response.response_schema_version or ""
-            ).startswith("assessment."):
-                return _unresolved(
-                    AssessmentContextStatus.MISSING,
-                    "ASSESSMENT_ATTEMPT_MISSING",
-                )
+            if response.task_form_version_id or (response.response_schema_version or "").startswith(
+                "assessment."
+            ):
+                return _unresolved(AssessmentContextStatus.MISSING, "ASSESSMENT_ATTEMPT_MISSING")
             return _unresolved(AssessmentContextStatus.NOT_ASSESSED, "NOT_ASSESSED")
-
         if (
             attempt.course_id != submission.course_id
             or str(attempt.student_id) != submission.student_id
         ):
             return _unresolved(AssessmentContextStatus.ACCESS_DENIED, "ASSESSMENT_SCOPE_DENIED")
-        if (
-            attempt.response_version_id != submission.submission_id
-            or attempt.task_id != submission.task_id
-            or response.student_id != attempt.student_id
-            or response.task_id != attempt.task_id
-        ):
-            return _unresolved(AssessmentContextStatus.STALE, "ASSESSMENT_REFERENCE_MISMATCH")
-
-        loaded = self._load(attempt)
-        if isinstance(loaded, AssessmentFeedbackContextResolution):
-            return loaded
-        response, task, definition, form, bloom, rule, outcome, criteria = loaded
-
-        reference = AssessmentVersionReference(
-            course_id=attempt.course_id,
-            assessment_definition_id=definition.assessment_definition_id,
-            assessment_definition_version=definition.version,
-            outcome_id=outcome.learning_outcome_id,
-            outcome_version=outcome.version,
-            bloom_target_id=bloom.bloom_target_id,
-            bloom_target_version=bloom.version,
-            criterion_set_id=definition.assessment_definition_id,
-            criterion_set_version=definition.version,
-            pass_rule_id=rule.pass_rule_id,
-            pass_rule_version=rule.version,
-            task_id=attempt.task_id,
-            task_form_version=form.version,
-            assessment_attempt_id=attempt.id,
-            response_version_id=response.id,
-        )
-        evaluations = {
-            evaluation.criterion_version_id: evaluation
-            for evaluation in self._session.scalars(
-                select(CriterionEvaluation).where(
-                    CriterionEvaluation.assessment_attempt_id == attempt.id
-                )
-            ).all()
-        }
+        frozen = FrozenReviewEvidenceReader(self._session, self._reader)
         try:
-            criterion_contexts = [
-                _criterion_context(criterion, evaluations.get(criterion.id), reference)
-                for criterion in criteria
+            reference = frozen.reference(attempt)
+            preserved = self._reader.read(assessment=reference)
+        except (FrozenResponseError, ValueError, TypeError, KeyError):
+            return _unresolved(AssessmentContextStatus.INVALID, "FROZEN_RESPONSE_INVALID")
+        try:
+            bundle = frozen.bundle(attempt)
+            reviewed = frozen.context(bundle)
+            revision = self._session.get(TaskRevision, reviewed.task_revision_id)
+            snapshot = revision.snapshot
+            form, definition = bundle.form, bundle.definition
+            plan = (
+                form.constraints.get("episode_plan") if isinstance(form.constraints, dict) else None
+            )
+            simulations = list(frozen.resolver.simulations(reference, preserved))
+            action, decisions = self._human_decisions(attempt)
+            allowed, active = feedback_release_state(
+                self._session, attempt, preserved, definition, action
+            )
+            for row in decisions.values():
+                for raw in row.evidence_references:
+                    evidence = EvidenceReference.model_validate(raw)
+                    resolved = frozen.resolver.resolve(
+                        assessment=reference, evidence_id=evidence.evidence_id
+                    )
+                    if (
+                        not isinstance(resolved, ResolvedEvidenceReference)
+                        or resolved.reference != evidence
+                    ):
+                        raise ValueError("Human evidence no longer matches its frozen record")
+            criteria = [
+                _criterion_context(
+                    criterion, decisions.get(criterion.id) if allowed else None, reference, action
+                )
+                for criterion in bundle.criteria
             ]
-            task_context = TaskContext(
-                task_id=task.id,
+            task = TaskContext(
+                task_id=attempt.task_id,
                 course_id=attempt.course_id,
-                task_type=task.task_type.value,
-                prompt=task.instructions,
-                difficulty=task.difficulty,
+                task_type=snapshot["task_type"],
+                prompt=reviewed.supported_instructions or reviewed.supported_prompt,
+                difficulty=snapshot["difficulty"],
                 marking_criteria=[
                     {
-                        "criterion_version_id": criterion.id,
-                        "learner_description": criterion.learner_description,
-                        "mandatory": criterion.mandatory,
+                        "criterion_version_id": c.criterion_version_id,
+                        "learner_description": c.learner_description,
+                        "mandatory": c.mandatory,
                     }
-                    for criterion in criteria
+                    for c in criteria
                 ],
-                learning_outcome_id=outcome.learning_outcome_id,
-                source_references=list(
+                learning_outcome_id=reference.outcome_id,
+                source_references=list(snapshot.get("source_references") or []),
+                assessed=True,
+            )
+            help_ids = (
+                list(
                     self._session.scalars(
-                        select(SourceUse.passage_id)
+                        select(EpisodeHelpUse.id)
                         .where(
-                            SourceUse.output_type == "assessment",
-                            SourceUse.output_id == attempt.id,
-                            SourceUse.course_id == attempt.course_id,
+                            EpisodeHelpUse.student_id == attempt.student_id,
+                            EpisodeHelpUse.task_id == attempt.task_id,
+                            EpisodeHelpUse.assessment_work_start_id
+                            == preserved.assessment_work_start_id,
+                            EpisodeHelpUse.task_form_version_id == form.id,
+                            EpisodeHelpUse.created_at <= response.submitted_at,
                         )
-                        .order_by(SourceUse.passage_id)
+                        .order_by(EpisodeHelpUse.created_at, EpisodeHelpUse.id)
                     )
-                ),
+                )
+                if preserved.assessment_work_start_id
+                else []
             )
             context = AssessmentFeedbackContext(
                 assessment=reference,
-                task=task_context,
-                response_schema_version=response.response_schema_version or "",
-                response_content_digest=response.content_digest or "",
+                task=task,
+                response_schema_version=preserved.reference.schema_version,
+                response_content_digest=preserved.reference.content_digest,
                 task_form_id=form.task_form_id,
                 task_source_version=form.source_version,
                 task_source_digest=form.source_digest,
@@ -154,144 +153,134 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
                 task_form_constraints=form.constraints,
                 assessment_claim=definition.claim,
                 assessment_purpose=definition.purpose,
-                bloom_process=bloom.bloom_process,
-                bloom_knowledge=bloom.knowledge_dimension,
-                criteria=criterion_contexts,
-                pass_rule_expression=rule.expression,
+                bloom_process=bundle.bloom.bloom_process,
+                bloom_knowledge=bundle.bloom.knowledge_dimension,
+                criteria=criteria,
+                pass_rule_expression=bundle.rule.expression,
                 permitted_tools=definition.permitted_tools,
                 instructional_support=definition.instructional_support,
                 access_conditions=definition.access_conditions,
                 transfer_rule=definition.transfer_rule,
                 evidence_sufficiency=definition.evidence_sufficiency,
-            )
-        except (TypeError, ValueError, ValidationError):
-            return _unresolved(AssessmentContextStatus.INVALID, "ASSESSMENT_CONTEXT_INVALID")
-        return AssessmentFeedbackContextResolution(
-            status=AssessmentContextStatus.RESOLVED,
-            context=context,
-        )
-
-    def _load(
-        self,
-        attempt: AssessmentAttempt,
-    ) -> (
-        tuple[
-            SubmissionAttempt,
-            LearningTask,
-            AssessmentDefinitionVersion,
-            TaskFormVersion,
-            BloomTargetVersion,
-            PassRuleVersion,
-            OutcomeVersion,
-            tuple[CriterionVersion, ...],
-        ]
-        | AssessmentFeedbackContextResolution
-    ):
-        response = self._session.get(SubmissionAttempt, attempt.response_version_id)
-        task = self._session.get(LearningTask, attempt.task_id)
-        definition = self._session.get(
-            AssessmentDefinitionVersion,
-            attempt.assessment_definition_version_id,
-        )
-        form = self._session.get(TaskFormVersion, attempt.task_form_version_id)
-        bloom = self._session.get(BloomTargetVersion, attempt.bloom_target_version_id)
-        rule = self._session.get(PassRuleVersion, attempt.pass_rule_version_id)
-        outcome = (
-            self._session.get(OutcomeVersion, definition.outcome_version_id)
-            if definition is not None
-            else None
-        )
-        if any(value is None for value in (response, task, definition, form, bloom, rule, outcome)):
-            return _unresolved(AssessmentContextStatus.MISSING, "FROZEN_VERSION_MISSING")
-        assert (
-            response is not None
-            and task is not None
-            and definition is not None
-            and form is not None
-            and bloom is not None
-            and rule is not None
-            and outcome is not None
-        )
-        if (
-            definition.approval_state is not AssessmentApprovalState.APPROVED
-            or definition.formal_result_eligible is not True
-            or form.assessment_definition_version_id != definition.id
-            or form.learning_task_id != attempt.task_id
-            or bloom.assessment_definition_version_id != definition.id
-            or rule.assessment_definition_version_id != definition.id
-            or outcome.course_id != attempt.course_id
-            or task.course_id != attempt.course_id
-            or task.learning_outcome_id != outcome.learning_outcome_id
-            or response.student_id != attempt.student_id
-            or response.task_id != attempt.task_id
-            or response.task_form_version_id != form.id
-            or not response.response_schema_version
-            or not response.content_digest
-            or not form.source_version
-            or not form.source_digest
-        ):
-            return _unresolved(AssessmentContextStatus.STALE, "FROZEN_VERSION_MISMATCH")
-        approved_form = self._session.scalar(
-            select(TaskApproval.id).where(
-                TaskApproval.task_form_version_id == form.id,
-                TaskApproval.assessment_definition_version_id == definition.id,
-                TaskApproval.approval_state == AssessmentApprovalState.APPROVED,
-            )
-        )
-        if approved_form is None:
-            return _unresolved(AssessmentContextStatus.STALE, "TASK_FORM_NOT_APPROVED")
-        try:
-            AssessmentSubmissionService(self._session).assert_current_form_matches(attempt)
-            criterion_ids = referenced_criterion_version_ids(rule.expression)
-        except (RuntimeError, ValueError):
-            return _unresolved(AssessmentContextStatus.STALE, "CURRENT_VERSION_CONFLICT")
-        criteria = tuple(
-            self._session.scalars(
-                select(CriterionVersion)
-                .where(
-                    CriterionVersion.id.in_(criterion_ids),
-                    CriterionVersion.course_id == attempt.course_id,
-                    CriterionVersion.assessment_definition_version_id == definition.id,
+                frozen_response=preserved,
+                task_revision_id=reviewed.task_revision_id,
+                current_human_action_id=action.id if action and allowed else None,
+                feedback_release_allowed=allowed,
+                active_transfer=active,
+                approved_hints=list(plan.get("supported_hints", [])) if plan and not active else [],
+                required_reflection=True,
+                help_use_ids=help_ids,
+                simulation_evidence=to_jsonable_python(simulations),
+                context_warnings=(
+                    [] if allowed else ["Feedback release is not permitted at this stage."]
                 )
-                .order_by(CriterionVersion.id)
-            ).all()
-        )
-        if {criterion.id for criterion in criteria} != criterion_ids:
-            return _unresolved(AssessmentContextStatus.MISSING, "CRITERION_VERSION_MISSING")
-        newer_rule = self._session.scalar(
-            select(PassRuleVersion.id).where(
-                PassRuleVersion.pass_rule_id == rule.pass_rule_id,
-                PassRuleVersion.version > rule.version,
-                PassRuleVersion.approval_state == AssessmentApprovalState.APPROVED,
+                + (
+                    ["Simulation evidence is pending or has a technical fault."]
+                    if any(run["status"] != "completed" for run in simulations)
+                    else []
+                ),
             )
+        except (
+            AssessmentEvaluationConflictError,
+            FrozenResponseError,
+            ValueError,
+            TypeError,
+            KeyError,
+        ):
+            return _unresolved(
+                AssessmentContextStatus.MISSING, "FROZEN_REVIEWED_CONTEXT_UNAVAILABLE"
+            )
+        return AssessmentFeedbackContextResolution(
+            status=AssessmentContextStatus.RESOLVED, context=context
         )
-        if newer_rule is not None:
-            return _unresolved(AssessmentContextStatus.STALE, "PASS_RULE_VERSION_CHANGED")
-        return response, task, definition, form, bloom, rule, outcome, criteria
+
+    def _human_decisions(self, attempt):
+        decision = self._session.scalar(
+            select(AssessmentDecision).where(AssessmentDecision.assessment_attempt_id == attempt.id)
+        )
+        if decision is None or decision.result_state not in {
+            ResultState.CONFIRMED,
+            ResultState.OVERRIDDEN,
+        }:
+            return None, {}
+        action = self._session.scalar(
+            select(HumanAssessmentAction)
+            .where(HumanAssessmentAction.assessment_attempt_id == attempt.id)
+            .order_by(HumanAssessmentAction.revision.desc())
+            .limit(1)
+        )
+        if action is None or (
+            action.assessment_decision_id,
+            action.result_state,
+            action.result,
+        ) != (decision.id, decision.result_state, decision.result):
+            return None, {}
+        rows = self._session.scalars(
+            select(HumanCriterionDecision).where(HumanCriterionDecision.action_id == action.id)
+        )
+        return action, {row.criterion_version_id: row for row in rows}
 
 
-def _criterion_context(
-    criterion: CriterionVersion,
-    evaluation: CriterionEvaluation | None,
-    assessment: AssessmentVersionReference,
-) -> FeedbackCriterionContext:
+def feedback_release_state(session, attempt, response, definition, human_action=None):
+    """Recheck timing on every release, including reads of previously generated feedback."""
+    active = (
+        session.scalar(
+            select(EpisodeStageStart.id)
+            .where(
+                EpisodeStageStart.student_id == attempt.student_id,
+                EpisodeStageStart.task_id.in_(
+                    select(LearningTask.id).where(LearningTask.course_id == attempt.course_id)
+                ),
+                ~exists(
+                    select(SubmissionAttempt.id).where(
+                        SubmissionAttempt.assessment_work_start_id
+                        == EpisodeStageStart.assessment_work_start_id
+                    )
+                ),
+            )
+            .limit(1)
+        )
+        is not None
+    )
+    if active or attempt.state in {AssessmentAttemptState.VOID, AssessmentAttemptState.FAULTED}:
+        return False, active
+    transfer_required = (
+        isinstance(definition.transfer_rule, dict)
+        and definition.transfer_rule.get("required") is True
+    )
+    if (response.episode is not None or transfer_required) and (
+        response.episode is None or response.episode.transfer is None
+    ):
+        return False, active
+    for policy in (definition.instructional_support, definition.transfer_rule):
+        if not isinstance(policy, dict):
+            continue
+        for key in ("feedback_release", "feedback_release_timing", "feedback_timing"):
+            timing = policy.get(key)
+            if timing is None:
+                continue
+            if timing in ("after_assessment", "after_confirmation"):
+                if human_action is None:
+                    return False, active
+            elif timing not in ("after_submission", "after_transfer", "after_episode"):
+                return False, active
+    return True, active
+
+
+def _criterion_context(criterion, evaluation, assessment, action):
     evaluation_context = None
     if evaluation is not None:
-        raw_references = evaluation.evidence_references
-        if not isinstance(raw_references, list):
-            raise ValueError("criterion evidence references must be a list")
-        references = [EvidenceReference.model_validate(item) for item in raw_references]
-        if any(reference.assessment != assessment for reference in references):
-            raise ValueError("criterion evidence references are stale")
+        references = [
+            EvidenceReference.model_validate(item) for item in evaluation.evidence_references
+        ]
+        if not references or any(ref.assessment != assessment for ref in references):
+            raise ValueError("Human criterion evidence is foreign or missing")
         evaluation_context = FeedbackCriterionEvaluationContext(
             decision=evaluation.decision,
             evidence_references=references,
-            evaluator_reference=evaluation.evaluator_reference,
-            model_version=evaluation.model_version,
-            prompt_version=evaluation.prompt_version,
-            retrieval_version=evaluation.retrieval_version,
+            evaluator_reference=f"human-action:{action.id}",
             reason=evaluation.reason,
-            evaluated_at=_as_utc(evaluation.evaluated_at),
+            evaluated_at=_as_utc(action.created_at),
         )
     return FeedbackCriterionContext(
         criterion_id=criterion.criterion_id,
@@ -311,17 +300,9 @@ def _criterion_context(
     )
 
 
-def _unresolved(
-    status: AssessmentContextStatus,
-    reason_code: str,
-) -> AssessmentFeedbackContextResolution:
+def _unresolved(status, reason_code):
     return AssessmentFeedbackContextResolution(status=status, reason_code=reason_code)
 
 
 def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
-
-
-__all__ = ["SqlAlchemyAssessmentFeedbackContextProvider"]
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)

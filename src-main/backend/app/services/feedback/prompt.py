@@ -97,7 +97,24 @@ def feedback_context_payload(context: FeedbackContext) -> dict[str, Any]:
     if simulation_payload is not None:
         payload["simulation_context"] = simulation_payload
     if context.assessment_context is not None:
-        payload["assessment_context"] = context.assessment_context.model_dump(mode="json")
+        assessed = context.assessment_context
+        # Private marking rules, anchors and fresh prompts never enter model input.
+        payload["assessment_context"] = {
+            "assessment": assessed.assessment.model_dump(mode="json"),
+            "response_content_digest": assessed.response_content_digest,
+            "feedback_release_allowed": assessed.feedback_release_allowed,
+            "active_transfer": assessed.active_transfer,
+            "criteria": [
+                {
+                    "criterion_version_id": item.criterion_version_id,
+                    "learner_description": item.learner_description,
+                }
+                for item in assessed.criteria
+            ],
+            "frozen_response": assessed.frozen_response.model_dump(mode="json")
+            if assessed.frozen_response is not None and assessed.feedback_release_allowed
+            else None,
+        }
     return payload
 
 
