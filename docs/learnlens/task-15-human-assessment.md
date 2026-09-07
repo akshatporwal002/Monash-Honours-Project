@@ -48,4 +48,20 @@ The P3 circular private coupling was removed. The human service uses a public re
 
 Review-fix checks passed: 37 backend tests, 19 frontend tests, Ruff, ESLint, and production build. The fresh browser04 journey inspected both questions, the pass rule, and an earlier-only completed simulation before recording all three criterion decisions. Keyboard actions, reload, human provenance, zero Axe violations, and zero browser page errors passed. Its frozen-evidence screenshot was inspected.
 
+## Combined delivery correction
+
+Dependency merge `d5d6e88` consumed final Task 14 head `f2ed1f6` and passed both independent reviews.
+It passed 101 affected backend checks, 28 frontend tests, the build, and the real human-review browser journey.
+That journey reported zero Axe findings and page errors.
+
+The full combined run exposed old browser fixtures with invalid digests and absent approval context.
+Correction `0b0f5b3` creates new private browser records through ordinary source/task review, definition approval,
+work start, and submission. It preserves the existing browser assertions and stale-evidence guards.
+Valid historical responses and simulations remain readable when approved context is unavailable.
+The missing-context warning remains visible and blocks confirmation, override, and human finalisation.
+
+The correction passed 73 scoped tests. After the final earlier-context warning, all 27 affected tests passed again.
+Both independent reviewers cleared the exact correction commit. Ruff, formatting, and contract drift checks passed.
+The coordinator record tracks final combined browser checks, CI, and main delivery.
+
 After the final typed-state dependency merge, the expanded regression run passed 76 backend tests. TypeScript and all 19 review UI tests also passed. Later Task 14 review fixes remain separately tracked by the coordinator.

@@ -242,6 +242,14 @@ The helper now scrolls the trigger into view and checks visibility before openin
 Ten repeated real authoring journeys passed with ordinary pointer clicks and unchanged approval assertions.
 No product permissions, assessment rules, or test timeouts changed for this correction.
 
+## 2026-09-07: conclude the current batch
+
+The user now asks to finish the tasks in progress, commit and merge into main, then provide an update.
+This narrows the earlier continuous delivery instruction to current Tasks 14 and 15.
+Complete their remaining correction, independent review, combined checks, PR, and post-merge verification.
+Synchronize local main and stop before starting Tasks 16, 17, or 24.
+The reviewed Task 32 draft remains partial, with Arv Surana named as research lead and external approvals outstanding.
+
 ## 2026-09-07: Batch A delivered, episode and human review work begins
 
 PR 9 merged as `865467740c1c122834bd67d3c7f6a7ca77bd381c` after all final-head gates passed.

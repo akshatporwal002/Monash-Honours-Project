@@ -164,6 +164,11 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 14. **Complete the learning episode inside the task workspace.**
 
+    Task 14 progress, 7 September 2026: implemented and independently reviewed at `f2ed1f6`.
+    The [episode handoff](docs/learnlens/task-14-learning-episode.md) records typed responses, immutable predictions,
+    private transfer, simulation evidence, durable support requests, migration protection, and real browser checks.
+    Integrated into Batch B with a separate merge commit. Final batch delivery remains under the [coordinator record](docs/learnlens/coordinator-progress.md).
+
     Dependencies: Tasks 11 and 13; Task 8, D-04 and D-05, for approved assessed stages. Suggested owner: task engine and frontend.
 
     Six task handlers exist, but answer, code, and circuit fields do not capture the full learning sequence. Add typed prediction, reasoning, explanation, revision, reflection, and transfer responses. Stage matching, sequencing, and other required extensions explicitly. Keep instructions, circuit editing, results, explanations, and feedback together. Save predictions before revealing results where required.
@@ -173,6 +178,12 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
     Evidence: [task_types.py](src-main/backend/app/services/task_types.py), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR9, FR12-FR14, PD4-PD5, and PD11.
 
 15. **Make unsupported assessment criteria reachable by a human assessor.**
+
+    Task 15 progress, 7 September 2026: implemented and independently reviewed through dependency merge `d5d6e88`.
+    The [human-assessment handoff](docs/learnlens/task-15-human-assessment.md) records unresolved review, frozen evidence,
+    human criterion decisions, deterministic circuit checks, and audited confirmation. AI suggestions remain disabled.
+    Correction `0b0f5b3` preserves validated history when approved context is missing and replaces old browser fixtures
+    through ordinary approval controls. Both independent reviews cleared it. Final batch CI and main delivery remain due.
 
     Dependencies: Tasks 1, 2, 11, 12, and 13. Suggested owner: assessment backend and review UI.
 

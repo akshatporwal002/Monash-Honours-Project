@@ -2,8 +2,9 @@
 
 Started: 7 September 2026. Status: implementation in progress.
 
-The current request authorises Tasks 13 onward, including reviewed commits, pushes, and batch merges.
-It supersedes the earlier Task 12 stopping instruction. Live approvals remain separate.
+The original request authorised Tasks 13 onward, including reviewed commits, pushes, and batch merges.
+The latest instruction narrows this run to finishing and delivering current Tasks 14 and 15, then reporting status.
+Stop before starting the next batch. Live approvals remain separate.
 
 ## Starting evidence
 
@@ -22,7 +23,7 @@ It supersedes the earlier Task 12 stopping instruction. Live approvals remain se
 | --- | --- | --- | --- |
 | A | 13; 32 draft only | 12; selected Task 8 directions | Merged, post-merge CI passed |
 | B | 14, 15 | Integrated 13; 11 and 12 | Active |
-| C | 16, 17, 24 | 15 for 16/24; 14 for 17 | Waiting for B |
+| C | 16, 17, 24 | 15 for 16/24; 14 for 17 | Prepared only; outside the current stopping point |
 | D | 18, 20, 26 | 17 for 18/20; 24 for 26 | Waiting for C |
 | E | 19, 21, 23 | 18 for 19; 18/20 for 21/23; 16/17 for 23 | Waiting for D |
 | F | 22 | 7/18/20/21 | Waiting for E |
@@ -132,6 +133,9 @@ Synthetic localhost tests cannot replace those records.
 
 ## Next executable step
 
+The user's latest instruction is to finish current Tasks 14 and 15, commit and merge them into main, then report status.
+Stop after verified Batch B delivery and local main synchronization. Tasks 16, 17, and 24 remain prepared, without implementation workers.
+
 Batch B local progress, 7 September 2026:
 
 - Task 14 pure contracts and persistence are committed through `dca96f9`.
@@ -160,11 +164,36 @@ Batch B local progress, 7 September 2026:
   That head passed 76 backend tests, 19 UI tests, and the expanded real Chrome journey.
   Coordinator commit `990f09c` freezes migration 0031 and updates readiness and generated review contracts.
   All 31 shared migration tests, 15 start-freeze checks, and seven runtime checks passed with that change.
+  Dependency merge `d5d6e88` consumes reviewed Task 14 head `f2ed1f6`.
+  The sole conflict retained both human models and the new support model in shared exports.
+  Regenerated contracts, 101 affected backend checks, 28 frontend tests, and the build passed.
+  The protected-downgrade test now expects the combined head, 0031. Both independent reviews cleared the merge.
 - Both worktrees passed frontend lint and production builds. Coordinator browser helpers were stopped.
   Task 14 and Task 15 still need final dependency integration, independent reviews, and combined release checks.
   These results do not yet mark either task merged or complete.
   Fresh Python and full/production npm dependency audits passed with no known vulnerabilities.
   Logs are under `.tmp-coordinator/evidence/batch-b`; dependency lockfiles remain unchanged.
+
+Task merges `994812f` and `1d594c7` preserve separate Task 14 and 15 boundaries.
+The first combined backend invocation used a missing temporary parent directory and failed during fixture setup.
+It restarted with an existing isolated scratch path. This was a runner setup error, not validation evidence.
+The valid full run passed 969 tests with 86.45% service coverage; four browser-fixture cases failed.
+Those four failures share the fixture and historical-read boundary under correction. No other backend tests failed.
+Combined frontend checks passed 231 tests across 64 files, lint, and the production build.
+Ruff, formatting, generated-contract checks, and the single migration head check passed.
+The secret scan inspected 22 commits and found no leaks.
+The new human-review journey passed on combined Task 15 head `d5d6e88`, with zero Axe findings or page errors.
+The older assessor-review browser journey exposed fixtures with invalid response digests and missing reviewed context.
+A scoped correction will preserve strict validation and create new browser records through ordinary approval controls.
+Valid historical responses must remain readable when reviewed task context is unavailable, with that limit stated.
+Correction `0b0f5b3` passed 73 backend tests, including ordinary approved browser fixtures and stale-evidence guards.
+The final earlier-context warning passed all 27 affected tests. Both independent reviewers cleared that exact commit.
+Corrective merge `4ce3fbd` preserves the Task 15 branch boundary. Its application source matches the reviewed worker head.
+Firefox's sandboxed context setup failed before testing the app. The isolated unchanged case passed with desktop permissions.
+The regression is resolved. The final combined run passed all 72 browser and accessibility cases in Chrome, Edge, Firefox, and WebKit.
+The final code secret scan checked 23 commits and found no leaks. Final formatting and contract checks also passed.
+Batch B is ready for PR CI. Merge and post-merge verification remain required before declaring delivery complete.
+The final local delivery receipt is saved under `.tmp-coordinator/evidence/batch-b` after that verification.
 
 Task 14 and Task 15 implementation is active in isolated worktrees from verified main `8654677`.
 Task 14 first supplies a pure episode schema, immutable-reader protocol, and private-plan validation contract.
