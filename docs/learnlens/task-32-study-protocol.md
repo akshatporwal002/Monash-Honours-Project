@@ -2,7 +2,7 @@
 
 Status: `DRAFT_FOR_REVIEW`. Task 32 remains `PARTIAL`, with external approval gates open.
 
-Draft version: `task-32-protocol-draft-v1`. Prepared: 2026-09-07.
+Draft version: `task-32-protocol-draft-v2`. Prepared: 2026-09-07.
 
 This document makes the proposed study reviewable. It does not approve recruitment, participant data collection, or research activation.
 No participant results, ethics decision, power calculation, or preregistration record have been supplied.
@@ -135,7 +135,9 @@ Human instrument piloting also requires the relevant ethics decision and consent
 | Stage | Proposed instrument and purpose | Help conditions |
 | --- | --- | --- |
 | T0 baseline | Unaided conceptual items and a fresh application probe establish initial understanding. Use unrevealed forms. | Approved accessibility support only; no tutoring, source lookup, or simulation-generated answers. |
-| T1 supported learning and assessment context | Separate voluntary study activities deliver the assigned support. The common course journey retains one multipart Hadamard assessment at APPLY. Prediction, explanation, and fresh application must all meet their criteria within that assessment. | Unrestricted approved conceptual hints. No worked answers. Preserve approved access supports. |
+| T1 separate study activity | Voluntary study activities deliver the assigned support outside the operational teaching path. | Unrestricted approved conceptual hints. No worked answers. Preserve approved access supports. |
+| T1a common formal supported stage | Both arms complete the supported prediction and explanation components of one multipart Hadamard assessment at APPLY. | Unrestricted approved conceptual hints, with no hint-count penalty. No worked answers. Preserve approved access supports. |
+| T1b common formal unaided transfer stage | Both arms complete a fresh application component within that same multipart assessment. This separate stage supplies formal evidence of independent application. | No instructional hints, worked answers, external tutoring, or answer-producing tools. Preserve approved accessibility support and the approved restricted tool list. |
 | T2 immediate conceptual probe | An equivalent unseen form tests the relationship between circuit operations, probabilities, and explanations. | Unaided under the approved tool list. Record access support without a result penalty. |
 | T2 immediate transfer probe | A distinct unseen Hadamard application tests prediction, explanation, and application in a changed task context. | Separate unaided stage. No instructional hints, answer reveal, or external tutoring. |
 | T3 delayed extension | Fresh equivalent conceptual and transfer forms assess retention after a proposed 14-day interval, with a proposed window of days 12 to 16. | Same unaided rules and equivalent access support. Record intervening learning and the actual interval. |
@@ -145,20 +147,25 @@ If T3 is omitted before preregistration, remove retention hypotheses and claims 
 Do not infer retention from platform activity, repeat submissions, or elapsed time alone.
 Report follow-up outside the window separately under the frozen analysis rule.
 
-T1 fresh application remains part of the multipart formal assessment.
+T1a and T1b are separate stages within the same multipart formal assessment in both arms.
+Prediction, explanation, and fresh application must all meet their criteria within that assessment under D-04.
+D-05 requires T1b unaided transfer in addition to T1a supported work.
+Freeze the formal stage boundary, permitted tools, fresh form, and equivalent access conditions before use.
+Do not reveal the T1b task or answers during T1a, or carry instructional help into T1b.
 T2 is a further distinct research probe. It does not silently add a new formal pass requirement.
+T2 cannot substitute for the required T1b formal unaided transfer stage.
 Study activities do not replace that common assessment or change its policy by assigned research condition.
 Research outcomes cannot replace, average, or downgrade an assessor-confirmed course result.
 Formal reassessment remains governed by D-06, with preserved history and fresh equivalent tasks.
 Research measurement uses the first scheduled valid probe, subject to the technical replacement rule below.
 
-Prepare separate item pools for baseline, supported work, immediate probes, delayed probes, and approved technical replacements.
+Prepare separate item pools for baseline, supported work, formal unaided transfer, immediate probes, delayed probes, and approved technical replacements.
 Counterbalance equivalent form sets across conditions using the allocation record.
 Never reuse revealed answers as fresh-transfer evidence.
 The assessor must approve what changes between forms and why the construct remains equivalent.
 A changed label alone does not establish transfer.
 
-Unaided means no instructional assistance or answer-producing tools during the research probe.
+Unaided means no instructional assistance or answer-producing tools during T1b formal transfer or the research probes.
 Approved screen readers, alternative input, breaks, and equivalent access adjustments remain available.
 The approved support manifest must distinguish access support from help that supplies the target reasoning.
 Do not collect diagnoses to describe the support received.

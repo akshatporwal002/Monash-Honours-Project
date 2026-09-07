@@ -2,7 +2,7 @@
 
 Status: `DRAFT_FOR_REVIEW`. Task 32 remains `PARTIAL`, with external approval gates open.
 
-Draft version: `task-32-data-plan-draft-v1`. Prepared: 2026-09-07.
+Draft version: `task-32-data-plan-draft-v2`. Prepared: 2026-09-07.
 
 This plan supports the [draft study protocol](task-32-study-protocol.md).
 It proposes an exact field inventory for review and future Task 33 implementation.
@@ -102,7 +102,7 @@ The reviewer service resolves packet identifiers internally. It must not expose 
 
 ## 4. Proposed analysis and learning-sequence export inventory
 
-The field set below is `task-32-research-sequence-draft-v1`.
+The field set below is `task-32-research-sequence-draft-v2`.
 It is a proposed logical contract, not an implemented API version or migration.
 It covers the study outcomes and NFR25's learning-sequence categories using minimal references and derived values.
 Field-level approval must specify exact paths, including nested members.
@@ -125,6 +125,25 @@ There is no wildcard grant and no arbitrary metadata object.
 | Simulation | `simulation_ref`, `simulation_version`, `simulation_status`, `simulation_config_ref`, `simulation_evidence_ref` | Connect the exact circuit and settings to evidence; exclude executable code |
 | Resources | `primary_latency_ms`, `input_tokens`, `output_tokens`, `total_tokens`, `estimated_cost`, `cost_currency`, `cost_basis_version`, `usage_complete` | Report technical usage with units, currency, and completeness |
 | Reproducibility | `measurement_schema_version`, `condition_manifest_version`, `analysis_version`, `row_status`, `field_missingness` | Distinguish legacy, partial, withdrawn, and non-comparable records |
+
+Use these proposed `stage` values consistently across approved evidence records and sequence exports:
+
+| Stage value | Protocol stage and evidence boundary |
+| --- | --- |
+| `T0_BASELINE` | Baseline research probes |
+| `T1_STUDY_ACTIVITY` | Separate voluntary supported study activity |
+| `T1_FORMAL_SUPPORTED` | T1a common formal assessment stage with unrestricted approved conceptual hints |
+| `T1_FORMAL_UNAIDED` | T1b separate fresh unaided transfer within the same formal assessment, for both arms |
+| `T2_CONCEPTUAL` | Additional immediate unaided conceptual research probe |
+| `T2_TRANSFER` | Additional immediate unaided transfer research probe; never a substitute for T1b |
+| `T3_CONCEPTUAL` | Optional approved delayed conceptual research probe |
+| `T3_TRANSFER` | Optional approved delayed transfer research probe |
+
+`support_stage` uses `supported` or `unaided` according to the corresponding protocol stage.
+T1a and T1b share the approved formal assessment version while preserving their distinct stage and evidence references.
+Formal stages use `course_observation`; the separate study activity and research probes use `study_activity`.
+T1b records retain approved accessibility support without treating it as instructional assistance.
+No stage value grants research access to formal records without the required consent and field approval.
 
 `field_missingness` maps only approved field paths to approved reason codes.
 Use `not_collected`, `not_applicable`, `participant_skipped`, `technical_failure`, `not_evaluable`, `outside_window`, `withdrawn`, or `not_approved`.
