@@ -5,8 +5,9 @@ Reviewed on 6 September 2026 against local `main` at `d049eef`.
 Coordinator update, 7 September 2026: Tasks 13 onward are active under the
 [batch progress record](docs/learnlens/coordinator-progress.md).
 The verified starting main is `d5ac7cb335a2b1ccdab674e0cab4c61c950b9b35`, including Task 12 through PR 8.
-Its post-merge CI passed. Task 13 is implemented and independently reviewed on the temporary integration branch.
-Local validation passed after the documented readiness and browser-test corrections. Full GitHub CI and main integration remain due.
+Task 13 merged through PR 9 at `865467740c1c122834bd67d3c7f6a7ca77bd381c` after independent review and passing CI.
+Post-merge CI passed 873 backend tests with 86.19% coverage, 31 migration checks, and 72 browser cases.
+Local main was clean and matched origin/main before Tasks 14 and 15 began in isolated worktrees.
 Task 32 has a reviewed protocol and data-plan draft naming Arv Surana as lead. Study approval remains outstanding.
 
 This is the recommended work order for completing the proposed LearnLens architecture and the wider repository requirements. Each numbered task states its dependencies, current gap, and completion check. Tasks with no shared dependency can run in parallel. A dependency means the earlier task must supply the needed working contract or behaviour before integration.
@@ -150,6 +151,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
     Evidence: [task_generation.py](src-main/backend/app/services/rag/task_generation.py), [LmsService._validate_publishable](src-main/backend/app/services/lms.py), [assessment dependencies](src-main/backend/app/api/assessment_dependencies.py), and [assessment definitions](src-main/backend/app/services/assessment/definitions.py).
 
 13. **Freeze assessment versions when the learner starts work.**
+
+    Completed through PR 9. See the [Task 13 handoff](docs/learnlens/task-13-start-freeze.md) and [verified delivery record](docs/learnlens/coordinator-progress.md).
 
     Dependencies: Tasks 8 and 12. Suggested owner: assessment and task workspace.
 
@@ -343,7 +346,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Task 8, especially D-03, D-07, and D-08. Planning can run alongside implementation. Suggested owner: research lead and governance.
 
-    Task 32 progress, 7 September 2026: the [protocol draft](docs/learnlens/task-32-study-protocol.md) and [data-plan draft](docs/learnlens/task-32-data-plan.md) passed separate Standards and Spec reviews. They are on the temporary integration branch, not yet merged into main. Arv Surana is the user-named research lead. The task remains partial pending protocol approval, institutional records, preregistration, and the other named review gates.
+    Task 32 progress, 7 September 2026: the [protocol draft](docs/learnlens/task-32-study-protocol.md) and [data-plan draft](docs/learnlens/task-32-data-plan.md) passed separate Standards and Spec reviews and merged through PR 9. Arv Surana is the user-named research lead. The task remains partial pending protocol approval, institutional records, preregistration, and the other named review gates.
 
     Existing research documentation focuses on technical feedback comparisons. Define the learning question, comparator, allocation, outcomes, sample-size basis, exclusions, missing-data rules, withdrawal, retention, and reviewer blinding. Obtain the required ethics decision and preregister the approved study before recruitment. Separate research consent from course access.
 

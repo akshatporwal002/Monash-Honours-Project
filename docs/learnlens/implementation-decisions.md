@@ -241,3 +241,29 @@ WebKit authoring checks reproduced an offscreen dropdown after programmatic focu
 The helper now scrolls the trigger into view and checks visibility before opening its menu.
 Ten repeated real authoring journeys passed with ordinary pointer clicks and unchanged approval assertions.
 No product permissions, assessment rules, or test timeouts changed for this correction.
+
+## 2026-09-07: Batch A delivered, episode and human review work begins
+
+PR 9 merged as `865467740c1c122834bd67d3c7f6a7ca77bd381c` after all final-head gates passed.
+Post-merge CI `34078012664` passed 873 backend tests, 31 migrations, 72 browser cases, and all other configured checks.
+Service coverage was 86.19%. Local main was clean and matched origin/main before the next worktrees were created.
+Task 13 is complete. Task 32 remains partial despite its reviewed drafts being merged.
+
+Tasks 14 and 15 use separate worktrees and file ownership from that verified main.
+Task 14 owns the canonical episode payload and immutable response-reader contract.
+Task 15 consumes that contract for complete evidence inspection and human criterion decisions.
+The coordinator owns shared authoring, publication, generated contracts, migration ordering, and integration.
+
+The private fresh-transfer plan belongs in educator-reviewed task content and a matching frozen task-form snapshot.
+Learner reads expose stage metadata and permitted support. Transfer content is released only through authorised stage entry.
+Solutions remain private. Prediction and explanation are the default required supported responses.
+Reasoning and reflection remain available without an accidental formal penalty for reflection or approved help use.
+
+Initial circuit rules use explicit `circuit_v1` settings for declared qubits and an ordered h/x/cx operation sequence.
+They make structural claims only. Unsupported conceptual criteria remain reachable by a human assessor.
+Human decisions use append-only action and criterion records, current scoped access, worker fencing, and an exact state token.
+No operational AI assessment suggestions are enabled by this work.
+
+The deleted learner-correction branch was recovered at `fda2459fdb6f529f933e48494f9f39787d420d2e`.
+A local archive reference preserves its existing history for Task 19 reuse. The remote branch was not restored.
+Task 19 must still reconcile its migration, preserve corrections across later snapshots, and add scoped application routes and screens.
