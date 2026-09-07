@@ -139,7 +139,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 2 and 9; Task 8, D-02, D-04, and D-05. Circuit publication also needs Task 11. Suggested owner: course and assessment teams.
 
-    Task 12 progress, 7 September 2026: implemented and locally verified. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records explicit staff eligibility and grants, source and task review, immutable history, current formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides. Integration and remote checks are tracked in [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8).
+    Task 12 progress, 7 September 2026: implemented, independently reviewed, tested, and merged through [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8). GitHub post-merge run `34072852835` passed for `d5ac7cb`. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records staff eligibility and grants, source and task review, immutable history, formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides.
 
     Generated tasks become ordinary task rows without a general review lifecycle. Course publication checks do not prove individual task approval. Formal definition approval exists, but runtime publication policy remains closed. Add review, edit, approve, reject, and history controls. Connect approved role policies and require complete outcome, criterion, source, support, access, and task-form versions.
 
@@ -340,6 +340,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 32. **Approve the learning-study protocol and data plan.**
 
     Dependencies: Task 8, especially D-03, D-07, and D-08. Planning can run alongside implementation. Suggested owner: research lead and governance.
+
+    Task 32 progress, 7 September 2026: the [protocol draft](docs/learnlens/task-32-study-protocol.md) and [data-plan draft](docs/learnlens/task-32-data-plan.md) passed separate Standards and Spec reviews. They are on the temporary integration branch, not yet merged into main. Arv Surana is the user-named research lead. The task remains partial pending protocol approval, institutional records, preregistration, and the other named review gates.
 
     Existing research documentation focuses on technical feedback comparisons. Define the learning question, comparator, allocation, outcomes, sample-size basis, exclusions, missing-data rules, withdrawal, retention, and reviewer blinding. Obtain the required ethics decision and preregister the approved study before recruitment. Separate research consent from course access.
 

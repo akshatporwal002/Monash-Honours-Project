@@ -65,12 +65,33 @@ Verify post-merge CI, synchronize local main, and confirm clean status and HEAD 
 
 ## Evidence and open gates
 
-Task 32 final draft commit: `2aa061b1fd9ed92e7f3596bc77149afd29971f7e`.
+Task 32 reviewed draft commit: `2aa061b1fd9ed92e7f3596bc77149afd29971f7e`.
+The reviewed draft merged into the temporary integration branch as `dae5621` and its task branch was pushed.
+Origin/main was fetched again and remained at the verified starting commit. Main has not changed.
 Initial commit `458f6da` passed Standards review. Spec review found one P2 about the formal unaided transfer stage.
 The final commit separates supported formal work, unaided formal transfer, and additional research probes.
 Both independent reviews passed on the exact final head. The coordinator documentation also passed both reviews.
 The draft has 13 valid local links and no em/en dashes or invisible format characters.
 Gitleaks 8.30.1 scanned both commits in its exact final range with redaction and found no leaks.
+The user-named lead update is `f84f97e9261d620681d1c594bfad03e7b08b22f9`.
+Both reviewers cleared that additive change. It was pushed and merged into integration as `0e3e24c`.
+
+Task 13 focused checks passed 44 backend/migration checks and 28 frontend tests, plus the production build.
+Its browser journey then exposed a pre-existing migrated-database republishing fault.
+Definition updates created a fresh task-form identity with version 2, which the database correctly rejected.
+The worker is repairing identity-local version sequencing and testing added, removed, and restored criteria.
+The authenticated start/save/reload/republish/conflict path now passes with the original draft and start reference preserved.
+Browser evidence is in the Task 13 worktree under `src-main/backend/.tmp-task13/browser`.
+The final visual fixes passed. The final focused run passed 76 backend checks, 28 frontend tests, lint, and build.
+Task 13 commit `0a7b299e65d0c0152f269483f3c7db78323f0ba2` passed contract drift and Gitleaks checks.
+Alembic reports exactly one head, `20260907_0029`.
+Independent review found two P2 retry defects before integration:
+temporary database contention disabled further writes, and retrying start could overwrite newly typed local edits.
+Both defects were fixed in `54f7feb21120216588486c4cdfd402bb134babf8`.
+Standards and Spec reviewers cleared that exact head with zero remaining findings.
+The fixes passed 15 focused backend checks, 29 frontend tests, lint, build, and a fresh authenticated Chrome journey.
+Contract drift and the final two-commit Gitleaks scan passed. Both worker servers were stopped.
+Combined integration validation remains due.
 
 Pinned Node 22.13.0 is installed under `.tmp-coordinator/tools`, with its archive SHA-256 verified against nodejs.org.
 The host default remains Node 24; batch checks use the pinned executable explicitly.
@@ -78,8 +99,10 @@ The Python lock check passed. Python dependency audit found no known vulnerabili
 Full and production npm audits both found zero vulnerabilities for the unchanged dependency lockfiles.
 Audit logs are under `.tmp-coordinator/evidence/batch-a`. Lockfile changes require fresh audits.
 
-No Task 13 implementation, review, test, or merge claim has been made yet.
+Task 13 remains in progress. Focused checks do not yet establish task or batch completion.
 Task 32 drafting does not establish ethics approval, preregistration, consent, or participant recruitment authority.
+The user named Arv Surana as research lead on 7 September 2026. This records ownership only.
+That name is recorded in both Task 32 drafts. Other requested external records remain outstanding.
 Task 8 still needs scoped staff/course/source/study/environment records and named owners.
 Task 35 requires real expert cases, agreement/error measurements, and a recorded release decision.
 Tasks 38 to 41 require approved providers, measured costs/load, native/manual access evidence, real usability participants,
