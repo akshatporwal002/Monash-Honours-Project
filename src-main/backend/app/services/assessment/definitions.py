@@ -41,6 +41,7 @@ from app.services.assessment.repository import (
     AssessmentDefinitionNotFoundError,
     AssessmentDefinitionRepository,
 )
+from app.services.episode_contract import validate_reviewed_episode_plan
 from app.services.task_review import TaskReviewService
 
 
@@ -461,6 +462,27 @@ class AssessmentDefinitionService:
                     )
                 )
             revision = TaskReviewService(self.session).capture(task, actor_user_id=actor_user_id)
+            constraints = (
+                dict(draft.constraints)
+                if isinstance(draft.constraints, dict)
+                else draft.constraints
+            )
+            reviewed_marking = revision.snapshot.get("marking_criteria")
+            try:
+                plan = validate_reviewed_episode_plan(
+                    reviewed_marking if isinstance(reviewed_marking, dict) else None,
+                    constraints.get("episode_plan") if isinstance(constraints, dict) else None,
+                )
+            except ValueError as error:
+                raise AssessmentDefinitionValidationError(
+                    "episode settings must match the saved teaching revision"
+                ) from error
+            if plan is not None:
+                if not isinstance(constraints, dict):
+                    raise AssessmentDefinitionValidationError(
+                        "episode task constraints must be an object"
+                    )
+                constraints["episode_plan"] = plan.model_dump(mode="json")
             self.session.add(
                 TaskFormVersion(
                     course_id=course_id,
@@ -475,7 +497,7 @@ class AssessmentDefinitionService:
                     source_digest=revision.content_digest,
                     task_family=draft.task_family,
                     context=draft.context,
-                    constraints=draft.constraints,
+                    constraints=constraints,
                 )
             )
 

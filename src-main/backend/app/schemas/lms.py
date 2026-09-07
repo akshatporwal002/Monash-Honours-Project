@@ -24,6 +24,7 @@ from app.models.lms import (
     OutcomeKind,
 )
 from app.models.user import ScopedRole, UserRole
+from app.schemas.episode import EpisodePayloadV1
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -498,6 +499,7 @@ class AssessmentConditionsRead(LmsSchema):
 
 
 class TaskRead(LmsSchema):
+    episode_plan: dict[str, Any] | None = None
     id: str
     title: str
     prompt: str
@@ -524,6 +526,7 @@ class TaskRead(LmsSchema):
 
 
 class DraftWrite(LmsSchema):
+    episode: EpisodePayloadV1 | None = None
     assessment_work_start_id: str | None = Field(default=None, max_length=36)
     answer: str = ""
     code: str | None = None
@@ -531,6 +534,7 @@ class DraftWrite(LmsSchema):
 
 
 class DraftRead(LmsSchema):
+    episode: EpisodePayloadV1 | None = None
     assessment_work_start_id: str | None = Field(default=None, max_length=36)
     id: str
     task_id: str
@@ -545,6 +549,7 @@ class SubmissionCreate(DraftWrite):
 
 
 class AttemptRead(LmsSchema):
+    episode: EpisodePayloadV1 | None = None
     assessment_work_start_id: str | None = Field(default=None, max_length=36)
     id: str
     task_id: str
@@ -782,3 +787,9 @@ class SettingsRead(LmsSchema):
 class BootstrapRead(LmsSchema):
     users: list[AdminUserRead]
     course: CourseRead
+
+
+class EpisodeCheckpointWrite(LmsSchema):
+    response: DraftWrite
+    part_id: str = Field(min_length=1, max_length=255)
+    stage_start_id: str | None = Field(default=None, min_length=1, max_length=255)

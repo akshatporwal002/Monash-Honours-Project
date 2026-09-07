@@ -1,4 +1,4 @@
-from app.models import (  # noqa: F401
+﻿from app.models import (  # noqa: F401
     assessment_work,
     assessor_eligibility,
     simulation,
@@ -38,7 +38,6 @@ from app.models.audit import (
     AuditOutcome,
 )
 from app.models.continuation import ContinuationJob
-from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.enums import (
     ContinuationFailureCategory,
     ContinuationState,
@@ -59,6 +58,8 @@ from app.models.enums import (
     WorkflowOutcome,
     WorkflowStage,
 )
+from app.models.episode import EpisodeCheckpoint, EpisodeStageStart
+from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.lms import (
     AttemptStatus,
     Course,
@@ -122,6 +123,8 @@ __all__ = [
     "ContinuationJob",
     "HumanAssessmentAction",
     "HumanCriterionDecision",
+    "EpisodeCheckpoint",
+    "EpisodeStageStart",
     "ContinuationState",
     "Criterion",
     "CriterionEvaluation",

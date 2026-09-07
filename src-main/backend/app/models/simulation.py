@@ -53,6 +53,12 @@ class SimulationRun(Base):
     submission_id: Mapped[str | None] = mapped_column(
         ForeignKey("submission_attempts.id", ondelete="RESTRICT")
     )
+    prediction_checkpoint_id: Mapped[str | None] = mapped_column(
+        ForeignKey("episode_checkpoints.id", ondelete="RESTRICT")
+    )
+    episode_stage_start_id: Mapped[str | None] = mapped_column(
+        ForeignKey("episode_stage_starts.id", ondelete="RESTRICT")
+    )
     purpose: Mapped[str] = mapped_column(String(16))
     shots: Mapped[int] = mapped_column(Integer)
     seed: Mapped[int] = mapped_column(BigInteger)

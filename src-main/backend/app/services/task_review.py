@@ -24,6 +24,7 @@ from app.models import (
 from app.models.source_history import SourcePassage, SourceRevision
 from app.models.task_review import TaskReviewEvent, TaskRevision
 from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
+from app.services.episode_contract import validate_reviewed_episode_plan
 from app.services.quantum import (
     CircuitOperation,
     QuantumSimulationError,
@@ -269,6 +270,21 @@ class TaskReviewService:
             raise TaskReviewError("Task title, prompt, and instructions are required", 422)
         if not task.expected_answer and not task.marking_criteria:
             raise TaskReviewError("The task needs marking guidance before approval", 422)
+        try:
+            plan = validate_reviewed_episode_plan(
+                task.marking_criteria if isinstance(task.marking_criteria, dict) else None
+            )
+        except ValueError as error:
+            raise TaskReviewError(
+                "The learning episode plan needs valid stage settings", 422
+            ) from error
+        if plan is not None:
+            for circuit in (
+                plan.transfer.starter_circuit,
+                plan.transfer.solution.circuit if plan.transfer.solution else None,
+            ):
+                if circuit is not None:
+                    self._validate_circuit_payload(circuit)
         self._validate_circuit(task)
         return self.source_approvals(
             task,
@@ -428,25 +444,32 @@ class TaskReviewService:
         for circuit in (template, criteria.get("expected_circuit")):
             if circuit is None:
                 continue
-            try:
-                if (
-                    not isinstance(circuit, dict)
-                    or set(circuit) - {"qubits", "operations", "shots", "seed"}
-                    or not isinstance(circuit.get("operations"), list)
-                ):
-                    raise QuantumSimulationError("Unsupported circuit shape")
-                operations = [
-                    CircuitOperation(op["gate"], tuple(op["targets"]))
-                    for op in circuit["operations"]
-                ]
-                validate_circuit(
-                    qubits=circuit["qubits"],
-                    operations=operations,
-                    shots=circuit.get("shots", 1024),
-                    seed=circuit.get("seed", 42),
-                    allow_empty=True,
+            TaskReviewService._validate_circuit_payload(circuit)
+
+    @staticmethod
+    def _validate_circuit_payload(circuit: object) -> None:
+        try:
+            if (
+                not isinstance(circuit, dict)
+                or set(circuit) - {"qubits", "operations", "shots", "seed"}
+                or not isinstance(circuit.get("operations"), list)
+                or any(
+                    not isinstance(operation, dict) or set(operation) != {"gate", "targets"}
+                    for operation in circuit.get("operations", [])
                 )
-            except (KeyError, TypeError, QuantumSimulationError) as error:
-                raise TaskReviewError(
-                    "The task contains an unsupported circuit specification", 422
-                ) from error
+            ):
+                raise QuantumSimulationError("Unsupported circuit shape")
+            operations = [
+                CircuitOperation(op["gate"], tuple(op["targets"])) for op in circuit["operations"]
+            ]
+            validate_circuit(
+                qubits=circuit["qubits"],
+                operations=operations,
+                shots=circuit.get("shots", 1024),
+                seed=circuit.get("seed", 42),
+                allow_empty=True,
+            )
+        except (KeyError, TypeError, QuantumSimulationError) as error:
+            raise TaskReviewError(
+                "The task contains an unsupported circuit specification", 422
+            ) from error
