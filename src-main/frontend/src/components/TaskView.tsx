@@ -28,9 +28,9 @@ const episodeTaskTypes = ['prediction', 'reasoning', 'explanation', 'revision', 
 const emptyEpisode = (): EpisodePayload => ({ schema_version: 'learnlens.episode.v1', supported: {} })
 
 const defaultOptions = [
-  { id: 'a', text: 'It creates an equal superposition of |0âŸ© and |1âŸ©.' },
+  { id: 'a', text: 'It creates an equal superposition of |0⟩ and |1⟩.' },
   { id: 'b', text: 'It measures the qubit immediately.' },
-  { id: 'c', text: 'It always changes |0âŸ© to |1âŸ©.' },
+  { id: 'c', text: 'It always changes |0⟩ to |1⟩.' },
   { id: 'd', text: 'It removes all quantum interference.' },
 ]
 
@@ -452,7 +452,7 @@ export function TaskView({
         </Button>
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>
-            {task.module} Â· {task.difficulty}
+            {task.module} · {task.difficulty}
           </p>
           <h1 id="task-title" className={styles.title}>{task.title}</h1>
         </div>
@@ -496,7 +496,7 @@ export function TaskView({
 
         <section className={styles.interaction} aria-label="Activity">
           {draftLoading ? (
-            <p className={styles.stateNote} role="status">Restoring your saved workâ€¦</p>
+            <p className={styles.stateNote} role="status">Restoring your saved work…</p>
           ) : (
             <>
               {(mode === 'mcq' || mode === 'multi') && (
@@ -540,7 +540,7 @@ export function TaskView({
                   <div className={styles.codeWindow}>
                     <div className={styles.codeBar}>
                       <span>entanglement.py</span>
-                      <Tag>Python Â· Qiskit</Tag>
+                      <Tag>Python · Qiskit</Tag>
                     </div>
                     <pre className={styles.codePre} aria-label="Qiskit code example"><code>{codeTokens(qiskitCode)}</code></pre>
                   </div>
@@ -559,7 +559,7 @@ export function TaskView({
                 <div className={styles.codeWindow}>
                   <div className={styles.codeBar}>
                     <span>solution.py</span>
-                    <Tag>Python Â· Qiskit</Tag>
+                    <Tag>Python · Qiskit</Tag>
                   </div>
                   <textarea
                     className={styles.codeEditor}
@@ -614,7 +614,7 @@ export function TaskView({
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={(event) => dropGate(event, qubit)}
                       >
-                        <code className={styles.wireLabel}>|0âŸ© q{qubit}</code>
+                        <code className={styles.wireLabel}>|0⟩ q{qubit}</code>
                         <div className={styles.wire}>
                           {operations.map((operation, index) => (
                             operation.targets.includes(qubit)
@@ -626,7 +626,7 @@ export function TaskView({
                                   title="Remove gate"
                                   onClick={() => { changeOperations((current) => current.filter((_, itemIndex) => itemIndex !== index)) }}
                                 >
-                                  {operation.gate === 'cx' ? (qubit === 0 ? 'â—' : 'âŠ•') : operation.gate.toUpperCase()}
+                                  {operation.gate === 'cx' ? (qubit === 0 ? '●' : '⊕') : operation.gate.toUpperCase()}
                                 </button>
                               )
                               : <i key={`${operation.gate}-${index}`} className={styles.wireGap} />
@@ -647,7 +647,7 @@ export function TaskView({
                       <p>Counts show sampled measurements. Exact probabilities describe the ideal circuit before measurement.</p>
                       {Object.entries(simulation.counts).map(([state, count]) => (
                         <div className={styles.resultRow} key={state}>
-                          <code>|{state}âŸ©</code>
+                          <code>|{state}⟩</code>
                           <span className={styles.resultTrack}>
                             <i className={styles.resultFill} style={{ width: `${Math.min(100, Math.max(2, count / simulation.shots * 100))}%` }} />
                           </span>
@@ -709,7 +709,7 @@ export function TaskView({
           )}
           <Card eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (
-              <p className={styles.stateNote}>Loading previous attemptsâ€¦</p>
+              <p className={styles.stateNote}>Loading previous attempts…</p>
             ) : attempts.length === 0 ? (
               <p className={styles.stateNote}>
                 {attemptsError || 'No attempts yet. Submit this activity when you are ready.'}
