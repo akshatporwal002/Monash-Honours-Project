@@ -36,7 +36,7 @@ The branch consumed pure episode contract `d8a26e989c7a04f7b2de8fe869725962e45f2
 
 A downgrade refuses to delete recorded human assessment history. Restore a verified backup for rollback after data exists. Do not erase assessor decisions to force a downgrade.
 
-The coordinator owns shared authoring, generated contracts, final migration ordering, independent review, push, and integration. Task 14's pending migration and historical-condition follow-up must be consumed before the final combined migration gate.
+The coordinator owns shared authoring, generated contracts, final migration ordering, independent review, push, and integration. Task 14 migration and historical-condition fixes were consumed at `9100121a3628179ccf7c0e819ab2be189281f875`. Its final typed-state and checkpoint-page changes were consumed at `3f329acdb534ca065059e0b15963798a68dd8141`. Combined release gates remain coordinator-owned.
 
 ## Independent review fixes
 
@@ -47,3 +47,5 @@ Each earlier response has its own validated simulation inputs, versions, outcome
 The P3 circular private coupling was removed. The human service uses a public review transaction operation for confirmation. Existing review reads use the independent frozen evidence reader.
 
 Review-fix checks passed: 37 backend tests, 19 frontend tests, Ruff, ESLint, and production build. The fresh browser04 journey inspected both questions, the pass rule, and an earlier-only completed simulation before recording all three criterion decisions. Keyboard actions, reload, human provenance, zero Axe violations, and zero browser page errors passed. Its frozen-evidence screenshot was inspected.
+
+After the final typed-state dependency merge, the expanded regression run passed 76 backend tests. TypeScript and all 19 review UI tests also passed. Later Task 14 review fixes remain separately tracked by the coordinator.
