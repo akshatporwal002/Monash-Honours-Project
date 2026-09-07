@@ -497,6 +497,20 @@ export type ApiSchemas = {
     "student_name": string
   }
   "EnrollmentStatus": "active" | "completed" | "withdrawn"
+  "EpisodeCheckpointPage": {
+    "items": Array<ApiSchemas["EpisodeCheckpointRead"]>
+    "next_offset": (number) | (null)
+  }
+  "EpisodeCheckpointRead": {
+    "created_at": string
+    "input_content": ApiSchemas["ResponseContent"]
+    "part_id": string
+    "prediction": ApiSchemas["ResponseContent"]
+  }
+  "EpisodeCheckpointReceipt": {
+    "checkpoint_id": string
+    "draft": ApiSchemas["DraftRead"]
+  }
   "EpisodeCheckpointWrite": {
     "part_id": string
     "response": ApiSchemas["DraftWrite"]
@@ -519,6 +533,24 @@ export type ApiSchemas = {
     "reflection"?: (string) | (null)
     "revision"?: (ApiSchemas["EpisodeRevision"]) | (null)
     "simulation_references"?: Array<ApiSchemas["SimulationReference"]>
+  }
+  "EpisodeStateRead": {
+    "accessibility_support"?: Array<string>
+    "prediction_required": boolean
+    "required_responses": Array<"prediction" | "reasoning" | "explanation" | "reflection">
+    "schema_version"?: "learnlens.episode-plan.v1"
+    "supported_hints"?: Array<string>
+    "supported_part_id": string
+    "transfer"?: (ApiSchemas["EpisodeTransferRead"]) | (null)
+    "transfer_part_id": string
+  }
+  "EpisodeTransferRead": {
+    "instructions": string
+    "part_id": string
+    "prompt": string
+    "stage_start_id": string
+    "starter_circuit"?: (Partial<Record<string, ApiSchemas["JsonValue"]>>) | (null)
+    "starter_code"?: (string) | (null)
   }
   "EvidenceReference": {
     "assessment": ApiSchemas["AssessmentVersionReference"]

@@ -757,24 +757,37 @@ class LmsService:
         self._commit()
         return {"checkpoint_id": checkpoint.id, "draft": DraftRead.model_validate(draft)}
 
-    def episode_checkpoint_history(self, student: User, task_id: str) -> list[dict]:
+    def episode_checkpoint_history(
+        self, student: User, task_id: str, *, limit=20, offset=0
+    ) -> dict:
         from app.models.episode import EpisodeCheckpoint
 
         self._require_student_task(student, task_id, require_available=False)
-        checkpoints = self.session.scalars(
-            select(EpisodeCheckpoint)
-            .where(EpisodeCheckpoint.student_id == student.id, EpisodeCheckpoint.task_id == task_id)
-            .order_by(EpisodeCheckpoint.created_at, EpisodeCheckpoint.id)
+        if not 1 <= limit <= 100 or offset < 0:
+            raise LmsServiceError(422, "Invalid prediction history page")
+        checkpoints = list(
+            self.session.scalars(
+                select(EpisodeCheckpoint)
+                .where(
+                    EpisodeCheckpoint.student_id == student.id, EpisodeCheckpoint.task_id == task_id
+                )
+                .order_by(EpisodeCheckpoint.created_at.desc(), EpisodeCheckpoint.id.desc())
+                .limit(limit + 1)
+                .offset(offset)
+            )
         )
-        return [
-            {
-                "part_id": item.part_id,
-                "prediction": item.prediction,
-                "input_content": item.input_content,
-                "created_at": item.created_at,
-            }
-            for item in checkpoints
-        ]
+        return {
+            "next_offset": offset + limit if len(checkpoints) > limit else None,
+            "items": [
+                {
+                    "part_id": item.part_id,
+                    "prediction": item.prediction,
+                    "input_content": item.input_content,
+                    "created_at": item.created_at,
+                }
+                for item in checkpoints[:limit]
+            ],
+        }
 
     def episode_transfer(self, student: User, task_id: str, payload: DraftWrite) -> dict:
         self.save_draft(student, task_id, payload)

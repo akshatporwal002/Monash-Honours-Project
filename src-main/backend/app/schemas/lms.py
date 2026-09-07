@@ -24,7 +24,8 @@ from app.models.lms import (
     OutcomeKind,
 )
 from app.models.user import ScopedRole, UserRole
-from app.schemas.episode import EpisodePayloadV1
+from app.schemas.assessment import OpaqueId
+from app.schemas.episode import EpisodeContract, EpisodePayloadV1
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -546,6 +547,11 @@ class DraftRead(LmsSchema):
 
 class SubmissionCreate(DraftWrite):
     idempotency_key: Annotated[str | None, Field(min_length=1, max_length=255)] = None
+
+
+class EpisodeCheckpointReceipt(EpisodeContract):
+    checkpoint_id: OpaqueId
+    draft: DraftRead
 
 
 class AttemptRead(LmsSchema):

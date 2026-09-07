@@ -631,10 +631,27 @@ def test_checkpoint_history_preserves_changed_prediction_and_denies_wrong_shots(
     second = lms.episode_checkpoint(student, task.id, changed, "supported", None)
     assert first["checkpoint_id"] != second["checkpoint_id"]
     history = lms.episode_checkpoint_history(student, task.id)
-    assert [item["prediction"]["answer"] for item in history] == [
-        "  Half zero, half one\n",
+    assert [item["prediction"]["answer"] for item in history["items"]] == [
         "  A changed prediction for changed input\n",
+        "  Half zero, half one\n",
     ]
+    from app.schemas.episode import EpisodeCheckpointPage
+    from app.schemas.lms import EpisodeCheckpointReceipt
+    from app.services.lms import LmsServiceError
+
+    assert EpisodeCheckpointReceipt.model_validate(second).draft.episode == second["draft"].episode
+    page = EpisodeCheckpointPage.model_validate(
+        lms.episode_checkpoint_history(student, task.id, limit=1)
+    )
+    assert page.next_offset == 1
+    older = EpisodeCheckpointPage.model_validate(
+        lms.episode_checkpoint_history(student, task.id, limit=1, offset=page.next_offset)
+    )
+    assert older.next_offset is None
+    assert older.items[0].prediction.answer == "  Half zero, half one\n"
+    for limit, offset in ((0, 0), (101, 0), (20, -1)):
+        with pytest.raises(LmsServiceError, match="Invalid prediction history"):
+            lms.episode_checkpoint_history(student, task.id, limit=limit, offset=offset)
     with pytest.raises(TaskReviewError, match="exact circuit"):
         lms.simulate_student_circuit(
             student,
@@ -651,6 +668,51 @@ def test_checkpoint_history_preserves_changed_prediction_and_denies_wrong_shots(
         lms.get_draft(student, task.id).episode.supported.prediction_checkpoint_id
         == second["checkpoint_id"]
     )
+
+
+def test_episode_routes_have_safe_typed_responses_and_bounded_history(db_session):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.api.dependencies.roles import require_student
+    from app.api.routes.lms import get_lms_service, router
+
+    lms, student, task, started = setup_episode(db_session)
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[require_student] = lambda: student
+    app.dependency_overrides[get_lms_service] = lambda: lms
+    with TestClient(app) as client:
+        base = f"/students/me/tasks/{task.id}/episode"
+        initial = client.get(base)
+        assert initial.status_code == 200
+        assert "PRIVATE" not in initial.text
+        payload = supported(started)
+        receipt = client.post(
+            base + "/checkpoints",
+            json={"response": payload.model_dump(mode="json"), "part_id": "supported"},
+        )
+        assert receipt.status_code == 200
+        assert (
+            receipt.json()["draft"]["episode"]["supported"]["prediction"]["answer"]
+            == "  Half zero, half one\n"
+        )
+        assert client.get(base + "/checkpoints?limit=1").json()["next_offset"] is None
+        for query in ("limit=0", "limit=101", "offset=-1"):
+            assert client.get(base + "/checkpoints?" + query).status_code == 422
+        schema = app.openapi()
+        for path, method in (
+            ("", "get"),
+            ("/checkpoints", "get"),
+            ("/checkpoints", "post"),
+            ("/transfer", "post"),
+        ):
+            response = schema["paths"]["/students/me/tasks/{task_id}/episode" + path][method][
+                "responses"
+            ]["200"]["content"]["application/json"]["schema"]
+            assert response
+        transfer_schema = schema["components"]["schemas"]["EpisodeTransferRead"]
+        assert "solution" not in transfer_schema["properties"]
 
 
 def test_foreign_revision_simulation_and_transfer_references_are_denied(db_session):
