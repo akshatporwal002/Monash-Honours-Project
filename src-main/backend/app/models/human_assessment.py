@@ -29,6 +29,11 @@ class HumanAssessmentAction(Base):
         UniqueConstraint("assessment_attempt_id", "revision", name="uq_human_action_revision"),
         UniqueConstraint("assessment_attempt_id", "idempotency_key", name="uq_human_action_key"),
         CheckConstraint("revision > 0", name="human_action_revision"),
+        CheckConstraint("result_state IN ('CONFIRMED', 'OVERRIDDEN')", name="human_action_state"),
+        CheckConstraint(
+            "length(expected_token) = 64 AND length(request_digest) = 64 AND length(trim(idempotency_key)) > 0",
+            name="human_action_receipt",
+        ),
         CheckConstraint("length(trim(reason)) > 0", name="human_action_reason"),
     )
 
@@ -116,7 +121,11 @@ def human_review_guards() -> list[tuple[str, str, str]]:
     scope = """NOT EXISTS (
       SELECT 1 FROM human_assessment_actions h JOIN assessment_attempts a ON a.id = h.assessment_attempt_id
       JOIN criterion_versions c ON c.assessment_definition_version_id = a.assessment_definition_version_id AND c.course_id = a.course_id
+      JOIN pass_rule_versions r ON r.id = a.pass_rule_version_id
       WHERE h.id = NEW.action_id AND c.id = NEW.criterion_version_id
+      AND EXISTS (SELECT 1 FROM json_tree(r.expression) WHERE key = 'criterion_version_id' AND value = NEW.criterion_version_id)
+      AND NEW.evaluator_reference = 'human:' || h.assessor_user_id || ':' || h.id
+      AND json_array_length(NEW.evidence_references) > 0
     )"""
     guards.append(
         (

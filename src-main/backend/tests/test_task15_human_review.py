@@ -246,3 +246,50 @@ def test_changed_revision_conflicts_and_missing_criterion_rejects(db_session):
             assessment_attempt_id=attempt.id,
             request=replace(request, idempotency_key="second-assessor"),
         )
+
+
+@pytest.mark.parametrize("stage", ["replaced", "expires_during_evaluation"])
+def test_worker_cannot_persist_with_replaced_or_expired_lease(db_session, stage):
+    from test_assessment_evaluation_jobs import (
+        StaticCriterionPort,
+        _ready_attempt,
+        _service_factory,
+    )
+
+    from app.services.assessment.evaluation import AssessmentEvaluationConflictError
+    from app.services.assessment.jobs import SqlAlchemyAssessmentEvaluationJobRepository
+
+    attempt, response, _ = _ready_attempt(db_session)
+    now = datetime.now(UTC)
+    repo = SqlAlchemyAssessmentEvaluationJobRepository(db_session)
+    repo.ensure_pending(attempt)
+    claim = repo.claim_for_response(
+        response.id,
+        now=now,
+        lease_expires_at=now + timedelta(seconds=10),
+        execution_token="00000000-0000-4000-8000-000000000911",
+    )
+    if stage == "replaced":
+        repo.claim_next(
+            now=now + timedelta(seconds=11),
+            lease_expires_at=now + timedelta(seconds=30),
+            execution_token="00000000-0000-4000-8000-000000000912",
+        )
+        times = iter([now + timedelta(seconds=12)])
+    else:
+        times = iter([now, now + timedelta(seconds=11)])
+
+    def clock():
+        return next(times)
+
+    service = _service_factory(StaticCriterionPort())(db_session, attempt.id)
+    with pytest.raises(AssessmentEvaluationConflictError, match="worker lease"):
+        service.evaluate(
+            assessment_attempt_id=attempt.id,
+            evaluation_idempotency_key=claim.evaluation_idempotency_key,
+            claim_execution_token=claim.execution_token,
+            claim_processing_attempts=claim.processing_attempts,
+            evaluation_clock=clock,
+        )
+    assert db_session.scalar(select(AssessmentDecision)) is None
+    assert db_session.scalar(select(CriterionEvaluation)) is None

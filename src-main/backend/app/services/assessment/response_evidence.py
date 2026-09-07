@@ -83,17 +83,26 @@ class ResponseEvidenceResolver:
         return tuple(self.simulation(assessment, response, run_id) for run_id in ids)
 
     @staticmethod
-    def _simulation_ids(response: FrozenResponseRead) -> dict[str, str]:
+    def _simulation_ids(
+        response: FrozenResponseRead,
+    ) -> dict[str, tuple[str, str | None, str | None]]:
         if response.episode is None:
             return {}
-        stages = [response.episode.supported]
+        stages = [(response.episode.supported, None)]
         if response.episode.transfer is not None:
-            stages.append(response.episode.transfer.process)
-        return {
-            item.run_id: item.circuit_version_id
-            for stage in stages
-            for item in stage.simulation_references
-        }
+            stages.append(
+                (response.episode.transfer.process, response.episode.transfer.stage_start_id)
+            )
+        values = {}
+        for stage, stage_start_id in stages:
+            for item in stage.simulation_references:
+                expected = (item.circuit_version_id, stage.prediction_checkpoint_id, stage_start_id)
+                if item.run_id in values and values[item.run_id] != expected:
+                    raise FrozenResponseInvalid(
+                        "A simulation cannot supply incompatible stage evidence"
+                    )
+                values[item.run_id] = expected
+        return values
 
     def simulation(
         self, assessment: AssessmentVersionReference, response: FrozenResponseRead, run_id: str
@@ -102,12 +111,15 @@ class ResponseEvidenceResolver:
         if expected is None:
             return None
         run = self.session.get(SimulationRun, run_id)
-        circuit = self.session.get(CircuitVersion, expected)
+        circuit_id, checkpoint_id, stage_start_id = expected
+        circuit = self.session.get(CircuitVersion, circuit_id)
         attempt = self.session.get(AssessmentAttempt, assessment.assessment_attempt_id)
         if run is None or circuit is None or attempt is None:
             raise FrozenResponseMissing("Referenced simulation evidence is unavailable")
         if (
-            run.circuit_version_id != expected
+            run.circuit_version_id != circuit_id
+            or run.prediction_checkpoint_id != checkpoint_id
+            or run.episode_stage_start_id != stage_start_id
             or run.owner_id != attempt.student_id
             or circuit.owner_id != attempt.student_id
             or circuit.course_id != assessment.course_id
@@ -125,10 +137,21 @@ class ResponseEvidenceResolver:
         ).hexdigest()
         if circuit.content_digest != digest:
             raise FrozenResponseStale("Referenced circuit digest is stale")
+        from app.services.episodes import EpisodeService
+
+        content = response.content
+        if stage_start_id is not None:
+            if response.episode is None or response.episode.transfer is None:
+                raise FrozenResponseInvalid("The simulation has no matching transfer response")
+            content = response.episode.transfer.content
+        if circuit.circuit != EpisodeService.circuit_input(content.circuit):
+            raise FrozenResponseInvalid("The simulation circuit differs from the submitted stage")
         outcome = self.session.get(SimulationOutcome, run_id)
         return {
             "run_id": run.id,
             "circuit_version_id": circuit.id,
+            "prediction_checkpoint_id": run.prediction_checkpoint_id,
+            "episode_stage_start_id": run.episode_stage_start_id,
             "circuit": circuit.circuit,
             "shots": run.shots,
             "seed": run.seed,

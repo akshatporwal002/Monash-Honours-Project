@@ -38,6 +38,7 @@ function installQueueFetch(overrides: {
   let actionIndex = 0
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
+    if (url.includes('/unresolved-attempts')) return response([])
     if (url.includes('/review-queue')) return response([overrides.queueDetail ?? review])
     if (url.includes('/decisions/decision-1/review') && init?.method === 'POST') {
       if (overrides.actionError) throw overrides.actionError
@@ -201,6 +202,7 @@ test('access refresh is scoped to the selected course when another assignment re
 test('empty queue names the active filters', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
+    if (url.includes('/unresolved-attempts')) return response([])
     if (url.includes('/review-queue')) return response([])
     throw new Error(`Unexpected request: ${url}`)
   })

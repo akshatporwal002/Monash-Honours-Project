@@ -252,6 +252,19 @@ class AssessmentReviewService:
                 "assessment result state changed before this action"
             )
 
+        if self.reader is not None and request.action in {
+            AssessorReviewAction.CONFIRM,
+            AssessorReviewAction.OVERRIDE,
+        }:
+            detail = self._detail(decision)
+            if detail.response is None or detail.response_issues:
+                raise AssessmentReviewConflictError(
+                    "Frozen evidence is unavailable or technically invalid. Keep this decision under review."
+                )
+            if any(criterion.decision is None for criterion in detail.criteria):
+                raise AssessmentReviewValidationError(
+                    "Record missing criterion decisions through human assessment first."
+                )
         self._validate_action(decision, request)
         reviewed_at = self._utc(self._now())
         review = AssessorReview(
@@ -471,7 +484,11 @@ class AssessmentReviewService:
                     decision_id=decision.id,
                     course_id=attempt.course_id,
                     outcome_id=outcome.learning_outcome_id,
-                    response_text=response.answer if response is not None else "",
+                    response_text=(
+                        full_response.content.answer if full_response is not None else ""
+                    )
+                    if self.reader is not None
+                    else (response.answer if response is not None else ""),
                     response=full_response,
                     response_issues=response_issues,
                     response_history=response_history,
