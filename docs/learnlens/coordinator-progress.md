@@ -132,6 +132,30 @@ Synthetic localhost tests cannot replace those records.
 
 ## Next executable step
 
+Batch B local progress, 7 September 2026:
+
+- Task 14 pure contracts and persistence are committed through `dca96f9`.
+  Coordinator authoring and contract wiring is `dd6bec5`.
+  Private plans belong to the exact reviewed task revision and frozen form.
+  The educator browser journey passed authoring, review, reload, and human APPLY publication.
+  The learner journey passed prediction, simulation timeout recovery, fresh transfer, revision, and submission.
+  Migration tests found a task-type CHECK gap, foreign-key reflection drift, and early downgrade mutations.
+  The fixes passed 94 backend and migration checks, preserving protected history.
+  Final head `3f329ac` passed 31 typed API checks, 26 frontend tests, and a fresh Chrome journey.
+  Both independent reviews are running. The task worktree is clean and its servers are stopped.
+- Task 15 human review follow-up is `48f5cb2`; circuit authoring is `c2d309f`.
+  The scoped backend run passed 69 tests. Shared authoring and definition checks passed all 28 tests.
+  Chrome passed unresolved review, human confirmation, and reload with zero Axe violations.
+  A separate Chrome journey published circuit rules, then a mixed-human version, preserving both versions.
+  The narrow mixed path contains deterministic circuit checks and human judgement. AI suggestions remain disabled.
+  Independent Spec review found missing historical simulation details and frozen question context.
+  Both findings are being fixed before final review. Standards found one maintainability concern about service coupling.
+  Coordinator commit `990f09c` freezes migration 0031 and updates readiness and generated review contracts.
+  All 31 shared migration tests, 15 start-freeze checks, and seven runtime checks passed with that change.
+- Both worktrees passed frontend lint and production builds. Coordinator browser helpers were stopped.
+  Task 14 and Task 15 still need final dependency integration, independent reviews, and combined release checks.
+  These results do not yet mark either task merged or complete.
+
 Task 14 and Task 15 implementation is active in isolated worktrees from verified main `8654677`.
 Task 14 first supplies a pure episode schema, immutable-reader protocol, and private-plan validation contract.
 Task 15 begins the unresolved queue and human action independently, then consumes that exact shared contract.

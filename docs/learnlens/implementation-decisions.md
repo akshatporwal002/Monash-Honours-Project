@@ -267,3 +267,13 @@ No operational AI assessment suggestions are enabled by this work.
 The deleted learner-correction branch was recovered at `fda2459fdb6f529f933e48494f9f39787d420d2e`.
 A local archive reference preserves its existing history for Task 19 reuse. The remote branch was not restored.
 Task 19 must still reconcile its migration, preserve corrections across later snapshots, and add scoped application routes and screens.
+
+Publication now distinguishes the strict circuit-plus-human path from AI-assisted mixed evaluation.
+Only MIXED criteria with validated `circuit_v1` settings may use that human review path.
+VALIDATED_AI and other MIXED settings remain blocked by D-07 pending Task 35.
+Circuit authoring states the structural limit and requires a fresh review after settings change.
+The browser check preserved the earlier published rule version when publishing the later mixed-human version.
+
+Episode migration checks must use upgraded databases with existing protected history.
+Metadata-created databases alone miss changes to the persisted task-type CHECK constraint.
+Downgrade preflight must run before any table or column changes when protected history prevents rollback.
