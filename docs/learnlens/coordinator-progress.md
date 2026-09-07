@@ -225,11 +225,13 @@ Each worker owned separate files. Existing episode and human assessment services
 No database migration or lockfile change was needed.
 
 The [Task 16 handoff](task-16-grounded-feedback.md) records implementation and acceptance evidence.
-Final quality gates and separate Standards and Spec reviews remain required before merge.
+Final-head quality gates remain required before merge.
 [PR 11](https://github.com/akshatporwal002/Monash-Honours-Project/pull/11) contains implementation commit `722533b`.
 The corrected full local backend run passed 1,040 tests with 86.69% service coverage.
 Fresh Standards review passed; Spec review found an approval-version binding gap before first generation.
 That gap is fixed with a real-service regression; 36 affected checks passed.
-Final re-review and CI remain required. Earlier account usage limits were bypassed only by successful fresh reviews,
-never by treating a missing verdict as approval.
+Corrected implementation `4ae1a53` passed separate final Standards and Spec reviews and an independent Test Judge review.
+Standards retained one optional source-check refactor; no blocking findings remain.
+The handoff links final PR checks, main CI, and the post-synchronization local delivery receipt.
+Earlier usage-limited attempts were replaced by completed independent reviews.
 Tasks 17, 24, and other numbered tasks have not started.
