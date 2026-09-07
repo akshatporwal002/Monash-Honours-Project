@@ -1,4 +1,10 @@
-from app.models import assessor_eligibility, simulation, source_history, task_review  # noqa: F401
+from app.models import (  # noqa: F401
+    assessment_work,
+    assessor_eligibility,
+    simulation,
+    source_history,
+    task_review,
+)
 from app.models.assessment import (
     AppealOrCorrection,
     AssessmentApprovalState,

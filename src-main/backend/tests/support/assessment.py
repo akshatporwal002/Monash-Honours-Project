@@ -275,6 +275,27 @@ def build_assessment_blueprint(
     return definition_version, bloom, criterion, rule, form, owner
 
 
+def _save_response_fixture(session: Session, record: SubmissionDraft | SubmissionAttempt) -> None:
+    """Use the historical response schema when seeding pre-Task-13 migration tests."""
+    table_name = record.__tablename__
+    columns = {column["name"] for column in inspect(session.connection()).get_columns(table_name)}
+    if "assessment_work_start_id" in columns:
+        session.add(record)
+        session.flush()
+        return
+    record.id = str(uuid4())
+    if isinstance(record, SubmissionDraft):
+        record.answer = record.answer or ""
+        record.updated_at = NOW
+    else:
+        record.submitted_at = NOW
+    table = Table(table_name, MetaData(), autoload_with=session.connection())
+    values = {
+        name: getattr(record, name) for name in columns if getattr(record, name, None) is not None
+    }
+    session.execute(table.insert().values(**values))
+
+
 def build_assessment_attempt(
     session: Session,
     *,
@@ -292,8 +313,7 @@ def build_assessment_attempt(
     session.add(student)
     session.flush()
     draft = SubmissionDraft(student_id=student.id, task_id=form.learning_task_id)
-    session.add(draft)
-    session.flush()
+    _save_response_fixture(session, draft)
     response = SubmissionAttempt(
         draft_id=draft.id,
         student_id=student.id,
@@ -309,8 +329,7 @@ def build_assessment_attempt(
         idempotency_key=f"response-key-1{suffix}",
         declared_conditions={"tools": ["notes"]},
     )
-    session.add(response)
-    session.flush()
+    _save_response_fixture(session, response)
     attempt = AssessmentAttempt(
         course_id=definition.course_id,
         student_id=student.id,

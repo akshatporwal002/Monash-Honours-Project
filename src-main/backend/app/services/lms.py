@@ -663,15 +663,40 @@ class LmsService:
         self._commit()
         return result
 
+    def start_assessment_work(
+        self, student: User, task_id: str, expected_form_id: str
+    ) -> DraftRead:
+        self._acquire_submission_sequence_lock(student.id)
+        task = self._require_student_task(student, task_id)
+        self._require_unlocked(student, task)
+        draft = self._get_or_create_draft(student.id, task.id)
+        AssessmentSubmissionService(self.session).start_work(
+            task,
+            student.id,
+            draft,
+            expected_form_id=expected_form_id,
+        )
+        self._audit(student, "assessment.work_started", "task", task.id)
+        self._commit()
+        self.session.refresh(draft)
+        return DraftRead.model_validate(draft)
+
     def save_draft(
         self,
         student: User,
         task_id: str,
         payload: DraftWrite,
     ) -> DraftRead:
+        self._acquire_submission_sequence_lock(student.id)
         task = self._require_student_task(student, task_id)
         self._require_unlocked(student, task)
         draft = self._get_or_create_draft(student.id, task.id)
+        AssessmentSubmissionService(self.session).start_work(
+            task,
+            student.id,
+            draft,
+            expected_work_id=payload.assessment_work_start_id,
+        )
         draft.answer = payload.answer
         draft.code = payload.code
         draft.circuit = payload.circuit
@@ -703,13 +728,8 @@ class LmsService:
         payload: SubmissionCreate,
     ) -> AttemptRead:
         self._acquire_submission_sequence_lock(student.id)
-        task = self._require_student_task(student, task_id)
-        self._require_unlocked(student, task)
-        assessment_submissions = AssessmentSubmissionService(self.session)
-        frozen_versions = assessment_submissions.frozen_versions_for_task(task)
+        task = self._require_student_task(student, task_id, require_available=False)
         payload_digest = self._submission_digest(payload)
-        if frozen_versions is not None and not payload.idempotency_key:
-            raise _unprocessable("An idempotency key is required for an assessed submission")
         if payload.idempotency_key:
             existing = self.session.scalar(
                 select(SubmissionAttempt).where(
@@ -720,8 +740,30 @@ class LmsService:
             )
             if existing is not None:
                 if existing.content_digest == payload_digest:
-                    return self._attempt_read(existing)
+                    if (
+                        payload.assessment_work_start_id is not None
+                        and payload.assessment_work_start_id != existing.assessment_work_start_id
+                    ):
+                        raise _conflict(
+                            "This assessment work reference does not match the recorded response"
+                        )
+                    result = self._attempt_read(existing)
+                    self.session.rollback()
+                    return result
                 raise _conflict("This idempotency key was already used for different content")
+        require_learner_task_available(self.session, task)
+        self._require_unlocked(student, task)
+        assessment_submissions = AssessmentSubmissionService(self.session)
+        draft = self._get_or_create_draft(student.id, task.id)
+        work = assessment_submissions.start_work(
+            task,
+            student.id,
+            draft,
+            expected_work_id=payload.assessment_work_start_id,
+        )
+        frozen_versions = assessment_submissions.versions_for_work(work) if work else None
+        if frozen_versions is not None and not payload.idempotency_key:
+            raise _unprocessable("An idempotency key is required for an assessed submission")
         previous = list(
             self.session.scalars(
                 select(SubmissionAttempt)
@@ -735,7 +777,6 @@ class LmsService:
         criteria = task.marking_criteria if isinstance(task.marking_criteria, dict) else {}
         if previous and criteria.get("allow_resubmission") is False:
             raise _conflict("This task does not permit resubmission")
-        draft = self._get_or_create_draft(student.id, task.id)
         draft.answer = payload.answer
         draft.code = payload.code
         draft.circuit = payload.circuit
@@ -745,6 +786,7 @@ class LmsService:
         attempt = SubmissionAttempt(
             id=attempt_id,
             draft_id=draft.id,
+            assessment_work_start_id=work.id if work else None,
             student_id=student.id,
             task_id=task.id,
             attempt_number=len(previous) + 1,
@@ -766,7 +808,9 @@ class LmsService:
             content_digest=(payload_digest if payload.idempotency_key else None),
             idempotency_key=payload.idempotency_key,
             declared_conditions=(
-                self._declared_conditions(task, frozen_versions) if frozen_versions else None
+                {**self._declared_conditions(task, frozen_versions), **work.declared_conditions}
+                if frozen_versions and work
+                else None
             ),
         )
         self.session.add(attempt)
@@ -1897,6 +1941,7 @@ class LmsService:
         if declaration is None:
             return None
         return AssessmentConditionsRead(
+            task_form_version_id=declaration.versions.task_form_version_id,
             purpose=declaration.purpose,
             bloom_process=declaration.bloom_process,
             knowledge_dimension=declaration.knowledge_dimension,
@@ -1962,6 +2007,7 @@ class LmsService:
             )
             points_awarded = award.points if award else 0
         return AttemptRead(
+            assessment_work_start_id=attempt.assessment_work_start_id,
             id=attempt.id,
             task_id=attempt.task_id,
             attempt_number=attempt.attempt_number,

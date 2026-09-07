@@ -191,6 +191,7 @@ interface RawEducatorStudent {
 }
 
 interface RawSubmission {
+  assessment_work_start_id?: string | null
   id?: string
   score?: number | null
   formal_assessment?: FormalAssessmentSummary | null
@@ -206,6 +207,7 @@ interface RawSubmission {
 }
 
 interface RawDraft {
+  assessment_work_start_id?: string | null
   id: string
   task_id: string
   answer: string
@@ -374,6 +376,7 @@ function normalizeStudent(student: RawEducatorStudent): EducatorStudent {
 
 function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   return {
+    assessment_work_start_id: raw.assessment_work_start_id,
     id: raw.id,
     score: raw.score ?? null,
     formal_assessment: raw.formal_assessment ?? null,
@@ -521,10 +524,16 @@ export const api = {
         `/students/me/tasks/${encodeURIComponent(taskId)}/draft`,
         { signal },
       ),
+    startAssessment: (taskId: string, taskFormVersionId: string, signal?: AbortSignal) =>
+      request<RawDraft>(
+        `/students/me/tasks/${encodeURIComponent(taskId)}/start`,
+        { ...json('POST', { task_form_version_id: taskFormVersionId }), signal },
+      ),
     saveDraft: (
       taskId: string,
       payload: {
         answer: string
+        assessment_work_start_id?: string | null
         code?: string
         circuit?: { qubits: number; operations: GateOperation[] }
       },
@@ -536,6 +545,7 @@ export const api = {
       taskId: string,
       payload: {
         answer: string
+        assessment_work_start_id?: string | null
         code?: string
         circuit?: { qubits: number; operations: GateOperation[] }
         idempotency_key?: string

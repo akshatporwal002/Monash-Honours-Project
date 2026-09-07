@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.domain.assessment import AssessmentAttemptState, AssessmentPurpose
@@ -21,7 +22,8 @@ from app.models.assessment import (
     TaskApproval,
     TaskFormVersion,
 )
-from app.models.lms import SubmissionAttempt
+from app.models.assessment_work import AssessmentWorkStart
+from app.models.lms import Course, SubmissionAttempt, SubmissionDraft
 from app.models.persistence import LearningTask
 from app.services.rag.source_history import bind_sources
 from app.services.task_review import TaskReviewError
@@ -80,6 +82,7 @@ class AssessmentSubmissionService:
                 ),
             )
             .order_by(
+                AssessmentDefinitionVersion.version.desc(),
                 TaskFormVersion.version.desc(),
                 TaskFormVersion.created_at.desc(),
                 TaskFormVersion.id.desc(),
@@ -149,6 +152,92 @@ class AssessmentSubmissionService:
             transfer_rule=definition.transfer_rule,
         )
 
+    def start_work(
+        self,
+        task: LearningTask,
+        student_id: int,
+        draft: SubmissionDraft,
+        *,
+        expected_form_id: str | None = None,
+        expected_work_id: str | None = None,
+    ) -> AssessmentWorkStart | None:
+        self.session.execute(
+            update(Course)
+            .where(Course.id == task.course_id)
+            .values(id=Course.id, updated_at=Course.updated_at)
+        )
+        declaration = self.declaration_for_task(task)
+        existing = self.session.scalar(
+            select(AssessmentWorkStart).where(
+                AssessmentWorkStart.student_id == student_id,
+                AssessmentWorkStart.task_id == task.id,
+            )
+        )
+        conflict = "Assessment conditions changed after work began. Your saved work is preserved; ask your assessor to review the conflict."
+        if expected_work_id is not None and (existing is None or existing.id != expected_work_id):
+            raise TaskReviewError(
+                "This assessment work reference does not match your saved work", 409
+            )
+        if declaration is None:
+            if existing is not None or expected_form_id is not None:
+                raise TaskReviewError(conflict, 409)
+            return None
+        versions = declaration.versions
+        if expected_form_id is not None and expected_form_id != versions.task_form_version_id:
+            raise TaskReviewError(conflict, 409)
+        if existing is not None:
+            if self.versions_for_work(existing) != versions:
+                raise TaskReviewError(conflict, 409)
+            if draft.assessment_work_start_id != existing.id:
+                raise TaskReviewError("Saved work needs assessor review before continuing", 409)
+            return existing
+        if draft.answer or draft.code or draft.circuit:
+            raise TaskReviewError(
+                "This saved draft predates the assessment standard. Your saved work is preserved; ask your assessor to review it.",
+                409,
+            )
+        approval = self.session.scalar(
+            select(TaskApproval).where(
+                TaskApproval.task_form_version_id == versions.task_form_version_id,
+                TaskApproval.approval_state == AssessmentApprovalState.APPROVED,
+            )
+        )
+        assert approval is not None
+        work = AssessmentWorkStart(
+            student_id=student_id,
+            task_id=task.id,
+            course_id=task.course_id,
+            assessment_definition_version_id=versions.definition_version_id,
+            task_form_version_id=versions.task_form_version_id,
+            bloom_target_version_id=versions.bloom_target_version_id,
+            pass_rule_version_id=versions.pass_rule_version_id,
+            task_approval_id=approval.id,
+            declared_conditions=deepcopy(
+                {
+                    "task_conditions": declaration.task_conditions,
+                    "permitted_tools": declaration.permitted_tools,
+                    "instructional_support": declaration.instructional_support,
+                    "access_conditions": declaration.access_conditions,
+                    "transfer_rule": declaration.transfer_rule,
+                }
+            ),
+            source_references=list(task.source_references or []),
+        )
+        self.session.add(work)
+        self.session.flush()
+        draft.assessment_work_start_id = work.id
+        self.session.flush()
+        return work
+
+    @staticmethod
+    def versions_for_work(work: AssessmentWorkStart) -> FrozenAssessmentVersions:
+        return FrozenAssessmentVersions(
+            work.assessment_definition_version_id,
+            work.task_form_version_id,
+            work.bloom_target_version_id,
+            work.pass_rule_version_id,
+        )
+
     def create_attempt(
         self,
         *,
@@ -170,13 +259,18 @@ class AssessmentSubmissionService:
         )
         self.session.add(attempt)
         self.session.flush()
+        work = (
+            self.session.get(AssessmentWorkStart, response.assessment_work_start_id)
+            if response.assessment_work_start_id
+            else None
+        )
         bind_sources(
             self.session,
             course_id=attempt.course_id,
             output_type="assessment",
             output_id=attempt.id,
             output_version=versions.task_form_version_id,
-            references=task.source_references or [],
+            references=work.source_references if work else task.source_references or [],
         )
         self.session.add(
             AssessmentEvaluationJob(

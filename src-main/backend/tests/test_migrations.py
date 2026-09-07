@@ -37,6 +37,7 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "assessment_work_starts",
     "task_revisions",
     "task_review_events",
     "assessment_definition_versions",
@@ -146,7 +147,7 @@ def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0028"
+            == "20260907_0029"
         )
         assert "task_revision_id" in {
             column["name"] for column in inspect(connection).get_columns("task_form_versions")
@@ -192,7 +193,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0028"
+            == "20260907_0029"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -1391,6 +1392,12 @@ def test_assessment_migration_upgrades_clean_and_legacy_databases(tmp_path: Path
 
     legacy_path, legacy_config = _prepare_legacy_assessment_database(tmp_path)
     before_manifest = database_manifest(legacy_path)
+    with sqlite3.connect(legacy_path) as connection:
+        connection.row_factory = sqlite3.Row
+        before_attempt_rows = [
+            dict(row) for row in connection.execute("SELECT * FROM submission_attempts ORDER BY id")
+        ]
+
     command.upgrade(legacy_config, "head")
     legacy_engine = create_engine(f"sqlite:///{legacy_path.as_posix()}")
     try:
@@ -1469,11 +1476,19 @@ def test_assessment_migration_upgrades_clean_and_legacy_databases(tmp_path: Path
 
     after_manifest = database_manifest(legacy_path)
     for table_name in {
-        "submission_attempts",
         "legacy_learner_results",
         "legacy_quality_judge_results",
     }:
         assert after_manifest[table_name] == before_manifest[table_name]
+
+    with sqlite3.connect(legacy_path) as connection:
+        connection.row_factory = sqlite3.Row
+        after_attempt_rows = [
+            dict(row) for row in connection.execute("SELECT * FROM submission_attempts ORDER BY id")
+        ]
+    for row in after_attempt_rows:
+        assert row.pop("assessment_work_start_id") is None
+    assert after_attempt_rows == before_attempt_rows
 
 
 def test_assessor_review_migration_backfills_history_and_blocks_downgrade(tmp_path: Path) -> None:

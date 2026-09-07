@@ -246,6 +246,9 @@ class SubmissionDraft(Base):
         ForeignKey("learning_tasks.id", ondelete="CASCADE"),
         nullable=False,
     )
+    assessment_work_start_id: Mapped[str | None] = mapped_column(
+        ForeignKey("assessment_work_starts.id"), nullable=True
+    )
     answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
     circuit: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
@@ -304,6 +307,9 @@ class SubmissionAttempt(Base):
     status: Mapped[AttemptStatus] = mapped_column(
         enum_column(AttemptStatus, "attempt_status"),
         nullable=False,
+    )
+    assessment_work_start_id: Mapped[str | None] = mapped_column(
+        ForeignKey("assessment_work_starts.id"), nullable=True
     )
     answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
