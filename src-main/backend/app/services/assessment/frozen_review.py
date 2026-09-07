@@ -5,10 +5,15 @@ from sqlalchemy import select
 from app.models.assessment import (
     AssessmentApprovalState,
     AssessmentAttempt,
+    AssessmentDefinitionVersion,
+    BloomTargetVersion,
     OutcomeVersion,
+    PassRuleVersion,
     TaskApproval,
+    TaskFormVersion,
 )
 from app.models.task_review import TaskReviewEvent, TaskRevision
+from app.schemas.assessment import AssessmentVersionReference
 from app.schemas.assessment_review import (
     FrozenAssessmentContextRead,
     HistoricalResponseEvidenceRead,
@@ -95,6 +100,37 @@ class FrozenReviewEvidenceReader:
             pass_rule_expression=bundle.rule.expression,
         )
 
+    def reference(self, attempt):
+        """Address preserved versions; the response reader validates their exact links."""
+        definition = self.session.get(
+            AssessmentDefinitionVersion, attempt.assessment_definition_version_id
+        )
+        form = self.session.get(TaskFormVersion, attempt.task_form_version_id)
+        bloom = self.session.get(BloomTargetVersion, attempt.bloom_target_version_id)
+        rule = self.session.get(PassRuleVersion, attempt.pass_rule_version_id)
+        outcome = (
+            self.session.get(OutcomeVersion, definition.outcome_version_id) if definition else None
+        )
+        if any(row is None for row in (definition, form, bloom, rule, outcome)):
+            raise FrozenResponseError("Frozen assessment versions are unavailable")
+        return AssessmentVersionReference(
+            course_id=attempt.course_id,
+            assessment_definition_id=definition.assessment_definition_id,
+            assessment_definition_version=definition.version,
+            outcome_id=outcome.learning_outcome_id,
+            outcome_version=outcome.version,
+            bloom_target_id=bloom.bloom_target_id,
+            bloom_target_version=bloom.version,
+            criterion_set_id=definition.assessment_definition_id,
+            criterion_set_version=definition.version,
+            pass_rule_id=rule.pass_rule_id,
+            pass_rule_version=rule.version,
+            task_id=attempt.task_id,
+            task_form_version=form.version,
+            assessment_attempt_id=attempt.id,
+            response_version_id=attempt.response_version_id,
+        )
+
     def read(self, attempt):
         result = {
             "response": None,
@@ -104,23 +140,40 @@ class FrozenReviewEvidenceReader:
             "frozen_context": None,
             "issues": [],
         }
+        errors = (AssessmentEvaluationConflictError, FrozenResponseError, ValueError, KeyError)
         try:
-            bundle = self.bundle(attempt)
-            result["frozen_context"] = self.context(bundle)
-            response = self.reader.read(assessment=bundle.reference)
+            result["frozen_context"] = self.context(self.bundle(attempt))
+        except errors:
+            result["issues"].append(
+                "Approved task context is unavailable or stale. Technical review is required."
+            )
+        try:
+            reference = self.reference(attempt)
+            response = self.reader.read(assessment=reference)
             result["response"] = response
-            result["simulations"] = self.resolver.simulations(bundle.reference, response)
+        except errors:
+            result["issues"].append(
+                "Frozen response evidence is unavailable or stale. Technical review is required."
+            )
+            return result
+        try:
+            result["simulations"] = self.resolver.simulations(reference, response)
             if any(run["status"] != "completed" for run in result["simulations"]):
                 result["issues"].append(
                     "Required simulation evidence is pending or has a technical fault. Do not issue an incomplete result."
                 )
+        except errors:
+            result["issues"].append(
+                "Simulation evidence is unavailable or stale. Technical review is required."
+            )
+        try:
             result["historical_evidence"] = self.history(attempt, response)
             result["response_history"] = tuple(
                 entry.response for entry in result["historical_evidence"] if entry.response
             )
-        except (AssessmentEvaluationConflictError, FrozenResponseError, ValueError, KeyError):
+        except errors:
             result["issues"].append(
-                "Frozen evidence or approved task context is unavailable or stale. Technical review is required."
+                "Response history is unavailable or stale. Technical review is required."
             )
         return result
 
@@ -158,16 +211,25 @@ class FrozenReviewEvidenceReader:
                         raise FrozenResponseError(
                             "Earlier response is outside the learner task scope"
                         )
-                    bundle = self.bundle(prior)
-                    entry.response = self.reader.read(assessment=bundle.reference)
-                    entry.simulations = list(
-                        self.resolver.simulations(bundle.reference, entry.response)
-                    )
+                    reference = self.reference(prior)
+                    entry.response = self.reader.read(assessment=reference)
+                    pending.append(entry.response)
+                    try:
+                        self.context(self.bundle(prior))
+                    except (
+                        AssessmentEvaluationConflictError,
+                        FrozenResponseError,
+                        ValueError,
+                        KeyError,
+                    ):
+                        entry.issues.append(
+                            "Earlier approved task context is unavailable or stale. Technical review is required."
+                        )
+                    entry.simulations = list(self.resolver.simulations(reference, entry.response))
                     if any(run["status"] != "completed" for run in entry.simulations):
                         entry.issues.append(
                             "Recorded simulation evidence is pending or has a technical fault."
                         )
-                    pending.append(entry.response)
                 except (AssessmentEvaluationConflictError, FrozenResponseError, ValueError):
                     entry.issues.append(
                         "Earlier evidence is unavailable, foreign, or stale. Technical review is required."
