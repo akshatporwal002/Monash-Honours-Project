@@ -15,7 +15,7 @@ def upgrade():
     for table in ("submission_drafts", "submission_attempts"):
         if "episode" not in {c["name"] for c in sa.inspect(connection).get_columns(table)}:
             op.add_column(table, sa.Column("episode", sa.JSON(), nullable=True))
-    for table in ("episode_stage_starts", "episode_checkpoints"):
+    for table in ("episode_stage_starts", "episode_checkpoints", "episode_help_uses"):
         if sa.inspect(connection).has_table(table):
             continue
         refs = [
@@ -44,6 +44,20 @@ def upgrade():
                 ],
             ]
         )
+        if table == "episode_help_uses":
+            extra = [
+                sa.Column(
+                    "stage_start_id",
+                    sa.String(36),
+                    sa.ForeignKey("episode_stage_starts.id", ondelete="RESTRICT"),
+                ),
+                sa.Column("kind", sa.String(32), nullable=False),
+                sa.Column("item_index", sa.Integer(), nullable=False),
+                sa.Column("request_key", sa.String(255), nullable=False),
+                sa.UniqueConstraint(
+                    "assessment_work_start_id", "request_key", name="uq_episode_help_request"
+                ),
+            ]
         op.create_table(
             table,
             sa.Column("id", sa.String(36), primary_key=True),
@@ -93,7 +107,7 @@ def downgrade():
         )
     ).scalar_one():
         raise RuntimeError("Episode task types are protected; restore a verified backup instead")
-    for table in ("episode_checkpoints", "episode_stage_starts"):
+    for table in ("episode_help_uses", "episode_checkpoints", "episode_stage_starts"):
         if connection.execute(sa.text(f"SELECT COUNT(*) FROM {table}")).scalar_one():
             raise RuntimeError("Episode history is protected; restore a verified backup instead")
     for table in ("submission_drafts", "submission_attempts"):
@@ -113,6 +127,7 @@ def downgrade():
         if connection.dialect.name != "sqlite":
             op.drop_constraint(f"fk_simulation_{name}", "simulation_runs", type_="foreignkey")
             op.drop_column("simulation_runs", name)
+    op.drop_table("episode_help_uses")
     op.drop_table("episode_checkpoints")
     op.drop_table("episode_stage_starts")
     for table in ("submission_drafts", "submission_attempts"):
@@ -122,7 +137,7 @@ def downgrade():
 # Frozen migration guards. No live application imports.
 def episode_guards():
     clauses = []
-    for table in ("episode_checkpoints", "episode_stage_starts"):
+    for table in ("episode_checkpoints", "episode_stage_starts", "episode_help_uses"):
         for action in ("UPDATE", "DELETE"):
             clauses.append((table, f"{table}_no_{action.lower()}", action, "1"))
         clauses.append(
@@ -156,6 +171,22 @@ def episode_guards():
             "INSERT",
             "EXISTS(SELECT 1 FROM episode_stage_starts WHERE assessment_work_start_id=NEW.assessment_work_start_id AND part_id=NEW.part_id)",
         )
+    )
+    clauses.extend(
+        [
+            (
+                "episode_help_uses",
+                "episode_help_stage_scope",
+                "INSERT",
+                "NEW.stage_start_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM episode_stage_starts s WHERE s.id=NEW.stage_start_id AND s.assessment_work_start_id=NEW.assessment_work_start_id AND s.part_id=NEW.part_id)",
+            ),
+            (
+                "episode_help_uses",
+                "episode_help_no_request_replace",
+                "INSERT",
+                "EXISTS(SELECT 1 FROM episode_help_uses WHERE assessment_work_start_id=NEW.assessment_work_start_id AND request_key=NEW.request_key)",
+            ),
+        ]
     )
     return [
         (

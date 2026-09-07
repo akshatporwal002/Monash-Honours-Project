@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DDL, JSON, DateTime, ForeignKey, String, UniqueConstraint, event
+from sqlalchemy import DDL, JSON, DateTime, ForeignKey, Integer, String, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -50,9 +50,33 @@ class EpisodeStageStart(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class EpisodeHelpUse(Base):
+    __tablename__ = "episode_help_uses"
+    __table_args__ = (
+        UniqueConstraint("assessment_work_start_id", "request_key", name="uq_episode_help_request"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    student_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    task_id: Mapped[str] = mapped_column(ForeignKey("learning_tasks.id", ondelete="RESTRICT"))
+    assessment_work_start_id: Mapped[str] = mapped_column(
+        ForeignKey("assessment_work_starts.id", ondelete="RESTRICT")
+    )
+    task_form_version_id: Mapped[str] = mapped_column(
+        ForeignKey("task_form_versions.id", ondelete="RESTRICT")
+    )
+    stage_start_id: Mapped[str | None] = mapped_column(
+        ForeignKey("episode_stage_starts.id", ondelete="RESTRICT")
+    )
+    part_id: Mapped[str] = mapped_column(String(255))
+    kind: Mapped[str] = mapped_column(String(32))
+    item_index: Mapped[int] = mapped_column(Integer)
+    request_key: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 def episode_guards():
     clauses = []
-    for table in ("episode_checkpoints", "episode_stage_starts"):
+    for table in ("episode_checkpoints", "episode_stage_starts", "episode_help_uses"):
         for action in ("UPDATE", "DELETE"):
             clauses.append((table, f"{table}_no_{action.lower()}", action, "1"))
         clauses.append(
@@ -87,6 +111,22 @@ def episode_guards():
             "EXISTS(SELECT 1 FROM episode_stage_starts WHERE assessment_work_start_id=NEW.assessment_work_start_id AND part_id=NEW.part_id)",
         )
     )
+    clauses.extend(
+        [
+            (
+                "episode_help_uses",
+                "episode_help_stage_scope",
+                "INSERT",
+                "NEW.stage_start_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM episode_stage_starts s WHERE s.id=NEW.stage_start_id AND s.assessment_work_start_id=NEW.assessment_work_start_id AND s.part_id=NEW.part_id)",
+            ),
+            (
+                "episode_help_uses",
+                "episode_help_no_request_replace",
+                "INSERT",
+                "EXISTS(SELECT 1 FROM episode_help_uses WHERE assessment_work_start_id=NEW.assessment_work_start_id AND request_key=NEW.request_key)",
+            ),
+        ]
+    )
     return [
         (
             table,
@@ -101,7 +141,7 @@ def _immutable(*_: Any) -> None:
     raise ValueError("Episode history is immutable")
 
 
-for _model in (EpisodeCheckpoint, EpisodeStageStart):
+for _model in (EpisodeCheckpoint, EpisodeStageStart, EpisodeHelpUse):
     event.listen(_model, "before_update", _immutable)
     event.listen(_model, "before_delete", _immutable)
 for _table, _name, _statement in episode_guards():

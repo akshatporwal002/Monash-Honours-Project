@@ -29,17 +29,21 @@ def main():
     from test_task14_lifecycle import setup_episode
 
     from app.db.session import engine
+    from app.models.enums import TaskType
 
     config = Config(str(ROOT / "alembic.ini"))
     config.set_main_option("script_location", str(ROOT / "migrations"))
     command.upgrade(config, "head")
     with Session(engine) as session:
-        _, student, task, started = setup_episode(session)
+        _, student, task, started = setup_episode(
+            session, TaskType(os.environ.get("TASK14_BROWSER_TYPE", "quantum_circuit"))
+        )
         (SCRATCH / "context.json").write_text(
             json.dumps(
                 {
                     "student_email": student.email,
                     "task_id": task.id,
+                    "task_type": task.task_type.value,
                     "work_id": started.assessment_work_start_id,
                 }
             )

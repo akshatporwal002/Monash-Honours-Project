@@ -152,3 +152,32 @@ class EpisodeCheckpointRead(EpisodeContract):
 class EpisodeCheckpointPage(EpisodeContract):
     items: tuple[EpisodeCheckpointRead, ...]
     next_offset: int | None
+
+
+class EpisodeHelpUseWrite(EpisodeContract):
+    assessment_work_start_id: OpaqueId
+    stage_start_id: OpaqueId | None = None
+    kind: Literal["conceptual_hint", "accessibility"]
+    item_index: Annotated[int, Field(strict=True, ge=0, lt=100)]
+    request_key: OpaqueId
+
+
+class EpisodeHelpUseRead(EpisodeContract):
+    id: OpaqueId
+    assessment_work_start_id: OpaqueId
+    task_form_version_id: OpaqueId
+    stage_start_id: OpaqueId | None
+    part_id: OpaqueId
+    kind: Literal["conceptual_hint", "accessibility"]
+    item_index: int
+    created_at: datetime
+
+
+class EpisodeHelpUsePage(EpisodeContract):
+    items: tuple[EpisodeHelpUseRead, ...]
+    next_offset: int | None
+
+
+class EpisodeHelpUseReceipt(EpisodeContract):
+    record: EpisodeHelpUseRead
+    content: Text | None

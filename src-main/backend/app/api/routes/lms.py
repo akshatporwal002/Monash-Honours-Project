@@ -32,7 +32,13 @@ from app.api.feedback_dependencies import get_feedback_application, get_feedback
 from app.core.config import settings
 from app.db.session import get_db
 from app.models import CourseState
-from app.schemas.episode import EpisodeCheckpointPage, EpisodeStateRead
+from app.schemas.episode import (
+    EpisodeCheckpointPage,
+    EpisodeHelpUsePage,
+    EpisodeHelpUseReceipt,
+    EpisodeHelpUseWrite,
+    EpisodeStateRead,
+)
 from app.schemas.lms import (
     AdminUserCreate,
     AdminUserRead,
@@ -782,3 +788,21 @@ def read_episode_checkpoints(
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
     return service.episode_checkpoint_history(student, task_id, limit=limit, offset=offset)
+
+
+@router.post("/students/me/tasks/{task_id}/episode/help", response_model=EpisodeHelpUseReceipt)
+def record_episode_help(
+    task_id: str, payload: EpisodeHelpUseWrite, student: CurrentStudent, service: Lms
+):
+    return service.episode_help_use(student, task_id, payload)
+
+
+@router.get("/students/me/tasks/{task_id}/episode/help", response_model=EpisodeHelpUsePage)
+def read_episode_help(
+    task_id: str,
+    student: CurrentStudent,
+    service: Lms,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    return service.episode_help_history(student, task_id, limit=limit, offset=offset)

@@ -102,6 +102,11 @@ class EpisodeService:
                         "Original prediction is immutable; create a new checkpoint for changed input",
                         422,
                     )
+                if checkpoint.input_content != current.model_dump(mode="json"):
+                    raise TaskReviewError(
+                        "Prediction checkpoint input has changed; record a new prediction for this input",
+                        422,
+                    )
             if process.revision:
                 earlier = self.session.get(
                     SubmissionAttempt, process.revision.previous_response_version_id
@@ -263,6 +268,9 @@ class EpisodeService:
             select(EpisodeStageStart).where(EpisodeStageStart.assessment_work_start_id == work.id)
         )
         projection = learner_episode_plan(plan)
+        projection["supported_hints"] = [
+            f"Conceptual hint {index + 1}" for index in range(len(plan.supported_hints))
+        ]
         if stage:
             projection["supported_hints"] = []
             projection["transfer"] = {

@@ -33,7 +33,7 @@ Revision references identify an actual earlier response in the same learner, tas
 
 `validate_reviewed_episode_plan(marking_criteria, frozen_plan=None)` validates the plan and rejects a different frozen copy. Default required responses are prediction and explanation. Conceptual hints are unlimited during supported work. Accessibility support remains available in both stages.
 
-Initial task reads omit hints and all private transfer content. The authenticated episode-state route provides supported hints before transfer. Server-authorized stage entry returns only the fresh prompt, instructions, starter inputs, and stage references. The private solution is never returned, including after entry. Transfer state removes instructional hints.
+Initial task reads omit hints and all private transfer content. The authenticated episode-state route provides hint labels before transfer. An explicit request records the action before returning approved hint text. Server-authorized stage entry returns only the fresh prompt, instructions, starter inputs, and stage references. The private solution is never returned, including after entry. Transfer state removes instructional hints.
 
 The local fixture uses a synthetic reviewed and published multipart Hadamard task at APPLY. It proves the approval mechanism and learner flow. It does not approve unseen live teaching content.
 
@@ -117,3 +117,31 @@ Each needs its own validated schema, registered handler, accessible renderer, li
 The coordinator must complete independent Standards/Spec review and combined integration checks. Supported release browser projects are `chrome-stable`, `edge-stable`, `firefox`, and `webkit`; this task's observed local journey used installed Chrome only. The coordinator owns combined cross-browser release evidence.
 
 Task 15 must use the final typed read-only adapter in assessor review and evaluator workflows. Task 14 provides evaluator-ready inputs; it does not activate AI assessment suggestions under D-07. Task 17 owns the full evidence stream. Task 26 owns fresh formal reassessment. Tasks 33 and 34 own governed exports. None of those tasks is claimed complete here.
+
+## Independent review corrections
+
+The first review found three acceptance gaps. The correction commit closes each one and retains the original gate boundaries.
+
+1. Checkpoint validation now compares the complete current answer, code, and circuit against the immutable checkpoint input. The shared validator enforces this in draft saves, stage entry, submissions, and frozen reads. Regression tests reject changed input even when a forged in-memory response has a recomputed valid digest. Input edits in both stages clear the old checkpoint and simulation references. Learners can save intermediate edits and record a replacement prediction. The duplicate, weaker submit validation was removed after confirming the earlier locked validation covers the same work.
+2. Simulation results now render independently of the task's editor type. All six typed episode forms display counts, exact probabilities, sampled frequencies, and circuit text after reload. Their saved supported code and circuit also survive draft saves. The real browser exposed an earlier backend type restriction. Typed episode transfer circuits now pass that gate while retaining approved work, stage, part, checkpoint, and input checks. Unknown, staged, code, and quiz types receive no new simulation access.
+3. Explicit support actions now have an append-only `episode_help_uses` table in migration 0030. Rows bind learner, task, frozen work/form, stage/part, support kind, approved item index, request key, and time. The reviewed form fixes the source text. Request keys bind the payload and preserve one event on retry. Repeated new requests remain unlimited. SQL guards prevent update, deletion, replacement, and foreign stage scope. Downgrade refuses populated history before changing the schema.
+
+The new help endpoints are POST and GET `/students/me/tasks/{task_id}/episode/help`. `EpisodeHelpUseWrite`, `EpisodeHelpUseReceipt`, and `EpisodeHelpUsePage` are generated contracts. A successful POST returns the durable record and approved content. Replaying an old hint request after transfer returns its original record with null content. GET history returns only indexes, kinds, timestamps, and frozen references, never instructional text. Pages are bounded and older requests remain reachable. The UI handles concurrent append duplicates by record ID.
+
+Accessibility declarations remain freely visible in both stages. The optional button, "I used access support 1", records a learner's explicit self-report. Records describe requests and actions, not inferred cognitive use. They do not modify response digests, criteria, scores, or formal outcomes. Full Task 17 event-stream integration remains separate.
+
+Coordinator commits `530d28f28a009ec5d79f6d51e7c8f142c8144e7d` and `2d8b111a5517644a56f08e5e243489ac89092330` restore the original UTF-8 symbols and wire the help model, migration expectations, and generated contracts. Task 14 edits preserve those fixes.
+
+Correction evidence:
+
+- Backend full regression: 75 passed in `.tmp-task14/reviewfix35.log` under backend, covering episode contracts/lifecycle/support, Task 13, and simulation evidence.
+- All six typed real-service simulations plus real-migrated help replay/immutability: 7 passed in `.tmp-task14/reviewfix34.log`.
+- Coordinator full migration suite with the help table: 31 passed, worktree `.tmp-task14/coordinator-help-migrations10.log`.
+- Frontend workspace, all six typed results, support retry/paging, App, and saved history: 33 passed in backend `.tmp-task14/frontend-tests33.log`.
+- Frontend lint and production build passed in `.tmp-task14/frontend-lint33.log` and `frontend-build33.log`. Backend Ruff and format checks passed on all ten changed Python files.
+- Real Chrome explanation-type journey: `.tmp-task14/browser33.log`, `browser33/result.json`, and `browser33/submitted-episode.png` under backend. The screenshot was inspected and shows the result table above the episode fields.
+- Real Chrome quantum-circuit journey: `.tmp-task14/browser34.log`, `browser34/result.json`, and its submitted/controlled-timeout screenshots. Both journeys cover a saved hint request, reload, 21 paged predictions, transfer privacy, access self-report, actual Aer results, submission, revision, and reflection. Both Axe scans report no serious or critical violations. The circuit journey also proves controlled timeout preservation.
+
+Use `TASK14_BROWSER_TYPE=explanation` with a fresh `TASK14_BROWSER_RUN` for the typed journey. The default remains `quantum_circuit`. Synthetic fixtures have no live feedback provider configured; they do not prove grounded feedback generation. Formal saved responses remain available when that separate feedback process fails.
+
+The final correction replay stopped owned backend/frontend listeners and verified ports 8144 and 5244 closed. Independent review must recheck the final correction SHA before integration.

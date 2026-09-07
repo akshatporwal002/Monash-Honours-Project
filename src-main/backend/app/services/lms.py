@@ -801,6 +801,34 @@ class LmsService:
         self._commit()
         return EpisodeService(self.session).state(draft)
 
+    def episode_help_use(self, student, task_id, payload):
+        from app.services.episode_support import EpisodeSupportService
+
+        self._acquire_submission_sequence_lock(student.id)
+        self._require_student_task(student, task_id)
+        draft = self.session.scalar(
+            select(SubmissionDraft).where(
+                SubmissionDraft.student_id == student.id,
+                SubmissionDraft.task_id == task_id,
+            )
+        )
+        work = (
+            self.session.get(AssessmentWorkStart, draft.assessment_work_start_id)
+            if draft and draft.assessment_work_start_id
+            else None
+        )
+        record = EpisodeSupportService(self.session).record(work, payload)
+        self._commit()
+        return record
+
+    def episode_help_history(self, student, task_id, *, limit=20, offset=0):
+        from app.services.episode_support import EpisodeSupportService
+
+        self._require_student_task(student, task_id, require_available=False)
+        return EpisodeSupportService(self.session).history(
+            student.id, task_id, limit=limit, offset=offset
+        )
+
     def get_draft(self, student: User, task_id: str) -> DraftRead | None:
         task = self._require_student_task(student, task_id, require_available=False)
         draft = self.session.scalar(
@@ -909,15 +937,6 @@ class LmsService:
         criteria = task.marking_criteria if isinstance(task.marking_criteria, dict) else {}
         if previous and criteria.get("allow_resubmission") is False:
             raise _conflict("This task does not permit resubmission")
-        EpisodeService(self.session).validate_response(
-            self.session.get(AssessmentWorkStart, draft.assessment_work_start_id)
-            if draft.assessment_work_start_id
-            else None,
-            payload.episode,
-            ResponseContent(answer=payload.answer, code=payload.code, circuit=payload.circuit),
-            student_id=student.id,
-            task_id=task.id,
-        )
         draft.answer = payload.answer
         draft.code = payload.code
         draft.circuit = payload.circuit
@@ -1860,7 +1879,12 @@ class LmsService:
         if payload.task_id:
             task = self._require_student_task(student, payload.task_id)
             self._require_unlocked(student, task)
-            if task.task_type.value not in {"circuit", "quantum_circuit"}:
+            typed_transfer = (
+                task.task_type.value
+                in {"prediction", "reasoning", "explanation", "revision", "reflection", "transfer"}
+                and payload.episode_stage_start_id is not None
+            )
+            if task.task_type.value not in {"circuit", "quantum_circuit"} and not typed_transfer:
                 raise LmsServiceError(422, "This task does not support circuit simulation")
         try:
             return SimulationEvidenceService(self.session).execute(
