@@ -90,14 +90,20 @@ class EpisodeTransferPlanV1(EpisodeContract):
 class EpisodePlanV1(EpisodeContract):
     schema_version: Literal["learnlens.episode-plan.v1"] = "learnlens.episode-plan.v1"
     supported_part_id: OpaqueId = "supported"
-    prediction_required: bool = True
+    prediction_required: Annotated[bool, Field(strict=True)] = True
     required_responses: Annotated[
         tuple[Literal["prediction", "reasoning", "explanation", "reflection"], ...],
         Field(max_length=4),
-    ] = ("prediction", "reasoning", "explanation", "reflection")
+    ] = ("prediction", "explanation")
     transfer: EpisodeTransferPlanV1
-    supported_hints: Annotated[tuple[Text, ...], Field(max_length=100)] = ()
-    accessibility_support: Annotated[tuple[Text, ...], Field(max_length=100)] = ()
+    supported_hints: Annotated[
+        tuple[Annotated[str, Field(strict=True, min_length=1, max_length=2000)], ...],
+        Field(max_length=100),
+    ] = ()
+    accessibility_support: Annotated[
+        tuple[Annotated[str, Field(strict=True, min_length=1, max_length=2000)], ...],
+        Field(max_length=100),
+    ] = ()
 
     @model_validator(mode="after")
     def valid_parts(self) -> EpisodePlanV1:
@@ -107,6 +113,9 @@ class EpisodePlanV1(EpisodeContract):
             raise ValueError("Required responses must be unique")
         if self.prediction_required and "prediction" not in self.required_responses:
             raise ValueError("Prediction must be required before revealing results")
+        ResponseContent(circuit=self.transfer.starter_circuit)
+        if any(not item.strip() for item in (*self.supported_hints, *self.accessibility_support)):
+            raise ValueError("Hint and access descriptions cannot be blank")
         if not self.transfer.prompt.strip():
             raise ValueError("The fresh transfer prompt is required")
         return self
