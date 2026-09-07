@@ -2,7 +2,11 @@
 
 Status: `DRAFT_FOR_REVIEW`. Task 32 remains `PARTIAL`, with external approval gates open.
 
-Draft version: `task-32-data-plan-draft-v2`. Prepared: 2026-09-07.
+Draft version: `task-32-data-plan-draft-v3`. Prepared: 2026-09-07.
+
+Research lead: Arv Surana. Role name supplied by the requesting user and recorded on 2026-09-07.
+This names the research lead only. It does not approve the data plan, ethics, preregistration, retention, hosting, or operational authority.
+Other role holders and all approval records remain pending.
 
 This plan supports the [draft study protocol](task-32-study-protocol.md).
 It proposes an exact field inventory for review and future Task 33 implementation.
@@ -233,12 +237,12 @@ Monash's archive guidance links minimum retention to project requirements and it
 It also describes review with the data owner at the retention period's end. [Monash MURDA guidance](https://docs.erc.monash.edu/Storage/StorageProducts/MURDA/)
 This draft does not claim that every record belongs in MURDA or has the same retention period.
 
-| Record class to resolve | Owner role, name pending | Required schedule decision |
+| Record class to resolve | Owner roles and known holder | Required schedule decision |
 | --- | --- | --- |
 | Identity mapping and follow-up contact | Consent custodian and privacy adviser | Applicable class, final contact/withdrawal trigger, linkage need, minimum and maximum rules |
 | Consent, approval, and withdrawal evidence | Responsible investigator and records adviser | Applicable class, closure trigger, proof obligations, and restricted access after withdrawal |
 | Raw probe responses and rating packets | Research data owner | Primary evidence class, publication or closure trigger, reviewer copy expiry, and allowed redaction |
-| Derived outcomes and analysis scripts | Research lead and records adviser | Research evidence class, reproducibility requirements, version retention, and review date |
+| Derived outcomes and analysis scripts | Arv Surana, research lead; records adviser pending | Research evidence class, reproducibility requirements, version retention, and review date |
 | Operational learning records | Course data owner | Teaching record class, course trigger, student correction rules, and independent research-use limits |
 | Formal assessment and review history | Assessment records owner | Assessment record class, appeals or other holds, preserved versions, and separate disposal authority |
 | Preferences and support settings | Product data owner and privacy adviser | Access-purpose class, change or account closure trigger, and minimum necessary history |
@@ -267,7 +271,7 @@ Task 33 and the operations owner must test this sequence with synthetic records 
 
 The implementation must enforce the approved plan; the plan alone does not enforce it.
 Task 33 owns the policy records, permission checks, data contracts, withdrawal handling, and scoped export path.
-The research lead owns purpose, study conditions, consent, and field justification.
+Arv Surana, the research lead, owns purpose, study conditions, consent, and field justification.
 Privacy and records advisers own their required review decisions alongside the named institutional data owner.
 Operations owns storage, access, backups, incident handling, and expiry evidence.
 
@@ -282,7 +286,7 @@ These are future implementation acceptance checks, not tests claimed as passed b
 
 | Pending record | Required owner and evidence | Blocking effect |
 | --- | --- | --- |
-| `T32-DATA-FIELDS` | Research lead and privacy reviewer sign exact field paths, purposes, modes, and recipients | No participant collection or export |
+| `T32-DATA-FIELDS` | Arv Surana, research lead, and a privacy reviewer must sign exact field paths, purposes, modes, and recipients. Privacy reviewer pending. | No participant collection or export |
 | `T32-CONSENT` | Responsible investigator supplies approved participant materials, consent version, and withdrawal rule | No recruitment or enrolment |
 | `T32-RETENTION` | Named data owner and records adviser resolve every schedule class and hold process | No live collection or destructive disposal |
 | `T32-ACCESS` | Grant authority names researchers, courses, studies, fields, operations, and expiry | No research access |
@@ -290,7 +294,7 @@ These are future implementation acceptance checks, not tests claimed as passed b
 | `T32-DISCLOSURE` | Privacy reviewer approves recipient rules, suppression, and final output review | No study disclosure |
 | `T33-ENFORCEMENT` | Research backend and privacy owners provide reviewed implementation evidence for the approved versions | No production research activation |
 
-All named holders and approval identifiers remain pending.
+Arv Surana is the named research lead. Other named holders and all approval identifiers remain pending.
 Each signed record must link the protocol and data-plan versions it approves.
 The research lead must include the approved versions in preregistration before recruitment, as required by BP12.
 Task 32 remains `PARTIAL`; Task 33 remains a separate implementation and verification gate.

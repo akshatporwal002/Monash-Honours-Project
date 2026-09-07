@@ -2,7 +2,11 @@
 
 Status: `DRAFT_FOR_REVIEW`. Task 32 remains `PARTIAL`, with external approval gates open.
 
-Draft version: `task-32-protocol-draft-v2`. Prepared: 2026-09-07.
+Draft version: `task-32-protocol-draft-v3`. Prepared: 2026-09-07.
+
+Research lead: Arv Surana. Role name supplied by the requesting user and recorded on 2026-09-07.
+This names the research lead only. It does not approve the protocol, ethics, preregistration, retention, hosting, or operational authority.
+Other role holders and all approval records remain pending.
 
 This document makes the proposed study reviewable. It does not approve recruitment, participant data collection, or research activation.
 No participant results, ethics decision, power calculation, or preregistration record have been supplied.
@@ -308,15 +312,15 @@ Retain the registry identifier, public or approved embargoed record, timestamp, 
 Choose the registry and access arrangements through the research lead.
 No registry entry has been created by this work.
 
-| Required record | Accountable role, named holder pending | Current evidence and blocking effect |
+| Required record | Accountable roles and known holder | Current evidence and blocking effect |
 | --- | --- | --- |
-| `T32-RQ` | Research lead and supervisor | Authoritative question or signed proposed wording absent; blocks protocol approval. |
-| `T32-DESIGN` | Research lead and methods reviewer | Comparator, allocation, analysis, and sample-size basis need signed versions; blocks preregistration. |
+| `T32-RQ` | Arv Surana, research lead; supervisor pending | Authoritative question or signed proposed wording absent; blocks protocol approval. |
+| `T32-DESIGN` | Arv Surana, research lead; methods reviewer pending | Comparator, allocation, analysis, and sample-size basis need signed versions; blocks preregistration. |
 | `T32-INSTRUMENTS` | Course lead, named assessor, accessibility reviewer | Sources, anchors, forms, tool rules, session timing, and replacement rule absent; blocks study use. |
 | `T32-ETHICS` | Responsible investigator and institutional ethics authority | Decision identifier, scope, conditions, validity, and approved participant materials absent; blocks recruitment. |
-| `T32-DATA` | Research lead, data owner, privacy and records advisers | Signed inventory, consent, storage, retention, withdrawal, and access records absent; blocks collection and export. |
-| `T32-PREREG` | Research lead and supervisor | Registry identifier, timestamp, and approved version hashes absent; blocks recruitment. |
-| `T32-RELEASE` | Research lead, course lead, operations owner | Named host approval and verified Task 33 enforcement absent; blocks live study activation. |
+| `T32-DATA` | Arv Surana, research lead; data owner, privacy and records advisers pending | Signed inventory, consent, storage, retention, withdrawal, and access records absent; blocks collection and export. |
+| `T32-PREREG` | Arv Surana, research lead; supervisor pending | Registry identifier, timestamp, and approved version hashes absent; blocks recruitment. |
+| `T32-RELEASE` | Arv Surana, research lead; course lead and operations owner pending | Named host approval and verified Task 33 enforcement absent; blocks live study activation. |
 | `D07-VALIDATION` | Assessment governance and expert reviewers | Separate evaluator evidence and release record absent; blocks operational AI suggestions only. |
 
 Each record needs a named owner, decision, date, version, scope, evidence location, conditions, and expiry where applicable.
