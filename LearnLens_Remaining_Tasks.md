@@ -2,6 +2,11 @@
 
 Reviewed on 6 September 2026 against local `main` at `d049eef`.
 
+Coordinator update, 7 September 2026: Tasks 13 onward are active under the
+[batch progress record](docs/learnlens/coordinator-progress.md).
+The verified starting main is `d5ac7cb335a2b1ccdab674e0cab4c61c950b9b35`, including Task 12 through PR 8.
+Its post-merge CI passed. Task 13 implementation and Task 32 drafting are in progress, not yet verified or merged.
+
 This is the recommended work order for completing the proposed LearnLens architecture and the wider repository requirements. Each numbered task states its dependencies, current gap, and completion check. Tasks with no shared dependency can run in parallel. A dependency means the earlier task must supply the needed working contract or behaviour before integration.
 
 The review used [LearnLens_Architecture_and_Sources.md](LearnLens_Architecture_and_Sources.md), the [implementation requirements](docs/01-implementation-requirements.md), the [assessment specification](docs/02-pass-incomplete-bloom-assessment-spec.md), and the [work order](docs/03-codex-implementation-work-order.md). It also inspected backend services, mounted routes, frontend screens, migrations, tests, CI, launch scripts, and existing plans.
@@ -154,7 +159,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 14. **Complete the learning episode inside the task workspace.**
 
-    Dependencies: Tasks 11 and 13. Suggested owner: task engine and frontend.
+    Dependencies: Tasks 11 and 13; Task 8, D-04 and D-05, for approved assessed stages. Suggested owner: task engine and frontend.
 
     Six task handlers exist, but answer, code, and circuit fields do not capture the full learning sequence. Add typed prediction, reasoning, explanation, revision, reflection, and transfer responses. Stage matching, sequencing, and other required extensions explicitly. Keep instructions, circuit editing, results, explanations, and feedback together. Save predictions before revealing results where required.
 
@@ -168,7 +173,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Production evaluation supports only the rule adapter. Unsupported evaluators leave jobs `REVIEW_REQUIRED` without a decision. The current review queue selects decisions, so those attempts miss the queue. Add a queue for unresolved attempts and a criterion-entry workflow. Connect suitable deterministic circuit checks and approved human or mixed evaluation paths.
 
-    Done when an assessor can inspect evidence, record criterion decisions and reasons, apply the pass rule, and finalise the result. Keep AI evaluation advisory until Task 35 passes its approved gate.
+    Done when an assessor can inspect evidence, record criterion decisions and reasons, apply the pass rule, and finalise the result. Keep operational AI assessment suggestions disabled until Task 35 passes its separate approved gate. After that gate, suggestions remain advisory and humans confirm results.
 
     Evidence: [assessment runtime](src-main/backend/app/services/assessment/runtime.py), [review.py](src-main/backend/app/services/assessment/review.py), and [evaluation job tests](src-main/backend/tests/test_assessment_evaluation_jobs.py).
 
@@ -416,9 +421,9 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 25 and 36; Task 8, D-11. Suggested owner: a developer outside the main feature implementation.
 
-    The second-subject reuse target still needs approval and practical evidence. Configure one demo module for another technical subject using the existing extension points. Record effort and any core changes needed. Keep this exercise separate from claims that learning results generalise to that subject.
+    D-11 approves a simple conditional-programming module and the 16 developer-hour target. Exact sources, a named verifier, and practical evidence remain due. Configure that module using the existing extension points. Record setup, coding, debugging, tests, documentation, and any core changes. Keep this exercise separate from claims that learning results generalise to that subject.
 
-    Done when the approved target is met. The requirements propose 16 developer-hours, but that number is not yet an approved policy. Verify that core evidence, model, adaptation, and assessment engines remain reusable.
+    Done when the approved 16 developer-hour target is met and independently verified. Verify that core evidence, model, adaptation, and assessment engines remain reusable.
 
     Evidence: [task-type extension guide](src-main/docs/task-type-extension.md), requirements NFR9, NFR11, NFR24, and [decision D-11](docs/learnlens/known-limits-and-deferred-decisions.md).
 

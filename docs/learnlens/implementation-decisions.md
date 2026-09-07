@@ -211,3 +211,25 @@ The browser fixture proved publication without policy overrides and without live
 
 The user's latest instruction limits this run to completing Task 12, then committing, pushing, and merging into main.
 Stop after that integration. Tasks 13 onward remain on the task list.
+
+## 2026-09-07: resume remaining tasks with isolated workers
+
+The new coordinator request supersedes the previous Task 12 stopping instruction.
+The user authorises task-owned commits, pushes, pull requests, verified batch merges, and local main synchronization.
+Keep a separate branch and integration merge commit for each numbered task.
+No live institutional approval follows from this engineering authority.
+
+Fetched origin/main remains `d5ac7cb335a2b1ccdab674e0cab4c61c950b9b35`.
+GitHub confirms PR 8 merged at that commit and post-merge run `34072852835` passed.
+Task 13 starts there. Task 32 protocol drafting runs in a separate worktree alongside it.
+The coordinator owns shared contracts, migration ordering, integration, and progress records.
+
+Task 13 uses an explicit learner start action instead of creating assessment starts during task GET requests.
+Existing task-view telemetry is unchanged by that interface choice.
+The action binds the declared published form before workspace edits begin.
+Drafts and submissions carry the saved work reference. Changed approval or publication returns an explicit conflict.
+Do not silently adopt a newer standard or expose marking guidance through the learner reference.
+Historical drafts receive no invented start-time approval. Migration 0029 is reserved for this task.
+
+The [coordinator record](coordinator-progress.md) tracks dependencies, ownership, review, tests, delivery, and external gates.
+Task 32 remains partial until the required research review, approval, and preregistration records exist.
