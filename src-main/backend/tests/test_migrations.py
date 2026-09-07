@@ -38,6 +38,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
     "episode_checkpoints",
+    "episode_help_uses",
     "episode_stage_starts",
     "assessment_work_starts",
     "task_revisions",

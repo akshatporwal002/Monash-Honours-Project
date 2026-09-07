@@ -38,7 +38,6 @@ from app.models.audit import (
     AuditOutcome,
 )
 from app.models.continuation import ContinuationJob
-from app.models.episode import EpisodeCheckpoint, EpisodeStageStart
 from app.models.enums import (
     ContinuationFailureCategory,
     ContinuationState,
@@ -59,6 +58,7 @@ from app.models.enums import (
     WorkflowOutcome,
     WorkflowStage,
 )
+from app.models.episode import EpisodeCheckpoint, EpisodeHelpUse, EpisodeStageStart
 from app.models.lms import (
     AttemptStatus,
     Course,
@@ -121,6 +121,7 @@ __all__ = [
     "ContinuationFailureCategory",
     "ContinuationJob",
     "EpisodeCheckpoint",
+    "EpisodeHelpUse",
     "EpisodeStageStart",
     "ContinuationState",
     "Criterion",

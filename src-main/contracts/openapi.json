@@ -3431,6 +3431,192 @@
         "title": "EpisodeCheckpointWrite",
         "type": "object"
       },
+      "EpisodeHelpUsePage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EpisodeHelpUseRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "EpisodeHelpUsePage",
+        "type": "object"
+      },
+      "EpisodeHelpUseRead": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_work_start_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Work Start Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "item_index": {
+            "title": "Item Index",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "conceptual_hint",
+              "accessibility"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Part Id",
+            "type": "string"
+          },
+          "stage_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Start Id"
+          },
+          "task_form_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Task Form Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "assessment_work_start_id",
+          "task_form_version_id",
+          "stage_start_id",
+          "part_id",
+          "kind",
+          "item_index",
+          "created_at"
+        ],
+        "title": "EpisodeHelpUseRead",
+        "type": "object"
+      },
+      "EpisodeHelpUseReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "record": {
+            "$ref": "#/components/schemas/EpisodeHelpUseRead"
+          }
+        },
+        "required": [
+          "record",
+          "content"
+        ],
+        "title": "EpisodeHelpUseReceipt",
+        "type": "object"
+      },
+      "EpisodeHelpUseWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_work_start_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Work Start Id",
+            "type": "string"
+          },
+          "item_index": {
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Item Index",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "conceptual_hint",
+              "accessibility"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Request Key",
+            "type": "string"
+          },
+          "stage_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Start Id"
+          }
+        },
+        "required": [
+          "assessment_work_start_id",
+          "kind",
+          "item_index",
+          "request_key"
+        ],
+        "title": "EpisodeHelpUseWrite",
+        "type": "object"
+      },
       "EpisodePayloadV1": {
         "additionalProperties": false,
         "properties": {
@@ -15042,6 +15228,153 @@
           }
         },
         "summary": "Checkpoint Episode",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/episode/help": {
+      "get": {
+        "operationId": "read_episode_help_api_v1_students_me_tasks__task_id__episode_help_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeHelpUsePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Episode Help",
+        "tags": [
+          "learning management"
+        ]
+      },
+      "post": {
+        "operationId": "record_episode_help_api_v1_students_me_tasks__task_id__episode_help_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpisodeHelpUseWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeHelpUseReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Episode Help",
         "tags": [
           "learning management"
         ]
