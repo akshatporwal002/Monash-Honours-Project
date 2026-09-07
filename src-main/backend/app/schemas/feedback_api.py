@@ -11,6 +11,7 @@ from pydantic import (
 )
 
 from app.models.enums import FeedbackReportCategory, WorkflowStage
+from app.schemas.assessed_feedback import AssessedFeedbackView
 from app.schemas.feedback import FeedbackResponseClassification
 
 NonEmptyText = Annotated[
@@ -53,6 +54,7 @@ class FeedbackSourceView(FeedbackApiContract):
 
 
 class ValidatedFeedbackView(FeedbackApiContract):
+    assessed: AssessedFeedbackView | None = None
     kind: Literal["validated"] = "validated"
     feedback_id: ExternalId
     response_classification: FeedbackResponseClassification | None = None

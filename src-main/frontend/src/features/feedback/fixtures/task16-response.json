@@ -1,0 +1,101 @@
+{
+  "workflow_run_id": "1e7bad62-3d0b-4385-8501-e94331438aec",
+  "submission_id": "27705771-53ca-4832-857b-0710a31cb3a5",
+  "status": "validated",
+  "processing_stage": null,
+  "feedback": {
+    "assessed": {
+      "contract_version": "learnlens.assessed-feedback.v1",
+      "assessment": {
+        "course_id": "df207fd3-4127-4331-9638-54a2f9608c04",
+        "assessment_definition_id": "285c14e0-947e-46c0-ba1b-a3e6a61da226",
+        "assessment_definition_version": 1,
+        "outcome_id": "25c9e185-8132-49ad-a3c7-337fb3573df2",
+        "outcome_version": 1,
+        "bloom_target_id": "42fa155f-7387-4501-b610-0b59e8ba30bc",
+        "bloom_target_version": 1,
+        "criterion_set_id": "285c14e0-947e-46c0-ba1b-a3e6a61da226",
+        "criterion_set_version": 1,
+        "pass_rule_id": "49f38609-dfd2-427f-96ab-bb13c1d59112",
+        "pass_rule_version": 1,
+        "task_id": "cbdedd9d-584b-480a-88b6-83bb4b0e38c2",
+        "task_form_version": 1,
+        "assessment_attempt_id": "1cb0a2fe-feff-4c2e-9fce-7ff0b69a639c",
+        "response_version_id": "27705771-53ca-4832-857b-0710a31cb3a5"
+      },
+      "assessment_attempt_id": "1cb0a2fe-feff-4c2e-9fce-7ff0b69a639c",
+      "response_version_id": "27705771-53ca-4832-857b-0710a31cb3a5",
+      "content_digest": "sha256:4240fb3b61b4b303c7e9b3c0099b33de75f9dd3ffa449c6574ab3ebcb4f95356",
+      "task_revision_id": "9d49432e-7ee4-4a10-893d-4095ec143228",
+      "task_form_id": "23022c30-723f-4194-b4ce-6b811bf8adb0",
+      "task_form_version": 1,
+      "task_form_version_id": "63dac5f5-6dd8-497a-b547-8156c0f9dd1c",
+      "current_human_action_id": null,
+      "summary": "Review the recorded response fields and source excerpts alongside each criterion.",
+      "criteria": [
+        {
+          "criterion_id": "b30fb9ee-017f-49ca-80aa-403ab243d607",
+          "criterion_version_id": "2fbea7df-54e0-47b7-b1fc-ee6d27541310",
+          "criterion_version": 1,
+          "learner_description": "Apply the circuit in a fresh context.",
+          "evidence": [
+            {
+              "response_version_id": "27705771-53ca-4832-857b-0710a31cb3a5",
+              "content_digest": "sha256:4240fb3b61b4b303c7e9b3c0099b33de75f9dd3ffa449c6574ab3ebcb4f95356",
+              "path": "content.answer",
+              "recorded": true,
+              "statement": "Submitted answer is recorded."
+            }
+          ],
+          "guidance": "Link your explanation to recorded evidence for this criterion when a new attempt is permitted.",
+          "simulation_references": []
+        }
+      ],
+      "source_claims": [
+        {
+          "source_id": "878369eb-ffe4-4fc6-896c-077175e4abfe",
+          "source_label": "Synthetic formal fixture source",
+          "document_id": "ea373b3e-dff8-4474-be07-eaae2f792ce2",
+          "chunk_id": "878369eb-ffe4-4fc6-896c-077175e4abfe",
+          "source_revision_id": "55a8afe7-a1cc-415d-b9ef-ad520c7120f1",
+          "source_digest": "bfe7c3c96836e3f73fc87749200de0989624d2468693c9ac5fb23019b6db39a5",
+          "passage_digest": "bfe7c3c96836e3f73fc87749200de0989624d2468693c9ac5fb23019b6db39a5",
+          "approval_id": "52bb55e8-6bcf-417c-954b-7d595ad47446",
+          "retrieval_request_id": "4651c197-3938-4432-93d3-802e2e2d5994",
+          "retrieval_version": "task-feedback-retrieval-v1",
+          "support_quote": "Synthetic source for the task: A Hadamard circuit has equal outcome probabilities from a zero input.. Fixture reference cfa7ecec4de0424ab756d02d524ff6b9.",
+          "start_offset": 0,
+          "end_offset": 153,
+          "claim": "Synthetic source for the task: A Hadamard circuit has equal outcome probabilities from a zero input.. Fixture reference cfa7ecec4de0424ab756d02d524ff6b9."
+        }
+      ],
+      "simulation_evidence": [],
+      "approved_hints": [
+        "Consider how H changes the input state."
+      ],
+      "reflection_prompt": "Which recorded evidence supports your explanation, and what would you revise next?",
+      "permitted_next_action": "Reflect on this feedback before requesting a new permitted attempt.",
+      "help_use_ids": [],
+      "rule_policy_version": "assessed-grounding-policy-v1",
+      "prompt_version": "assessed-feedback-template-v1",
+      "model_version": "bounded-extractive-v1"
+    },
+    "kind": "validated",
+    "feedback_id": "1be10e80-4579-4e61-98d0-f773fc575eb1",
+    "response_classification": null,
+    "summary": "Review the recorded response fields and source excerpts alongside each criterion.",
+    "identified_error": null,
+    "explanation": null,
+    "improvement_actions": [],
+    "recommended_next_step": "Reflect on this feedback before requesting a new permitted attempt.",
+    "sources": [
+      {
+        "source_id": "878369eb-ffe4-4fc6-896c-077175e4abfe",
+        "label": "Synthetic formal fixture source"
+      }
+    ],
+    "simulation_references": [],
+    "ai_generated_notice": "AI-generated feedback. Verify important details and report any concerns."
+  },
+  "error": null
+}

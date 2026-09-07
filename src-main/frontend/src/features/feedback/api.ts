@@ -1,3 +1,5 @@
+import type { ApiSchemas } from '../../api/generated'
+
 import type {
   FeedbackApiClient,
   FeedbackProcessingStage,
@@ -104,6 +106,49 @@ function asSources(value: unknown): FeedbackSource[] {
   })
 }
 
+function asAssessedFeedback(value: unknown): ApiSchemas['AssessedFeedbackView'] | null {
+  if (value === null || value === undefined) return null
+  function valid(candidate: unknown): candidate is ApiSchemas['AssessedFeedbackView'] {
+    const assessed = asRecord(candidate)
+    if (assessed.contract_version !== 'learnlens.assessed-feedback.v1') return invalidResponse()
+    for (const key of ['response_version_id', 'content_digest', 'task_revision_id', 'task_form_id',
+      'assessment_attempt_id', 'rule_policy_version', 'prompt_version', 'model_version']) {
+      asIdentifier(assessed[key])
+    }
+    for (const key of ['summary', 'reflection_prompt', 'permitted_next_action']) asText(assessed[key])
+    asStringList(assessed.approved_hints)
+    asIdentifierList(assessed.help_use_ids)
+    if (!Array.isArray(assessed.criteria) || assessed.criteria.length > 64) return invalidResponse()
+    for (const entry of assessed.criteria) {
+      const criterion = asRecord(entry)
+      asIdentifier(criterion.criterion_id)
+      asIdentifier(criterion.criterion_version_id)
+      asText(criterion.learner_description)
+      asText(criterion.guidance)
+      if (!Array.isArray(criterion.evidence) || criterion.evidence.length > 100) return invalidResponse()
+      for (const item of criterion.evidence) {
+        const evidence = asRecord(item)
+        asIdentifier(evidence.response_version_id)
+        asIdentifier(evidence.content_digest)
+        asText(evidence.path)
+        asText(evidence.statement)
+        if (typeof evidence.recorded !== 'boolean') return invalidResponse()
+      }
+    }
+    if (!Array.isArray(assessed.source_claims) || assessed.source_claims.length > 100) return invalidResponse()
+    for (const entry of assessed.source_claims) {
+      const source = asRecord(entry)
+      asIdentifier(source.source_id)
+      asText(source.source_label)
+      asText(source.support_quote)
+      asText(source.claim)
+      if (source.claim !== source.support_quote) return invalidResponse()
+    }
+    return true
+  }
+  return valid(value) ? value : invalidResponse()
+}
+
 function asValidatedFeedback(value: unknown): ValidatedFeedback {
   const feedback = asRecord(value)
   const classification = feedback.response_classification
@@ -119,6 +164,7 @@ function asValidatedFeedback(value: unknown): ValidatedFeedback {
 
   return {
     kind: 'validated',
+    assessed: asAssessedFeedback(feedback.assessed),
     feedback_id: asIdentifier(feedback.feedback_id),
     response_classification: classification,
     summary: asText(feedback.summary) as string,

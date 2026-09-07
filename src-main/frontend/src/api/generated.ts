@@ -62,6 +62,29 @@ export type ApiSchemas = {
     "start_at"?: (string) | (null)
     "task_types"?: Array<string>
   }
+  "AssessedFeedbackView": {
+    "approved_hints": Array<string>
+    "assessment": ApiSchemas["AssessmentVersionReference"]
+    "assessment_attempt_id": string
+    "content_digest": string
+    "contract_version"?: "learnlens.assessed-feedback.v1"
+    "criteria": Array<ApiSchemas["CriterionFeedback"]>
+    "current_human_action_id": (string) | (null)
+    "help_use_ids": Array<string>
+    "model_version": string
+    "permitted_next_action": string
+    "prompt_version": string
+    "reflection_prompt": string
+    "response_version_id": string
+    "rule_policy_version": string
+    "simulation_evidence": Array<ApiSchemas["SimulationProvenance"]>
+    "source_claims": Array<ApiSchemas["GroundedSourceClaim"]>
+    "summary": string
+    "task_form_id": string
+    "task_form_version": number
+    "task_form_version_id": (string) | (null)
+    "task_revision_id": string
+  }
   "AssessmentApprovalState": "DRAFT" | "APPROVED" | "RETIRED"
   "AssessmentAttemptState": "PENDING" | "EVALUATED" | "FAULTED" | "VOID"
   "AssessmentAuthoringTaskRead": {
@@ -432,6 +455,15 @@ export type ApiSchemas = {
   }
   "CriterionDecision": "MET" | "NOT_MET" | "NOT_EVALUABLE"
   "CriterionEvaluatorType": "rules" | "human" | "validated_ai" | "mixed"
+  "CriterionFeedback": {
+    "criterion_id": string
+    "criterion_version": number
+    "criterion_version_id": string
+    "evidence": Array<ApiSchemas["ResponseFieldEvidence"]>
+    "guidance": string
+    "learner_description": string
+    "simulation_references": Array<string>
+  }
   "DraftRead": {
     "answer": string
     "assessment_work_start_id"?: (string) | (null)
@@ -696,6 +728,22 @@ export type ApiSchemas = {
     "source_references": Array<string>
     "task_type": ApiSchemas["TaskType"]
     "title": string
+  }
+  "GroundedSourceClaim": {
+    "approval_id": string
+    "chunk_id": string
+    "claim": string
+    "document_id": string
+    "end_offset": number
+    "passage_digest": string
+    "retrieval_request_id": string
+    "retrieval_version": string
+    "source_digest": string
+    "source_id": string
+    "source_label": string
+    "source_revision_id": string
+    "start_offset": number
+    "support_quote": string
   }
   "HTTPValidationError": {
     "detail"?: Array<ApiSchemas["ValidationError"]>
@@ -986,6 +1034,13 @@ export type ApiSchemas = {
     "circuit"?: (Partial<Record<string, ApiSchemas["JsonValue"]>>) | (null)
     "code"?: (string) | (null)
   }
+  "ResponseFieldEvidence": {
+    "content_digest": string
+    "path": string
+    "recorded": boolean
+    "response_version_id": string
+    "statement": string
+  }
   "ResultState": "NOT_ASSESSED" | "PROVISIONAL" | "CONFIRMED" | "OVERRIDDEN" | "VOID"
   "RetrievalHitRead": {
     "chunk_id": string
@@ -1074,6 +1129,16 @@ export type ApiSchemas = {
     "passing_score"?: (number) | (null)
     "points_per_level"?: (number) | (null)
     "reminders_enabled"?: (boolean) | (null)
+  }
+  "SimulationProvenance": {
+    "circuit_version_id": string
+    "engine_versions": Partial<Record<string, string>>
+    "episode_stage_start_id": (string) | (null)
+    "policy_version": string
+    "prediction_checkpoint_id": (string) | (null)
+    "result_digest": string
+    "run_id": string
+    "status": string
   }
   "SimulationRead": {
     "circuit_text": string
@@ -1384,6 +1449,7 @@ export type ApiSchemas = {
   "UserRole": "student" | "educator" | "administrator"
   "ValidatedFeedbackView": {
     "ai_generated_notice": string
+    "assessed"?: (ApiSchemas["AssessedFeedbackView"]) | (null)
     "explanation"?: (string) | (null)
     "feedback_id": string
     "identified_error"?: (string) | (null)

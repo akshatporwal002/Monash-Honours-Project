@@ -31,7 +31,6 @@ from app.services.feedback.application import (
     FeedbackAccessPolicy,
     FeedbackBackgroundExecutor,
     FeedbackWorkflowApplication,
-    workflow_response,
 )
 from app.services.feedback.contracts import FeedbackReportWrite
 from app.services.feedback.errors import FeedbackReportConflictError
@@ -91,7 +90,7 @@ async def start_feedback(
     await security.enforce(request, actor, "generation", mutating=True)
     await _require_submission_access(policy, actor, submission_id)
     claim = application.start(submission_id, correlation_id=correlation_id)
-    view = workflow_response(claim)
+    view = await application.response(claim)
     if view.status in {FeedbackWorkflowStatus.VALIDATED, FeedbackWorkflowStatus.FALLBACK}:
         response.status_code = 200
     else:
@@ -133,7 +132,7 @@ async def get_feedback(
     claim = application.get(submission_id)
     if claim is None:
         raise FeedbackApiException(404, "feedback_not_found", "Feedback was not found.")
-    view = workflow_response(claim)
+    view = await application.response(claim)
     if view.status is FeedbackWorkflowStatus.PROCESSING:
         response.headers["Retry-After"] = "2"
     elif view.status is FeedbackWorkflowStatus.FAILED and claim.retryable:

@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 
 import { createFeedbackApiClient, FeedbackApiError } from './api'
+import { AssessedFeedbackDetails } from './AssessedFeedbackDetails'
 import { FeedbackMarkdown } from './FeedbackMarkdown'
 import { FeedbackReportButton } from './FeedbackReportButton'
 import { FeedbackSources } from './FeedbackSources'
@@ -180,6 +181,9 @@ export function FeedbackPanel({
         {feedback.kind === 'safe_fallback' ? 'Feedback unavailable' : 'Your feedback'}
       </h2>
       <FeedbackMarkdown>{feedback.summary}</FeedbackMarkdown>
+      {feedback.kind === 'validated' && feedback.assessed && (
+        <AssessedFeedbackDetails feedback={feedback.assessed} />
+      )}
       {feedback.kind === 'validated' && feedback.identified_error && (
         <section aria-labelledby={identifiedErrorHeadingId}>
           <h3 id={identifiedErrorHeadingId}>What to revisit</h3>
