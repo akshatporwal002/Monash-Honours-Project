@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
@@ -119,3 +120,35 @@ class EpisodePlanV1(EpisodeContract):
         if not self.transfer.prompt.strip():
             raise ValueError("The fresh transfer prompt is required")
         return self
+
+
+class EpisodeTransferRead(EpisodeContract):
+    stage_start_id: OpaqueId
+    part_id: OpaqueId
+    prompt: Text
+    instructions: Text
+    starter_code: Text | None = None
+    starter_circuit: dict[str, JsonValue] | None = None
+
+
+class EpisodeStateRead(EpisodeContract):
+    schema_version: Literal["learnlens.episode-plan.v1"] = "learnlens.episode-plan.v1"
+    supported_part_id: OpaqueId
+    prediction_required: bool
+    required_responses: tuple[Literal["prediction", "reasoning", "explanation", "reflection"], ...]
+    supported_hints: tuple[str, ...] = ()
+    accessibility_support: tuple[str, ...] = ()
+    transfer_part_id: OpaqueId
+    transfer: EpisodeTransferRead | None = None
+
+
+class EpisodeCheckpointRead(EpisodeContract):
+    part_id: OpaqueId
+    prediction: ResponseContent
+    input_content: ResponseContent
+    created_at: datetime
+
+
+class EpisodeCheckpointPage(EpisodeContract):
+    items: tuple[EpisodeCheckpointRead, ...]
+    next_offset: int | None

@@ -32,6 +32,7 @@ from app.api.feedback_dependencies import get_feedback_application, get_feedback
 from app.core.config import settings
 from app.db.session import get_db
 from app.models import CourseState
+from app.schemas.episode import EpisodeCheckpointPage, EpisodeStateRead
 from app.schemas.lms import (
     AdminUserCreate,
     AdminUserRead,
@@ -49,6 +50,7 @@ from app.schemas.lms import (
     EducatorStudentRead,
     EnrollmentCreate,
     EnrollmentRead,
+    EpisodeCheckpointReceipt,
     EpisodeCheckpointWrite,
     MaterialLinkCreate,
     MaterialRead,
@@ -746,12 +748,14 @@ def bootstrap_demo_environment(
     )
 
 
-@router.get("/students/me/tasks/{task_id}/episode")
+@router.get("/students/me/tasks/{task_id}/episode", response_model=EpisodeStateRead | None)
 def read_episode(task_id: str, student: CurrentStudent, service: Lms):
     return service.episode_state(student, task_id)
 
 
-@router.post("/students/me/tasks/{task_id}/episode/checkpoints")
+@router.post(
+    "/students/me/tasks/{task_id}/episode/checkpoints", response_model=EpisodeCheckpointReceipt
+)
 def checkpoint_episode(
     task_id: str, payload: EpisodeCheckpointWrite, student: CurrentStudent, service: Lms
 ):
@@ -760,13 +764,21 @@ def checkpoint_episode(
     )
 
 
-@router.post("/students/me/tasks/{task_id}/episode/transfer")
+@router.post("/students/me/tasks/{task_id}/episode/transfer", response_model=EpisodeStateRead)
 def enter_episode_transfer(
     task_id: str, payload: DraftWrite, student: CurrentStudent, service: Lms
 ):
     return service.episode_transfer(student, task_id, payload)
 
 
-@router.get("/students/me/tasks/{task_id}/episode/checkpoints")
-def read_episode_checkpoints(task_id: str, student: CurrentStudent, service: Lms):
-    return service.episode_checkpoint_history(student, task_id)
+@router.get(
+    "/students/me/tasks/{task_id}/episode/checkpoints", response_model=EpisodeCheckpointPage
+)
+def read_episode_checkpoints(
+    task_id: str,
+    student: CurrentStudent,
+    service: Lms,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    return service.episode_checkpoint_history(student, task_id, limit=limit, offset=offset)

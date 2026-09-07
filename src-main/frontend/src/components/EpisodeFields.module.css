@@ -1,0 +1,8 @@
+﻿.navigation { display: flex; flex-wrap: wrap; gap: .5rem; margin-block: .75rem 1.25rem; }
+.stage { border: 1px solid var(--ll-border, #d6d6d1); border-radius: 8px; padding: 1rem; display: grid; gap: 1rem; min-width: 0; }
+.stage legend { padding-inline: .4rem; font-weight: 600; }
+.stage select { min-height: 44px; max-width: 100%; padding: .5rem; }
+.support { padding-block: 1.25rem; }
+.support h3, .transfer h3 { margin-bottom: .75rem; }
+.support summary { cursor: pointer; padding-block: .5rem; }
+.transfer { display: grid; gap: 1rem; border-top: 1px solid var(--ll-border, #d6d6d1); padding-top: 1.25rem; }
