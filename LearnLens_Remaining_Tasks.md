@@ -134,7 +134,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 2 and 9; Task 8, D-02, D-04, and D-05. Circuit publication also needs Task 11. Suggested owner: course and assessment teams.
 
-    Task 12 progress, 7 September 2026: implemented and locally verified. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records explicit staff eligibility and grants, source and task review, immutable history, current formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides. The final integration is being completed under the user's commit, push, and merge instruction.
+    Task 12 progress, 7 September 2026: implemented and locally verified. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records explicit staff eligibility and grants, source and task review, immutable history, current formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides. Integration and remote checks are tracked in [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8).
 
     Generated tasks become ordinary task rows without a general review lifecycle. Course publication checks do not prove individual task approval. Formal definition approval exists, but runtime publication policy remains closed. Add review, edit, approve, reject, and history controls. Connect approved role policies and require complete outcome, criterion, source, support, access, and task-form versions.
 

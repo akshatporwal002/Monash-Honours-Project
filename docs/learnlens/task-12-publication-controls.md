@@ -1,6 +1,6 @@
 # Task 12: educator review and publication controls
 
-Status: implemented and locally verified. Final integration and remote CI are pending.
+Status: implemented and locally verified. Integration and remote checks are tracked in [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8).
 An authorised assessor can publish a reviewed formal form through ordinary application policies.
 
 Branch: `feat/task-12-educator-publication-controls`.
