@@ -21,10 +21,11 @@ from app.services.lms import LmsService
 from app.services.task_review import TaskReviewError
 
 
-def setup_episode(session, task_type=TaskType.QUANTUM_CIRCUIT):
+def setup_episode(session, task_type=TaskType.QUANTUM_CIRCUIT, *, prediction_required=True):
     course_id, outcome_id, owner_id, outcome_version_id = _setup(session)
     task = session.scalar(select(LearningTask).where(LearningTask.course_id == course_id))
     plan = EpisodePlanV1(
+        prediction_required=prediction_required,
         transfer={
             "prompt": "SYNTHETIC PRIVATE fresh Hadamard application",
             "starter_circuit": {"qubits": 1, "operations": []},

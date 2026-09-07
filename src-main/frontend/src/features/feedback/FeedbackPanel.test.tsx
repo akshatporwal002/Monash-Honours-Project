@@ -312,3 +312,20 @@ test('submits an accessible keyboard-operated concern report', async () => {
     expect((await axe.run(container)).violations).toEqual([])
   })
 })
+
+test('feedback acknowledgement is explicit, retryable, and recorded only after success', async () => {
+  const user = userEvent.setup()
+  const client = Object.assign(new FakeClient([result(validated())]), {
+    acknowledge: vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined),
+  })
+  render(<FeedbackPanel submissionId="submission-1" client={client} />)
+  const button = await screen.findByRole('button', { name: 'I’ve reviewed this feedback' })
+  expect(client.acknowledge).not.toHaveBeenCalled()
+  await user.click(button)
+  expect(await screen.findByText('Could not record your review. Please try again.')).toBeInTheDocument()
+  expect(button).toBeEnabled()
+  await user.click(button)
+  expect(await screen.findByText('Feedback review recorded.')).toBeInTheDocument()
+  expect(button).toBeDisabled()
+  expect(client.acknowledge).toHaveBeenLastCalledWith('submission-1', 'feedback-1')
+})

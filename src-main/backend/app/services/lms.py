@@ -105,6 +105,7 @@ from app.services.authentication import normalize_email
 from app.services.episode_contract import learner_episode_plan, validate_reviewed_episode_plan
 from app.services.episode_evidence import canonical_response_digest
 from app.services.episodes import EpisodeService
+from app.services.evidence.live import LiveEvidenceCapture
 from app.services.gamification import GamificationService, ensure_default_achievements
 from app.services.learning_events import HmacSha256Pseudonymizer
 from app.services.quantum import CircuitOperation, QuantumSimulationError
@@ -754,6 +755,7 @@ class LmsService:
         checkpoint = EpisodeService(self.session).checkpoint(
             draft, part_id=part_id, stage_start_id=stage_start_id
         )
+        LiveEvidenceCapture(self.session).checkpoint(checkpoint)
         self._commit()
         return {"checkpoint_id": checkpoint.id, "draft": DraftRead.model_validate(draft)}
 
@@ -818,6 +820,7 @@ class LmsService:
             else None
         )
         record = EpisodeSupportService(self.session).record(work, payload)
+        LiveEvidenceCapture(self.session).support(record)
         self._commit()
         return record
 
@@ -1046,8 +1049,38 @@ class LmsService:
                 [self._task_read(item, student) for item in student_tasks],
             ),
         )
+        LiveEvidenceCapture(self.session).submission(attempt)
         self._commit()
         return self._attempt_read(attempt, points_awarded)
+
+    def acknowledge_feedback(self, student, submission_id, feedback_id, workflow_id):
+        self._acquire_submission_sequence_lock(student.id)
+        response = self.session.get(SubmissionAttempt, submission_id)
+        if response is None or response.student_id != student.id:
+            raise _not_found("Feedback")
+        task = self._require_student_task(student, response.task_id, require_available=False)
+        if not task.learning_outcome_id:
+            raise _conflict("This activity has no learning outcome")
+        identity = LiveEvidenceCapture(self.session).acknowledge_feedback(
+            response, feedback_id, workflow_id
+        )
+        self._commit()
+        return {"evidence_id": identity, "acknowledged": True}
+
+    def evidence_history(self, student: User, task_id: str, *, limit=50, offset=0):
+        from app.services.evidence.history import task_history
+
+        try:
+            self._require_student_task(student, task_id, require_available=False)
+        except LmsServiceError as error:
+            if error.status_code in {403, 404}:
+                raise _not_found("Evidence") from error
+            raise
+        if not 1 <= limit <= 100 or offset < 0:
+            raise LmsServiceError(422, "Invalid evidence history page")
+        return task_history(
+            self.session, learner_id=student.id, task_id=task_id, limit=limit, offset=offset
+        )
 
     def list_attempts(self, student: User, task_id: str) -> list[AttemptRead]:
         self._require_student_task(student, task_id, require_available=False)

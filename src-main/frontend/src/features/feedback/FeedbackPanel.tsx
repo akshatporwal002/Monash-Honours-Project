@@ -81,6 +81,7 @@ export function FeedbackPanel({
   const [workflow, setWorkflow] = useState<FeedbackWorkflowResponse | null>(null)
   const [requestError, setRequestError] = useState<RequestFailure | null>(null)
   const [requestVersion, setRequestVersion] = useState(0)
+  const [acknowledgement, setAcknowledgement] = useState<{ feedbackId: string; state: 'saving' | 'saved' | 'error' } | null>(null)
   const headingId = useId()
   const identifiedErrorHeadingId = useId()
   const nextStepHeadingId = useId()
@@ -201,6 +202,30 @@ export function FeedbackPanel({
         </section>
       )}
       <FeedbackSources sources={feedback.sources} />
+      {feedback.kind === 'validated' && apiClient.acknowledge && (
+        <div>
+          <button type="button"
+            disabled={acknowledgement?.feedbackId === feedback.feedback_id && acknowledgement.state !== 'error'}
+            onClick={async () => {
+              setAcknowledgement({ feedbackId: feedback.feedback_id, state: 'saving' })
+              try {
+                await apiClient.acknowledge!(submissionId, feedback.feedback_id)
+                setAcknowledgement({ feedbackId: feedback.feedback_id, state: 'saved' })
+              } catch {
+                setAcknowledgement({ feedbackId: feedback.feedback_id, state: 'error' })
+              }
+            }}>
+            I’ve reviewed this feedback
+          </button>
+          <p role="status">
+            {acknowledgement?.feedbackId === feedback.feedback_id && (
+              acknowledgement.state === 'saved' ? 'Feedback review recorded.' :
+              acknowledgement.state === 'saving' ? 'Saving feedback review…' :
+              'Could not record your review. Please try again.'
+            )}
+          </p>
+        </div>
+      )}
       {feedback.kind === 'validated' && (
         <p className={styles.notice}>
           <Tag>AI-generated</Tag>

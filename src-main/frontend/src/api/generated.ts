@@ -8,6 +8,7 @@ export type ApiSchemas = {
     "reference_id": string
     "status"?: "ACCESS_DENIED"
   }
+  "AccessSupportState": "NOT_DECLARED" | "APPROVED" | "PROVIDED"
   "AchievementRead": {
     "code": string
     "description": string
@@ -624,7 +625,15 @@ export type ApiSchemas = {
   "EvidenceReferenceResolutionEnvelope": {
     "resolution": (ApiSchemas["ResolvedEvidenceReference"]) | (ApiSchemas["MissingEvidenceReference"]) | (ApiSchemas["StaleEvidenceReference"]) | (ApiSchemas["ConflictingEvidenceReference"]) | (ApiSchemas["AccessDeniedEvidenceReference"]) | (ApiSchemas["InvalidEvidenceReference"])
   }
+  "EvidenceType": "PREDICTION" | "EXPLANATION" | "REASONING" | "RESPONSE" | "REVISION" | "CONFIDENCE" | "HINT" | "SCAFFOLD" | "FEEDBACK_INTERACTION" | "REFLECTION" | "SIMULATION" | "MISCONCEPTION_CHECK" | "TRANSFER" | "DIAGNOSTIC" | "SYSTEM_FAULT"
   "ExperimentalCondition": "agentic_rag" | "single_step_baseline"
+  "FeedbackAcknowledgement": {
+    "feedback_id": string
+  }
+  "FeedbackAcknowledgementRead": {
+    "acknowledged"?: boolean
+    "evidence_id": string
+  }
   "FeedbackApiErrorDetail": {
     "code": string
     "message": string
@@ -887,6 +896,24 @@ export type ApiSchemas = {
     "unique_submissions": ApiSchemas["MetricValue"]
     "unique_task_views": ApiSchemas["MetricValue"]
   }
+  "LiveEvidencePage": {
+    "items": Array<ApiSchemas["LiveEvidenceRead"]>
+    "next_offset": (number) | (null)
+  }
+  "LiveEvidenceRead": {
+    "access_support_state": ApiSchemas["AccessSupportState"]
+    "content_digest": string
+    "evidence_id": string
+    "evidence_type": ApiSchemas["EvidenceType"]
+    "instructional_support_level": number
+    "observation_type": ApiSchemas["ObservationType"]
+    "occurred_at": string
+    "outcome_id": string
+    "related_evidence_ids": Array<string>
+    "response_version_id": (string) | (null)
+    "source_interaction_id": (string) | (null)
+    "task_id": string
+  }
   "LoginRequest": {
     "email": string
     "password": string
@@ -951,6 +978,7 @@ export type ApiSchemas = {
     "position"?: (number) | (null)
     "title"?: (string) | (null)
   }
+  "ObservationType": "DIRECT" | "SELF_REPORTED" | "SYSTEM_CAPTURED" | "EDUCATOR_RECORDED"
   "OutcomeCreate": {
     "kind": ApiSchemas["OutcomeKind"]
     "position": number

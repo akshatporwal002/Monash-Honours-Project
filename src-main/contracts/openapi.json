@@ -36,6 +36,15 @@
         "title": "AccessDeniedEvidenceReference",
         "type": "object"
       },
+      "AccessSupportState": {
+        "enum": [
+          "NOT_DECLARED",
+          "APPROVED",
+          "PROVIDED"
+        ],
+        "title": "AccessSupportState",
+        "type": "string"
+      },
       "AchievementRead": {
         "additionalProperties": false,
         "properties": {
@@ -4356,6 +4365,27 @@
         "title": "EvidenceReferenceResolutionEnvelope",
         "type": "object"
       },
+      "EvidenceType": {
+        "enum": [
+          "PREDICTION",
+          "EXPLANATION",
+          "REASONING",
+          "RESPONSE",
+          "REVISION",
+          "CONFIDENCE",
+          "HINT",
+          "SCAFFOLD",
+          "FEEDBACK_INTERACTION",
+          "REFLECTION",
+          "SIMULATION",
+          "MISCONCEPTION_CHECK",
+          "TRANSFER",
+          "DIAGNOSTIC",
+          "SYSTEM_FAULT"
+        ],
+        "title": "EvidenceType",
+        "type": "string"
+      },
       "ExperimentalCondition": {
         "enum": [
           "agentic_rag",
@@ -4363,6 +4393,41 @@
         ],
         "title": "ExperimentalCondition",
         "type": "string"
+      },
+      "FeedbackAcknowledgement": {
+        "additionalProperties": false,
+        "properties": {
+          "feedback_id": {
+            "maxLength": 36,
+            "minLength": 36,
+            "pattern": "^[0-9a-f-]+$",
+            "title": "Feedback Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feedback_id"
+        ],
+        "title": "FeedbackAcknowledgement",
+        "type": "object"
+      },
+      "FeedbackAcknowledgementRead": {
+        "properties": {
+          "acknowledged": {
+            "default": true,
+            "title": "Acknowledged",
+            "type": "boolean"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id"
+        ],
+        "title": "FeedbackAcknowledgementRead",
+        "type": "object"
       },
       "FeedbackApiErrorDetail": {
         "additionalProperties": false,
@@ -6037,6 +6102,117 @@
         "title": "LearningMetricsResult",
         "type": "object"
       },
+      "LiveEvidencePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LiveEvidenceRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "LiveEvidencePage",
+        "type": "object"
+      },
+      "LiveEvidenceRead": {
+        "properties": {
+          "access_support_state": {
+            "$ref": "#/components/schemas/AccessSupportState"
+          },
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "evidence_type": {
+            "$ref": "#/components/schemas/EvidenceType"
+          },
+          "instructional_support_level": {
+            "title": "Instructional Support Level",
+            "type": "integer"
+          },
+          "observation_type": {
+            "$ref": "#/components/schemas/ObservationType"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "related_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Evidence Ids",
+            "type": "array"
+          },
+          "response_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Version Id"
+          },
+          "source_interaction_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Interaction Id"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "task_id",
+          "outcome_id",
+          "response_version_id",
+          "source_interaction_id",
+          "evidence_type",
+          "observation_type",
+          "access_support_state",
+          "instructional_support_level",
+          "occurred_at",
+          "content_digest",
+          "related_evidence_ids"
+        ],
+        "title": "LiveEvidenceRead",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -6467,6 +6643,16 @@
         },
         "title": "ModuleUpdate",
         "type": "object"
+      },
+      "ObservationType": {
+        "enum": [
+          "DIRECT",
+          "SELF_REPORTED",
+          "SYSTEM_CAPTURED",
+          "EDUCATOR_RECORDED"
+        ],
+        "title": "ObservationType",
+        "type": "string"
       },
       "OutcomeCreate": {
         "additionalProperties": false,
@@ -16088,6 +16274,87 @@
         ]
       }
     },
+    "/api/v1/student/tasks/{task_id}/evidence": {
+      "get": {
+        "operationId": "student_evidence_history_api_v1_student_tasks__task_id__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveEvidencePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Student Evidence History",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
     "/api/v1/students/me/dashboard": {
       "get": {
         "operationId": "student_dashboard_api_v1_students_me_dashboard_get",
@@ -17367,6 +17634,77 @@
           }
         },
         "summary": "Start Feedback",
+        "tags": [
+          "feedback"
+        ]
+      }
+    },
+    "/api/v1/submissions/{submission_id}/feedback/acknowledgement": {
+      "post": {
+        "operationId": "acknowledge_feedback_api_v1_submissions__submission_id__feedback_acknowledgement_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,254}$",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackAcknowledgement"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackAcknowledgementRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge Feedback",
         "tags": [
           "feedback"
         ]

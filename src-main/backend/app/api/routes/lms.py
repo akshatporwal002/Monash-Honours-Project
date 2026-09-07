@@ -39,6 +39,7 @@ from app.schemas.episode import (
     EpisodeHelpUseWrite,
     EpisodeStateRead,
 )
+from app.schemas.live_evidence import LiveEvidencePage
 from app.schemas.lms import (
     AdminUserCreate,
     AdminUserRead,
@@ -82,6 +83,7 @@ from app.services.assessment.jobs import (
     AssessmentEvaluationExecutor,
     AssessmentEvaluationJobError,
 )
+from app.services.evidence.safety import EvidenceError
 from app.services.feedback.application import (
     FeedbackBackgroundExecutor,
     FeedbackWorkflowApplication,
@@ -105,6 +107,11 @@ def get_lms_service(
             session,
             correlation_id=getattr(request.state, "correlation_id", None),
         )
+    except EvidenceError as error:
+        session.rollback()
+        raise HTTPException(
+            status_code=503, detail="Learning evidence could not be saved. Retry this action."
+        ) from error
     except (LmsServiceError, TaskReviewError) as error:
         session.rollback()
         raise HTTPException(
@@ -806,3 +813,14 @@ def read_episode_help(
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
     return service.episode_help_history(student, task_id, limit=limit, offset=offset)
+
+
+@router.get("/student/tasks/{task_id}/evidence", response_model=LiveEvidencePage)
+def student_evidence_history(
+    task_id: str,
+    student: CurrentStudent,
+    service: Lms,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    return service.evidence_history(student, task_id, limit=limit, offset=offset)

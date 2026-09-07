@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Path, Request, Response
 from app.api.analytics_dependencies import get_analytics_pseudonymizer
 from app.api.audit_dependencies import get_student_audit_tracker
 from app.api.contract_responses import sanitized_errors
+from app.api.dependencies.roles import CurrentStudent
 from app.api.feedback_dependencies import (
     FeedbackApiException,
     get_feedback_access_policy,
@@ -14,6 +15,7 @@ from app.api.feedback_dependencies import (
     require_actor,
 )
 from app.api.learning_event_dependencies import get_feedback_view_tracker
+from app.api.routes.lms import Lms
 from app.api.security_dependencies import (
     RequestSecurityGuard,
     get_request_security_guard,
@@ -25,6 +27,7 @@ from app.schemas.feedback_api import (
     FeedbackWorkflowResponse,
     FeedbackWorkflowStatus,
 )
+from app.schemas.live_evidence import FeedbackAcknowledgement, FeedbackAcknowledgementRead
 from app.services.analytics import AnalyticsPseudonymizer
 from app.services.audit_events import NullStudentAuditTracker, StudentAuditTracker
 from app.services.feedback.application import (
@@ -251,3 +254,37 @@ def _correlation_id(request: Request) -> str:
         except ValueError:
             pass
     return str(uuid4())
+
+
+@router.post(
+    "/submissions/{submission_id}/feedback/acknowledgement",
+    response_model=FeedbackAcknowledgementRead,
+)
+async def acknowledge_feedback(
+    submission_id: SubmissionPathId,
+    payload: FeedbackAcknowledgement,
+    request: Request,
+    student: CurrentStudent,
+    service: Lms,
+    actor: AuthenticatedActor = Depends(require_actor),
+    policy: FeedbackAccessPolicy = Depends(get_feedback_access_policy),
+    application: FeedbackWorkflowApplication = Depends(get_feedback_application),
+    security: RequestSecurityGuard = Depends(get_request_security_guard),
+):
+    await security.enforce(request, actor, "generation", mutating=True)
+    await _require_submission_access(policy, actor, submission_id)
+    claim = application.get(submission_id)
+    if claim is None:
+        raise FeedbackApiException(404, "feedback_not_found", "Feedback was not found.")
+    view = await application.response(claim)
+    if (
+        view.status is not FeedbackWorkflowStatus.VALIDATED
+        or view.feedback is None
+        or view.feedback.feedback_id != payload.feedback_id
+    ):
+        raise FeedbackApiException(
+            409, "feedback_unavailable", "Validated feedback is not currently available."
+        )
+    return service.acknowledge_feedback(
+        student, submission_id, payload.feedback_id, claim.workflow_run_id
+    )

@@ -66,6 +66,7 @@ export type FeedbackReportResponse = ApiSchemas['FeedbackReportResponse'] & {
 }
 
 export interface FeedbackApiClient {
+  acknowledge?(submissionId: string, feedbackId: string, signal?: AbortSignal): Promise<void>
   start(submissionId: string, signal?: AbortSignal): Promise<FeedbackWorkflowResult>
   get(submissionId: string, signal?: AbortSignal): Promise<FeedbackWorkflowResult>
   report(
