@@ -455,6 +455,20 @@ export function createFeedbackApiClient(
     get(submissionId, signal) {
       return workflowRequest(submissionId, 'GET', signal)
     },
+    async acknowledge(submissionId, feedbackId, signal) {
+      assertExternalId(submissionId)
+      assertExternalId(feedbackId)
+      await requestJson(
+        `${apiBaseUrl}/submissions/${encodeURIComponent(submissionId)}/feedback/acknowledgement`,
+        { method: 'POST', body: JSON.stringify({ feedback_id: feedbackId }), signal },
+        (value) => {
+          const record = asRecord(value)
+          if (record.acknowledged !== true) return invalidResponse()
+          asIdentifier(record.evidence_id)
+        },
+        requestOptions,
+      )
+    },
     async report(feedbackId, report, signal) {
       assertExternalId(feedbackId)
       assertReport(report)
