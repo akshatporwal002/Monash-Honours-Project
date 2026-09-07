@@ -32,6 +32,13 @@ from app.api.feedback_dependencies import get_feedback_application, get_feedback
 from app.core.config import settings
 from app.db.session import get_db
 from app.models import CourseState
+from app.schemas.episode import (
+    EpisodeCheckpointPage,
+    EpisodeHelpUsePage,
+    EpisodeHelpUseReceipt,
+    EpisodeHelpUseWrite,
+    EpisodeStateRead,
+)
 from app.schemas.lms import (
     AdminUserCreate,
     AdminUserRead,
@@ -49,6 +56,8 @@ from app.schemas.lms import (
     EducatorStudentRead,
     EnrollmentCreate,
     EnrollmentRead,
+    EpisodeCheckpointReceipt,
+    EpisodeCheckpointWrite,
     MaterialLinkCreate,
     MaterialRead,
     ModuleCreate,
@@ -743,3 +752,57 @@ def bootstrap_demo_environment(
         users=[service._admin_user_read(user) for user in users],
         course=service._course_read(course),
     )
+
+
+@router.get("/students/me/tasks/{task_id}/episode", response_model=EpisodeStateRead | None)
+def read_episode(task_id: str, student: CurrentStudent, service: Lms):
+    return service.episode_state(student, task_id)
+
+
+@router.post(
+    "/students/me/tasks/{task_id}/episode/checkpoints", response_model=EpisodeCheckpointReceipt
+)
+def checkpoint_episode(
+    task_id: str, payload: EpisodeCheckpointWrite, student: CurrentStudent, service: Lms
+):
+    return service.episode_checkpoint(
+        student, task_id, payload.response, payload.part_id, payload.stage_start_id
+    )
+
+
+@router.post("/students/me/tasks/{task_id}/episode/transfer", response_model=EpisodeStateRead)
+def enter_episode_transfer(
+    task_id: str, payload: DraftWrite, student: CurrentStudent, service: Lms
+):
+    return service.episode_transfer(student, task_id, payload)
+
+
+@router.get(
+    "/students/me/tasks/{task_id}/episode/checkpoints", response_model=EpisodeCheckpointPage
+)
+def read_episode_checkpoints(
+    task_id: str,
+    student: CurrentStudent,
+    service: Lms,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    return service.episode_checkpoint_history(student, task_id, limit=limit, offset=offset)
+
+
+@router.post("/students/me/tasks/{task_id}/episode/help", response_model=EpisodeHelpUseReceipt)
+def record_episode_help(
+    task_id: str, payload: EpisodeHelpUseWrite, student: CurrentStudent, service: Lms
+):
+    return service.episode_help_use(student, task_id, payload)
+
+
+@router.get("/students/me/tasks/{task_id}/episode/help", response_model=EpisodeHelpUsePage)
+def read_episode_help(
+    task_id: str,
+    student: CurrentStudent,
+    service: Lms,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    return service.episode_help_history(student, task_id, limit=limit, offset=offset)

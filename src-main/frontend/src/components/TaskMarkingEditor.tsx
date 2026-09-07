@@ -7,7 +7,7 @@ function contentObject(value: unknown): Content {
 const list = (value: unknown): unknown[] => Array.isArray(value) ? value : []
 const lines = (value: unknown) => list(value).map(String).join('\n')
 
-function CircuitSpecificationEditor({ label, value, disabled, onChange }: { label: string; value: unknown; disabled: boolean; onChange: (value: Content) => void }) {
+export function CircuitSpecificationEditor({ label, value, disabled, onChange }: { label: string; value: unknown; disabled: boolean; onChange: (value: Content) => void }) {
   const circuit = contentObject(value)
   const operations = list(circuit.operations)
   const set = (key: string, next: unknown) => onChange({ ...circuit, [key]: next })

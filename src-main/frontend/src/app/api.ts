@@ -1,3 +1,4 @@
+import type { EpisodePayload, EpisodeState } from "./types"
 import type {
   AdminUser,
   AuthUser,
@@ -51,7 +52,7 @@ export function csrfToken(): string | null {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
   if (!(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
@@ -96,6 +97,7 @@ function json(method: string, body?: JsonBody): RequestInit {
 }
 
 interface RawTask {
+  episode_plan?: EpisodeState | null
   id: string
   title: string
   prompt: string
@@ -196,6 +198,7 @@ interface RawEducatorStudent {
 }
 
 interface RawSubmission {
+  episode?: EpisodePayload | null
   assessment_work_start_id?: string | null
   id?: string
   score?: number | null
@@ -212,6 +215,7 @@ interface RawSubmission {
 }
 
 interface RawDraft {
+  episode?: EpisodePayload | null
   assessment_work_start_id?: string | null
   id: string
   task_id: string
@@ -299,6 +303,7 @@ function normalizeTask(task: RawTask): LearningTask {
     prerequisite_task_ids: task.prerequisite_task_ids ?? [],
     attempt_count: task.attempt_count ?? 0,
     assessment: task.assessment ?? null,
+    episode_plan: task.episode_plan ?? null,
   }
 }
 
@@ -382,6 +387,7 @@ function normalizeStudent(student: RawEducatorStudent): EducatorStudent {
 function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   return {
     assessment_work_start_id: raw.assessment_work_start_id,
+    episode: raw.episode,
     id: raw.id,
     score: raw.score ?? null,
     formal_assessment: raw.formal_assessment ?? null,
@@ -534,27 +540,26 @@ export const api = {
         `/students/me/tasks/${encodeURIComponent(taskId)}/start`,
         { ...json('POST', { task_form_version_id: taskFormVersionId }), signal },
       ),
+    savedSimulation: async (runId: string): Promise<SimulationResult | null> => {
+      const record = await request<{ run_id: string; circuit_version_id: string; result: Omit<SimulationResult, 'run_id'> | null }>(`/simulations/${encodeURIComponent(runId)}`)
+      return record.result ? { ...record.result, run_id: record.run_id, circuit_version_id: record.circuit_version_id } : null
+    },
+    checkpointHistory: (taskId: string, signal?: AbortSignal, offset = 0) => request<ApiSchemas['EpisodeCheckpointPage']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/checkpoints?limit=20&offset=${offset}`, { signal }),
+    helpHistory: (taskId: string, signal?: AbortSignal, offset = 0) => request<ApiSchemas['EpisodeHelpUsePage']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/help?limit=20&offset=${offset}`, { signal }),
+    recordHelp: (taskId: string, payload: ApiSchemas['EpisodeHelpUseWrite']) => request<ApiSchemas['EpisodeHelpUseReceipt']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/help`, json('POST', payload)),
+    episodeState: (taskId: string, signal?: AbortSignal) => request<EpisodeState | null>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode`, { signal }),
+    checkpoint: (taskId: string, response: object, partId: string, stageStartId?: string) => request<ApiSchemas['EpisodeCheckpointReceipt']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/checkpoints`, json('POST', { response, part_id: partId, stage_start_id: stageStartId ?? null })),
+    enterTransfer: (taskId: string, response: object) => request<EpisodeState>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/transfer`, json('POST', response)),
     saveDraft: (
       taskId: string,
-      payload: {
-        answer: string
-        assessment_work_start_id?: string | null
-        code?: string
-        circuit?: { qubits: number; operations: GateOperation[] }
-      },
+      payload: ApiSchemas['DraftWrite'],
     ) => request<RawDraft>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/draft`,
       json('PUT', payload),
     ),
     submit: async (
       taskId: string,
-      payload: {
-        answer: string
-        assessment_work_start_id?: string | null
-        code?: string
-        circuit?: { qubits: number; operations: GateOperation[] }
-        idempotency_key?: string
-      },
+      payload: ApiSchemas['SubmissionCreate'],
     ) => normalizeSubmission(await request<RawSubmission>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/submissions`,
       json('POST', payload),
@@ -564,14 +569,15 @@ export const api = {
         `/students/me/tasks/${encodeURIComponent(taskId)}/submissions`,
         { signal },
       )).map(normalizeSubmission),
-    simulate: async (operations: GateOperation[], taskId: string): Promise<SimulationResult> => {
+    simulate: async (operations: GateOperation[], taskId: string, checkpointId?: string | null, stageStartId?: string, partId?: string, qubits = 2): Promise<SimulationResult> => {
       const record = await request<{
         run_id: string
+        circuit_version_id: string
         status: 'pending' | 'completed' | 'failed' | 'timed_out' | 'interrupted'
         result: Omit<SimulationResult, 'run_id'> | null
       }>(
         '/students/me/simulate',
-        json('POST', { qubits: 2, operations, shots: 1024, task_id: taskId, request_key: crypto.randomUUID() }),
+        json('POST', { qubits, operations, shots: 1024, task_id: taskId, request_key: crypto.randomUUID(), prediction_checkpoint_id: checkpointId, episode_stage_start_id: stageStartId, episode_part_id: partId }),
       )
       if (record.status !== 'completed' || !record.result) {
         const messages = {
@@ -583,7 +589,7 @@ export const api = {
         }
         throw new ApiError(messages[record.status], 200)
       }
-      return { ...record.result, run_id: record.run_id }
+      return { ...record.result, run_id: record.run_id, circuit_version_id: record.circuit_version_id }
     },
     markNotificationRead: (notificationId: string) =>
       request<void>(

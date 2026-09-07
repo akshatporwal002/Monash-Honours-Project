@@ -191,7 +191,7 @@ class AssessmentSubmissionService:
             if draft.assessment_work_start_id != existing.id:
                 raise TaskReviewError("Saved work needs assessor review before continuing", 409)
             return existing
-        if draft.answer or draft.code or draft.circuit:
+        if draft.answer or draft.code or draft.circuit or draft.episode:
             raise TaskReviewError(
                 "This saved draft predates the assessment standard. Your saved work is preserved; ask your assessor to review it.",
                 409,

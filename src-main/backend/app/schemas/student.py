@@ -78,6 +78,9 @@ class GateOperation(BaseModel):
 
 
 class SimulationRequest(BaseModel):
+    prediction_checkpoint_id: str | None = Field(default=None, min_length=1, max_length=255)
+    episode_stage_start_id: str | None = Field(default=None, min_length=1, max_length=255)
+    episode_part_id: str | None = Field(default=None, min_length=1, max_length=255)
     qubits: Annotated[int, Field(ge=1, le=5, strict=True)] = 2
     operations: list[GateOperation] = Field(default_factory=list, max_length=30)
     shots: Annotated[int, Field(ge=1, le=4096, strict=True)] = 1024
@@ -109,6 +112,8 @@ class SimulationRead(BaseModel):
 
 
 class SimulationRunRead(BaseModel):
+    prediction_checkpoint_id: str | None = None
+    episode_stage_start_id: str | None = None
     run_id: str
     owner_id: int
     task_id: str | None

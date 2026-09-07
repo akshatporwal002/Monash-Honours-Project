@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api } from '../app/api'
 import type { ApiSchemas } from '../api/generated'
 import { TaskMarkingEditor } from './TaskMarkingEditor'
+import { EpisodePlanEditor } from './EpisodePlanEditor'
 import { Button, Field, Input, Select, Tag, Textarea } from './ui'
 import styles from './TaskReviewPanel.module.css'
 
@@ -152,6 +153,7 @@ function RevisionReview({ taskId }: { taskId: string }) {
       </Field>
       {form.starter_code && <Field label="Starter code"><Textarea disabled={busy} value={form.starter_code} onChange={(event) => edit('starter_code', event.target.value)} /></Field>}
       <TaskMarkingEditor taskType={taskType} value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
+      <EpisodePlanEditor value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
       <Button onClick={() => void save()} disabled={busy || !dirty || !summary.revision_id}>Save task revision</Button>
       <Field label="Review reason" required><Textarea maxLength={2000} disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
       {dirty && <p>Save your edits before recording a review.</p>}
@@ -194,7 +196,7 @@ export function TaskReviewPanel({ courseId }: { courseId: string }) {
   }, [courseId])
 
   return <section aria-label="Task review" className={styles.panel}>
-    <h3>Review saved tasks</h3>
+    <h2>Review saved tasks</h2>
     {error && <p role="alert">{error}</p>}
     <Field label="Task to review"><Select value={taskId} onValueChange={setTaskId}
       options={tasks.map((task) => ({ value: task.id, label: task.title }))} placeholder="Choose a saved task" />

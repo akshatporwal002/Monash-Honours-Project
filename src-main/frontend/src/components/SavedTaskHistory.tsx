@@ -1,3 +1,4 @@
+import { EpisodeSnapshot } from "./EpisodeSnapshot"
 import { useEffect, useState } from 'react'
 
 import { api } from '../app/api'
@@ -5,9 +6,10 @@ import type { TaskDraft, TaskSubmission } from '../app/types'
 import { Card } from './ui'
 import styles from './SavedTaskHistory.module.css'
 
-function SavedResponse({ response }: { response: Pick<TaskDraft, 'answer' | 'code' | 'circuit'> }) {
+function SavedResponse({ response }: { response: Pick<TaskDraft, 'answer' | 'code' | 'circuit' | 'episode'> }) {
   return <div className={styles.response}>
-    {response.answer && <p>{response.answer}</p>}
+    {response.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{response.answer}</pre>}
+    {response.episode && <EpisodeSnapshot episode={response.episode} />}
     {response.code && <pre>{response.code}</pre>}
     {response.circuit && <div>
       <p>Circuit: {response.circuit.qubits} qubits</p>
@@ -51,7 +53,7 @@ export function SavedTaskHistory({ taskId }: { taskId: string }) {
           <h3>Attempt {attempt.attempt_number ?? attempts.length - index}</h3>
           <p>{attempt.formal_assessment ? 'Assessment response saved' : 'Response saved'}</p>
           {attempt.submitted_at && <time dateTime={attempt.submitted_at}>{new Date(attempt.submitted_at).toLocaleString()}</time>}
-          <SavedResponse response={{ answer: attempt.answer ?? '', code: attempt.code ?? null, circuit: attempt.circuit ?? null }} />
+          <SavedResponse response={{ episode: attempt.episode, answer: attempt.answer ?? '', code: attempt.code ?? null, circuit: attempt.circuit ?? null }} />
           {attempt.feedback && <p>{attempt.feedback}</p>}
         </li>)}
       </ol>}

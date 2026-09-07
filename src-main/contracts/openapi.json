@@ -2333,6 +2333,16 @@
             ],
             "title": "Code"
           },
+          "episode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodePayloadV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "feedback": {
             "title": "Feedback",
             "type": "string"
@@ -2933,6 +2943,16 @@
             ],
             "title": "Code"
           },
+          "episode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodePayloadV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -3051,6 +3071,16 @@
               }
             ],
             "title": "Code"
+          },
+          "episode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodePayloadV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "DraftWrite",
@@ -3286,6 +3316,584 @@
         ],
         "title": "EnrollmentStatus",
         "type": "string"
+      },
+      "EpisodeCheckpointPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EpisodeCheckpointRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "EpisodeCheckpointPage",
+        "type": "object"
+      },
+      "EpisodeCheckpointRead": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "input_content": {
+            "$ref": "#/components/schemas/ResponseContent"
+          },
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Part Id",
+            "type": "string"
+          },
+          "prediction": {
+            "$ref": "#/components/schemas/ResponseContent"
+          }
+        },
+        "required": [
+          "part_id",
+          "prediction",
+          "input_content",
+          "created_at"
+        ],
+        "title": "EpisodeCheckpointRead",
+        "type": "object"
+      },
+      "EpisodeCheckpointReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "checkpoint_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Checkpoint Id",
+            "type": "string"
+          },
+          "draft": {
+            "$ref": "#/components/schemas/DraftRead"
+          }
+        },
+        "required": [
+          "checkpoint_id",
+          "draft"
+        ],
+        "title": "EpisodeCheckpointReceipt",
+        "type": "object"
+      },
+      "EpisodeCheckpointWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Part Id",
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/DraftWrite"
+          },
+          "stage_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Start Id"
+          }
+        },
+        "required": [
+          "response",
+          "part_id"
+        ],
+        "title": "EpisodeCheckpointWrite",
+        "type": "object"
+      },
+      "EpisodeHelpUsePage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EpisodeHelpUseRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "EpisodeHelpUsePage",
+        "type": "object"
+      },
+      "EpisodeHelpUseRead": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_work_start_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Work Start Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "item_index": {
+            "title": "Item Index",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "conceptual_hint",
+              "accessibility"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Part Id",
+            "type": "string"
+          },
+          "stage_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Start Id"
+          },
+          "task_form_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Task Form Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "assessment_work_start_id",
+          "task_form_version_id",
+          "stage_start_id",
+          "part_id",
+          "kind",
+          "item_index",
+          "created_at"
+        ],
+        "title": "EpisodeHelpUseRead",
+        "type": "object"
+      },
+      "EpisodeHelpUseReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "record": {
+            "$ref": "#/components/schemas/EpisodeHelpUseRead"
+          }
+        },
+        "required": [
+          "record",
+          "content"
+        ],
+        "title": "EpisodeHelpUseReceipt",
+        "type": "object"
+      },
+      "EpisodeHelpUseWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_work_start_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Assessment Work Start Id",
+            "type": "string"
+          },
+          "item_index": {
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Item Index",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "conceptual_hint",
+              "accessibility"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Request Key",
+            "type": "string"
+          },
+          "stage_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Start Id"
+          }
+        },
+        "required": [
+          "assessment_work_start_id",
+          "kind",
+          "item_index",
+          "request_key"
+        ],
+        "title": "EpisodeHelpUseWrite",
+        "type": "object"
+      },
+      "EpisodePayloadV1": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "learnlens.episode.v1",
+            "default": "learnlens.episode.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "supported": {
+            "$ref": "#/components/schemas/EpisodeStageResponseV1"
+          },
+          "transfer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TransferResponseV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "supported"
+        ],
+        "title": "EpisodePayloadV1",
+        "type": "object"
+      },
+      "EpisodeRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "previous_response_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Previous Response Version Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "previous_response_version_id",
+          "reason"
+        ],
+        "title": "EpisodeRevision",
+        "type": "object"
+      },
+      "EpisodeStageResponseV1": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          },
+          "prediction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResponseContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "prediction_checkpoint_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Checkpoint Id"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "reflection": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reflection"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeRevision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "simulation_references": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SimulationReference"
+            },
+            "maxItems": 100,
+            "title": "Simulation References",
+            "type": "array"
+          }
+        },
+        "title": "EpisodeStageResponseV1",
+        "type": "object"
+      },
+      "EpisodeStateRead": {
+        "additionalProperties": false,
+        "properties": {
+          "accessibility_support": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Accessibility Support",
+            "type": "array"
+          },
+          "prediction_required": {
+            "title": "Prediction Required",
+            "type": "boolean"
+          },
+          "required_responses": {
+            "items": {
+              "enum": [
+                "prediction",
+                "reasoning",
+                "explanation",
+                "reflection"
+              ],
+              "type": "string"
+            },
+            "title": "Required Responses",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "learnlens.episode-plan.v1",
+            "default": "learnlens.episode-plan.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "supported_hints": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supported Hints",
+            "type": "array"
+          },
+          "supported_part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Supported Part Id",
+            "type": "string"
+          },
+          "transfer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeTransferRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transfer_part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Transfer Part Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "supported_part_id",
+          "prediction_required",
+          "required_responses",
+          "transfer_part_id"
+        ],
+        "title": "EpisodeStateRead",
+        "type": "object"
+      },
+      "EpisodeTransferRead": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "maxLength": 100000,
+            "title": "Instructions",
+            "type": "string"
+          },
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Part Id",
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 100000,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "stage_start_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Stage Start Id",
+            "type": "string"
+          },
+          "starter_circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starter Circuit"
+          },
+          "starter_code": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starter Code"
+          }
+        },
+        "required": [
+          "stage_start_id",
+          "part_id",
+          "prompt",
+          "instructions"
+        ],
+        "title": "EpisodeTransferRead",
+        "type": "object"
       },
       "EvidenceReference": {
         "additionalProperties": false,
@@ -4094,6 +4702,7 @@
         "title": "InvalidEvidenceReference",
         "type": "object"
       },
+      "JsonValue": {},
       "JudgeDecision": {
         "enum": [
           "pass",
@@ -5468,6 +6077,45 @@
         "title": "ResolvedEvidenceReference",
         "type": "object"
       },
+      "ResponseContent": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Answer",
+            "type": "string"
+          },
+          "circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          }
+        },
+        "title": "ResponseContent",
+        "type": "object"
+      },
       "ResultState": {
         "enum": [
           "NOT_ASSESSED",
@@ -6178,8 +6826,59 @@
         "title": "SimulationRead",
         "type": "object"
       },
+      "SimulationReference": {
+        "additionalProperties": false,
+        "properties": {
+          "circuit_version_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Circuit Version Id",
+            "type": "string"
+          },
+          "run_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "circuit_version_id"
+        ],
+        "title": "SimulationReference",
+        "type": "object"
+      },
       "SimulationRequest": {
         "properties": {
+          "episode_part_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Episode Part Id"
+          },
+          "episode_stage_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Episode Stage Start Id"
+          },
           "operations": {
             "items": {
               "$ref": "#/components/schemas/GateOperation"
@@ -6187,6 +6886,19 @@
             "maxItems": 30,
             "title": "Operations",
             "type": "array"
+          },
+          "prediction_checkpoint_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Checkpoint Id"
           },
           "qubits": {
             "default": 2,
@@ -6282,6 +6994,17 @@
             "title": "Engine Versions",
             "type": "object"
           },
+          "episode_stage_start_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Episode Stage Start Id"
+          },
           "error_code": {
             "anyOf": [
               {
@@ -6312,6 +7035,17 @@
           "policy_version": {
             "title": "Policy Version",
             "type": "string"
+          },
+          "prediction_checkpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prediction Checkpoint Id"
           },
           "purpose": {
             "enum": [
@@ -6934,6 +7668,16 @@
             ],
             "title": "Code"
           },
+          "episode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodePayloadV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "idempotency_key": {
             "anyOf": [
               {
@@ -7200,6 +7944,18 @@
               }
             ],
             "title": "Due At"
+          },
+          "episode_plan": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Episode Plan"
           },
           "id": {
             "title": "Id",
@@ -7585,6 +8341,12 @@
       },
       "TaskType": {
         "enum": [
+          "prediction",
+          "reasoning",
+          "explanation",
+          "revision",
+          "reflection",
+          "transfer",
           "multiple_choice",
           "multiple_answer",
           "short_answer",
@@ -7820,6 +8582,39 @@
           }
         },
         "title": "TaskViewMetadata",
+        "type": "object"
+      },
+      "TransferResponseV1": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/ResponseContent"
+          },
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Part Id",
+            "type": "string"
+          },
+          "process": {
+            "$ref": "#/components/schemas/EpisodeStageResponseV1"
+          },
+          "stage_start_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Stage Start Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage_start_id",
+          "part_id",
+          "content",
+          "process"
+        ],
+        "title": "TransferResponseV1",
         "type": "object"
       },
       "UserRole": {
@@ -14220,6 +15015,434 @@
           }
         },
         "summary": "Save Student Draft",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/episode": {
+      "get": {
+        "operationId": "read_episode_api_v1_students_me_tasks__task_id__episode_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/EpisodeStateRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Read Episode Api V1 Students Me Tasks  Task Id  Episode Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Episode",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/episode/checkpoints": {
+      "get": {
+        "operationId": "read_episode_checkpoints_api_v1_students_me_tasks__task_id__episode_checkpoints_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeCheckpointPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Episode Checkpoints",
+        "tags": [
+          "learning management"
+        ]
+      },
+      "post": {
+        "operationId": "checkpoint_episode_api_v1_students_me_tasks__task_id__episode_checkpoints_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpisodeCheckpointWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeCheckpointReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Checkpoint Episode",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/episode/help": {
+      "get": {
+        "operationId": "read_episode_help_api_v1_students_me_tasks__task_id__episode_help_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeHelpUsePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Episode Help",
+        "tags": [
+          "learning management"
+        ]
+      },
+      "post": {
+        "operationId": "record_episode_help_api_v1_students_me_tasks__task_id__episode_help_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EpisodeHelpUseWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeHelpUseReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Episode Help",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/episode/transfer": {
+      "post": {
+        "operationId": "enter_episode_transfer_api_v1_students_me_tasks__task_id__episode_transfer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeStateRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enter Episode Transfer",
         "tags": [
           "learning management"
         ]

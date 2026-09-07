@@ -1,3 +1,7 @@
+import { EpisodeSnapshot, EpisodeCircuitText } from "./EpisodeSnapshot"
+import { EpisodeFields } from "./EpisodeFields"
+import { EpisodeSupport } from './EpisodeSupport'
+import type { EpisodePayload, EpisodeState, EpisodeCheckpointSnapshot } from "../app/types"
 import { ArrowLeft, Play } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragEvent, ReactNode } from 'react'
@@ -21,6 +25,9 @@ import type { DescriptionItem } from './ui'
 import type { BloomKnowledge, BloomProcess } from '../features/assessment/types'
 import styles from './TaskView.module.css'
 
+const episodeTaskTypes = ['prediction', 'reasoning', 'explanation', 'revision', 'reflection', 'transfer']
+const emptyEpisode = (): EpisodePayload => ({ schema_version: 'learnlens.episode.v1', supported: {} })
+
 const defaultOptions = [
   { id: 'a', text: 'It creates an equal superposition of |0⟩ and |1⟩.' },
   { id: 'b', text: 'It measures the qubit immediately.' },
@@ -33,13 +40,14 @@ function attemptLabel(attempt: TaskSubmission): string {
   return attempt.score === null ? 'Response saved' : `${attempt.score}%`
 }
 
-function taskMode(task: LearningTask): 'mcq' | 'multi' | 'code-explanation' | 'code-completion' | 'circuit' | 'text' {
+function taskMode(task: LearningTask): 'mcq' | 'multi' | 'code-explanation' | 'code-completion' | 'circuit' | 'text' | 'unsupported' {
   if (['multiple_choice', 'quiz'].includes(task.task_type)) return 'mcq'
   if (task.task_type === 'multiple_answer') return 'multi'
   if (task.task_type === 'code_explanation') return 'code-explanation'
   if (['code', 'code_completion'].includes(task.task_type)) return 'code-completion'
   if (['circuit', 'quantum_circuit'].includes(task.task_type)) return 'circuit'
-  return 'text'
+  if (task.task_type === 'short_answer' || episodeTaskTypes.includes(task.task_type)) return 'text'
+  return 'unsupported'
 }
 
 function codeTokens(code: string): ReactNode[] {
@@ -88,7 +96,7 @@ function isGateOperation(value: unknown): value is GateOperation {
       typeof target === 'number'
       && Number.isInteger(target)
       && target >= 0
-      && target < 2)
+      && target < 5)
   ) {
     return false
   }
@@ -136,7 +144,15 @@ export function TaskView({
   onClose: () => void
   onSubmitted: () => Promise<void>
 }) {
+  const [checkpointHistory, setCheckpointHistory] = useState<EpisodeCheckpointSnapshot[]>([])
+  const [checkpointOffset, setCheckpointOffset] = useState<number | null>(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const mode = taskMode(task)
+  const [episode, setEpisode] = useState<EpisodePayload>(emptyEpisode)
+  const [episodeState, setEpisodeState] = useState<EpisodeState | null>(task.episode_plan ?? null)
+  const hasEpisode = Boolean(task.episode_plan) || episodeTaskTypes.includes(task.task_type)
+  const [qubits, setQubits] = useState(task.episode_plan ? 1 : 2)
+  const [circuitExtras, setCircuitExtras] = useState<Record<string, unknown>>({})
   const idempotencyKeyRef = useRef<string | null>(null)
   const restoredDraftTaskRef = useRef<string | null>(null)
   const feedbackClient = useMemo(
@@ -147,6 +163,7 @@ export function TaskView({
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [answer, setAnswer] = useState('')
   const [code, setCode] = useState(task.starter_code ?? '')
+  const [savedEpisodeCode, setSavedEpisodeCode] = useState<string | null>(null)
   const [operations, setOperations] = useState<GateOperation[]>([])
   const [simulation, setSimulation] = useState<SimulationResult | null>(null)
   const [submission, setSubmission] = useState<TaskSubmission | null>(null)
@@ -189,6 +206,7 @@ export function TaskView({
           if (!controller.signal.aborted) {
             setWorkStartId(started.assessment_work_start_id ?? null)
             setWorkConflict(false)
+            if (task.episode_plan) setEpisodeState(await api.student.episodeState(task.id, controller.signal))
           }
         } catch (error) {
           if (!controller.signal.aborted) {
@@ -201,6 +219,10 @@ export function TaskView({
     }
     restore().then((draft) => {
         if (!draft) return
+        setAnswer(draft.answer)
+        if (draft.code !== null) setCode(draft.code)
+        setSavedEpisodeCode(draft.code)
+        if (draft.circuit) { setCircuitExtras(draft.circuit); setQubits(draft.circuit.qubits) }
         const optionIds = new Set(options.map((option) => option.id))
         if (mode === 'mcq') {
           setSelectedOption(optionIds.has(draft.answer) ? draft.answer : '')
@@ -211,6 +233,7 @@ export function TaskView({
         } else if (mode === 'code-completion') setCode(draft.code ?? task.starter_code ?? '')
         else if (mode === 'circuit') setOperations(circuitOperations(draft.circuit))
         else setAnswer(draft.answer)
+        if (draft.episode) setEpisode(draft.episode)
         setStatusMessage('Saved draft restored.')
       })
       .catch((error: unknown) => {
@@ -222,7 +245,7 @@ export function TaskView({
         if (!controller.signal.aborted) setDraftLoading(false)
       })
     return () => controller.abort()
-  }, [draftReload, mode, options, task.id, task.starter_code, task.assessment])
+  }, [draftReload, mode, options, task.id, task.starter_code, task.assessment, task.episode_plan])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -243,18 +266,34 @@ export function TaskView({
   const latestFeedbackReference = submission?.feedback_reference
     ?? attempts?.find((attempt) => attempt.feedback_reference)?.feedback_reference
 
+  useEffect(() => {
+    if (!task.episode_plan || draftLoading) return
+    const controller = new AbortController()
+    api.student.checkpointHistory(task.id, controller.signal).then(page => { if (!controller.signal.aborted) { setCheckpointHistory(page.items); setCheckpointOffset(page.next_offset) } }).catch(() => { if (!controller.signal.aborted) setStatusMessage('Earlier predictions could not be loaded. Your current work remains available.') })
+    return () => controller.abort()
+  }, [task.id, task.episode_plan, draftLoading, episode.supported.prediction_checkpoint_id, episode.transfer?.process.prediction_checkpoint_id])
+
+  const savedRunId = episode.transfer?.process.simulation_references?.at(-1)?.run_id ?? episode.supported.simulation_references?.at(-1)?.run_id
+  useEffect(() => {
+    if (!savedRunId || draftLoading) return
+    let cancelled = false
+    api.student.savedSimulation(savedRunId).then(result => { if (!cancelled) setSimulation(result) }).catch(() => { if (!cancelled) setStatusMessage('Saved simulation could not be loaded. Your response remains saved; try again.') })
+    return () => { cancelled = true }
+  }, [savedRunId, draftLoading])
+
   const payload = useMemo(() => ({
     assessment_work_start_id: workStartId,
+    ...(hasEpisode ? { episode } : {}),
     answer: mode === 'mcq'
       ? selectedOption
       : mode === 'multi'
         ? JSON.stringify(selectedOptions)
         : answer,
-    code: mode === 'code-completion' ? code : undefined,
-    circuit: mode === 'circuit' ? { qubits: 2, operations } : undefined,
-  }), [answer, code, mode, operations, selectedOption, selectedOptions, workStartId])
+    code: mode === 'code-completion' ? code : hasEpisode ? savedEpisodeCode : undefined,
+    circuit: mode === 'circuit' ? { ...circuitExtras, qubits, operations } : hasEpisode && Object.keys(circuitExtras).length ? circuitExtras : undefined,
+  }), [answer, code, mode, operations, selectedOption, selectedOptions, workStartId, episode, hasEpisode, qubits, circuitExtras, savedEpisodeCode])
 
-  const valid = mode === 'mcq'
+  const valid = mode === 'unsupported' ? false : hasEpisode ? Boolean(episode.supported.prediction?.answer?.trim() || episode.supported.reasoning?.trim() || episode.supported.explanation?.trim() || episode.supported.reflection?.trim()) : mode === 'mcq'
     ? Boolean(selectedOption)
     : mode === 'multi'
       ? selectedOptions.length > 0
@@ -264,20 +303,29 @@ export function TaskView({
         ? Boolean(code.trim())
       : Boolean(answer.trim())
 
-  const touch = () => setDirty(true)
+  const touch = () => { idempotencyKeyRef.current = null; setDirty(true) }
+  const changeSupportedInput = () => {
+    setSimulation(null)
+    if (hasEpisode) setEpisode(current => ({ ...current, supported: { ...current.supported, prediction_checkpoint_id: null, simulation_references: [] } }))
+    touch()
+  }
 
   const requestClose = () => {
     if (dirty) setConfirmLeave(true)
     else onClose()
   }
 
+  const changeOperations = (next: GateOperation[] | ((current: GateOperation[]) => GateOperation[])) => {
+    setOperations(next)
+    setSimulation(null)
+    changeSupportedInput()
+  }
+
   const addGate = (gate: GateOperation['gate'], target = 0) => {
-    setOperations((current) => [
+    changeOperations((current) => [
       ...current,
       { gate, targets: gate === 'cx' ? [0, 1] : [target] },
     ])
-    setSimulation(null)
-    touch()
   }
 
   const dropGate = (event: DragEvent<HTMLDivElement>, target: number) => {
@@ -292,12 +340,14 @@ export function TaskView({
     setSimulation(null)
     setStatusMessage('')
     try {
-      await api.student.saveDraft(task.id, {
-        answer: '',
-        assessment_work_start_id: workStartId,
-        circuit: { qubits: 2, operations },
-      })
-      setSimulation(await api.student.simulate(operations, task.id))
+      await api.student.saveDraft(task.id, payload)
+      const result = await api.student.simulate(operations, task.id, episode.supported.prediction_checkpoint_id, undefined, episodeState?.supported_part_id, qubits)
+      setSimulation(result)
+      if (hasEpisode && result.circuit_version_id) {
+        const next = { ...episode, supported: { ...episode.supported, simulation_references: [...(episode.supported.simulation_references ?? []), { run_id: result.run_id, circuit_version_id: result.circuit_version_id }] } }
+        setEpisode(next)
+        await api.student.saveDraft(task.id, { ...payload, episode: next })
+      }
       setStatusMessage('Simulation completed and saved with 1,024 shots.')
     } catch (error) {
       if (blocksAssessmentWork(error)) setWorkConflict(true)
@@ -337,6 +387,46 @@ export function TaskView({
     } finally {
       setBusy(false)
     }
+  }
+
+  const recordPrediction = async (transfer = false) => {
+    setBusy(true)
+    try {
+      const result = await api.student.checkpoint(task.id, payload, transfer ? episodeState!.transfer!.part_id : episodeState?.supported_part_id ?? 'supported', transfer ? episodeState!.transfer!.stage_start_id : undefined)
+      if (result.draft.episode) setEpisode(result.draft.episode)
+      setStatusMessage('Prediction and current input saved before results.')
+      setDirty(false)
+    } catch (error) { setStatusMessage(messageFor(error)) } finally { setBusy(false) }
+  }
+  const runTransferSimulation = async () => {
+    if (!episode.transfer?.content.circuit) return
+    setBusy(true)
+    try {
+      await api.student.saveDraft(task.id, payload)
+      const circuit = episode.transfer.content.circuit
+      const result = await api.student.simulate(circuitOperations(circuit), task.id, episode.transfer.process.prediction_checkpoint_id, episode.transfer.stage_start_id, episode.transfer.part_id, Number(circuit.qubits))
+      setSimulation(result)
+      if (result.circuit_version_id) {
+        const updated: EpisodePayload = { ...episode, transfer: { ...episode.transfer, process: { ...episode.transfer.process, simulation_references: [{ run_id: result.run_id, circuit_version_id: result.circuit_version_id }] } } }
+        setEpisode(updated)
+        await api.student.saveDraft(task.id, { ...payload, episode: updated })
+      }
+      setStatusMessage('Fresh application simulation saved. Results are shown in this workspace.')
+    } catch (error) { setStatusMessage(messageFor(error)) } finally { setBusy(false) }
+  }
+  const enterTransfer = async () => {
+    setBusy(true)
+    try {
+      const next = await api.student.enterTransfer(task.id, payload)
+      setEpisodeState(next)
+      if (next.transfer) {
+        const transfer = next.transfer
+        const updated: EpisodePayload = { ...episode, transfer: { stage_start_id: transfer.stage_start_id, part_id: transfer.part_id, content: { answer: '', code: transfer.starter_code, circuit: transfer.starter_circuit }, process: {} } }
+        setEpisode(updated)
+        await api.student.saveDraft(task.id, { ...payload, episode: updated })
+      }
+      setStatusMessage('Fresh application opened. Accessibility support remains available.')
+    } catch (error) { setStatusMessage(messageFor(error)) } finally { setBusy(false) }
   }
 
   const assessmentItems: DescriptionItem[] = task.assessment
@@ -462,7 +552,7 @@ export function TaskView({
                     <Textarea
                       rows={6}
                       value={answer}
-                      onChange={(event) => { setAnswer(event.target.value); touch() }}
+                      onChange={(event) => { setAnswer(event.target.value); changeSupportedInput() }}
                       placeholder="Describe the state after the H and CX gates, then explain the expected measurements."
                     />
                   </Field>
@@ -480,7 +570,7 @@ export function TaskView({
                     aria-label="Qiskit code editor"
                     spellCheck={false}
                     value={code}
-                    onChange={(event) => { setCode(event.target.value); touch() }}
+                    onChange={(event) => { setCode(event.target.value); changeSupportedInput() }}
                   />
                 </div>
               )}
@@ -490,7 +580,7 @@ export function TaskView({
                   <Textarea
                     rows={12}
                     value={answer}
-                    onChange={(event) => { setAnswer(event.target.value); touch() }}
+                    onChange={(event) => { setAnswer(event.target.value); changeSupportedInput() }}
                     placeholder="Explain your reasoning in your own words."
                   />
                 </Field>
@@ -503,7 +593,7 @@ export function TaskView({
                       <strong>Gate palette</strong>
                       <small>Drag a gate to a wire or use its add button.</small>
                     </div>
-                    {(['h', 'x', 'cx'] as const).map((gate) => (
+                    {(['h', 'x', 'cx'] as const).filter(gate => qubits > 1 || gate !== 'cx').map((gate) => (
                       <button
                         key={gate}
                         type="button"
@@ -516,12 +606,12 @@ export function TaskView({
                         {gate.toUpperCase()}
                       </button>
                     ))}
-                    <Button variant="quiet" size="sm" onClick={() => { setOperations([]); setSimulation(null); touch() }}>
+                    <Button variant="quiet" size="sm" onClick={() => { changeOperations([]) }}>
                       Clear
                     </Button>
                   </div>
-                  <div className={styles.board} aria-label="Two qubit circuit">
-                    {[0, 1].map((qubit) => (
+                  <div className={styles.board} aria-label={`${qubits} qubit circuit`}>
+                    {Array.from({ length: qubits }, (_, index) => index).map((qubit) => (
                       <div
                         className={styles.wireRow}
                         key={qubit}
@@ -538,7 +628,7 @@ export function TaskView({
                                   type="button"
                                   className={styles.gateChip}
                                   title="Remove gate"
-                                  onClick={() => { setOperations((current) => current.filter((_, itemIndex) => itemIndex !== index)); touch() }}
+                                  onClick={() => { changeOperations((current) => current.filter((_, itemIndex) => itemIndex !== index)) }}
                                 >
                                   {operation.gate === 'cx' ? (qubit === 0 ? '●' : '⊕') : operation.gate.toUpperCase()}
                                 </button>
@@ -552,6 +642,8 @@ export function TaskView({
                   <Button variant="secondary" onClick={() => void runSimulation()} disabled={Boolean(draftError) || workConflict || draftLoading || busy || operations.length === 0}>
                     <Play size={15} aria-hidden="true" /> Run 1,024 shots
                   </Button>
+                </div>
+              )}
                   {simulation && (
                     <div className={styles.simulation}>
                       <div className={styles.simulationHead}>
@@ -581,11 +673,12 @@ export function TaskView({
                       <pre className={styles.circuitText}>{simulation.circuit_text}</pre>
                     </div>
                   )}
-                </div>
-              )}
             </>
           )}
 
+          {mode === 'unsupported' && <p role="alert">This task type is not supported yet. Ask your educator for a supported task.</p>}
+          {hasEpisode && <EpisodeFields value={episode} state={episodeState} attempts={attempts ?? []} disabled={busy || draftLoading || workConflict} onChange={value => { setEpisode(value); touch() }} onCheckpoint={() => void recordPrediction()} onTransfer={() => void enterTransfer()} onTransferCheckpoint={() => void recordPrediction(true)} onTransferSimulation={() => void runTransferSimulation()} support={episodeState && <EpisodeSupport taskId={task.id} workId={workStartId} state={episodeState} disabled={busy || draftLoading || workConflict} />} />}
+          {checkpointHistory.length > 0 && <Card heading="Earlier predictions"><details><summary>View saved predictions and inputs</summary>{checkpointHistory.map((checkpoint, index) => <section key={`${checkpoint.created_at}-${index}`}><h3>{checkpoint.part_id === episodeState?.transfer_part_id ? 'Fresh application' : 'Supported'} prediction, {new Date(checkpoint.created_at).toLocaleString()}</h3><EpisodeSnapshot episode={{ schema_version: 'learnlens.episode.v1', supported: { prediction: checkpoint.prediction } }} />{checkpoint.input_content.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{checkpoint.input_content.answer}</pre>}{checkpoint.input_content.code && <pre>{checkpoint.input_content.code}</pre>}{checkpoint.input_content.circuit && <EpisodeCircuitText circuit={checkpoint.input_content.circuit} />}</section>)}{checkpointOffset !== null && <Button variant="secondary" disabled={historyLoading} onClick={() => { setHistoryLoading(true); api.student.checkpointHistory(task.id, undefined, checkpointOffset).then(page => { setCheckpointHistory(current => [...current, ...page.items]); setCheckpointOffset(page.next_offset) }).catch(() => setStatusMessage('Earlier predictions could not be loaded. Try again.')).finally(() => setHistoryLoading(false)) }}>{historyLoading ? 'Loading earlier predictions...' : 'Load earlier predictions'}</Button>}</details></Card>}
           {draftError && (
             <div className={styles.alert} role="alert">
               {draftError}{' '}
@@ -634,6 +727,11 @@ export function TaskView({
                       <strong>{attemptLabel(item)}</strong>
                       {item.formal_assessment && <small>Formal result unavailable.</small>}
                       <small className={styles.attemptStatus}>{item.status.replace('_', ' ')}</small>
+                      <details><summary>Saved response</summary>
+                        {item.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{item.answer}</pre>}
+                        {item.code && <pre>{item.code}</pre>}
+                        {item.episode && <EpisodeSnapshot episode={item.episode} />}
+                      </details>
                     </div>
                     {item.submitted_at ? (
                       <time dateTime={item.submitted_at} className={styles.attemptTime}>

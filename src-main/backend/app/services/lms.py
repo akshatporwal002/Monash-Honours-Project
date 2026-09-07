@@ -46,6 +46,8 @@ from app.models import (
     WorkflowRun,
     WorkflowStage,
 )
+from app.models.assessment_work import AssessmentWorkStart
+from app.schemas.episode import ResponseContent
 from app.schemas.lms import (
     AchievementRead,
     AdminUserCreate,
@@ -100,6 +102,9 @@ from app.services.assessment.submissions import (
     FrozenAssessmentVersions,
 )
 from app.services.authentication import normalize_email
+from app.services.episode_contract import learner_episode_plan, validate_reviewed_episode_plan
+from app.services.episode_evidence import canonical_response_digest
+from app.services.episodes import EpisodeService
 from app.services.gamification import GamificationService, ensure_default_achievements
 from app.services.learning_events import HmacSha256Pseudonymizer
 from app.services.quantum import CircuitOperation, QuantumSimulationError
@@ -698,9 +703,19 @@ class LmsService:
             draft,
             expected_work_id=payload.assessment_work_start_id,
         )
+        EpisodeService(self.session).validate_response(
+            self.session.get(AssessmentWorkStart, draft.assessment_work_start_id)
+            if draft.assessment_work_start_id
+            else None,
+            payload.episode,
+            ResponseContent(answer=payload.answer, code=payload.code, circuit=payload.circuit),
+            student_id=student.id,
+            task_id=task.id,
+        )
         draft.answer = payload.answer
         draft.code = payload.code
         draft.circuit = payload.circuit
+        draft.episode = payload.episode.model_dump(mode="json") if payload.episode else None
         self._learning_event(
             student,
             task,
@@ -711,6 +726,108 @@ class LmsService:
         self._commit()
         self.session.refresh(draft)
         return DraftRead.model_validate(draft)
+
+    def episode_state(self, student: User, task_id: str) -> dict | None:
+        task = self._require_student_task(student, task_id, require_available=False)
+        draft = self.session.scalar(
+            select(SubmissionDraft).where(
+                SubmissionDraft.student_id == student.id, SubmissionDraft.task_id == task.id
+            )
+        )
+        return EpisodeService(self.session).state(draft) if draft else None
+
+    def episode_checkpoint(
+        self,
+        student: User,
+        task_id: str,
+        payload: DraftWrite,
+        part_id: str,
+        stage_start_id: str | None,
+    ) -> dict:
+        self.save_draft(student, task_id, payload)
+        self._acquire_submission_sequence_lock(student.id)
+        draft = self.session.scalar(
+            select(SubmissionDraft).where(
+                SubmissionDraft.student_id == student.id, SubmissionDraft.task_id == task_id
+            )
+        )
+        checkpoint = EpisodeService(self.session).checkpoint(
+            draft, part_id=part_id, stage_start_id=stage_start_id
+        )
+        self._commit()
+        return {"checkpoint_id": checkpoint.id, "draft": DraftRead.model_validate(draft)}
+
+    def episode_checkpoint_history(
+        self, student: User, task_id: str, *, limit=20, offset=0
+    ) -> dict:
+        from app.models.episode import EpisodeCheckpoint
+
+        self._require_student_task(student, task_id, require_available=False)
+        if not 1 <= limit <= 100 or offset < 0:
+            raise LmsServiceError(422, "Invalid prediction history page")
+        checkpoints = list(
+            self.session.scalars(
+                select(EpisodeCheckpoint)
+                .where(
+                    EpisodeCheckpoint.student_id == student.id, EpisodeCheckpoint.task_id == task_id
+                )
+                .order_by(EpisodeCheckpoint.created_at.desc(), EpisodeCheckpoint.id.desc())
+                .limit(limit + 1)
+                .offset(offset)
+            )
+        )
+        return {
+            "next_offset": offset + limit if len(checkpoints) > limit else None,
+            "items": [
+                {
+                    "part_id": item.part_id,
+                    "prediction": item.prediction,
+                    "input_content": item.input_content,
+                    "created_at": item.created_at,
+                }
+                for item in checkpoints[:limit]
+            ],
+        }
+
+    def episode_transfer(self, student: User, task_id: str, payload: DraftWrite) -> dict:
+        self.save_draft(student, task_id, payload)
+        self._acquire_submission_sequence_lock(student.id)
+        draft = self.session.scalar(
+            select(SubmissionDraft).where(
+                SubmissionDraft.student_id == student.id, SubmissionDraft.task_id == task_id
+            )
+        )
+        EpisodeService(self.session).start_transfer(draft)
+        self._commit()
+        return EpisodeService(self.session).state(draft)
+
+    def episode_help_use(self, student, task_id, payload):
+        from app.services.episode_support import EpisodeSupportService
+
+        self._acquire_submission_sequence_lock(student.id)
+        self._require_student_task(student, task_id)
+        draft = self.session.scalar(
+            select(SubmissionDraft).where(
+                SubmissionDraft.student_id == student.id,
+                SubmissionDraft.task_id == task_id,
+            )
+        )
+        work = (
+            self.session.get(AssessmentWorkStart, draft.assessment_work_start_id)
+            if draft and draft.assessment_work_start_id
+            else None
+        )
+        record = EpisodeSupportService(self.session).record(work, payload)
+        self._commit()
+        return record
+
+    def episode_help_history(self, student, task_id, *, limit=20, offset=0):
+        from app.services.episode_support import EpisodeSupportService
+
+        self._require_student_task(student, task_id, require_available=False)
+        return EpisodeSupportService(self.session).history(
+            student.id, task_id, limit=limit, offset=offset
+        )
 
     def get_draft(self, student: User, task_id: str) -> DraftRead | None:
         task = self._require_student_task(student, task_id, require_available=False)
@@ -730,7 +847,7 @@ class LmsService:
     ) -> AttemptRead:
         self._acquire_submission_sequence_lock(student.id)
         task = self._require_student_task(student, task_id, require_available=False)
-        payload_digest = self._submission_digest(payload)
+        payload_digest = self._submission_digest(payload) if payload.episode is None else None
         if payload.idempotency_key:
             existing = self.session.scalar(
                 select(SubmissionAttempt).where(
@@ -740,6 +857,17 @@ class LmsService:
                 )
             )
             if existing is not None:
+                if existing.response_schema_version == "assessment.response.v2":
+                    payload_digest = canonical_response_digest(
+                        content=ResponseContent(
+                            answer=payload.answer, code=payload.code, circuit=payload.circuit
+                        ),
+                        episode=payload.episode,
+                        schema_version="assessment.response.v2",
+                        assessment_work_start_id=existing.assessment_work_start_id,
+                        task_form_version_id=existing.task_form_version_id,
+                        declared_conditions=existing.declared_conditions,
+                    )
                 if existing.content_digest == payload_digest:
                     if (
                         payload.assessment_work_start_id is not None
@@ -765,6 +893,37 @@ class LmsService:
         frozen_versions = assessment_submissions.versions_for_work(work) if work else None
         if frozen_versions is not None and not payload.idempotency_key:
             raise _unprocessable("An idempotency key is required for an assessed submission")
+        EpisodeService(self.session).validate_response(
+            work,
+            payload.episode,
+            ResponseContent(answer=payload.answer, code=payload.code, circuit=payload.circuit),
+            submitting=True,
+            student_id=student.id,
+            task_id=task.id,
+        )
+        schema_version = "assessment.response.v2" if payload.episode else "assessment.response.v1"
+        conditions = (
+            {
+                **self._declared_conditions(task, frozen_versions),
+                **work.declared_conditions,
+                "response_schema_version": schema_version,
+            }
+            if frozen_versions and work
+            else None
+        )
+        if payload.episode:
+            payload_digest = canonical_response_digest(
+                content=ResponseContent(
+                    answer=payload.answer, code=payload.code, circuit=payload.circuit
+                ),
+                episode=payload.episode,
+                schema_version=schema_version,
+                assessment_work_start_id=work.id if work else None,
+                task_form_version_id=frozen_versions.task_form_version_id
+                if frozen_versions
+                else None,
+                declared_conditions=conditions,
+            )
         previous = list(
             self.session.scalars(
                 select(SubmissionAttempt)
@@ -781,6 +940,7 @@ class LmsService:
         draft.answer = payload.answer
         draft.code = payload.code
         draft.circuit = payload.circuit
+        draft.episode = payload.episode.model_dump(mode="json") if payload.episode else None
         score, _ = self._grade(task, payload) if frozen_versions is None else (None, "")
         passing_score = int(self._setting_value("passing_score"))
         attempt_id = self._uuid()
@@ -799,20 +959,19 @@ class LmsService:
             answer=payload.answer,
             code=payload.code,
             circuit=payload.circuit,
+            episode=payload.episode.model_dump(mode="json") if payload.episode else None,
             score=score,
             feedback="Submission recorded. Validated feedback is being prepared.",
             feedback_reference=attempt_id,
             task_form_version_id=(
                 frozen_versions.task_form_version_id if frozen_versions else None
             ),
-            response_schema_version=("assessment.response.v1" if frozen_versions else None),
+            response_schema_version=(
+                schema_version if frozen_versions or payload.episode else None
+            ),
             content_digest=(payload_digest if payload.idempotency_key else None),
             idempotency_key=payload.idempotency_key,
-            declared_conditions=(
-                {**self._declared_conditions(task, frozen_versions), **work.declared_conditions}
-                if frozen_versions and work
-                else None
-            ),
+            declared_conditions=conditions,
         )
         self.session.add(attempt)
         self.session.flush()
@@ -1720,7 +1879,12 @@ class LmsService:
         if payload.task_id:
             task = self._require_student_task(student, payload.task_id)
             self._require_unlocked(student, task)
-            if task.task_type.value not in {"circuit", "quantum_circuit"}:
+            typed_transfer = (
+                task.task_type.value
+                in {"prediction", "reasoning", "explanation", "revision", "reflection", "transfer"}
+                and payload.episode_stage_start_id is not None
+            )
+            if task.task_type.value not in {"circuit", "quantum_circuit"} and not typed_transfer:
                 raise LmsServiceError(422, "This task does not support circuit simulation")
         try:
             return SimulationEvidenceService(self.session).execute(
@@ -1733,6 +1897,9 @@ class LmsService:
                 shots=payload.shots,
                 seed=payload.seed,
                 request_key=payload.request_key,
+                prediction_checkpoint_id=payload.prediction_checkpoint_id,
+                episode_stage_start_id=payload.episode_stage_start_id,
+                episode_part_id=payload.episode_part_id,
             )
         except QuantumSimulationError as error:
             raise LmsServiceError(422, str(error)) from error
@@ -1755,6 +1922,8 @@ class LmsService:
             self._require_course_read(actor, circuit.course_id)
         else:
             raise _not_found("Simulation")
+        if actor.role is UserRole.STUDENT and circuit.task_id:
+            EpisodeService(self.session).require_run_reveal(run, circuit)
         return SimulationEvidenceService(self.session).read(run_id)
 
     def list_student_simulations(self, student: User, task_id: str, limit: int) -> list[dict]:
@@ -1775,8 +1944,7 @@ class LmsService:
             .order_by(SimulationRun.created_at.desc(), SimulationRun.id)
             .limit(limit)
         ).all()
-        service = SimulationEvidenceService(self.session)
-        return [service.read(run_id) for run_id in ids]
+        return [self.read_simulation(student, run_id) for run_id in ids]
 
     def _require_unlocked(self, student: User, task: LearningTask) -> None:
         completed = set(
@@ -1895,7 +2063,11 @@ class LmsService:
                 raise
             # Staff must still see saved edits when they invalidate publication.
             assessment = None
+        episode_plan = validate_reviewed_episode_plan(criteria)
         return TaskRead(
+            episode_plan={**learner_episode_plan(episode_plan), "supported_hints": []}
+            if episode_plan
+            else None,
             id=task.id,
             title=task.title,
             prompt=task.description,
@@ -1965,7 +2137,19 @@ class LmsService:
         self,
         task: LearningTask,
         payload: SubmissionCreate,
-    ) -> tuple[int, str]:
+    ) -> tuple[int | None, str]:
+        from app.services.task_types import EPISODE_TASK_TYPES
+
+        if task.task_type.value in EPISODE_TASK_TYPES:
+            if payload.episode is None:
+                raise _unprocessable("This response type requires typed episode evidence")
+            process = payload.episode.supported
+            field = getattr(process, task.task_type.value, None)
+            if task.task_type.value == "transfer":
+                field = payload.episode.transfer
+            if field is None:
+                raise _unprocessable(f"Complete the {task.task_type.value} response")
+            return None, "Response recorded for criterion review."
         try:
             correct = self.task_types.is_correct(task.task_type, task, payload)
         except (InvalidTaskSubmissionError, UnsupportedTaskTypeError) as error:
@@ -2018,6 +2202,7 @@ class LmsService:
             answer=attempt.answer,
             code=attempt.code,
             circuit=attempt.circuit,
+            episode=attempt.episode,
             feedback=attempt.feedback,
             feedback_reference=attempt.feedback_reference,
             points_awarded=points_awarded,
