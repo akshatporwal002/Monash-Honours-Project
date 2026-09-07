@@ -765,3 +765,8 @@ def enter_episode_transfer(
     task_id: str, payload: DraftWrite, student: CurrentStudent, service: Lms
 ):
     return service.episode_transfer(student, task_id, payload)
+
+
+@router.get("/students/me/tasks/{task_id}/episode/checkpoints")
+def read_episode_checkpoints(task_id: str, student: CurrentStudent, service: Lms):
+    return service.episode_checkpoint_history(student, task_id)

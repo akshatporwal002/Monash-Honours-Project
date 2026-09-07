@@ -75,7 +75,7 @@ class FrozenResponseRead(EpisodeContract):
     task_form_version_id: OpaqueId | None
     content: ResponseContent
     episode: EpisodePayloadV1 | None
-    declared_conditions: dict[str, Any]
+    declared_conditions: dict[str, Any] | list[Any]
 
 
 class EpisodeTransferPlanV1(EpisodeContract):
