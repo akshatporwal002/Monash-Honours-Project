@@ -67,6 +67,9 @@ class SimulationEvidenceService:
         seed: int = 42,
         request_key: str | None = None,
         submission_id: str | None = None,
+        prediction_checkpoint_id: str | None = None,
+        episode_stage_start_id: str | None = None,
+        episode_part_id: str | None = None,
     ) -> tuple[str, bool]:
         validate_circuit(qubits=qubits, operations=operations, shots=shots, seed=seed)
         request_key = request_key or str(uuid4())
@@ -92,6 +95,22 @@ class SimulationEvidenceService:
                     raise SimulationEvidenceError(
                         "Simulation submission does not match its context"
                     )
+            if task_id:
+                from app.services.episodes import EpisodeService
+
+                if submission_id:
+                    process = (attempt.episode or {}).get("supported", {})
+                    prediction_checkpoint_id = process.get("prediction_checkpoint_id")
+                EpisodeService(session).require_simulation_checkpoint(
+                    owner_id=owner_id,
+                    task_id=task_id,
+                    checkpoint_id=prediction_checkpoint_id,
+                    stage_start_id=episode_stage_start_id,
+                    part_id=episode_part_id,
+                    circuit=circuit,
+                    shots=shots,
+                    seed=seed,
+                )
             circuit_id = _digest([owner_id, task_id, course_id, circuit])
             existing = session.scalar(
                 select(SimulationRun).where(
@@ -100,7 +119,15 @@ class SimulationEvidenceService:
                 )
             )
             if existing:
-                self._check_replay(existing, circuit_id, shots, seed, submission_id)
+                self._check_replay(
+                    existing,
+                    circuit_id,
+                    shots,
+                    seed,
+                    submission_id,
+                    prediction_checkpoint_id,
+                    episode_stage_start_id,
+                )
                 return existing.id, False
             run_id = str(uuid4())
             archiving = False
@@ -128,6 +155,8 @@ class SimulationEvidenceService:
                         circuit_version_id=circuit_id,
                         submission_id=submission_id,
                         purpose=purpose,
+                        prediction_checkpoint_id=prediction_checkpoint_id,
+                        episode_stage_start_id=episode_stage_start_id,
                         shots=shots,
                         seed=seed,
                         policy_version=SIMULATION_POLICY_VERSION,
@@ -147,7 +176,15 @@ class SimulationEvidenceService:
                     )
                 )
                 if existing:
-                    self._check_replay(existing, circuit_id, shots, seed, submission_id)
+                    self._check_replay(
+                        existing,
+                        circuit_id,
+                        shots,
+                        seed,
+                        submission_id,
+                        prediction_checkpoint_id,
+                        episode_stage_start_id,
+                    )
                     return existing.id, False
                 # Another request may have archived the same circuit in the meantime.
                 if not archiving or session.get(CircuitVersion, circuit_id) is None:
@@ -161,15 +198,27 @@ class SimulationEvidenceService:
             seed=seed,
             request_key=request_key,
             submission_id=submission_id,
+            prediction_checkpoint_id=prediction_checkpoint_id,
+            episode_stage_start_id=episode_stage_start_id,
+            episode_part_id=episode_part_id,
         )
 
     @staticmethod
-    def _check_replay(run, circuit_id, shots, seed, submission_id) -> None:
-        if (run.circuit_version_id, run.shots, run.seed, run.submission_id) != (
+    def _check_replay(run, circuit_id, shots, seed, submission_id, checkpoint_id, stage_id) -> None:
+        if (
+            run.circuit_version_id,
+            run.shots,
+            run.seed,
+            run.submission_id,
+            run.prediction_checkpoint_id,
+            run.episode_stage_start_id,
+        ) != (
             circuit_id,
             shots,
             seed,
             submission_id,
+            checkpoint_id,
+            stage_id,
         ):
             raise SimulationEvidenceError(
                 "The simulation request key was already used for different inputs"
@@ -242,6 +291,8 @@ class SimulationEvidenceService:
                 "circuit": circuit.circuit,
                 "submission_id": run.submission_id,
                 "purpose": run.purpose,
+                "prediction_checkpoint_id": run.prediction_checkpoint_id,
+                "episode_stage_start_id": run.episode_stage_start_id,
                 "seed": run.seed,
                 "shots": run.shots,
                 "policy_version": run.policy_version,

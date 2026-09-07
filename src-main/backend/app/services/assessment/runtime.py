@@ -6,10 +6,16 @@ from datetime import UTC
 
 from sqlalchemy.orm import Session
 
-from app.domain.assessment import AssessmentReasonCode, BloomProcess, QualityReviewDecision
+from app.domain.assessment import (
+    AssessmentReasonCode,
+    BloomProcess,
+    CriterionDecision,
+    QualityReviewDecision,
+)
 from app.models.assessment import CriterionEvaluatorType, CriterionVersion
 from app.models.lms import SubmissionAttempt
 from app.schemas.assessment import AssessmentVersionReference, EvidenceReference
+from app.services.assessment.circuit_rules import CircuitRuleSettings, evaluate_circuit_structure
 from app.services.assessment.evaluation import (
     AssessmentEvaluationService,
     CriterionEvaluationUnavailableError,
@@ -19,14 +25,19 @@ from app.services.assessment.evaluators import (
     EvaluatorOutcome,
     RuleCriterionEvaluator,
 )
+from app.services.assessment.evidence import FrozenEvidenceValidator
+from app.services.assessment.response_evidence import ResponseEvidenceResolver
 from app.services.assessment.rule_settings import validate_rule_settings
+from app.services.episode_contract import FrozenResponseError, FrozenResponseReader
+from app.services.evidence.assessment_port import AssessmentEvidencePort
 
 
 class SqlAlchemyRuleCriterionEvaluationPort:
     """Evaluate approved rule criteria against one immutable response record."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, reader: FrozenResponseReader | None = None) -> None:
         self._session = session
+        self._reader = reader
 
     def evaluate(
         self,
@@ -45,11 +56,13 @@ class SqlAlchemyRuleCriterionEvaluationPort:
                 "critical errors require explicit phrase exclusions or human assessment"
             )
         try:
-            validate_rule_settings(criterion.approved_anchors, bloom_process)
+            settings = validate_rule_settings(criterion.approved_anchors, bloom_process)
         except ValueError as error:
             raise CriterionEvaluationUnavailableError(
                 "invalid rule settings require human assessment"
             ) from error
+        if isinstance(settings, CircuitRuleSettings):
+            return self._circuit(assessment, criterion, settings)
         response = self._session.get(SubmissionAttempt, assessment.response_version_id)
         if (
             response is None
@@ -81,6 +94,42 @@ class SqlAlchemyRuleCriterionEvaluationPort:
                 approved_anchors=criterion.approved_anchors,
                 evidence=(evidence,),
             )
+        )
+
+    def _circuit(self, assessment, criterion, settings):
+        if self._reader is None:
+            from app.services.episode_responses import SqlAlchemyFrozenResponseReader
+
+            self._reader = SqlAlchemyFrozenResponseReader(self._session)
+        try:
+            response = self._reader.read(assessment=assessment)
+            evidence = FrozenEvidenceValidator().resolve_and_validate(
+                AssessmentEvidencePort(ResponseEvidenceResolver(self._reader, self._session)),
+                assessment=assessment,
+                evidence_ids=(response.reference.evidence_id,),
+                allowed_types=criterion.evidence_source_types,
+            )
+            if settings.stage == "supported":
+                circuit = response.content.circuit
+            else:
+                circuit = (
+                    response.episode.transfer.content.circuit
+                    if response.episode and response.episode.transfer
+                    else None
+                )
+            decision, reason = evaluate_circuit_structure(settings, circuit)
+        except (FrozenResponseError, ValueError) as error:
+            raise CriterionEvaluationUnavailableError(
+                "Frozen circuit evidence requires human review"
+            ) from error
+        if decision is CriterionDecision.NOT_EVALUABLE:
+            raise CriterionEvaluationUnavailableError(reason)
+        return EvaluatorOutcome(
+            decision=decision,
+            reason=reason,
+            evidence=evidence,
+            evaluator_type=CriterionEvaluatorType.RULES,
+            evaluator_reference="rules.circuit-structure.v1",
         )
 
 

@@ -21,20 +21,12 @@ export interface ScopedRoleAssignment {
   valid_until: string | null
 }
 
-export type TaskType =
-  | 'multiple_choice'
-  | 'multiple_answer'
-  | 'short_answer'
-  | 'code_explanation'
-  | 'code_completion'
-  | 'quantum_circuit'
-  | 'quiz'
-  | 'code'
-  | 'circuit'
+export type TaskType = ApiSchemas['TaskType']
 
 export type LearningState = 'locked' | 'not_started' | 'draft' | 'in_progress' | 'submitted' | 'completed'
 
 export interface LearningTask {
+  episode_plan?: EpisodeState | null
   id: string
   title: string
   module: string
@@ -120,6 +112,7 @@ export interface StudentDashboardData {
 }
 
 export interface TaskDraft {
+  episode?: EpisodePayload | null
   assessment_work_start_id?: string | null
   id: string
   task_id: string
@@ -133,6 +126,7 @@ export interface TaskDraft {
 }
 
 export interface TaskSubmission {
+  episode?: EpisodePayload | null
   assessment_work_start_id?: string | null
   id?: string
   score: number | null
@@ -157,6 +151,7 @@ export interface GateOperation {
 }
 
 export interface SimulationResult {
+  circuit_version_id?: string
   run_id: string
   counts: Record<string, number>
   probabilities: Record<string, number>
@@ -276,3 +271,10 @@ export interface SystemSettings {
 }
 
 export type AsyncState = 'idle' | 'loading' | 'success' | 'error'
+
+
+export type EpisodeContent = ApiSchemas['ResponseContent']
+export type EpisodeProcess = ApiSchemas['EpisodeStageResponseV1']
+export type EpisodePayload = ApiSchemas['EpisodePayloadV1']
+export type EpisodeState = ApiSchemas['EpisodeStateRead']
+export type EpisodeCheckpointSnapshot = ApiSchemas['EpisodeCheckpointRead']

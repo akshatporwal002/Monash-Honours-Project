@@ -173,7 +173,7 @@ def test_request_key_unique_constraint_cannot_replace_history(db_session, eviden
     run_id, _ = service.prepare(**inputs)
     with pytest.raises(IntegrityError, match="append-only"):
         db_session.execute(
-            text("""INSERT OR REPLACE INTO simulation_runs
+            text("""INSERT OR REPLACE INTO simulation_runs (id, owner_id, request_key, circuit_version_id, submission_id, purpose, shots, seed, policy_version, engine_versions, created_at, deadline_at)
             SELECT 'different-id', owner_id, request_key, circuit_version_id, submission_id,
                 purpose, shots, seed, policy_version, engine_versions, created_at, deadline_at
             FROM simulation_runs WHERE id = :id"""),

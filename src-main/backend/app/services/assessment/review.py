@@ -34,7 +34,14 @@ from app.models.assessment import (
 )
 from app.models.lms import PlatformAuditEvent, SubmissionAttempt
 from app.models.user import User
+from app.schemas.assessment_review import (
+    FrozenAssessmentContextRead,
+    HistoricalResponseEvidenceRead,
+)
+from app.schemas.episode import FrozenResponseRead
 from app.services.assessment.access import RoleAssignmentService
+from app.services.assessment.pass_rules import referenced_criterion_version_ids
+from app.services.episode_contract import FrozenResponseReader
 
 
 class AssessmentReviewError(Exception):
@@ -67,13 +74,21 @@ class AssessmentReviewFilters:
 class CriterionReviewDetail:
     criterion_version_id: str
     criterion_version: int
-    decision: CriterionDecision
+    decision: CriterionDecision | None
     reason: str
     evidence_references: dict[str, Any] | list[Any]
     evaluator_reference: str
     model_version: str | None
     prompt_version: str | None
     retrieval_version: str | None
+    learner_description: str = ""
+    evidence_description: str = ""
+    mandatory: bool = True
+    met_rule: str = ""
+    not_met_rule: str = ""
+    not_evaluable_rule: str = ""
+    approved_anchors: dict[str, Any] | list[Any] | None = None
+    evidence_source_types: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -105,6 +120,12 @@ class AssessmentReviewDetail:
     missing_criterion_version_ids: tuple[str, ...]
     history: tuple[AssessorReviewHistory, ...]
     created_at: datetime
+    response: FrozenResponseRead | None = None
+    response_issues: tuple[str, ...] = ()
+    response_history: tuple[FrozenResponseRead, ...] = ()
+    simulations: tuple[dict[str, Any], ...] = ()
+    historical_evidence: tuple[HistoricalResponseEvidenceRead, ...] = ()
+    frozen_context: FrozenAssessmentContextRead | None = None
 
 
 @dataclass(frozen=True)
@@ -136,8 +157,10 @@ class AssessmentReviewService:
         assignments: RoleAssignmentService,
         correlation_id: str | None = None,
         now: Callable[[], datetime] | None = None,
+        reader: FrozenResponseReader | None = None,
     ) -> None:
         self.session = session
+        self.reader = reader
         self.assignments = assignments
         self.correlation_id = correlation_id or str(uuid4())
         self._now = now or (lambda: datetime.now(UTC))
@@ -235,6 +258,19 @@ class AssessmentReviewService:
                 "assessment result state changed before this action"
             )
 
+        if self.reader is not None and request.action in {
+            AssessorReviewAction.CONFIRM,
+            AssessorReviewAction.OVERRIDE,
+        }:
+            detail = self._detail(decision)
+            if detail.response is None or detail.response_issues:
+                raise AssessmentReviewConflictError(
+                    "Frozen evidence is unavailable or technically invalid. Keep this decision under review."
+                )
+            if any(criterion.decision is None for criterion in detail.criteria):
+                raise AssessmentReviewValidationError(
+                    "Record missing criterion decisions through human assessment first."
+                )
         self._validate_action(decision, request)
         reviewed_at = self._utc(self._now())
         review = AssessorReview(
@@ -370,12 +406,37 @@ class AssessmentReviewService:
             evaluations_by_attempt.setdefault(evaluation.assessment_attempt_id, []).append(
                 evaluation
             )
+        from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
+
+        latest_actions = {}
+        for action in self.session.scalars(
+            select(HumanAssessmentAction)
+            .where(HumanAssessmentAction.assessment_attempt_id.in_(attempt_ids))
+            .order_by(HumanAssessmentAction.revision)
+        ):
+            latest_actions[action.assessment_attempt_id] = action.id
+        for attempt_id, action_id in latest_actions.items():
+            human_rows = list(
+                self.session.scalars(
+                    select(HumanCriterionDecision).where(
+                        HumanCriterionDecision.action_id == action_id
+                    )
+                )
+            )
+            replaced_ids = {row.criterion_version_id for row in human_rows}
+            evaluations_by_attempt[attempt_id] = [
+                row
+                for row in evaluations_by_attempt.get(attempt_id, [])
+                if row.criterion_version_id not in replaced_ids
+            ] + human_rows
         criteria = {
             criterion.id: criterion
             for criterion in self.session.scalars(
                 select(CriterionVersion).where(
                     CriterionVersion.id.in_(
-                        evaluation.criterion_version_id for evaluation in evaluations
+                        criterion_id
+                        for rule in rules.values()
+                        for criterion_id in referenced_criterion_version_ids(rule.expression)
                     )
                 )
             )
@@ -407,7 +468,7 @@ class AssessmentReviewService:
         details: list[AssessmentReviewDetail] = []
         for decision in decisions:
             attempt = attempts[decision.assessment_attempt_id]
-            response = responses[attempt.response_version_id]
+            response = responses.get(attempt.response_version_id)
             definition = definitions[attempt.assessment_definition_version_id]
             bloom = blooms[attempt.bloom_target_version_id]
             rule = rules[attempt.pass_rule_version_id]
@@ -416,15 +477,38 @@ class AssessmentReviewService:
             review_rows = reviews_by_decision.get(decision.id, [])
             evaluation_rows = evaluations_by_attempt.get(attempt.id, [])
             criterion_rows = [
-                criteria[evaluation.criterion_version_id] for evaluation in evaluation_rows
+                criteria[criterion_id]
+                for criterion_id in sorted(referenced_criterion_version_ids(rule.expression))
+                if criterion_id in criteria
             ]
+            evaluations_by_id = {row.criterion_version_id: row for row in evaluation_rows}
+            (
+                full_response,
+                response_issues,
+                response_history,
+                simulations,
+                historical_evidence,
+                frozen_context,
+            ) = self._response_context(attempt)
             details.append(
                 AssessmentReviewDetail(
                     decision_id=decision.id,
                     course_id=attempt.course_id,
                     outcome_id=outcome.learning_outcome_id,
-                    response_text=response.answer,
-                    response_conditions=response.declared_conditions,
+                    response_text=(
+                        full_response.content.answer if full_response is not None else ""
+                    )
+                    if self.reader is not None
+                    else (response.answer if response is not None else ""),
+                    response=full_response,
+                    response_issues=response_issues,
+                    response_history=response_history,
+                    simulations=simulations,
+                    historical_evidence=historical_evidence,
+                    frozen_context=frozen_context,
+                    response_conditions=response.declared_conditions
+                    if response is not None
+                    else {},
                     result=decision.result,
                     result_state=decision.result_state,
                     system_reason=public_assessment_reason_code(decision.system_reason),
@@ -441,30 +525,43 @@ class AssessmentReviewService:
                         "pass_rule_version": rule.version,
                         "task_form_id": form.id,
                         "task_form_version": form.version,
-                        "response_version_id": response.id,
+                        "response_version_id": attempt.response_version_id,
                     },
                     criteria=tuple(
                         CriterionReviewDetail(
                             criterion_version_id=criterion.id,
                             criterion_version=criterion.version,
-                            decision=evaluation.decision,
-                            reason=evaluation.reason,
-                            evidence_references=evaluation.evidence_references,
-                            evaluator_reference=evaluation.evaluator_reference,
-                            model_version=evaluation.model_version,
-                            prompt_version=evaluation.prompt_version,
-                            retrieval_version=evaluation.retrieval_version,
+                            decision=evaluation.decision if evaluation else None,
+                            reason=evaluation.reason
+                            if evaluation
+                            else "No criterion decision has been recorded.",
+                            evidence_references=evaluation.evidence_references
+                            if evaluation
+                            else [],
+                            evaluator_reference=evaluation.evaluator_reference
+                            if evaluation
+                            else "unresolved",
+                            model_version=getattr(evaluation, "model_version", None),
+                            prompt_version=getattr(evaluation, "prompt_version", None),
+                            retrieval_version=getattr(evaluation, "retrieval_version", None),
+                            learner_description=criterion.learner_description,
+                            evidence_description=criterion.evidence_description,
+                            mandatory=criterion.mandatory,
+                            met_rule=criterion.met_rule,
+                            not_met_rule=criterion.not_met_rule,
+                            not_evaluable_rule=criterion.not_evaluable_rule,
+                            approved_anchors=criterion.approved_anchors,
+                            evidence_source_types=criterion.evidence_source_types,
                         )
-                        for evaluation, criterion in zip(
-                            evaluation_rows, criterion_rows, strict=True
-                        )
+                        for criterion in criterion_rows
+                        for evaluation in [evaluations_by_id.get(criterion.id)]
                     ),
                     missing_criterion_version_ids=tuple(
                         criterion.id
-                        for evaluation, criterion in zip(
-                            evaluation_rows, criterion_rows, strict=True
-                        )
-                        if evaluation.decision is CriterionDecision.NOT_EVALUABLE
+                        for criterion in criterion_rows
+                        if criterion.id not in evaluations_by_id
+                        or evaluations_by_id[criterion.id].decision
+                        is CriterionDecision.NOT_EVALUABLE
                     ),
                     history=tuple(
                         AssessorReviewHistory(
@@ -483,6 +580,62 @@ class AssessmentReviewService:
                 )
             )
         return tuple(details)
+
+    def _response_context(self, attempt):
+        if self.reader is None:
+            return None, (), (), (), (), None
+        from app.services.assessment.frozen_review import FrozenReviewEvidenceReader
+
+        detail = FrozenReviewEvidenceReader(self.session, self.reader).read(attempt)
+        return (
+            detail["response"],
+            tuple(detail["issues"]),
+            detail["response_history"],
+            detail["simulations"],
+            detail["historical_evidence"],
+            detail["frozen_context"],
+        )
+
+    def confirm_calculated_result(self, actor, decision, result, reason):
+        """Append a reviewed calculated result within the caller's locked transaction."""
+        self.assignments.require_assessor_access(actor, decision.assessment_attempt.course_id)
+        if decision.result_state is ResultState.VOID:
+            raise AssessmentReviewConflictError("A void decision cannot be finalised")
+        if decision.result == result and decision.result_state in {
+            ResultState.CONFIRMED,
+            ResultState.OVERRIDDEN,
+        }:
+            return None
+        action = (
+            AssessorReviewAction.CONFIRM
+            if decision.result == result
+            else AssessorReviewAction.OVERRIDE
+        )
+        request = AssessmentReviewActionRequest(
+            action=action,
+            reason=reason,
+            expected_result_state=decision.result_state,
+            expected_review_revision=len(self._reviews(decision.id)),
+            new_result=result if action is AssessorReviewAction.OVERRIDE else None,
+        )
+        self._validate_action(decision, request)
+        at = self._utc(self._now())
+        review = AssessorReview(
+            assessment_decision_id=decision.id,
+            assessor_user_id=actor.id,
+            action=action,
+            review_revision=request.expected_review_revision + 1,
+            prior_result=self._prior_result(decision, action),
+            new_result=result,
+            reason=reason.strip(),
+            reviewed_at=at,
+        )
+        self.session.add(review)
+        self.session.flush()
+        self._apply_action(decision, request, actor.id, at)
+        self._audit("assessment_review.recorded", decision, actor, review, replayed=False)
+        self.session.flush()
+        return review
 
     def _reviews(self, decision_id: str) -> list[AssessorReview]:
         return list(

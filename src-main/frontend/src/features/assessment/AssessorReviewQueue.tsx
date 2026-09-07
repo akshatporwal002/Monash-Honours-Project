@@ -11,6 +11,7 @@ import {
 import type { ReviewFilters } from './AssessorReviewPanels'
 import { lifecycleLabels, resultLabels } from './assessmentReviewPresentation'
 import { useAssessorReviewQueue } from './useAssessorReviewQueue'
+import { AssessorReviewUnresolved } from './AssessorReviewUnresolved'
 import styles from './assessment.module.css'
 
 function activeFilterSummary(filters: ReviewFilters): string {
@@ -82,6 +83,14 @@ export function AssessorReviewQueue({
         onUpdate={queue.updateFilters}
         onRefresh={() => void queue.refreshQueue()}
       />
+      {queue.accessActive && queue.status && queue.filters.courseId && <AssessorReviewUnresolved
+        key={queue.filters.courseId}
+        courseId={queue.filters.courseId}
+        reviewedAttemptId={queue.selected?.response?.reference.assessment.assessment_attempt_id}
+        onCheckAccess={onCheckAccess}
+        onAccessRevoked={onAccessRevoked}
+        onFinalised={() => void queue.refreshQueue()}
+      />}
       {queue.loading && <ScreenState kind="loading" title="Loading review queue" message="Retrieving the assigned course records." />}
       {!queue.loading && queue.records.length === 0 && !queue.error && (
         <EmptyState

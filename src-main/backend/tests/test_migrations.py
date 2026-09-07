@@ -37,6 +37,11 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "human_assessment_actions",
+    "human_criterion_decisions",
+    "episode_checkpoints",
+    "episode_help_uses",
+    "episode_stage_starts",
     "assessment_work_starts",
     "task_revisions",
     "task_review_events",
@@ -147,7 +152,7 @@ def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0029"
+            == "20260907_0031"
         )
         assert "task_revision_id" in {
             column["name"] for column in inspect(connection).get_columns("task_form_versions")
@@ -193,7 +198,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0029"
+            == "20260907_0031"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -1488,6 +1493,7 @@ def test_assessment_migration_upgrades_clean_and_legacy_databases(tmp_path: Path
         ]
     for row in after_attempt_rows:
         assert row.pop("assessment_work_start_id") is None
+        assert row.pop("episode") is None
     assert after_attempt_rows == before_attempt_rows
 
 

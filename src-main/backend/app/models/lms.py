@@ -252,6 +252,7 @@ class SubmissionDraft(Base):
     answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
     circuit: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    episode: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -314,6 +315,7 @@ class SubmissionAttempt(Base):
     answer: Mapped[str] = mapped_column(Text, nullable=False, default="")
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
     circuit: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    episode: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     score: Mapped[int | None] = mapped_column(
         Integer,
         nullable=True,

@@ -1,4 +1,5 @@
 import type { AssessmentDraft } from './api'
+import { buildCircuitRuleDraft } from './circuitRuleDraft'
 
 export interface SetupValues {
   courseId: string
@@ -22,7 +23,10 @@ export interface SetupValues {
   accessVerified: boolean
   bloomVerified: boolean
   approvalReason: string
-  evaluatorType: 'human' | 'rules'
+  evaluatorType: 'human' | 'rules' | 'circuit' | 'circuit_mixed'
+  circuitQubits: string
+  circuitOperations: string
+  circuitStage: 'supported' | 'transfer'
   requiredPhrases: string
   alternativePhrases: string
   excludedPhrases: string
@@ -35,6 +39,7 @@ export const initialSetupValues: Omit<SetupValues, 'courseId'> = {
   support: '', access: '', transfer: '', accessVerified: false, bloomVerified: false,
   approvalReason: '',
   evaluatorType: 'human', requiredPhrases: '', alternativePhrases: '', excludedPhrases: '',
+  circuitQubits: '1', circuitOperations: 'H 0', circuitStage: 'supported',
 }
 
 function list(value: string): string[] {
@@ -51,6 +56,12 @@ export function missingSetupFields(values: SetupValues): string[] {
   ].filter(([, value]) => !value.trim()).map(([name]) => name)
   if (!values.accessVerified) missing.push('access preservation verification')
   if (!values.bloomVerified) missing.push('Bloom elicitation verification')
+  if (values.evaluatorType === 'circuit' || values.evaluatorType === 'circuit_mixed') {
+    if (values.bloomProcess !== 'APPLY') missing.push('Apply target for circuit structure rules')
+    if (!buildCircuitRuleDraft(values.circuitQubits, values.circuitOperations, values.circuitStage)) {
+      missing.push('valid circuit qubits and ordered H, X, or CX gates')
+    }
+  }
   if (values.evaluatorType === 'rules') {
     if (values.bloomProcess !== 'REMEMBER') missing.push('human assessment for this Bloom target')
     if (!list(values.requiredPhrases).length && !list(values.alternativePhrases).length) {
@@ -68,6 +79,11 @@ export function missingSetupFields(values: SetupValues): string[] {
 }
 
 export function buildAssessmentDraft(values: SetupValues): AssessmentDraft {
+  const circuit = values.evaluatorType === 'circuit' || values.evaluatorType === 'circuit_mixed'
+    ? buildCircuitRuleDraft(values.circuitQubits, values.circuitOperations, values.circuitStage) : null
+  if ((values.evaluatorType === 'circuit' || values.evaluatorType === 'circuit_mixed') && !circuit) {
+    throw new Error('Circuit rule settings are incomplete.')
+  }
   return {
     bloom_process: values.bloomProcess,
     knowledge_dimension: values.knowledgeDimension,
@@ -95,8 +111,9 @@ export function buildAssessmentDraft(values: SetupValues): AssessmentDraft {
       evidence_source_types: ['learner_response'], met_rule: values.criterion.trim(),
       not_met_rule: 'The required evidence is absent or does not meet this criterion.',
       not_evaluable_rule: 'The evidence cannot be evaluated safely.',
-      evaluator_type: values.evaluatorType,
-      approved_anchors: values.evaluatorType === 'rules' ? {
+      evaluator_type: values.evaluatorType === 'circuit' ? 'rules'
+        : values.evaluatorType === 'circuit_mixed' ? 'mixed' : values.evaluatorType,
+      approved_anchors: circuit ? { ...circuit } : values.evaluatorType === 'rules' ? {
         all_of: list(values.requiredPhrases), any_of: list(values.alternativePhrases),
         none_of: list(values.excludedPhrases),
       } : {},

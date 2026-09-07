@@ -5,6 +5,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.domain.assessment import BloomProcess
+from app.services.assessment.circuit_rules import CircuitRuleSettings, validate_circuit_settings
 
 Phrase = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
 
@@ -36,7 +37,11 @@ class RuleSettings(BaseModel):
         return self
 
 
-def validate_rule_settings(anchors: object, bloom_process: BloomProcess) -> RuleSettings:
+def validate_rule_settings(
+    anchors: object, bloom_process: BloomProcess
+) -> RuleSettings | CircuitRuleSettings:
+    if isinstance(anchors, dict) and anchors.get("kind") == "circuit_v1":
+        return validate_circuit_settings(anchors, bloom_process)
     settings = RuleSettings.model_validate(anchors)
     if bloom_process is not BloomProcess.REMEMBER:
         raise ValueError("phrase rules only support REMEMBER; use human assessment for reasoning")

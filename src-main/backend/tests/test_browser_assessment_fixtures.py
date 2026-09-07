@@ -56,6 +56,13 @@ def test_each_review_action_has_private_records_and_real_guards(
     assert [record["decision_id"] for record in queue.json()] == [first["decision_id"]]
     assert queue.json()[0]["result_state"] == "PROVISIONAL"
     assert queue.json()[0]["review_revision"] == 0
+    evidence = queue.json()[0]
+    assert evidence["response"]["content"]["answer"] == (
+        "The response links the observation to the claim."
+    )
+    assert evidence["response"]["reference"]["evidence_id"] == first["response_id"]
+    assert evidence["frozen_context"]["task_revision_id"]
+    assert evidence["response_issues"] == []
 
     other_url = f"/api/v1/assessment/decisions/{second['decision_id']}/review"
     payload = {

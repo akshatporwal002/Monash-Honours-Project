@@ -2,8 +2,9 @@
 
 Started: 7 September 2026. Status: implementation in progress.
 
-The current request authorises Tasks 13 onward, including reviewed commits, pushes, and batch merges.
-It supersedes the earlier Task 12 stopping instruction. Live approvals remain separate.
+The original request authorised Tasks 13 onward, including reviewed commits, pushes, and batch merges.
+The latest instruction narrows this run to finishing and delivering current Tasks 14 and 15, then reporting status.
+Stop before starting the next batch. Live approvals remain separate.
 
 ## Starting evidence
 
@@ -20,18 +21,17 @@ It supersedes the earlier Task 12 stopping instruction. Live approvals remain se
 
 | Batch | Tasks | Required foundation | Status |
 | --- | --- | --- | --- |
-| A | 13; 32 draft only | 12; selected Task 8 directions | Active |
-| B | 14, 15 | Integrated 13; 11 and 12 | Waiting for A |
-| C | 16, 17, 24 | 15 for 16/24; 14 for 17 | Waiting for B |
-| D | 18, 26 | 17 for 18; 24 for 26 | Waiting for C |
-| E | 19, 20 | 18 for 19; 14/17 for 20 | Waiting for D |
-| F | 21, 23 | 18/20; 16/17 for 23 | Waiting for E |
-| G | 22 | 7/18/20/21 | Waiting for F |
-| H | 25, 27, 30 | 22; remaining task-specific prerequisites | Waiting for G |
-| I | 28, 29; 33 engineering if approved contracts exist | 27; 26 for 29; 32 approval for 33 activation | Waiting for H |
-| J | 31; 34 if study approval exists; 35 validation preparation | 29/20; 33/32 for 34; expert evidence for 35 | Waiting for I |
-| K | 36 combined traceability; 37/39/40 preparation | Final applicable task implementation | Waiting for J |
-| L | 37, 38, 39, 40, 41 final evidence | Exact task dependencies and external approvals | Externally gated |
+| A | 13; 32 draft only | 12; selected Task 8 directions | Merged, post-merge CI passed |
+| B | 14, 15 | Integrated 13; 11 and 12 | Active |
+| C | 16, 17, 24 | 15 for 16/24; 14 for 17 | Prepared only; outside the current stopping point |
+| D | 18, 20, 26 | 17 for 18/20; 24 for 26 | Waiting for C |
+| E | 19, 21, 23 | 18 for 19; 18/20 for 21/23; 16/17 for 23 | Waiting for D |
+| F | 22 | 7/18/20/21 | Waiting for E |
+| G | 25, 27, 30 | 22; remaining task-specific prerequisites | Waiting for F |
+| H | 28, 29; 33 engineering if approved contracts exist | 27; 26 for 29; 32 approval for 33 activation | Waiting for G |
+| I | 31; 34 if study approval exists; 35 validation preparation | 29/20; 33/32 for 34; expert evidence for 35 | Waiting for H |
+| J | 36 combined traceability; 37/39/40 preparation | Final applicable task implementation | Waiting for I |
+| K | 37, 38, 39, 40, 41 final evidence | Exact task dependencies and external approvals | Externally gated |
 
 Recheck actual contracts before assigning each batch. Later groupings are provisional.
 Missing live approval blocks activation or completion, not unrelated engineering.
@@ -43,10 +43,12 @@ All paths below are relative to the repository root. Every worker uses an explic
 
 | Owner | Scope | Branch | Worktree | Base | Scratch and ports |
 | --- | --- | --- | --- | --- | --- |
-| Coordinator | Integration, generated contracts, progress and decisions | `integration/learnlens-batch-13-32` | Repository root | `d5ac7cb` | `.tmp-coordinator`; 8140/5240 |
+| Coordinator | Shared authoring, integration, generated contracts, progress | `integration/learnlens-batch-14-15` | Repository root | `8654677` | `.tmp-coordinator`; 8140/5240 |
 | task13 | Start-time assessment freeze, related backend/UI/tests, task handoff | `feat/task-13-start-assessment-freeze` | `.tmp-coordinator/task13` | `d5ac7cb` | `.tmp-task13`; 8133/5233 |
 | task32 | Draft protocol and data plan only | `docs/task-32-study-protocol` | `.tmp-coordinator/task32` | `d5ac7cb` | `.tmp-task32`; no servers needed |
 | next_batch_audit | Read-only Task 14/15 interface audit | None | Repository root | `d5ac7cb` | No mutable runtime |
+| task14 | Episode responses, learner stages, workspace, canonical reader | `feat/task-14-learning-episode` | `.tmp-coordinator/task14` | `8654677` | `.tmp-task14`; 8144/5244 |
+| task15 | Unresolved queue, human criterion decisions, assessor evidence UI | `feat/task-15-human-assessment` | `.tmp-coordinator/task15` | `8654677` | `.tmp-task15`; 8155/5255 |
 
 Workers use separate SQLite files and pytest temporary directories inside their ignored scratch roots.
 They may reuse the pinned backend interpreter read-only, with imports from their own checkout.
@@ -105,7 +107,13 @@ Three isolated Firefox accessibility reruns passed without changes to product be
 Evidence is under `.tmp-coordinator/evidence/batch-a-final`; initial failed browser artifacts were preserved there.
 The final combined browser and accessibility run passed all 72 cases across Chrome, Edge, Firefox, and WebKit.
 The final commit-range secret scan examined nine commits and found no leaks.
-The current batch remains gated on full GitHub CI before main integration.
+PR 9 head `d4d529ef69c3bb4c2c1a0846dbb09e7b0a490460` passed all four CI gates in run `34077369281`.
+That run passed 873 backend tests with 86.22% service coverage, 31 migration checks, and 72 browser cases.
+The final delivery secret scan examined ten commits and found no leaks.
+After fetching and verifying the exact base, head, and checks, PR 9 merged as `865467740c1c122834bd67d3c7f6a7ca77bd381c`.
+Post-merge run `34078012664` passed all gates: 873 backend tests, 86.19% coverage, 31 migrations, and 72 browser cases.
+Local main was synchronized, clean, and equal to origin/main at that exact commit before Batch B worktrees were created.
+Both task branches retain separate integration merge commits. Logs are under `.tmp-coordinator/evidence/batch-a-final`.
 
 Pinned Node 22.13.0 is installed under `.tmp-coordinator/tools`, with its archive SHA-256 verified against nodejs.org.
 The host default remains Node 24; batch checks use the pinned executable explicitly.
@@ -113,7 +121,7 @@ The Python lock check passed. Python dependency audit found no known vulnerabili
 Full and production npm audits both found zero vulnerabilities for the unchanged dependency lockfiles.
 Audit logs are under `.tmp-coordinator/evidence/batch-a`. Lockfile changes require fresh audits.
 
-Task 13 remains in progress. Focused checks do not yet establish task or batch completion.
+Task 13 is complete, tested, independently reviewed, merged, and verified after merge.
 Task 32 drafting does not establish ethics approval, preregistration, consent, or participant recruitment authority.
 The user named Arv Surana as research lead on 7 September 2026. This records ownership only.
 That name is recorded in both Task 32 drafts. Other requested external records remain outstanding.
@@ -125,5 +133,76 @@ Synthetic localhost tests cannot replace those records.
 
 ## Next executable step
 
-Resolve the remaining browser checks, review the test correction, then deliver and verify Batch A through GitHub.
-Task 14/15 interface planning proceeds read-only while that foundation is built.
+The user's latest instruction is to finish current Tasks 14 and 15, commit and merge them into main, then report status.
+Stop after verified Batch B delivery and local main synchronization. Tasks 16, 17, and 24 remain prepared, without implementation workers.
+
+Batch B local progress, 7 September 2026:
+
+- Task 14 pure contracts and persistence are committed through `dca96f9`.
+  Coordinator authoring and contract wiring is `dd6bec5`.
+  Private plans belong to the exact reviewed task revision and frozen form.
+  The educator browser journey passed authoring, review, reload, and human APPLY publication.
+  The learner journey passed prediction, simulation timeout recovery, fresh transfer, revision, and submission.
+  Migration tests found a task-type CHECK gap, foreign-key reflection drift, and early downgrade mutations.
+  The fixes passed 94 backend and migration checks, preserving protected history.
+  Final head `3f329ac` passed 31 typed API checks, 26 frontend tests, and a fresh Chrome journey.
+  Independent review found changed inputs retaining a checkpoint, hidden results for typed tasks, and missing help-use history.
+  Correction head `f2ed1f6` binds checkpoints to exact inputs and makes all six types simulatable within approved episodes.
+  Approved hint requests now have durable, scoped history. Access support stays available in both stages.
+  The correction passed 75 backend tests, 33 frontend tests, and real explanation and circuit browser journeys.
+  Both journeys reported zero serious or critical Axe findings. The 31 shared migration checks also passed.
+  Both independent correction reviews cleared exact head `f2ed1f6` with zero open findings.
+  A Unicode regression was fixed in `530d28f` using the original source bytes.
+- Task 15 human review follow-up is `48f5cb2`; circuit authoring is `c2d309f`.
+  The scoped backend run passed 69 tests. Shared authoring and definition checks passed all 28 tests.
+  Chrome passed unresolved review, human confirmation, and reload with zero Axe violations.
+  A separate Chrome journey published circuit rules, then a mixed-human version, preserving both versions.
+  The narrow mixed path contains deterministic circuit checks and human judgement. AI suggestions remain disabled.
+  Independent Spec review found missing historical simulation details and frozen question context.
+  Both findings and the Standards service-coupling concern were fixed in `d4d9ac5`.
+  Both independent reviewers cleared Task 15 head `6c5fdf4` with zero open findings in its task scope.
+  That head passed 76 backend tests, 19 UI tests, and the expanded real Chrome journey.
+  Coordinator commit `990f09c` freezes migration 0031 and updates readiness and generated review contracts.
+  All 31 shared migration tests, 15 start-freeze checks, and seven runtime checks passed with that change.
+  Dependency merge `d5d6e88` consumes reviewed Task 14 head `f2ed1f6`.
+  The sole conflict retained both human models and the new support model in shared exports.
+  Regenerated contracts, 101 affected backend checks, 28 frontend tests, and the build passed.
+  The protected-downgrade test now expects the combined head, 0031. Both independent reviews cleared the merge.
+- Both worktrees passed frontend lint and production builds. Coordinator browser helpers were stopped.
+  Task 14 and Task 15 still need final dependency integration, independent reviews, and combined release checks.
+  These results do not yet mark either task merged or complete.
+  Fresh Python and full/production npm dependency audits passed with no known vulnerabilities.
+  Logs are under `.tmp-coordinator/evidence/batch-b`; dependency lockfiles remain unchanged.
+
+Task merges `994812f` and `1d594c7` preserve separate Task 14 and 15 boundaries.
+The first combined backend invocation used a missing temporary parent directory and failed during fixture setup.
+It restarted with an existing isolated scratch path. This was a runner setup error, not validation evidence.
+The valid full run passed 969 tests with 86.45% service coverage; four browser-fixture cases failed.
+Those four failures share the fixture and historical-read boundary under correction. No other backend tests failed.
+Combined frontend checks passed 231 tests across 64 files, lint, and the production build.
+Ruff, formatting, generated-contract checks, and the single migration head check passed.
+The secret scan inspected 22 commits and found no leaks.
+The new human-review journey passed on combined Task 15 head `d5d6e88`, with zero Axe findings or page errors.
+The older assessor-review browser journey exposed fixtures with invalid response digests and missing reviewed context.
+A scoped correction will preserve strict validation and create new browser records through ordinary approval controls.
+Valid historical responses must remain readable when reviewed task context is unavailable, with that limit stated.
+Correction `0b0f5b3` passed 73 backend tests, including ordinary approved browser fixtures and stale-evidence guards.
+The final earlier-context warning passed all 27 affected tests. Both independent reviewers cleared that exact commit.
+Corrective merge `4ce3fbd` preserves the Task 15 branch boundary. Its application source matches the reviewed worker head.
+Firefox's sandboxed context setup failed before testing the app. The isolated unchanged case passed with desktop permissions.
+The regression is resolved. The final combined run passed all 72 browser and accessibility cases in Chrome, Edge, Firefox, and WebKit.
+The final code secret scan checked 23 commits and found no leaks. Final formatting and contract checks also passed.
+Batch B is ready for PR CI. Merge and post-merge verification remain required before declaring delivery complete.
+The final local delivery receipt is saved under `.tmp-coordinator/evidence/batch-b` after that verification.
+
+Task 14 and Task 15 implementation is active in isolated worktrees from verified main `8654677`.
+Task 14 first supplies a pure episode schema, immutable-reader protocol, and private-plan validation contract.
+Task 15 begins the unresolved queue and human action independently, then consumes that exact shared contract.
+The coordinator owns authoring/publication wiring, model exports, generated contracts, readiness, and shared fixtures.
+Reserve migration 0030 for Task 14 and 0031 for Task 15 only when their schema changes require them.
+Every private fresh prompt must belong to the exact educator-reviewed task revision and remain hidden until stage entry.
+
+A read-only Task 19 audit recovered deleted-branch work at `fda2459fdb6f529f933e48494f9f39787d420d2e`.
+The local archive branch `archive/raveen-learning-intelligence-fda2459` preserves it without restoring the remote branch.
+The audit is `.tmp-coordinator/task19-reuse-audit.md`; Task 17 and 18 remain its implementation prerequisites.
+It identifies reusable code plus migration guard, correction carry-forward, route, pagination, and audit-recovery gaps.

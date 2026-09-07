@@ -33,6 +33,7 @@ import {
 import type { CriterionDecision } from './types'
 import { assessmentResultValues, resultStateValues } from './types'
 import styles from './assessment.module.css'
+import { AssessorReviewResponse } from './AssessorReviewResponse'
 
 export type ReviewFilters = {
   courseId: string
@@ -268,7 +269,9 @@ function EvidenceDetail({ selected }: { selected: AssessmentReviewDetail }) {
           </section>
           <section className={styles.section}>
             <h3>Original response</h3>
-            <p>{selected.response_text || 'No response text was recorded.'}</p>
+            <AssessorReviewResponse response={selected.response} history={selected.response_history}
+              historicalEvidence={selected.historical_evidence} frozenContext={selected.frozen_context}
+              simulations={selected.simulations} issues={selected.response_issues} fallbackText={selected.response_text} />
           </section>
         </div>
       </Card>
@@ -279,7 +282,9 @@ function EvidenceDetail({ selected }: { selected: AssessmentReviewDetail }) {
         <ul className={styles.criterionList}>
           {selected.criteria.map((criterion) => (
             <li key={criterion.criterion_version_id} className={styles.criterionItem}>
-              <DecisionChip decision={criterion.decision} />
+              {criterion.decision ? <DecisionChip decision={criterion.decision} /> : <p>Awaiting a criterion decision</p>}
+              {criterion.learner_description && <h3>{criterion.learner_description}</h3>}
+              {criterion.evidence_description && <p>{criterion.evidence_description}</p>}
               <p>{criterion.reason}</p>
               <StructuredValue
                 value={criterion.evidence_references}

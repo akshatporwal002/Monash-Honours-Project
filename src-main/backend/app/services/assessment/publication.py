@@ -7,6 +7,7 @@ from app.models import LearningMaterial, LearningOutcome, LearningTask, User
 from app.models.assessment import OutcomeVersion, TaskApproval, TaskFormVersion
 from app.models.source_history import SourcePassage, SourceRevision
 from app.models.task_review import TaskReviewEvent, TaskRevision
+from app.services.episode_contract import validate_reviewed_episode_plan
 from app.services.task_review import TaskReviewError, TaskReviewService
 
 
@@ -28,6 +29,20 @@ def current_form_review(session: Session, form: TaskFormVersion) -> TaskReviewEv
     review.require_available(task)
     if review.latest_revision(task.id).id != revision.id:
         raise TaskReviewError("Teaching content changed; save a new assessment definition", 409)
+    frozen_plan = (
+        form.constraints.get("episode_plan") if isinstance(form.constraints, dict) else None
+    )
+    reviewed_marking = revision.snapshot.get("marking_criteria")
+    try:
+        plan = validate_reviewed_episode_plan(
+            reviewed_marking if isinstance(reviewed_marking, dict) else None, frozen_plan
+        )
+        if plan is not None and frozen_plan is None:
+            raise ValueError("The frozen form is missing its reviewed episode plan")
+    except ValueError as error:
+        raise TaskReviewError(
+            "The formal episode does not match its reviewed teaching revision", 409
+        ) from error
     sources = review.validate_ready(task, require_sources=True)
     event = review.latest_event(revision.id)
     if event is None or event.state != "APPROVED" or event.source_approvals != sources:
