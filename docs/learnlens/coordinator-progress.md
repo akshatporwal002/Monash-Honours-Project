@@ -142,19 +142,29 @@ Batch B local progress, 7 September 2026:
   Migration tests found a task-type CHECK gap, foreign-key reflection drift, and early downgrade mutations.
   The fixes passed 94 backend and migration checks, preserving protected history.
   Final head `3f329ac` passed 31 typed API checks, 26 frontend tests, and a fresh Chrome journey.
-  Both independent reviews are running. The task worktree is clean and its servers are stopped.
+  Independent review found changed inputs retaining a checkpoint, hidden results for typed tasks, and missing help-use history.
+  Correction head `f2ed1f6` binds checkpoints to exact inputs and makes all six types simulatable within approved episodes.
+  Approved hint requests now have durable, scoped history. Access support stays available in both stages.
+  The correction passed 75 backend tests, 33 frontend tests, and real explanation and circuit browser journeys.
+  Both journeys reported zero serious or critical Axe findings. The 31 shared migration checks also passed.
+  Both independent correction reviews cleared exact head `f2ed1f6` with zero open findings.
+  A Unicode regression was fixed in `530d28f` using the original source bytes.
 - Task 15 human review follow-up is `48f5cb2`; circuit authoring is `c2d309f`.
   The scoped backend run passed 69 tests. Shared authoring and definition checks passed all 28 tests.
   Chrome passed unresolved review, human confirmation, and reload with zero Axe violations.
   A separate Chrome journey published circuit rules, then a mixed-human version, preserving both versions.
   The narrow mixed path contains deterministic circuit checks and human judgement. AI suggestions remain disabled.
   Independent Spec review found missing historical simulation details and frozen question context.
-  Both findings are being fixed before final review. Standards found one maintainability concern about service coupling.
+  Both findings and the Standards service-coupling concern were fixed in `d4d9ac5`.
+  Both independent reviewers cleared Task 15 head `6c5fdf4` with zero open findings in its task scope.
+  That head passed 76 backend tests, 19 UI tests, and the expanded real Chrome journey.
   Coordinator commit `990f09c` freezes migration 0031 and updates readiness and generated review contracts.
   All 31 shared migration tests, 15 start-freeze checks, and seven runtime checks passed with that change.
 - Both worktrees passed frontend lint and production builds. Coordinator browser helpers were stopped.
   Task 14 and Task 15 still need final dependency integration, independent reviews, and combined release checks.
   These results do not yet mark either task merged or complete.
+  Fresh Python and full/production npm dependency audits passed with no known vulnerabilities.
+  Logs are under `.tmp-coordinator/evidence/batch-b`; dependency lockfiles remain unchanged.
 
 Task 14 and Task 15 implementation is active in isolated worktrees from verified main `8654677`.
 Task 14 first supplies a pure episode schema, immutable-reader protocol, and private-plan validation contract.
