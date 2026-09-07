@@ -399,6 +399,16 @@
         "title": "AssessmentApprovalState",
         "type": "string"
       },
+      "AssessmentAttemptState": {
+        "enum": [
+          "PENDING",
+          "EVALUATED",
+          "FAULTED",
+          "VOID"
+        ],
+        "title": "AssessmentAttemptState",
+        "type": "string"
+      },
       "AssessmentAuthoringTaskRead": {
         "additionalProperties": false,
         "properties": {
@@ -1373,6 +1383,27 @@
         "title": "AssessmentDefinitionRead",
         "type": "object"
       },
+      "AssessmentEvaluationFailureCategory": {
+        "enum": [
+          "provider_unavailable",
+          "provider_fault",
+          "version_conflict",
+          "persistence_unavailable"
+        ],
+        "title": "AssessmentEvaluationFailureCategory",
+        "type": "string"
+      },
+      "AssessmentEvaluationJobState": {
+        "enum": [
+          "pending",
+          "running",
+          "retry_scheduled",
+          "completed",
+          "review_required"
+        ],
+        "title": "AssessmentEvaluationJobState",
+        "type": "string"
+      },
       "AssessmentPurpose": {
         "enum": [
           "DIAGNOSTIC",
@@ -1494,6 +1525,22 @@
       "AssessmentReviewCriterionRead": {
         "additionalProperties": false,
         "properties": {
+          "approved_anchors": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Anchors"
+          },
           "criterion_version": {
             "title": "Criterion Version",
             "type": "integer"
@@ -1503,10 +1550,22 @@
             "type": "string"
           },
           "decision": {
-            "$ref": "#/components/schemas/CriterionDecision"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CriterionDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "evaluator_reference": {
             "title": "Evaluator Reference",
+            "type": "string"
+          },
+          "evidence_description": {
+            "default": "",
+            "title": "Evidence Description",
             "type": "string"
           },
           "evidence_references": {
@@ -1522,6 +1581,35 @@
             ],
             "title": "Evidence References"
           },
+          "evidence_source_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Source Types"
+          },
+          "learner_description": {
+            "default": "",
+            "title": "Learner Description",
+            "type": "string"
+          },
+          "mandatory": {
+            "default": true,
+            "title": "Mandatory",
+            "type": "boolean"
+          },
+          "met_rule": {
+            "default": "",
+            "title": "Met Rule",
+            "type": "string"
+          },
           "model_version": {
             "anyOf": [
               {
@@ -1532,6 +1620,16 @@
               }
             ],
             "title": "Model Version"
+          },
+          "not_evaluable_rule": {
+            "default": "",
+            "title": "Not Evaluable Rule",
+            "type": "string"
+          },
+          "not_met_rule": {
+            "default": "",
+            "title": "Not Met Rule",
+            "type": "string"
           },
           "prompt_version": {
             "anyOf": [
@@ -1597,6 +1695,23 @@
             "title": "Decision Id",
             "type": "string"
           },
+          "frozen_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FrozenAssessmentContextRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "historical_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/HistoricalResponseEvidenceRead"
+            },
+            "title": "Historical Evidence",
+            "type": "array"
+          },
           "history": {
             "items": {
               "$ref": "#/components/schemas/AssessmentReviewHistoryRead"
@@ -1619,6 +1734,16 @@
             "title": "Quality Review Status",
             "type": "string"
           },
+          "response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FrozenResponseRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "response_conditions": {
             "anyOf": [
               {
@@ -1631,6 +1756,20 @@
               }
             ],
             "title": "Response Conditions"
+          },
+          "response_history": {
+            "items": {
+              "$ref": "#/components/schemas/FrozenResponseRead"
+            },
+            "title": "Response History",
+            "type": "array"
+          },
+          "response_issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Response Issues",
+            "type": "array"
           },
           "response_text": {
             "title": "Response Text",
@@ -1652,6 +1791,14 @@
           "review_revision": {
             "title": "Review Revision",
             "type": "integer"
+          },
+          "simulations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Simulations",
+            "type": "array"
           },
           "system_reason": {
             "$ref": "#/components/schemas/AssessmentReasonCode"
@@ -3974,6 +4121,200 @@
         "title": "FormalResultSummary",
         "type": "object"
       },
+      "FrozenAssessmentContextRead": {
+        "properties": {
+          "bloom_process": {
+            "title": "Bloom Process",
+            "type": "string"
+          },
+          "knowledge_dimension": {
+            "title": "Knowledge Dimension",
+            "type": "string"
+          },
+          "outcome_statement": {
+            "title": "Outcome Statement",
+            "type": "string"
+          },
+          "outcome_title": {
+            "title": "Outcome Title",
+            "type": "string"
+          },
+          "pass_rule_expression": {
+            "additionalProperties": true,
+            "title": "Pass Rule Expression",
+            "type": "object"
+          },
+          "starter_circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starter Circuit"
+          },
+          "starter_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starter Code"
+          },
+          "supported_instructions": {
+            "title": "Supported Instructions",
+            "type": "string"
+          },
+          "supported_prompt": {
+            "title": "Supported Prompt",
+            "type": "string"
+          },
+          "task_revision_id": {
+            "title": "Task Revision Id",
+            "type": "string"
+          },
+          "task_title": {
+            "title": "Task Title",
+            "type": "string"
+          },
+          "transfer_instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Instructions"
+          },
+          "transfer_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Prompt"
+          },
+          "transfer_starter_circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Starter Circuit"
+          },
+          "transfer_starter_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transfer Starter Code"
+          }
+        },
+        "required": [
+          "task_revision_id",
+          "task_title",
+          "supported_prompt",
+          "supported_instructions",
+          "outcome_title",
+          "outcome_statement",
+          "bloom_process",
+          "knowledge_dimension",
+          "pass_rule_expression"
+        ],
+        "title": "FrozenAssessmentContextRead",
+        "type": "object"
+      },
+      "FrozenResponseRead": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_work_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment Work Start Id"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ResponseContent"
+          },
+          "declared_conditions": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Declared Conditions"
+          },
+          "episode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodePayloadV1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reference": {
+            "$ref": "#/components/schemas/EvidenceReference"
+          },
+          "task_form_version_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Form Version Id"
+          }
+        },
+        "required": [
+          "reference",
+          "assessment_work_start_id",
+          "task_form_version_id",
+          "content",
+          "episode",
+          "declared_conditions"
+        ],
+        "title": "FrozenResponseRead",
+        "type": "object"
+      },
       "FunnelStage": {
         "additionalProperties": false,
         "properties": {
@@ -4168,6 +4509,249 @@
           "status"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "HistoricalResponseEvidenceRead": {
+        "properties": {
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FrozenResponseRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response_version_id": {
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "simulations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Simulations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "response_version_id"
+        ],
+        "title": "HistoricalResponseEvidenceRead",
+        "type": "object"
+      },
+      "HumanActionHistoryRead": {
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "assessor_user_id": {
+            "title": "Assessor User Id",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/HumanCriterionHistoryRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AssessmentResult"
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action_id",
+          "revision",
+          "assessor_user_id",
+          "reason",
+          "result",
+          "result_state",
+          "created_at",
+          "criteria"
+        ],
+        "title": "HumanActionHistoryRead",
+        "type": "object"
+      },
+      "HumanAssessmentReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "action_id": {
+            "title": "Action Id",
+            "type": "string"
+          },
+          "assessment_attempt_id": {
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AssessmentResult"
+          },
+          "result_state": {
+            "$ref": "#/components/schemas/ResultState"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "action_id",
+          "assessment_attempt_id",
+          "decision_id",
+          "result",
+          "result_state",
+          "revision",
+          "replayed"
+        ],
+        "title": "HumanAssessmentReceipt",
+        "type": "object"
+      },
+      "HumanAssessmentWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/HumanCriterionWrite"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Criteria",
+            "type": "array"
+          },
+          "expected_token": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Expected Token",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "expected_token",
+          "reason",
+          "criteria"
+        ],
+        "title": "HumanAssessmentWrite",
+        "type": "object"
+      },
+      "HumanCriterionHistoryRead": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CriterionDecision"
+          },
+          "evaluator_reference": {
+            "title": "Evaluator Reference",
+            "type": "string"
+          },
+          "evidence_references": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Evidence References",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterion_version_id",
+          "decision",
+          "reason",
+          "evidence_references",
+          "evaluator_reference"
+        ],
+        "title": "HumanCriterionHistoryRead",
+        "type": "object"
+      },
+      "HumanCriterionWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CriterionDecision"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterion_version_id",
+          "decision",
+          "reason",
+          "evidence_ids"
+        ],
+        "title": "HumanCriterionWrite",
         "type": "object"
       },
       "InactiveLearner": {
@@ -8211,6 +8795,253 @@
         "title": "TransferResponseV1",
         "type": "object"
       },
+      "UnresolvedAssessmentRead": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_attempt_id": {
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "can_finalise": {
+            "title": "Can Finalise",
+            "type": "boolean"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/UnresolvedCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "expected_token": {
+            "title": "Expected Token",
+            "type": "string"
+          },
+          "failure_category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentEvaluationFailureCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "frozen_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FrozenAssessmentContextRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "historical_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/HistoricalResponseEvidenceRead"
+            },
+            "title": "Historical Evidence",
+            "type": "array"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HumanActionHistoryRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "job_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentEvaluationJobState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FrozenResponseRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response_history": {
+            "items": {
+              "$ref": "#/components/schemas/FrozenResponseRead"
+            },
+            "title": "Response History",
+            "type": "array"
+          },
+          "simulations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Simulations",
+            "type": "array"
+          },
+          "state": {
+            "$ref": "#/components/schemas/AssessmentAttemptState"
+          },
+          "versions": {
+            "additionalProperties": true,
+            "title": "Versions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "assessment_attempt_id",
+          "course_id",
+          "state",
+          "job_state",
+          "failure_category",
+          "expected_token",
+          "response",
+          "criteria",
+          "versions",
+          "simulations",
+          "history",
+          "issues",
+          "can_finalise",
+          "created_at"
+        ],
+        "title": "UnresolvedAssessmentRead",
+        "type": "object"
+      },
+      "UnresolvedCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_anchors": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Approved Anchors"
+          },
+          "criterion_version": {
+            "title": "Criterion Version",
+            "type": "integer"
+          },
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "critical_error_rules": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Critical Error Rules"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CriterionDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evaluator_type": {
+            "$ref": "#/components/schemas/CriterionEvaluatorType"
+          },
+          "evidence_description": {
+            "title": "Evidence Description",
+            "type": "string"
+          },
+          "evidence_source_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Source Types",
+            "type": "array"
+          },
+          "learner_description": {
+            "title": "Learner Description",
+            "type": "string"
+          },
+          "mandatory": {
+            "title": "Mandatory",
+            "type": "boolean"
+          },
+          "met_rule": {
+            "title": "Met Rule",
+            "type": "string"
+          },
+          "not_evaluable_rule": {
+            "title": "Not Evaluable Rule",
+            "type": "string"
+          },
+          "not_met_rule": {
+            "title": "Not Met Rule",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "criterion_version_id",
+          "criterion_version",
+          "learner_description",
+          "evidence_description",
+          "mandatory",
+          "evidence_source_types",
+          "met_rule",
+          "not_met_rule",
+          "not_evaluable_rule",
+          "approved_anchors",
+          "critical_error_rules",
+          "evaluator_type",
+          "decision",
+          "reason"
+        ],
+        "title": "UnresolvedCriterionRead",
+        "type": "object"
+      },
       "UserRole": {
         "enum": [
           "student",
@@ -9830,6 +10661,130 @@
         ]
       }
     },
+    "/api/v1/assessment/attempts/{assessment_attempt_id}/human-review": {
+      "get": {
+        "operationId": "unresolved_assessment_detail_api_v1_assessment_attempts__assessment_attempt_id__human_review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Assessment Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnresolvedAssessmentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unresolved Assessment Detail",
+        "tags": [
+          "assessment"
+        ]
+      },
+      "post": {
+        "operationId": "finalise_human_assessment_api_v1_assessment_attempts__assessment_attempt_id__human_review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Assessment Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanAssessmentWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanAssessmentReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Finalise Human Assessment",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
     "/api/v1/assessment/courses/{course_id}/assessor-candidates": {
       "get": {
         "operationId": "read_assessor_candidates_api_v1_assessment_courses__course_id__assessor_candidates_get",
@@ -10600,6 +11555,91 @@
           }
         },
         "summary": "Assessment Review Queue",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/unresolved-attempts": {
+      "get": {
+        "operationId": "unresolved_assessment_queue_api_v1_assessment_courses__course_id__unresolved_attempts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UnresolvedAssessmentRead"
+                  },
+                  "title": "Response Unresolved Assessment Queue Api V1 Assessment Courses  Course Id  Unresolved Attempts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Unresolved Assessment Queue",
         "tags": [
           "assessment"
         ]
