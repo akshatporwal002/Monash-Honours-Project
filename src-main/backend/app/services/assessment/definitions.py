@@ -565,8 +565,14 @@ class AssessmentDefinitionService:
 
     def _validate_approval_ready(self, version: AssessmentDefinitionVersion) -> None:
         if any(
-            criterion.evaluator_type
-            in {CriterionEvaluatorType.VALIDATED_AI, CriterionEvaluatorType.MIXED}
+            criterion.evaluator_type is CriterionEvaluatorType.VALIDATED_AI
+            or (
+                criterion.evaluator_type is CriterionEvaluatorType.MIXED
+                and not (
+                    isinstance(criterion.approved_anchors, dict)
+                    and criterion.approved_anchors.get("kind") == "circuit_v1"
+                )
+            )
             for criterion in version.criterion_versions
         ):
             raise AssessmentDefinitionValidationError(

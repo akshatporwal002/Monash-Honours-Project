@@ -164,16 +164,30 @@ function EvidenceRuleFields({ values, onUpdate }: { values: SetupValues, onUpdat
             checked={values.bloomVerified}
             onChange={(event) => onUpdate('bloomVerified', event.target.checked)}
           />
-          <Field label="Assessment method" help="Use human assessment for reasoning, explanations, circuits, or answers with several valid forms.">
+          <Field label="Assessment method" help="Human assessors judge reasoning and explanations. Circuit rules check only the approved structure.">
             <Select
               value={values.evaluatorType}
               options={[
                 { value: 'human', label: 'Human assessment' },
                 { value: 'rules', label: 'Phrase rules for recall' },
+                { value: 'circuit', label: 'Circuit structure rules' },
+                { value: 'circuit_mixed', label: 'Circuit checks with human review' },
               ]}
               onValueChange={(value) => onUpdate('evaluatorType', value as SetupValues['evaluatorType'])}
             />
           </Field>
+          {(values.evaluatorType === 'circuit' || values.evaluatorType === 'circuit_mixed') && <>
+            <p className={styles.fieldFull}>These rules compare qubits and ordered gates. An assessor must review explanations and equivalent methods.</p>
+            <Field label="Circuit response stage" help="Transfer rules need a separately approved fresh stage in the task.">
+              <Select value={values.circuitStage} options={[
+                { value: 'supported', label: 'Supported work' }, { value: 'transfer', label: 'Unaided transfer' },
+              ]} onValueChange={(value) => onUpdate('circuitStage', value as SetupValues['circuitStage'])} />
+            </Field>
+            <Field label="Required circuit qubits"><Input type="number" min={1} max={5} step={1} value={values.circuitQubits} onChange={(event) => onUpdate('circuitQubits', event.target.value)} /></Field>
+            <Field label="Required gates, in order" help="One gate per line, such as H 0 or CX 0 1. Qubit numbers start at zero. Leave empty for a circuit with no gates." className={styles.fieldFull}>
+              <Textarea value={values.circuitOperations} onChange={(event) => onUpdate('circuitOperations', event.target.value)} />
+            </Field>
+          </>}
           {values.evaluatorType === 'rules' && <>
             <p className={styles.fieldFull}>Phrase rules check text only. Use them for a Remember target with fixed recall evidence. Separate phrases with commas.</p>
             <Field label="All required phrases">
