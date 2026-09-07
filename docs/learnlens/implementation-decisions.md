@@ -233,3 +233,11 @@ Historical drafts receive no invented start-time approval. Migration 0029 is res
 
 The [coordinator record](coordinator-progress.md) tracks dependencies, ownership, review, tests, delivery, and external gates.
 Task 32 remains partial until the required research review, approval, and preregistration records exist.
+
+The user named Arv Surana as research lead. This records ownership without inferring study approval.
+Task 13's migration requires runtime readiness to expect revision `20260907_0029`.
+The combined suite caught the stale pin; the correction passed the affected runtime and launcher checks.
+WebKit authoring checks reproduced an offscreen dropdown after programmatic focus moved between distant form fields.
+The helper now scrolls the trigger into view and checks visibility before opening its menu.
+Ten repeated real authoring journeys passed with ordinary pointer clicks and unchanged approval assertions.
+No product permissions, assessment rules, or test timeouts changed for this correction.

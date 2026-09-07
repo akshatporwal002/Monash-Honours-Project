@@ -91,7 +91,17 @@ Both defects were fixed in `54f7feb21120216588486c4cdfd402bb134babf8`.
 Standards and Spec reviewers cleared that exact head with zero remaining findings.
 The fixes passed 15 focused backend checks, 29 frontend tests, lint, build, and a fresh authenticated Chrome journey.
 Contract drift and the final two-commit Gitleaks scan passed. Both worker servers were stopped.
-Combined integration validation remains due.
+Task 13 merged into integration as `3e1072e`. Combined backend testing passed 871 of 873 tests,
+with 86.24% service coverage. Two failures exposed the readiness pin still expecting migration 0028.
+The additive correction is `192b7720167aea98682a1128b47ca4045bab84b9`, cleared by both independent reviewers.
+It passed 17 runtime tests and seven Windows launcher checks. The integrated runtime checks also passed all 17 tests.
+Combined frontend checks passed 203 tests across 58 files, lint, and build using Node 22.13.0.
+Backend lint and formatting, both generated-contract checks, and the single migration head check passed.
+The initial browser run passed 69 of 72 cases. Firefox timed out during context teardown.
+Two WebKit authoring cases found dropdown options outside the viewport. A targeted rerun reproduced one failure.
+The coordinator is checking a trigger-visibility precondition without changing product behavior or test timeouts.
+Evidence is under `.tmp-coordinator/evidence/batch-a-final`; initial failed browser artifacts were preserved there.
+The current batch remains gated on final browser checks and GitHub CI.
 
 Pinned Node 22.13.0 is installed under `.tmp-coordinator/tools`, with its archive SHA-256 verified against nodejs.org.
 The host default remains Node 24; batch checks use the pinned executable explicitly.
@@ -111,5 +121,5 @@ Synthetic localhost tests cannot replace those records.
 
 ## Next executable step
 
-Finish Task 13 implementation and Task 32 drafts. Review both independently, then test and integrate Batch A.
+Resolve the remaining browser checks, review the test correction, then deliver and verify Batch A through GitHub.
 Task 14/15 interface planning proceeds read-only while that foundation is built.
