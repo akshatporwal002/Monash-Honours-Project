@@ -196,7 +196,7 @@ export function TaskReviewPanel({ courseId }: { courseId: string }) {
   }, [courseId])
 
   return <section aria-label="Task review" className={styles.panel}>
-    <h3>Review saved tasks</h3>
+    <h2>Review saved tasks</h2>
     {error && <p role="alert">{error}</p>}
     <Field label="Task to review"><Select value={taskId} onValueChange={setTaskId}
       options={tasks.map((task) => ({ value: task.id, label: task.title }))} placeholder="Choose a saved task" />

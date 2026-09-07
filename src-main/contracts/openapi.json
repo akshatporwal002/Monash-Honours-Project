@@ -3317,6 +3317,87 @@
         "title": "EnrollmentStatus",
         "type": "string"
       },
+      "EpisodeCheckpointPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EpisodeCheckpointRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "EpisodeCheckpointPage",
+        "type": "object"
+      },
+      "EpisodeCheckpointRead": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "input_content": {
+            "$ref": "#/components/schemas/ResponseContent"
+          },
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Part Id",
+            "type": "string"
+          },
+          "prediction": {
+            "$ref": "#/components/schemas/ResponseContent"
+          }
+        },
+        "required": [
+          "part_id",
+          "prediction",
+          "input_content",
+          "created_at"
+        ],
+        "title": "EpisodeCheckpointRead",
+        "type": "object"
+      },
+      "EpisodeCheckpointReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "checkpoint_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Checkpoint Id",
+            "type": "string"
+          },
+          "draft": {
+            "$ref": "#/components/schemas/DraftRead"
+          }
+        },
+        "required": [
+          "checkpoint_id",
+          "draft"
+        ],
+        "title": "EpisodeCheckpointReceipt",
+        "type": "object"
+      },
       "EpisodeCheckpointWrite": {
         "additionalProperties": false,
         "properties": {
@@ -3487,6 +3568,145 @@
           }
         },
         "title": "EpisodeStageResponseV1",
+        "type": "object"
+      },
+      "EpisodeStateRead": {
+        "additionalProperties": false,
+        "properties": {
+          "accessibility_support": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Accessibility Support",
+            "type": "array"
+          },
+          "prediction_required": {
+            "title": "Prediction Required",
+            "type": "boolean"
+          },
+          "required_responses": {
+            "items": {
+              "enum": [
+                "prediction",
+                "reasoning",
+                "explanation",
+                "reflection"
+              ],
+              "type": "string"
+            },
+            "title": "Required Responses",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "learnlens.episode-plan.v1",
+            "default": "learnlens.episode-plan.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "supported_hints": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Supported Hints",
+            "type": "array"
+          },
+          "supported_part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Supported Part Id",
+            "type": "string"
+          },
+          "transfer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeTransferRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "transfer_part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Transfer Part Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "supported_part_id",
+          "prediction_required",
+          "required_responses",
+          "transfer_part_id"
+        ],
+        "title": "EpisodeStateRead",
+        "type": "object"
+      },
+      "EpisodeTransferRead": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "maxLength": 100000,
+            "title": "Instructions",
+            "type": "string"
+          },
+          "part_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Part Id",
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 100000,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "stage_start_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Stage Start Id",
+            "type": "string"
+          },
+          "starter_circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/JsonValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starter Circuit"
+          },
+          "starter_code": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starter Code"
+          }
+        },
+        "required": [
+          "stage_start_id",
+          "part_id",
+          "prompt",
+          "instructions"
+        ],
+        "title": "EpisodeTransferRead",
         "type": "object"
       },
       "EvidenceReference": {
@@ -14648,7 +14868,17 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/EpisodeStateRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Read Episode Api V1 Students Me Tasks  Task Id  Episode Get"
+                }
               }
             },
             "description": "Successful Response"
@@ -14684,6 +14914,29 @@
             }
           },
           {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
             "in": "cookie",
             "name": "quantumlearn_session",
             "required": false,
@@ -14704,7 +14957,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeCheckpointPage"
+                }
               }
             },
             "description": "Successful Response"
@@ -14768,7 +15023,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeCheckpointReceipt"
+                }
               }
             },
             "description": "Successful Response"
@@ -14834,7 +15091,9 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeStateRead"
+                }
               }
             },
             "description": "Successful Response"
