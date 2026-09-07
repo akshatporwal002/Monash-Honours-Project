@@ -17,6 +17,8 @@ for (const method of ['rules', 'human'] as const) {
     await page.getByRole('link', { name: 'Assessment setup' }).click()
     await expect(page.getByRole('heading', { name: 'Assessment setup', exact: true })).toBeVisible()
     const choose = async (label: string, name: string) => {
+      await page.getByLabel(label, { exact: true }).scrollIntoViewIfNeeded()
+      await expect(page.getByLabel(label, { exact: true })).toBeInViewport()
       await page.getByLabel(label, { exact: true }).focus()
       await page.getByLabel(label, { exact: true }).press('ArrowDown')
       await page.getByRole('option', { name, exact: true }).click()

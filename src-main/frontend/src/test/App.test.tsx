@@ -444,6 +444,7 @@ test('shows formal assessment conditions and saves a response without a numeric 
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
     if (url.endsWith('/draft')) return response(null)
+    if (url.endsWith('/start')) return response({ assessment_work_start_id: 'formal-work-1' })
     if ((init?.method ?? 'GET') === 'GET') return response([])
     return response({
       id: 'formal-attempt-1',
@@ -466,6 +467,7 @@ test('shows formal assessment conditions and saves a response without a numeric 
     status: 'in_progress',
     score: null,
     assessment: {
+      task_form_version_id: 'formal-form-1',
       purpose: 'SUMMATIVE',
       bloom_process: 'ANALYSE',
       knowledge_dimension: 'CONCEPTUAL',
@@ -494,7 +496,8 @@ test('shows formal assessment conditions and saves a response without a numeric 
   expect(await screen.findByRole('heading', { name: 'Assessment response saved' })).toBeInTheDocument()
   const submissionCall = fetchMock.mock.calls.find(([input, init]) =>
     String(input).endsWith('/students/me/tasks/formal-task/submissions') && init?.method === 'POST')
-  const payload = JSON.parse(String(submissionCall?.[1]?.body)) as { idempotency_key?: string }
+  const payload = JSON.parse(String(submissionCall?.[1]?.body)) as { idempotency_key?: string; assessment_work_start_id?: string }
+  expect(payload.assessment_work_start_id).toBe('formal-work-1')
   expect(payload.idempotency_key).toEqual(expect.any(String))
   expect(screen.queryByText('0%')).not.toBeInTheDocument()
 })

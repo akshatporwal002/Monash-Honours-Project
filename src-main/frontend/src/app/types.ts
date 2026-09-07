@@ -58,6 +58,7 @@ export interface LearningTask {
 }
 
 export interface AssessmentConditions {
+  task_form_version_id: string
   purpose: 'DIAGNOSTIC' | 'FORMATIVE' | 'AS_LEARNING' | 'SUMMATIVE' | 'RESEARCH'
   bloom_process: 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYSE' | 'EVALUATE' | 'CREATE'
   knowledge_dimension: 'FACTUAL' | 'CONCEPTUAL' | 'PROCEDURAL' | 'METACOGNITIVE'
@@ -119,6 +120,7 @@ export interface StudentDashboardData {
 }
 
 export interface TaskDraft {
+  assessment_work_start_id?: string | null
   id: string
   task_id: string
   answer: string
@@ -131,6 +133,7 @@ export interface TaskDraft {
 }
 
 export interface TaskSubmission {
+  assessment_work_start_id?: string | null
   id?: string
   score: number | null
   formal_assessment?: FormalAssessmentSummary | null

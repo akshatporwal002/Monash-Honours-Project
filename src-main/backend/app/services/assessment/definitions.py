@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -388,11 +388,18 @@ class AssessmentDefinitionService:
                     assessment_definition_id=assessment_definition_id,
                     stable_key=draft.stable_key,
                 )
+                criterion_version = 1
+            else:
+                criterion_version = 1 + self.session.scalar(
+                    select(func.max(CriterionVersion.version)).where(
+                        CriterionVersion.criterion_id == criterion.id
+                    )
+                )
             row = CriterionVersion(
                 course_id=course_id,
                 criterion=criterion,
                 assessment_definition_version_id=version_row.id,
-                version=version,
+                version=criterion_version,
                 owner_user_id=actor_user_id,
                 created_by_user_id=actor_user_id,
                 learner_description=draft.learner_description,
@@ -434,7 +441,25 @@ class AssessmentDefinitionService:
                 raise AssessmentDefinitionValidationError(
                     "task form must reference a task in the definition course and outcome"
                 )
-            form = TaskForm(assessment_definition_id=assessment_definition_id)
+            form = self.session.scalar(
+                select(TaskForm)
+                .join(TaskFormVersion, TaskFormVersion.task_form_id == TaskForm.id)
+                .where(
+                    TaskForm.assessment_definition_id == assessment_definition_id,
+                    TaskFormVersion.learning_task_id == task.id,
+                )
+                .order_by(TaskFormVersion.version.desc(), TaskFormVersion.created_at.desc())
+                .limit(1)
+            )
+            if form is None:
+                form = TaskForm(assessment_definition_id=assessment_definition_id)
+                form_version = 1
+            else:
+                form_version = 1 + self.session.scalar(
+                    select(func.max(TaskFormVersion.version)).where(
+                        TaskFormVersion.task_form_id == form.id
+                    )
+                )
             revision = TaskReviewService(self.session).capture(task, actor_user_id=actor_user_id)
             self.session.add(
                 TaskFormVersion(
@@ -443,7 +468,7 @@ class AssessmentDefinitionService:
                     assessment_definition_version_id=version_row.id,
                     learning_task_id=draft.learning_task_id,
                     task_revision_id=revision.id,
-                    version=version,
+                    version=form_version,
                     owner_user_id=actor_user_id,
                     created_by_user_id=actor_user_id,
                     source_version=f"task-revision:{revision.id}",

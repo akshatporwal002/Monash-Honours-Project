@@ -63,6 +63,10 @@ function messageFor(error: unknown): string {
   return 'The learning service could not complete that action. Please try again.'
 }
 
+function blocksAssessmentWork(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 409 && error.code !== 'assessment_write_busy'
+}
+
 function multipleAnswers(answer: string): string[] {
   try {
     const parsed: unknown = JSON.parse(answer)
@@ -105,9 +109,17 @@ function submissionKey(): string {
 }
 
 function readableConditions(value: Record<string, unknown> | unknown[]): string {
-  if (Array.isArray(value)) return value.map(String).join(', ') || 'None declared'
-  const values = Object.values(value).flatMap((item) => Array.isArray(item) ? item : [item])
-  return values.map(String).join(', ') || 'None declared'
+  const describe = (item: unknown): string => {
+    if (Array.isArray(item)) return item.map(describe).join(', ')
+    if (item && typeof item === 'object') {
+      return Object.entries(item).map(([key, nested]) =>
+        `${key.replaceAll('_', ' ')}: ${describe(nested)}`).join('; ')
+    }
+    if (typeof item === 'boolean') return item ? 'yes' : 'no'
+    return item === null ? 'None declared' : String(item).replaceAll('_', ' ')
+  }
+  const values = Array.isArray(value) ? value : Object.values(value)
+  return values.map(describe).join(', ') || 'None declared'
 }
 
 function readablePurpose(purpose: string): string {
@@ -126,6 +138,7 @@ export function TaskView({
 }) {
   const mode = taskMode(task)
   const idempotencyKeyRef = useRef<string | null>(null)
+  const restoredDraftTaskRef = useRef<string | null>(null)
   const feedbackClient = useMemo(
     () => createFeedbackApiClient({ getCsrfToken: csrfToken }),
     [],
@@ -139,6 +152,8 @@ export function TaskView({
   const [submission, setSubmission] = useState<TaskSubmission | null>(null)
   const [attempts, setAttempts] = useState<TaskSubmission[] | null>(null)
   const [attemptsError, setAttemptsError] = useState('')
+  const [workStartId, setWorkStartId] = useState<string | null>(null)
+  const [workConflict, setWorkConflict] = useState(false)
   const [draftLoading, setDraftLoading] = useState(true)
   const [draftError, setDraftError] = useState('')
   const [draftReload, setDraftReload] = useState(0)
@@ -159,8 +174,32 @@ export function TaskView({
 
   useEffect(() => {
     const controller = new AbortController()
-    api.student.draft(task.id, controller.signal)
-      .then((draft) => {
+    const restore = async () => {
+      // A retry after a successful restore must not replace unsaved local edits.
+      const draft = restoredDraftTaskRef.current === task.id
+        ? null
+        : await api.student.draft(task.id, controller.signal)
+      if (controller.signal.aborted) return null
+      restoredDraftTaskRef.current = task.id
+      if (task.assessment) {
+        try {
+          const started = await api.student.startAssessment(
+            task.id, task.assessment.task_form_version_id, controller.signal,
+          )
+          if (!controller.signal.aborted) {
+            setWorkStartId(started.assessment_work_start_id ?? null)
+            setWorkConflict(false)
+          }
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            setWorkConflict(blocksAssessmentWork(error))
+            setDraftError(messageFor(error))
+          }
+        }
+      }
+      return draft
+    }
+    restore().then((draft) => {
         if (!draft) return
         const optionIds = new Set(options.map((option) => option.id))
         if (mode === 'mcq') {
@@ -183,7 +222,7 @@ export function TaskView({
         if (!controller.signal.aborted) setDraftLoading(false)
       })
     return () => controller.abort()
-  }, [draftReload, mode, options, task.id, task.starter_code])
+  }, [draftReload, mode, options, task.id, task.starter_code, task.assessment])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -205,6 +244,7 @@ export function TaskView({
     ?? attempts?.find((attempt) => attempt.feedback_reference)?.feedback_reference
 
   const payload = useMemo(() => ({
+    assessment_work_start_id: workStartId,
     answer: mode === 'mcq'
       ? selectedOption
       : mode === 'multi'
@@ -212,7 +252,7 @@ export function TaskView({
         : answer,
     code: mode === 'code-completion' ? code : undefined,
     circuit: mode === 'circuit' ? { qubits: 2, operations } : undefined,
-  }), [answer, code, mode, operations, selectedOption, selectedOptions])
+  }), [answer, code, mode, operations, selectedOption, selectedOptions, workStartId])
 
   const valid = mode === 'mcq'
     ? Boolean(selectedOption)
@@ -247,17 +287,20 @@ export function TaskView({
   }
 
   const runSimulation = async () => {
+    if (workConflict || (task.assessment && !workStartId)) return
     setBusy(true)
     setSimulation(null)
     setStatusMessage('')
     try {
       await api.student.saveDraft(task.id, {
         answer: '',
+        assessment_work_start_id: workStartId,
         circuit: { qubits: 2, operations },
       })
       setSimulation(await api.student.simulate(operations, task.id))
       setStatusMessage('Simulation completed and saved with 1,024 shots.')
     } catch (error) {
+      if (blocksAssessmentWork(error)) setWorkConflict(true)
       setStatusMessage(messageFor(error))
     } finally {
       setBusy(false)
@@ -265,6 +308,7 @@ export function TaskView({
   }
 
   const save = async (submit: boolean) => {
+    if (workConflict || (task.assessment && !workStartId)) return
     setBusy(true)
     setStatusMessage('')
     try {
@@ -288,6 +332,7 @@ export function TaskView({
         setDirty(false)
       }
     } catch (error) {
+      if (blocksAssessmentWork(error)) setWorkConflict(true)
       setStatusMessage(messageFor(error))
     } finally {
       setBusy(false)
@@ -305,6 +350,8 @@ export function TaskView({
         },
         { term: 'Claim', description: task.assessment.claim },
         { term: 'Task conditions', description: readableConditions(task.assessment.task_conditions) },
+        { term: 'Instructional support', description: readableConditions(task.assessment.instructional_support) },
+        { term: 'Transfer stage', description: readableConditions(task.assessment.transfer_rule) },
         { term: 'Permitted tools', description: readableConditions(task.assessment.permitted_tools) },
         { term: 'Access conditions', description: readableConditions(task.assessment.access_conditions) },
         { term: 'Review', description: task.assessment.review_rule },
@@ -338,7 +385,7 @@ export function TaskView({
           </Card>
           {task.assessment ? (
             <Card eyebrow="Before you attempt" heading="Assessment conditions">
-              <DescriptionList items={assessmentItems} />
+              <DescriptionList items={assessmentItems} className={styles.assessmentConditions} />
               <h3 className={styles.criteriaTitle}>Evidence criteria</h3>
               <ul className={styles.criteria}>
                 {task.assessment.criteria.map((criterion) => (
@@ -502,7 +549,7 @@ export function TaskView({
                       </div>
                     ))}
                   </div>
-                  <Button variant="secondary" onClick={() => void runSimulation()} disabled={busy || operations.length === 0}>
+                  <Button variant="secondary" onClick={() => void runSimulation()} disabled={Boolean(draftError) || workConflict || draftLoading || busy || operations.length === 0}>
                     <Play size={15} aria-hidden="true" /> Run 1,024 shots
                   </Button>
                   {simulation && (
@@ -607,10 +654,10 @@ export function TaskView({
 
       <footer className={styles.footer}>
         <Button variant="quiet" onClick={requestClose}>Close</Button>
-        <Button variant="secondary" onClick={() => void save(false)} disabled={busy || draftLoading || !valid}>
+        <Button variant="secondary" onClick={() => void save(false)} disabled={Boolean(draftError) || workConflict || busy || draftLoading || !valid}>
           Save draft
         </Button>
-        <Button variant="primary" onClick={() => void save(true)} disabled={busy || draftLoading || !valid} loading={busy}>
+        <Button variant="primary" onClick={() => void save(true)} disabled={Boolean(draftError) || workConflict || busy || draftLoading || !valid} loading={busy}>
           Submit activity
         </Button>
       </footer>

@@ -478,7 +478,12 @@ class AssessmentCriterionRead(LmsSchema):
     mandatory: bool
 
 
+class AssessmentStartWrite(LmsSchema):
+    task_form_version_id: str = Field(min_length=1, max_length=36)
+
+
 class AssessmentConditionsRead(LmsSchema):
+    task_form_version_id: str
     purpose: AssessmentPurpose
     bloom_process: BloomProcess
     knowledge_dimension: BloomKnowledge
@@ -519,12 +524,14 @@ class TaskRead(LmsSchema):
 
 
 class DraftWrite(LmsSchema):
+    assessment_work_start_id: str | None = Field(default=None, max_length=36)
     answer: str = ""
     code: str | None = None
     circuit: dict[str, Any] | None = None
 
 
 class DraftRead(LmsSchema):
+    assessment_work_start_id: str | None = Field(default=None, max_length=36)
     id: str
     task_id: str
     answer: str
@@ -538,6 +545,7 @@ class SubmissionCreate(DraftWrite):
 
 
 class AttemptRead(LmsSchema):
+    assessment_work_start_id: str | None = Field(default=None, max_length=36)
     id: str
     task_id: str
     attempt_number: int

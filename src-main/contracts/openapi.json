@@ -557,6 +557,10 @@
             ],
             "title": "Task Conditions"
           },
+          "task_form_version_id": {
+            "title": "Task Form Version Id",
+            "type": "string"
+          },
           "transfer_rule": {
             "anyOf": [
               {
@@ -572,6 +576,7 @@
           }
         },
         "required": [
+          "task_form_version_id",
           "purpose",
           "bloom_process",
           "knowledge_dimension",
@@ -1766,6 +1771,22 @@
         "title": "AssessmentSourceMaterialRead",
         "type": "object"
       },
+      "AssessmentStartWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "task_form_version_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Task Form Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_form_version_id"
+        ],
+        "title": "AssessmentStartWrite",
+        "type": "object"
+      },
       "AssessmentTaskCriterionRead": {
         "additionalProperties": false,
         "properties": {
@@ -2272,6 +2293,18 @@
           "answer": {
             "title": "Answer",
             "type": "string"
+          },
+          "assessment_work_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 36,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment Work Start Id"
           },
           "attempt_number": {
             "title": "Attempt Number",
@@ -2865,6 +2898,18 @@
             "title": "Answer",
             "type": "string"
           },
+          "assessment_work_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 36,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment Work Start Id"
+          },
           "circuit": {
             "anyOf": [
               {
@@ -2971,6 +3016,18 @@
             "default": "",
             "title": "Answer",
             "type": "string"
+          },
+          "assessment_work_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 36,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment Work Start Id"
           },
           "circuit": {
             "anyOf": [
@@ -6841,6 +6898,18 @@
             "default": "",
             "title": "Answer",
             "type": "string"
+          },
+          "assessment_work_start_id": {
+            "anyOf": [
+              {
+                "maxLength": 36,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment Work Start Id"
           },
           "circuit": {
             "anyOf": [
@@ -14225,6 +14294,74 @@
           }
         },
         "summary": "List Student Simulations",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/start": {
+      "post": {
+        "operationId": "start_student_assessment_api_v1_students_me_tasks__task_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentStartWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Student Assessment",
         "tags": [
           "learning management"
         ]

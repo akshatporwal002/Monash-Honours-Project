@@ -2,6 +2,13 @@
 
 Reviewed on 6 September 2026 against local `main` at `d049eef`.
 
+Coordinator update, 7 September 2026: Tasks 13 onward are active under the
+[batch progress record](docs/learnlens/coordinator-progress.md).
+The verified starting main is `d5ac7cb335a2b1ccdab674e0cab4c61c950b9b35`, including Task 12 through PR 8.
+Its post-merge CI passed. Task 13 is implemented and independently reviewed on the temporary integration branch.
+Local validation passed after the documented readiness and browser-test corrections. Full GitHub CI and main integration remain due.
+Task 32 has a reviewed protocol and data-plan draft naming Arv Surana as lead. Study approval remains outstanding.
+
 This is the recommended work order for completing the proposed LearnLens architecture and the wider repository requirements. Each numbered task states its dependencies, current gap, and completion check. Tasks with no shared dependency can run in parallel. A dependency means the earlier task must supply the needed working contract or behaviour before integration.
 
 The review used [LearnLens_Architecture_and_Sources.md](LearnLens_Architecture_and_Sources.md), the [implementation requirements](docs/01-implementation-requirements.md), the [assessment specification](docs/02-pass-incomplete-bloom-assessment-spec.md), and the [work order](docs/03-codex-implementation-work-order.md). It also inspected backend services, mounted routes, frontend screens, migrations, tests, CI, launch scripts, and existing plans.
@@ -134,7 +141,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 2 and 9; Task 8, D-02, D-04, and D-05. Circuit publication also needs Task 11. Suggested owner: course and assessment teams.
 
-    Task 12 progress, 7 September 2026: implemented and locally verified. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records explicit staff eligibility and grants, source and task review, immutable history, current formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides. Integration and remote checks are tracked in [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8).
+    Task 12 progress, 7 September 2026: implemented, independently reviewed, tested, and merged through [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8). GitHub post-merge run `34072852835` passed for `d5ac7cb`. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records staff eligibility and grants, source and task review, immutable history, formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides.
 
     Generated tasks become ordinary task rows without a general review lifecycle. Course publication checks do not prove individual task approval. Formal definition approval exists, but runtime publication policy remains closed. Add review, edit, approve, reject, and history controls. Connect approved role policies and require complete outcome, criterion, source, support, access, and task-form versions.
 
@@ -154,7 +161,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 14. **Complete the learning episode inside the task workspace.**
 
-    Dependencies: Tasks 11 and 13. Suggested owner: task engine and frontend.
+    Dependencies: Tasks 11 and 13; Task 8, D-04 and D-05, for approved assessed stages. Suggested owner: task engine and frontend.
 
     Six task handlers exist, but answer, code, and circuit fields do not capture the full learning sequence. Add typed prediction, reasoning, explanation, revision, reflection, and transfer responses. Stage matching, sequencing, and other required extensions explicitly. Keep instructions, circuit editing, results, explanations, and feedback together. Save predictions before revealing results where required.
 
@@ -168,7 +175,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Production evaluation supports only the rule adapter. Unsupported evaluators leave jobs `REVIEW_REQUIRED` without a decision. The current review queue selects decisions, so those attempts miss the queue. Add a queue for unresolved attempts and a criterion-entry workflow. Connect suitable deterministic circuit checks and approved human or mixed evaluation paths.
 
-    Done when an assessor can inspect evidence, record criterion decisions and reasons, apply the pass rule, and finalise the result. Keep AI evaluation advisory until Task 35 passes its approved gate.
+    Done when an assessor can inspect evidence, record criterion decisions and reasons, apply the pass rule, and finalise the result. Keep operational AI assessment suggestions disabled until Task 35 passes its separate approved gate. After that gate, suggestions remain advisory and humans confirm results.
 
     Evidence: [assessment runtime](src-main/backend/app/services/assessment/runtime.py), [review.py](src-main/backend/app/services/assessment/review.py), and [evaluation job tests](src-main/backend/tests/test_assessment_evaluation_jobs.py).
 
@@ -336,6 +343,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Task 8, especially D-03, D-07, and D-08. Planning can run alongside implementation. Suggested owner: research lead and governance.
 
+    Task 32 progress, 7 September 2026: the [protocol draft](docs/learnlens/task-32-study-protocol.md) and [data-plan draft](docs/learnlens/task-32-data-plan.md) passed separate Standards and Spec reviews. They are on the temporary integration branch, not yet merged into main. Arv Surana is the user-named research lead. The task remains partial pending protocol approval, institutional records, preregistration, and the other named review gates.
+
     Existing research documentation focuses on technical feedback comparisons. Define the learning question, comparator, allocation, outcomes, sample-size basis, exclusions, missing-data rules, withdrawal, retention, and reviewer blinding. Obtain the required ethics decision and preregister the approved study before recruitment. Separate research consent from course access.
 
     Done when an approved protocol covers unaided conceptual understanding, transfer, and any delayed-retention claims. Technical judge performance must not be presented as proof of learning improvement.
@@ -416,9 +425,9 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 25 and 36; Task 8, D-11. Suggested owner: a developer outside the main feature implementation.
 
-    The second-subject reuse target still needs approval and practical evidence. Configure one demo module for another technical subject using the existing extension points. Record effort and any core changes needed. Keep this exercise separate from claims that learning results generalise to that subject.
+    D-11 approves a simple conditional-programming module and the 16 developer-hour target. Exact sources, a named verifier, and practical evidence remain due. Configure that module using the existing extension points. Record setup, coding, debugging, tests, documentation, and any core changes. Keep this exercise separate from claims that learning results generalise to that subject.
 
-    Done when the approved target is met. The requirements propose 16 developer-hours, but that number is not yet an approved policy. Verify that core evidence, model, adaptation, and assessment engines remain reusable.
+    Done when the approved 16 developer-hour target is met and independently verified. Verify that core evidence, model, adaptation, and assessment engines remain reusable.
 
     Evidence: [task-type extension guide](src-main/docs/task-type-extension.md), requirements NFR9, NFR11, NFR24, and [decision D-11](docs/learnlens/known-limits-and-deferred-decisions.md).
 
