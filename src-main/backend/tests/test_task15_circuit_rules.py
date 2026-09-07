@@ -56,3 +56,19 @@ def test_conceptual_claims_require_human(bloom):
 def test_unapproved_or_invalid_checks_fail_closed(extra):
     with pytest.raises(ValueError):
         validate_circuit_settings({**SETTINGS, **extra}, BloomProcess.APPLY)
+
+
+def test_execution_metadata_is_validated_but_not_graded():
+    settings = validate_circuit_settings(SETTINGS, BloomProcess.APPLY)
+    for shots, seed in [(1, 0), (4096, 4294967295)]:
+        decision, _ = evaluate_circuit_structure(
+            settings,
+            {"qubits": 1, "operations": SETTINGS["operations"], "shots": shots, "seed": seed},
+        )
+        assert decision is CriterionDecision.MET
+    assert (
+        evaluate_circuit_structure(
+            settings, {"qubits": 1, "operations": SETTINGS["operations"], "shots": True}
+        )[0]
+        is CriterionDecision.NOT_EVALUABLE
+    )

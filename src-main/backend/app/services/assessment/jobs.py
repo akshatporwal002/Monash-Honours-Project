@@ -442,6 +442,9 @@ class AssessmentEvaluationExecutor:
                 self._service_factory(session, claim.correlation_id).evaluate(
                     assessment_attempt_id=claim.assessment_attempt_id,
                     evaluation_idempotency_key=claim.evaluation_idempotency_key,
+                    claim_execution_token=claim.execution_token,
+                    claim_processing_attempts=claim.processing_attempts,
+                    evaluation_clock=self._now,
                 )
         except AssessmentEvaluationConflictError:
             self._fail(claim, AssessmentEvaluationFailureCategory.VERSION_CONFLICT, False)

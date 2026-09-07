@@ -38,6 +38,7 @@ from app.models.audit import (
     AuditOutcome,
 )
 from app.models.continuation import ContinuationJob
+from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.enums import (
     ContinuationFailureCategory,
     ContinuationState,
@@ -119,6 +120,8 @@ __all__ = [
     "AssessorReview",
     "ContinuationFailureCategory",
     "ContinuationJob",
+    "HumanAssessmentAction",
+    "HumanCriterionDecision",
     "ContinuationState",
     "Criterion",
     "CriterionEvaluation",

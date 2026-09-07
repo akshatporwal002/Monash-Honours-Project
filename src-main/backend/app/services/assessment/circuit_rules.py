@@ -34,6 +34,11 @@ class CircuitStructure(BaseModel):
         return self
 
 
+class CircuitResponseStructure(CircuitStructure):
+    shots: Annotated[int, Field(ge=1, le=4096)] | None = None
+    seed: Annotated[int, Field(ge=0, le=4294967295)] | None = None
+
+
 class CircuitRuleSettings(CircuitStructure):
     """An approved exact structural claim about one named response stage."""
 
@@ -54,7 +59,8 @@ def evaluate_circuit_structure(
     if circuit is None:
         return CriterionDecision.NOT_EVALUABLE, "The approved stage has no circuit response."
     try:
-        actual = CircuitStructure.model_validate(circuit)
+        payload = CircuitResponseStructure.model_validate(circuit)
+        actual = CircuitStructure(qubits=payload.qubits, operations=payload.operations)
     except ValueError:
         return (
             CriterionDecision.NOT_EVALUABLE,
