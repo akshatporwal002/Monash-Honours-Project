@@ -49,6 +49,7 @@ from app.schemas.lms import (
     EducatorStudentRead,
     EnrollmentCreate,
     EnrollmentRead,
+    EpisodeCheckpointWrite,
     MaterialLinkCreate,
     MaterialRead,
     ModuleCreate,
@@ -743,3 +744,24 @@ def bootstrap_demo_environment(
         users=[service._admin_user_read(user) for user in users],
         course=service._course_read(course),
     )
+
+
+@router.get("/students/me/tasks/{task_id}/episode")
+def read_episode(task_id: str, student: CurrentStudent, service: Lms):
+    return service.episode_state(student, task_id)
+
+
+@router.post("/students/me/tasks/{task_id}/episode/checkpoints")
+def checkpoint_episode(
+    task_id: str, payload: EpisodeCheckpointWrite, student: CurrentStudent, service: Lms
+):
+    return service.episode_checkpoint(
+        student, task_id, payload.response, payload.part_id, payload.stage_start_id
+    )
+
+
+@router.post("/students/me/tasks/{task_id}/episode/transfer")
+def enter_episode_transfer(
+    task_id: str, payload: DraftWrite, student: CurrentStudent, service: Lms
+):
+    return service.episode_transfer(student, task_id, payload)

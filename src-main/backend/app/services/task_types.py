@@ -302,8 +302,42 @@ class QuantumCircuitHandler:
         return bool(required) and required <= gates
 
 
+EPISODE_TASK_TYPES = {
+    "prediction",
+    "reasoning",
+    "explanation",
+    "revision",
+    "reflection",
+    "transfer",
+}
+STAGED_TASK_TYPES = {
+    "matching",
+    "sequencing",
+    "state_comparison",
+    "diagnosis",
+    "probability_interpretation",
+    "part_complete",
+    "confidence",
+}
+
+
+class EpisodeResponseHandler:
+    """Typed subjective evidence is retained for review without a numeric guess."""
+
+    def scaffold(self, outcome_statement: str) -> TaskScaffold:
+        return TaskScaffold(
+            expected_answer=None,
+            marking_criteria={"response_review": "human", "outcome": outcome_statement},
+        )
+
+    def is_correct(self, task, submission) -> bool:
+        raise UnsupportedTaskTypeError("Episode evidence requires criterion review")
+
+
 def build_default_task_type_registry() -> TaskTypeRegistry:
     registry = TaskTypeRegistry()
+    for identifier in EPISODE_TASK_TYPES:
+        registry.register(identifier, EpisodeResponseHandler())
     registry.register(
         TaskType.MULTIPLE_CHOICE,
         MultipleChoiceHandler(),

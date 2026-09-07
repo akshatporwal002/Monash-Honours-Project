@@ -75,6 +75,12 @@ class ResearchStatus(str, Enum):
 
 
 class TaskType(str, Enum):
+    PREDICTION = "prediction"
+    REASONING = "reasoning"
+    EXPLANATION = "explanation"
+    REVISION = "revision"
+    REFLECTION = "reflection"
+    TRANSFER = "transfer"
     MULTIPLE_CHOICE = "multiple_choice"
     MULTIPLE_ANSWER = "multiple_answer"
     SHORT_ANSWER = "short_answer"
