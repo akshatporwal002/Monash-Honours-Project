@@ -7,6 +7,7 @@ from sqlalchemy import select
 from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 from test_assessment_definitions import _draft, _service, _setup
 
+from app.domain.assessment import BloomProcess
 from app.models.assessment import TaskFormVersion
 from app.models.enums import TaskType
 from app.models.lms import Course, CourseState, Enrollment, SubmissionAttempt
@@ -20,7 +21,7 @@ from app.services.lms import LmsService
 from app.services.task_review import TaskReviewError
 
 
-def setup_episode(session):
+def setup_episode(session, task_type=TaskType.QUANTUM_CIRCUIT):
     course_id, outcome_id, owner_id, outcome_version_id = _setup(session)
     task = session.scalar(select(LearningTask).where(LearningTask.course_id == course_id))
     plan = EpisodePlanV1(
@@ -32,7 +33,7 @@ def setup_episode(session):
         supported_hints=("Consider how H changes the input state.",),
         accessibility_support=("Text circuit and keyboard controls",),
     )
-    task.task_type = TaskType.QUANTUM_CIRCUIT
+    task.task_type = task_type
     task.marking_criteria = {
         "required_gates": ["h"],
         "starter_circuit": {"qubits": 1, "operations": []},
@@ -41,21 +42,44 @@ def setup_episode(session):
     session.commit()
     approve_fixture_task(session, task)
     draft = replace(
-        _draft(outcome_version_id=outcome_version_id, task_id=task.id), formal_result_eligible=True
+        _draft(outcome_version_id=outcome_version_id, task_id=task.id, task_processes=["APPLY"]),
+        formal_result_eligible=True,
+        bloom_process=BloomProcess.APPLY,
+        claim="Apply a Hadamard circuit through prediction, explanation, and fresh application.",
+    )
+    criteria = [
+        replace(
+            draft.criteria[0],
+            stable_key=key,
+            learner_description=description,
+            evidence_description=description,
+        )
+        for key, description in (
+            ("prediction", "Predict the circuit outcome."),
+            ("explanation", "Explain the circuit outcome."),
+            ("application", "Apply the circuit in a fresh context."),
+        )
+    ]
+    draft = replace(
+        draft,
+        criteria=criteria,
+        pass_rule_expression={
+            "operator": "ALL_OF",
+            "clauses": [{"criterion": criterion.stable_key} for criterion in criteria],
+        },
+        instructional_support={"supported_stage": "unlimited approved conceptual hints"},
+        transfer_rule={"required": True, "independence": "unaided fresh application"},
     )
     service = _service(session)
     definition = service.create_draft(
         course_id=course_id, learning_outcome_id=outcome_id, actor_user_id=owner_id, draft=draft
     )
-    # Until shared publication wiring lands, explicitly freeze the reviewed plan before approval.
     form = session.scalar(
         select(TaskFormVersion).where(
             TaskFormVersion.assessment_definition_version_id == definition.id
         )
     )
-    if "episode_plan" not in form.constraints:
-        form.constraints = {**form.constraints, "episode_plan": plan.model_dump(mode="json")}
-        session.commit()
+    assert form.constraints["episode_plan"] == plan.model_dump(mode="json")
     service.approve(
         course_id=course_id,
         assessment_definition_id=definition.assessment_definition_id,
@@ -396,3 +420,258 @@ def test_controlled_failure_preserves_prediction_and_work(db_session, error_code
         == payload.episode.supported.prediction
     )
     assert db_session.scalar(select(SubmissionAttempt)) is None
+
+
+def test_reader_contract_preserves_historical_condition_list(db_session):
+    from app.schemas.episode import FrozenResponseRead
+    from app.services.episode_responses import SqlAlchemyFrozenResponseReader
+
+    lms, student, task, started = setup_episode(db_session)
+    payload = complete(lms, student, task, started)
+    attempt = lms.submit(
+        student, task.id, SubmissionCreate(**payload.model_dump(), idempotency_key="condition-list")
+    )
+    frozen = SqlAlchemyFrozenResponseReader(db_session).read(
+        assessment=assessment_reference(db_session, attempt.id)
+    )
+    historical = frozen.model_copy(update={"declared_conditions": [{"access": "  preserved\n"}]})
+    assert FrozenResponseRead.model_validate_json(
+        historical.model_dump_json()
+    ).declared_conditions == [{"access": "  preserved\n"}]
+
+
+def test_migration_accepts_every_new_type_and_preserves_reviewed_history(tmp_path):
+    from alembic import command
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import Session
+    from test_migrations import migration_config
+
+    path = tmp_path / "preexisting.db"
+    url = f"sqlite:///{path.as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "20260907_0029")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        course_id, outcome_id, owner_id, _ = _setup(session)
+        task = session.scalar(select(LearningTask).where(LearningTask.course_id == course_id))
+        task_id = task.id
+        before = dict(
+            session.execute(text("SELECT * FROM learning_tasks WHERE id=:id"), {"id": task_id})
+            .mappings()
+            .one()
+        )
+        review = list(session.execute(text("SELECT * FROM task_revisions")).mappings())
+        triggers = list(
+            session.execute(
+                text("SELECT name,sql FROM sqlite_master WHERE type='trigger' ORDER BY name")
+            )
+        )
+    command.upgrade(config, "head")
+    with engine.begin() as connection:
+        assert (
+            dict(
+                connection.execute(
+                    text("SELECT * FROM learning_tasks WHERE id=:id"), {"id": task_id}
+                )
+                .mappings()
+                .one()
+            )
+            == before
+        )
+        assert list(connection.execute(text("SELECT * FROM task_revisions")).mappings()) == review
+        for kind in (
+            "prediction",
+            "reasoning",
+            "explanation",
+            "revision",
+            "reflection",
+            "transfer",
+        ):
+            connection.execute(
+                text(
+                    "INSERT INTO learning_tasks (id,slug,title,module,description,instructions,expected_answer,task_type,difficulty,points,position,source_references,prerequisite_task_ids,course_id,module_id,learning_outcome_id) VALUES (:kind,:kind,'Typed task','Module','Prompt','Instructions','Answer',:kind,'beginner',0,:position,'[]','[]',:course_id,:module_id,:learning_outcome_id)"
+                ),
+                {
+                    "kind": kind,
+                    "position": 10 + len(kind),
+                    "course_id": course_id,
+                    "module_id": before["module_id"],
+                    "learning_outcome_id": outcome_id,
+                },
+            )
+        after = dict(
+            connection.execute(
+                text("SELECT name,sql FROM sqlite_master WHERE type='trigger'")
+            ).all()
+        )
+        assert all(after[name] == sql for name, sql in triggers)
+        assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
+    with pytest.raises(RuntimeError, match="protected"):
+        command.downgrade(config, "20260907_0029")
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "task_type",
+    [
+        TaskType.PREDICTION,
+        TaskType.REASONING,
+        TaskType.EXPLANATION,
+        TaskType.REVISION,
+        TaskType.REFLECTION,
+        TaskType.TRANSFER,
+    ],
+)
+def test_every_supported_type_roundtrips_and_revises(db_session, task_type):
+    lms, student, task, started = setup_episode(db_session, task_type)
+    payload = complete(lms, student, task, started)
+    saved = lms.save_draft(student, task.id, payload)
+    assert lms.get_draft(student, task.id).episode == saved.episode
+    first = lms.submit(
+        student, task.id, SubmissionCreate(**payload.model_dump(), idempotency_key="first-typed")
+    )
+    changed = payload.episode.model_dump(mode="json")
+    changed["supported"]["revision"] = {
+        "previous_response_version_id": first.id,
+        "reason": "  Refined my reasoning\n",
+    }
+    changed["supported"]["reflection"] = "  Reflection after submitting\n"
+    revised = payload.model_copy(update={"episode": EpisodePayloadV1.model_validate(changed)})
+    second = lms.submit(
+        student, task.id, SubmissionCreate(**revised.model_dump(), idempotency_key="second-typed")
+    )
+    assert second.episode == revised.episode
+    assert second.score is None
+    assert db_session.get(SubmissionAttempt, first.id).episode == payload.episode.model_dump(
+        mode="json"
+    )
+
+
+def test_interrupted_run_recovery_and_invalid_input_keep_work(db_session):
+    from datetime import UTC, datetime, timedelta
+
+    from pydantic import ValidationError
+
+    from app.services.quantum import CircuitOperation
+    from app.services.simulation_evidence import SimulationEvidenceService
+
+    lms, student, task, started = setup_episode(db_session)
+    checkpoint = lms.episode_checkpoint(student, task.id, supported(started), "supported", None)
+    before = lms.get_draft(student, task.id)
+    with pytest.raises(ValidationError):
+        SimulationRequest(task_id=task.id, qubits=1, operations=[{"gate": "h", "targets": [3]}])
+    now = datetime.now(UTC)
+    service = SimulationEvidenceService(db_session, now=lambda: now)
+    run_id, _ = service.prepare(
+        owner_id=student.id,
+        task_id=task.id,
+        qubits=1,
+        operations=[CircuitOperation("h", (0,))],
+        prediction_checkpoint_id=checkpoint["checkpoint_id"],
+    )
+    recovered = SimulationEvidenceService(db_session, now=lambda: now + timedelta(minutes=2))
+    assert recovered.recover_expired() == 1
+    assert recovered.read(run_id)["status"] == "interrupted"
+    assert recovered.recover_expired() == 0
+    assert lms.get_draft(student, task.id) == before
+    assert db_session.scalar(select(SubmissionAttempt)) is None
+
+
+def test_uncheckpointed_run_is_not_revealed_through_direct_or_list_reads(db_session):
+    from datetime import UTC, datetime, timedelta
+
+    from app.models.simulation import SimulationRun
+    from app.services.quantum import CircuitOperation
+    from app.services.simulation_evidence import SimulationEvidenceService
+
+    lms, student, task, started = setup_episode(db_session)
+    checkpoint = lms.episode_checkpoint(student, task.id, supported(started), "supported", None)
+    run_id, _ = SimulationEvidenceService(db_session).prepare(
+        owner_id=student.id,
+        task_id=task.id,
+        qubits=1,
+        operations=[CircuitOperation("h", (0,))],
+        prediction_checkpoint_id=checkpoint["checkpoint_id"],
+    )
+    actual = db_session.get(SimulationRun, run_id)
+    old = SimulationRun(
+        id="old-run",
+        owner_id=student.id,
+        request_key="old-key",
+        circuit_version_id=actual.circuit_version_id,
+        purpose="task",
+        shots=1024,
+        seed=42,
+        policy_version=actual.policy_version,
+        engine_versions=actual.engine_versions,
+        created_at=datetime.now(UTC),
+        deadline_at=datetime.now(UTC) + timedelta(minutes=1),
+    )
+    db_session.add(old)
+    db_session.commit()
+    with pytest.raises(TaskReviewError, match="prediction"):
+        lms.read_simulation(student, old.id)
+    with pytest.raises(TaskReviewError, match="prediction"):
+        lms.list_student_simulations(student, task.id, 10)
+
+
+def test_checkpoint_history_preserves_changed_prediction_and_denies_wrong_shots(db_session):
+
+    lms, student, task, started = setup_episode(db_session)
+    payload = supported(started)
+    first = lms.episode_checkpoint(student, task.id, payload, "supported", None)
+    raw = payload.episode.model_dump(mode="json")
+    raw["supported"]["prediction"] = {"answer": "  A changed prediction for changed input\n"}
+    changed = payload.model_copy(
+        update={
+            "episode": EpisodePayloadV1.model_validate(raw),
+            "circuit": {"qubits": 1, "operations": [{"gate": "x", "targets": [0]}]},
+        }
+    )
+    second = lms.episode_checkpoint(student, task.id, changed, "supported", None)
+    assert first["checkpoint_id"] != second["checkpoint_id"]
+    history = lms.episode_checkpoint_history(student, task.id)
+    assert [item["prediction"]["answer"] for item in history] == [
+        "  Half zero, half one\n",
+        "  A changed prediction for changed input\n",
+    ]
+    with pytest.raises(TaskReviewError, match="exact circuit"):
+        lms.simulate_student_circuit(
+            student,
+            SimulationRequest(
+                task_id=task.id,
+                qubits=1,
+                operations=[{"gate": "x", "targets": [0]}],
+                prediction_checkpoint_id=second["checkpoint_id"],
+                shots=512,
+            ),
+        )
+    db_session.rollback()
+    assert (
+        lms.get_draft(student, task.id).episode.supported.prediction_checkpoint_id
+        == second["checkpoint_id"]
+    )
+
+
+def test_foreign_revision_simulation_and_transfer_references_are_denied(db_session):
+    lms, student, task, started = setup_episode(db_session)
+    payload = complete(lms, student, task, started)
+    lms.save_draft(student, task.id, payload)
+    for field in ("stage", "simulation", "checkpoint"):
+        raw = payload.episode.model_dump(mode="json")
+        if field == "stage":
+            raw["transfer"]["stage_start_id"] = "foreign"
+        elif field == "simulation":
+            raw["supported"]["simulation_references"] = [
+                {"run_id": "foreign", "circuit_version_id": "foreign"}
+            ]
+        else:
+            raw["supported"]["prediction_checkpoint_id"] = "foreign"
+        with pytest.raises(TaskReviewError):
+            lms.save_draft(
+                student,
+                task.id,
+                payload.model_copy(update={"episode": EpisodePayloadV1.model_validate(raw)}),
+            )
+        db_session.rollback()
+        assert lms.get_draft(student, task.id).episode == payload.episode

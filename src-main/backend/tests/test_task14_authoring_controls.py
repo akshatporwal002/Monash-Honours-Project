@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import pytest
+from sqlalchemy import func, select
 from support.task_review import approve_fixture_task
 from test_assessment_definition_api import (
     _assign_assessor,
@@ -10,9 +11,12 @@ from test_assessment_definition_api import (
     _publish,
 )
 from test_assessment_definition_api import assessment_api_context as assessment_api_context
+from test_assessment_work_starts import setup_work
 
 from app.models import LearningTask, User
 from app.models.assessment import TaskFormVersion
+from app.models.assessment_work import AssessmentWorkStart
+from app.models.lms import SubmissionDraft
 from app.models.task_review import TaskRevision
 from app.schemas.episode import EpisodePlanV1
 from app.schemas.lms import TaskUpdate
@@ -30,6 +34,21 @@ def _plan():
         "supported_hints": ["Consider how the gate changes the state."],
         "accessibility_support": ["Equivalent circuit text"],
     }
+
+
+def test_episode_only_legacy_draft_keeps_its_original_unversioned_work(db_session):
+    student, task, form, _, _, _ = setup_work(db_session)
+    episode = {"supported": {"prediction": {"answer": "Earlier prediction"}}}
+    draft = SubmissionDraft(student_id=student.id, task_id=task.id, answer="", episode=episode)
+    db_session.add(draft)
+    db_session.commit()
+    with pytest.raises(TaskReviewError, match="predates"):
+        LmsService(db_session).start_assessment_work(student, task.id, form.id)
+    db_session.rollback()
+    saved = LmsService(db_session).get_draft(student, task.id)
+    assert saved.episode.supported.prediction.answer == "Earlier prediction"
+    assert saved.assessment_work_start_id is None
+    assert db_session.scalar(select(func.count()).select_from(AssessmentWorkStart)) == 0
 
 
 def _saved_episode(client, session):

@@ -108,6 +108,8 @@ class SimulationEvidenceService:
                     stage_start_id=episode_stage_start_id,
                     part_id=episode_part_id,
                     circuit=circuit,
+                    shots=shots,
+                    seed=seed,
                 )
             circuit_id = _digest([owner_id, task_id, course_id, circuit])
             existing = session.scalar(

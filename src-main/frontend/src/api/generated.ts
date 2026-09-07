@@ -323,6 +323,7 @@ export type ApiSchemas = {
     "attempt_number": number
     "circuit": (Record<string, unknown>) | (null)
     "code": (string) | (null)
+    "episode"?: (ApiSchemas["EpisodePayloadV1"]) | (null)
     "feedback": string
     "feedback_reference": (string) | (null)
     "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
@@ -419,6 +420,7 @@ export type ApiSchemas = {
     "assessment_work_start_id"?: (string) | (null)
     "circuit": (Record<string, unknown>) | (null)
     "code": (string) | (null)
+    "episode"?: (ApiSchemas["EpisodePayloadV1"]) | (null)
     "id": string
     "task_id": string
     "updated_at": string
@@ -437,6 +439,7 @@ export type ApiSchemas = {
     "assessment_work_start_id"?: (string) | (null)
     "circuit"?: (Record<string, unknown>) | (null)
     "code"?: (string) | (null)
+    "episode"?: (ApiSchemas["EpisodePayloadV1"]) | (null)
   }
   "EducatorDashboardRead": {
     "at_risk_students": number
@@ -477,6 +480,29 @@ export type ApiSchemas = {
     "student_name": string
   }
   "EnrollmentStatus": "active" | "completed" | "withdrawn"
+  "EpisodeCheckpointWrite": {
+    "part_id": string
+    "response": ApiSchemas["DraftWrite"]
+    "stage_start_id"?: (string) | (null)
+  }
+  "EpisodePayloadV1": {
+    "schema_version"?: "learnlens.episode.v1"
+    "supported": ApiSchemas["EpisodeStageResponseV1"]
+    "transfer"?: (ApiSchemas["TransferResponseV1"]) | (null)
+  }
+  "EpisodeRevision": {
+    "previous_response_version_id": string
+    "reason": string
+  }
+  "EpisodeStageResponseV1": {
+    "explanation"?: (string) | (null)
+    "prediction"?: (ApiSchemas["ResponseContent"]) | (null)
+    "prediction_checkpoint_id"?: (string) | (null)
+    "reasoning"?: (string) | (null)
+    "reflection"?: (string) | (null)
+    "revision"?: (ApiSchemas["EpisodeRevision"]) | (null)
+    "simulation_references"?: Array<ApiSchemas["SimulationReference"]>
+  }
   "EvidenceReference": {
     "assessment": ApiSchemas["AssessmentVersionReference"]
     "content_digest": string
@@ -598,6 +624,7 @@ export type ApiSchemas = {
     "reference_id"?: (string) | (null)
     "status"?: "INVALID"
   }
+  "JsonValue": unknown
   "JudgeDecision": "pass" | "fail"
   "LabelScoreRead": {
     "label": string
@@ -811,6 +838,11 @@ export type ApiSchemas = {
     "reference": ApiSchemas["EvidenceReference"]
     "status"?: "RESOLVED"
   }
+  "ResponseContent": {
+    "answer"?: string
+    "circuit"?: (Partial<Record<string, ApiSchemas["JsonValue"]>>) | (null)
+    "code"?: (string) | (null)
+  }
   "ResultState": "NOT_ASSESSED" | "PROVISIONAL" | "CONFIRMED" | "OVERRIDDEN" | "VOID"
   "RetrievalHitRead": {
     "chunk_id": string
@@ -915,8 +947,15 @@ export type ApiSchemas = {
     "shots"?: number
     "statevector"?: Array<Array<number>>
   }
+  "SimulationReference": {
+    "circuit_version_id": string
+    "run_id": string
+  }
   "SimulationRequest": {
+    "episode_part_id"?: (string) | (null)
+    "episode_stage_start_id"?: (string) | (null)
     "operations"?: Array<ApiSchemas["GateOperation"]>
+    "prediction_checkpoint_id"?: (string) | (null)
     "qubits"?: number
     "request_key"?: (string) | (null)
     "seed"?: number
@@ -931,10 +970,12 @@ export type ApiSchemas = {
     "created_at": string
     "deadline_at": string
     "engine_versions": Partial<Record<string, string>>
+    "episode_stage_start_id"?: (string) | (null)
     "error_code": (string) | (null)
     "finished_at": (string) | (null)
     "owner_id": number
     "policy_version": string
+    "prediction_checkpoint_id"?: (string) | (null)
     "purpose": "practice" | "task" | "feedback"
     "result": (ApiSchemas["SimulationRead"]) | (null)
     "run_id": string
@@ -1032,6 +1073,7 @@ export type ApiSchemas = {
     "assessment_work_start_id"?: (string) | (null)
     "circuit"?: (Record<string, unknown>) | (null)
     "code"?: (string) | (null)
+    "episode"?: (ApiSchemas["EpisodePayloadV1"]) | (null)
     "idempotency_key"?: (string) | (null)
   }
   "SubmissionState": "NOT_STARTED" | "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "RETURNED" | "COMPLETED"
@@ -1070,6 +1112,7 @@ export type ApiSchemas = {
     "course_id": string
     "difficulty": string
     "due_at": (string) | (null)
+    "episode_plan"?: (Record<string, unknown>) | (null)
     "id": string
     "instructions": string
     "latest_attempt"?: (ApiSchemas["LatestAttemptSummary"]) | (null)
@@ -1129,7 +1172,7 @@ export type ApiSchemas = {
     "task_id": string
     "version": number
   }
-  "TaskType": "multiple_choice" | "multiple_answer" | "short_answer" | "code_explanation" | "code_completion" | "quantum_circuit" | "quiz" | "code" | "circuit"
+  "TaskType": "prediction" | "reasoning" | "explanation" | "revision" | "reflection" | "transfer" | "multiple_choice" | "multiple_answer" | "short_answer" | "code_explanation" | "code_completion" | "quantum_circuit" | "quiz" | "code" | "circuit"
   "TaskUpdate": {
     "difficulty"?: ("beginner" | "intermediate" | "advanced") | (null)
     "due_at"?: (string) | (null)
@@ -1153,6 +1196,12 @@ export type ApiSchemas = {
   }
   "TaskViewMetadata": {
     "source"?: (string) | (null)
+  }
+  "TransferResponseV1": {
+    "content": ApiSchemas["ResponseContent"]
+    "part_id": string
+    "process": ApiSchemas["EpisodeStageResponseV1"]
+    "stage_start_id": string
   }
   "UserRole": "student" | "educator" | "administrator"
   "ValidatedFeedbackView": {

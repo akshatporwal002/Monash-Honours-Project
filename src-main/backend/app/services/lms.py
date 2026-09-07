@@ -745,6 +745,7 @@ class LmsService:
         stage_start_id: str | None,
     ) -> dict:
         self.save_draft(student, task_id, payload)
+        self._acquire_submission_sequence_lock(student.id)
         draft = self.session.scalar(
             select(SubmissionDraft).where(
                 SubmissionDraft.student_id == student.id, SubmissionDraft.task_id == task_id
@@ -756,8 +757,28 @@ class LmsService:
         self._commit()
         return {"checkpoint_id": checkpoint.id, "draft": DraftRead.model_validate(draft)}
 
+    def episode_checkpoint_history(self, student: User, task_id: str) -> list[dict]:
+        from app.models.episode import EpisodeCheckpoint
+
+        self._require_student_task(student, task_id, require_available=False)
+        checkpoints = self.session.scalars(
+            select(EpisodeCheckpoint)
+            .where(EpisodeCheckpoint.student_id == student.id, EpisodeCheckpoint.task_id == task_id)
+            .order_by(EpisodeCheckpoint.created_at, EpisodeCheckpoint.id)
+        )
+        return [
+            {
+                "part_id": item.part_id,
+                "prediction": item.prediction,
+                "input_content": item.input_content,
+                "created_at": item.created_at,
+            }
+            for item in checkpoints
+        ]
+
     def episode_transfer(self, student: User, task_id: str, payload: DraftWrite) -> dict:
         self.save_draft(student, task_id, payload)
+        self._acquire_submission_sequence_lock(student.id)
         draft = self.session.scalar(
             select(SubmissionDraft).where(
                 SubmissionDraft.student_id == student.id, SubmissionDraft.task_id == task_id
@@ -2007,7 +2028,9 @@ class LmsService:
             assessment = None
         episode_plan = validate_reviewed_episode_plan(criteria)
         return TaskRead(
-            episode_plan=learner_episode_plan(episode_plan) if episode_plan else None,
+            episode_plan={**learner_episode_plan(episode_plan), "supported_hints": []}
+            if episode_plan
+            else None,
             id=task.id,
             title=task.title,
             prompt=task.description,

@@ -140,6 +140,8 @@ class EpisodeService:
                     circuit.circuit != self.circuit_input(current.circuit)
                     or run.prediction_checkpoint_id != process.prediction_checkpoint_id
                     or run.episode_stage_start_id != stage_id
+                    or run.shots != (current.circuit or {}).get("shots", 1024)
+                    or run.seed != (current.circuit or {}).get("seed", 42)
                 ):
                     raise TaskReviewError(
                         "Simulation reference does not match this response input and stage", 422
@@ -276,7 +278,16 @@ class EpisodeService:
         return projection
 
     def require_simulation_checkpoint(
-        self, *, owner_id, task_id, checkpoint_id, stage_start_id, part_id, circuit
+        self,
+        *,
+        owner_id,
+        task_id,
+        checkpoint_id,
+        stage_start_id,
+        part_id,
+        circuit,
+        shots=1024,
+        seed=42,
     ):
         work = self.session.scalar(
             select(AssessmentWorkStart).where(
@@ -310,6 +321,8 @@ class EpisodeService:
             )
             != (owner_id, task_id, work.id, stage_start_id)
             or self.circuit_input(checkpoint.input_content.get("circuit")) != circuit
+            or (checkpoint.input_content.get("circuit") or {}).get("shots", 1024) != shots
+            or (checkpoint.input_content.get("circuit") or {}).get("seed", 42) != seed
         ):
             raise TaskReviewError(
                 "Record a prediction for this exact circuit before viewing results", 422
@@ -325,4 +338,6 @@ class EpisodeService:
             if run.episode_stage_start_id is None
             else self.session.get(EpisodeStageStart, run.episode_stage_start_id).part_id,
             circuit=circuit.circuit,
+            shots=run.shots,
+            seed=run.seed,
         )

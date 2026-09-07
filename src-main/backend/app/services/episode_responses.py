@@ -114,6 +114,20 @@ class SqlAlchemyFrozenResponseReader:
             )
             if digest != response.content_digest:
                 raise FrozenResponseInvalid("Frozen response digest does not match its content")
+            if episode is not None:
+                from app.services.episodes import EpisodeService
+                from app.services.task_review import TaskReviewError
+
+                try:
+                    EpisodeService(self.session).validate_response(
+                        work if response.assessment_work_start_id else None,
+                        episode,
+                        content,
+                        student_id=response.student_id,
+                        task_id=response.task_id,
+                    )
+                except TaskReviewError as error:
+                    raise FrozenResponseInvalid(str(error)) from error
             return FrozenResponseRead(
                 reference=EvidenceReference(
                     assessment=actual,
@@ -132,7 +146,9 @@ class SqlAlchemyFrozenResponseReader:
                 task_form_version_id=form.id,
                 content=content,
                 episode=episode,
-                declared_conditions=response.declared_conditions or {},
+                declared_conditions=response.declared_conditions
+                if response.declared_conditions is not None
+                else {},
             )
         except (ValidationError, TypeError, ValueError) as error:
             raise FrozenResponseInvalid(str(error)) from error
