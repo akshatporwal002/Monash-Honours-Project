@@ -207,6 +207,10 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 9, 11, and 14. Suggested owner: evidence services.
 
+    Task 17 progress, 8 September 2026: implemented on
+    `feat/task-17-live-evidence-capture`; final delivery checks and review
+    evidence remain in progress. See the [live-evidence handoff](docs/learnlens/task-17-live-evidence.md).
+
     Append-only evidence services, trusted adapters, privacy checks, and replay controls exist. They are not connected to the mounted learner workflow. Record predictions, reasoning, hints, simulation, responses, revisions, feedback use, reflection, and transfer. Link each item to its task, response, conditions, source, and earlier evidence where relevant.
 
     Done when a real learner journey creates an authorised, ordered evidence timeline. Replays and partial failures must preserve originals without duplicate accepted observations.
