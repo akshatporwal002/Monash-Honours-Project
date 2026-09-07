@@ -5,7 +5,7 @@ import type { ApiSchemas } from '../api/generated'
 import { Button, Field, Select, Tag, Textarea } from './ui'
 import styles from './TaskReviewPanel.module.css'
 
-export function SourceReviewPanel({ courseId, materialId }: { courseId: string; materialId: string }) {
+export function SourceReviewPanel({ courseId, materialId, readOnly = false }: { courseId: string; materialId: string; readOnly?: boolean }) {
   const [revisions, setRevisions] = useState<ApiSchemas['SourceRevisionRead'][]>([])
   const [selectedId, setSelectedId] = useState('')
   const [reason, setReason] = useState('')
@@ -39,7 +39,7 @@ export function SourceReviewPanel({ courseId, materialId }: { courseId: string; 
   }
 
   const record = async (state: 'APPROVED' | 'REVOKED') => {
-    if (!selected || busy || loading) return
+    if (!selected || busy || loading || readOnly) return
     setBusy(true)
     setError('')
     setNotice('')
@@ -58,7 +58,7 @@ export function SourceReviewPanel({ courseId, materialId }: { courseId: string; 
 
   return <section aria-label="Source review" className={styles.panel}>
     <h3>Review saved source passages</h3>
-    <p>Read the saved content before recording approval. This action applies to the selected revision.</p>
+    <p>{readOnly ? 'Inspect the exact saved passages and their approval history.' : 'Read the saved content before recording approval. This action applies to the selected revision.'}</p>
     {error && <p role="alert">{error}</p>}
     {notice && <p role="status">{notice}</p>}
     <Button variant="quiet" disabled={busy} onClick={refresh}>Reload source history</Button>
@@ -73,11 +73,11 @@ export function SourceReviewPanel({ courseId, materialId }: { courseId: string; 
           {passage.location_label && <p>{passage.location_label}</p>}
           <p>{passage.chunk_text}</p>
         </li>)}</ol>
-        <Field label="Source review reason" required><Textarea value={reason} maxLength={2000} disabled={busy} onChange={(event) => setReason(event.target.value)} /></Field>
+        {!readOnly && <><Field label="Source review reason" required><Textarea value={reason} maxLength={2000} disabled={busy} onChange={(event) => setReason(event.target.value)} /></Field>
         <div className={styles.actions}>
           <Button disabled={busy || !reason.trim() || !selected.passages?.length} onClick={() => void record('APPROVED')}>Approve source revision</Button>
           <Button disabled={busy || !reason.trim() || selected.approval_state !== 'APPROVED'} onClick={() => void record('REVOKED')}>Revoke source approval</Button>
-        </div>
+        </div></>}
         <details><summary>Source approval history</summary><ol>{selected.approvals?.map((approval) => <li key={approval.id}>
           {approval.state === 'APPROVED' ? 'Approved' : 'Revoked'}: {approval.reason} ({new Date(approval.created_at).toLocaleString()})
         </li>)}</ol></details>

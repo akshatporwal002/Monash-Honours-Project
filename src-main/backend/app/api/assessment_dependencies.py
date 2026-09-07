@@ -44,10 +44,19 @@ def get_scoped_role_eligibility() -> ScopedRoleEligibility:
     return lambda subject, role: role is ScopedRole.ASSESSOR and subject.role is UserRole.EDUCATOR
 
 
-def get_assessment_publication_policy() -> AssessmentPublicationPolicy:
-    """Fail closed until the live-pilot publication policy is approved."""
+def get_assessment_publication_policy(
+    session: Annotated[Session, Depends(get_db)],
+) -> AssessmentPublicationPolicy:
+    """D-02 authorises current course assessors; definition checks enforce content readiness."""
 
-    return lambda _actor, _course_id: False
+    def permitted(actor: User, course_id: str) -> bool:
+        try:
+            RoleAssignmentService(session).require_assessor_access(actor, course_id)
+        except ScopedRoleAccessDeniedError:
+            return False
+        return True
+
+    return permitted
 
 
 def get_role_assignment_service(

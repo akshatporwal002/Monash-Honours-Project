@@ -7,6 +7,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import Field
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.api.assessment_dependencies import (
@@ -28,8 +29,10 @@ from app.domain.assessment import (
     ResultState,
 )
 from app.models.assessment import AssessmentDefinitionVersion
+from app.models.lms import Course
 from app.models.user import RoleAssignment, UserRole
 from app.schemas.lms import (
+    AssessmentAuthoringTaskRead,
     AssessmentDefinitionApproval,
     AssessmentDefinitionDraftCreate,
     AssessmentDefinitionDraftUpdate,
@@ -145,6 +148,25 @@ def get_assessment_review_service(
 
 
 ReviewService = Annotated[AssessmentReviewService, Depends(get_assessment_review_service)]
+
+
+@router.get(
+    "/courses/{course_id}/authoring-tasks", response_model=list[AssessmentAuthoringTaskRead]
+)
+def read_assessment_authoring_tasks(
+    course_id: str,
+    actor: CurrentUser,
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    from app.services.assessment.publication import authoring_tasks
+    from app.services.task_review import TaskReviewError
+
+    try:
+        return authoring_tasks(session, actor, course_id, limit=limit, offset=offset)
+    except TaskReviewError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
 
 
 @router.post(
@@ -369,6 +391,11 @@ def publish_assessment_definition(
     publication_policy: PublicationPolicy,
 ) -> AssessmentDefinitionRead:
     try:
+        definitions.session.execute(
+            update(Course)
+            .where(Course.id == course_id)
+            .values(id=Course.id, updated_at=Course.updated_at)
+        )
         assignments.require_assessor_access(actor, course_id)
     except Exception as error:
         raise_assignment_http_error(error)
@@ -392,7 +419,7 @@ def publish_assessment_definition(
     if not publication_policy(actor, course_id):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Assessment publication is blocked until the live-pilot policy is approved",
+            detail="Current course assessor approval is required for publication",
         )
     try:
         approved = definitions.approve(
@@ -581,6 +608,7 @@ def _definition_read(version: AssessmentDefinitionVersion) -> AssessmentDefiniti
             AssessmentTaskFormRead(
                 id=form.id,
                 learning_task_id=form.learning_task_id,
+                task_revision_id=form.task_revision_id,
                 version=form.version,
                 source_version=form.source_version,
                 source_digest=form.source_digest,

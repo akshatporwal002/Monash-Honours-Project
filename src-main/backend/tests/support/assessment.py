@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from uuid import uuid4
 
+from sqlalchemy import MetaData, Table, inspect
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
@@ -225,7 +227,24 @@ def _assessment_versions(
         context={"scenario": "interference experiment"},
         constraints={"response_format": "text"},
     )
-    session.add_all([rule_version, form_version])
+    session.add(rule_version)
+    columns = {
+        column["name"] for column in inspect(session.connection()).get_columns("task_form_versions")
+    }
+    if "task_revision_id" in columns:
+        session.add(form_version)
+    else:
+        # Historical migration fixtures must insert only the columns that existed then.
+        # Keep this transient form as the IDs consumed by build_assessment_attempt.
+        form_version.id = str(uuid4())
+        values = {
+            key: getattr(form_version, key)
+            for key in columns
+            if getattr(form_version, key, None) is not None
+        }
+        values.update(created_at=NOW, approval_state="DRAFT")
+        legacy_table = Table("task_form_versions", MetaData(), autoload_with=session.connection())
+        session.execute(legacy_table.insert().values(**values))
     session.flush()
     return bloom_version, criterion_version, rule_version, form_version
 
@@ -303,7 +322,21 @@ def build_assessment_attempt(
         pass_rule_version_id=rule.id,
         state=AssessmentAttemptState.PENDING,
     )
-    session.add(attempt)
+    form_columns = {
+        column["name"] for column in inspect(session.connection()).get_columns("task_form_versions")
+    }
+    if "task_revision_id" in form_columns:
+        session.add(attempt)
+    else:
+        # Use the historical database's own scope guards, without loading today's form model.
+        attempt.id = str(uuid4())
+        values = {
+            column.name: getattr(attempt, column.name)
+            for column in AssessmentAttempt.__table__.columns
+            if getattr(attempt, column.name) is not None
+        }
+        session.execute(AssessmentAttempt.__table__.insert().values(**values))
+        attempt = session.get(AssessmentAttempt, attempt.id)
     session.commit()
     return attempt, response, criterion, rule, owner
 

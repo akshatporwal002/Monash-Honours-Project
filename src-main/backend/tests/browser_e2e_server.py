@@ -40,7 +40,6 @@ from app.api.analytics_dependencies import (
     get_analytics_application,
     get_analytics_pseudonymizer,
 )
-from app.api.assessment_dependencies import get_assessment_publication_policy
 from app.api.audit_dependencies import get_student_audit_tracker
 from app.api.feedback_dependencies import (
     get_authenticated_actor,
@@ -410,10 +409,6 @@ def _build_app(database_url: str):
     def assessed_read_fixture():
         with session_factory() as session:
             return seed_assessed_reads(session)
-
-    app.dependency_overrides[get_assessment_publication_policy] = lambda: (
-        lambda _actor, _course_id: True
-    )
 
     def request_database_session() -> Generator[Session, None, None]:
         with session_factory() as session:

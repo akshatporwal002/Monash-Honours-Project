@@ -452,6 +452,8 @@ export const api = {
     logout: () => request<void>('/auth/logout', { method: 'POST' }),
   },
   assessment: {
+    authoringTasks: (courseId: string, offset = 0) =>
+      request<ApiSchemas['AssessmentAuthoringTaskRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/authoring-tasks?limit=20&offset=${offset}`),
     createDefinition: (
       courseId: string,
       outcomeId: string,

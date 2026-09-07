@@ -90,6 +90,10 @@ from app.schemas.lms import (
     WeeklyEngagementRead,
 )
 from app.schemas.student import SimulationRequest
+from app.services.assessment.publication import (
+    learner_task_available,
+    require_learner_task_available,
+)
 from app.services.assessment.submissions import (
     AssessmentSubmissionService,
     AssessmentTaskDeclaration,
@@ -105,7 +109,7 @@ from app.services.rag.storage import FileStorage
 from app.services.rag.task_generation import GenerateTasksInput
 from app.services.simulation_evidence import SimulationEvidenceError, SimulationEvidenceService
 from app.services.task_generation_runtime import build_grounded_task_generation_service
-from app.services.task_review import TaskReviewService
+from app.services.task_review import TaskReviewError, TaskReviewService
 from app.services.task_types import (
     DEFAULT_TASK_TYPE_REGISTRY,
     InvalidTaskSubmissionError,
@@ -356,13 +360,32 @@ class LmsService:
         course_id: str,
         outcome_id: str,
     ) -> OutcomeVersion:
-        """Freeze the course owner's current outcome wording for an assessment draft.
+        """Freeze current course wording for an owner or currently assigned assessor."""
+        from app.services.assessment.access import (
+            RoleAssignmentService,
+            ScopedRoleAccessDeniedError,
+        )
 
-        This records the educator-approved course source. It does not approve a
-        formal assessment definition or task form, which remains assessor-only.
-        """
-
-        course = self._require_course_owner(educator, course_id)
+        self.session.execute(
+            update(Course)
+            .where(Course.id == course_id)
+            .values(id=Course.id, updated_at=Course.updated_at)
+        )
+        course = self._get_course(course_id)
+        current_actor = self.session.get(User, educator.id, populate_existing=True)
+        if (
+            current_actor is None
+            or not current_actor.is_active
+            or current_actor.role is not UserRole.EDUCATOR
+        ):
+            raise _forbidden()
+        if course.educator_id != educator.id:
+            try:
+                RoleAssignmentService(self.session).require_assessor_access(
+                    current_actor, course_id
+                )
+            except ScopedRoleAccessDeniedError:
+                raise _forbidden() from None
         self._require_not_archived(course)
         outcome = self._get_outcome(outcome_id)
         module = self._get_module(outcome.module_id)
@@ -481,8 +504,7 @@ class LmsService:
         return [
             self._task_read(task, actor if actor.role is UserRole.STUDENT else None)
             for task in tasks
-            if actor.role is not UserRole.STUDENT
-            or TaskReviewService(self.session).summary(task)["available"]
+            if actor.role is not UserRole.STUDENT or learner_task_available(self.session, task)
         ]
 
     def create_task(
@@ -626,7 +648,7 @@ class LmsService:
             raise _not_found("Task")
         self._require_course_read(actor, task.course_id)
         if actor.role is UserRole.STUDENT:
-            TaskReviewService(self.session).require_available(task)
+            require_learner_task_available(self.session, task)
         return self._task_read(task, actor if actor.role is UserRole.STUDENT else None)
 
     def get_student_task(self, student: User, task_id: str) -> TaskRead:
@@ -1646,7 +1668,7 @@ class LmsService:
             raise _not_found("Task")
         self._require_course_read(student, task.course_id)
         if require_available:
-            TaskReviewService(self.session).require_available(task)
+            require_learner_task_available(self.session, task)
         return task
 
     def simulate_student_circuit(self, student: User, payload: SimulationRequest) -> dict:
@@ -1750,8 +1772,7 @@ class LmsService:
                 .order_by(LearningTask.position)
             ).all()
         )
-        review = TaskReviewService(self.session)
-        return [task for task in tasks if review.summary(task)["available"]]
+        return [task for task in tasks if learner_task_available(self.session, task)]
 
     def _get_or_create_draft(self, student_id: int, task_id: str) -> SubmissionDraft:
         draft = self.session.scalar(
@@ -1822,7 +1843,13 @@ class LmsService:
                 access_status = "in_progress"
         if not task.course_id or not task.module_id or not task.learning_outcome_id:
             raise _not_found("Task")
-        assessment = AssessmentSubmissionService(self.session).declaration_for_task(task)
+        try:
+            assessment = AssessmentSubmissionService(self.session).declaration_for_task(task)
+        except TaskReviewError:
+            if student is not None:
+                raise
+            # Staff must still see saved edits when they invalidate publication.
+            assessment = None
         return TaskRead(
             id=task.id,
             title=task.title,
@@ -2172,6 +2199,8 @@ class LmsService:
         review = TaskReviewService(self.session)
         if any(not review.summary(task)["available"] for task in tasks):
             raise _conflict("Every task needs current educator approval before publishing")
+        for task in tasks:
+            require_learner_task_available(self.session, task)
 
     def _course_read(self, course: Course) -> CourseRead:
         module_count = (

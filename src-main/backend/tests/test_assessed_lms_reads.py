@@ -7,7 +7,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_blueprint
-from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
+from support.task_review import (
+    approve_fixture_task,
+    bind_reviewed_fixture_form,
+    bootstrap_reviewed_demo,
+)
 
 from app.db.session import get_db
 from app.main import create_app
@@ -87,6 +91,10 @@ def prepare_reads(session: Session, legacy_score: int | None):
     definition.formal_result_eligible = True
     definition.result_eligibility_declared_at = datetime(2026, 8, 16, tzinfo=UTC)
     session.commit()
+    review_event = bind_reviewed_fixture_form(session, form)
+    form.approval_state = AssessmentApprovalState.APPROVED
+    form.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
+    form.approved_by_user_id = owner.id
     definition.approval_state = AssessmentApprovalState.APPROVED
     definition.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
     definition.approved_by_user_id = owner.id
@@ -95,6 +103,7 @@ def prepare_reads(session: Session, legacy_score: int | None):
             course_id=course.id,
             assessment_definition_version_id=definition.id,
             task_form_version_id=form.id,
+            task_review_event_id=review_event.id,
             actor_user_id=owner.id,
             approval_reason="Approved test form.",
             approval_state=AssessmentApprovalState.APPROVED,

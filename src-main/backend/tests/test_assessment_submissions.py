@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_blueprint as _blueprint
+from support.task_review import bind_reviewed_fixture_form
 
 from app.core.security import hash_password
 from app.domain.assessment import AssessmentAttemptState, AssessmentPurpose
@@ -17,11 +18,10 @@ from app.models.assessment import (
     TaskFormVersion,
 )
 from app.models.lms import AttemptStatus, SubmissionAttempt, SubmissionDraft
-from app.models.persistence import LearningMaterial, LearningTask, MaterialChunk
+from app.models.persistence import LearningTask
 from app.models.source_history import SourcePassage, SourceUse
 from app.models.user import User, UserRole
 from app.services.assessment.submissions import AssessmentSubmissionService
-from app.services.rag.source_history import snapshot_source
 
 
 def _approved_bundle(session: Session):
@@ -29,6 +29,10 @@ def _approved_bundle(session: Session):
     definition.formal_result_eligible = True
     definition.result_eligibility_declared_at = datetime(2026, 8, 16, tzinfo=UTC)
     session.commit()
+    review_event = bind_reviewed_fixture_form(session, form)
+    form.approval_state = AssessmentApprovalState.APPROVED
+    form.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
+    form.approved_by_user_id = owner.id
     definition.approval_state = AssessmentApprovalState.APPROVED
     definition.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
     definition.approved_by_user_id = owner.id
@@ -37,6 +41,7 @@ def _approved_bundle(session: Session):
             course_id=definition.course_id,
             assessment_definition_version_id=definition.id,
             task_form_version_id=form.id,
+            task_review_event_id=review_event.id,
             actor_user_id=owner.id,
             approval_reason="The form matches the approved definition.",
             approval_state=AssessmentApprovalState.APPROVED,
@@ -81,24 +86,9 @@ def test_assessed_attempt_freezes_versions_before_start(db_session: Session) -> 
     db_session.add(response)
     db_session.flush()
 
-    material = LearningMaterial(
-        course_id=task.course_id,
-        original_filename="source.pdf",
-        mime_type="application/pdf",
-        content_hash="source-digest",
-    )
-    db_session.add(material)
-    db_session.flush()
-    chunk = MaterialChunk(
-        material_id=material.id,
-        chunk_index=0,
-        chunk_text="The exact source passage for this assessment.",
-        token_count=8,
-        chunk_hash="passage-digest",
-    )
-    db_session.add(chunk)
-    revision = snapshot_source(db_session, material, [chunk])
-    task.source_references = [chunk.id]
+    passage = db_session.get(SourcePassage, task.source_references[0])
+    assert passage is not None
+    revision_id = passage.revision_id
 
     service = AssessmentSubmissionService(db_session)
     versions = service.frozen_versions_for_task(task)
@@ -123,10 +113,10 @@ def test_assessed_attempt_freezes_versions_before_start(db_session: Session) -> 
     assert citation is not None
     assert citation.output_type == "assessment"
     assert citation.output_version == form.id
-    assert citation.passage_id == chunk.id
+    assert citation.passage_id == passage.id
     task.source_references = []
     db_session.commit()
-    assert db_session.get(SourcePassage, citation.passage_id).revision_id == revision.id
+    assert db_session.get(SourcePassage, citation.passage_id).revision_id == revision_id
 
 
 def test_unassessed_task_cannot_create_formal_result(db_session: Session) -> None:
@@ -228,11 +218,16 @@ def test_changed_task_form_blocks_finalisation(db_session: Session) -> None:
     )
     db_session.add(replacement)
     db_session.flush()
+    review_event = bind_reviewed_fixture_form(db_session, replacement)
+    replacement.approval_state = AssessmentApprovalState.APPROVED
+    replacement.approved_at = datetime(2026, 8, 17, tzinfo=UTC)
+    replacement.approved_by_user_id = definition.owner_user_id
     db_session.add(
         TaskApproval(
             course_id=definition.course_id,
             assessment_definition_version_id=definition.id,
             task_form_version_id=replacement.id,
+            task_review_event_id=review_event.id,
             actor_user_id=definition.owner_user_id,
             approval_reason="The replacement form is approved before later starts.",
             approval_state=AssessmentApprovalState.APPROVED,

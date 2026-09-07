@@ -7,18 +7,15 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-from support.task_review import bootstrap_reviewed_demo
+from support.task_review import approve_sourced_fixture_task, bootstrap_reviewed_demo
 
-from app.api.assessment_dependencies import (
-    get_assessment_publication_policy,
-    get_scoped_role_eligibility,
-)
 from app.db.base import Base
 from app.db.session import create_db_engine, create_session_factory, get_db
 from app.main import create_app
 from app.models.assessment import AssessmentDefinition, OutcomeVersion
 from app.models.lms import PlatformAuditEvent
-from app.models.user import RoleAssignment, User, UserRole
+from app.models.persistence import LearningTask
+from app.models.user import RoleAssignment, User
 from app.services.lms import DEMO_PASSWORD
 
 
@@ -31,12 +28,6 @@ def assessment_api_context(tmp_path: Path) -> Generator[tuple[TestClient, Sessio
     bootstrap_reviewed_demo(session)
     app = create_app()
     app.dependency_overrides[get_db] = lambda: session
-    app.dependency_overrides[get_scoped_role_eligibility] = lambda: (
-        lambda subject, role: subject.role is UserRole.EDUCATOR
-    )
-    app.dependency_overrides[get_assessment_publication_policy] = lambda: (
-        lambda _actor, _course_id: True
-    )
     try:
         with TestClient(app) as client:
             yield client, session
@@ -147,6 +138,8 @@ def _draft_definition(
         },
     ).json()
     payload = _definition_payload(task["id"])
+    session = client.app.dependency_overrides[get_db]()
+    approve_sourced_fixture_task(session, session.get(LearningTask, task["id"]))
     if rule_anchors is not None:
         payload["bloom_process"] = "REMEMBER"
         payload["task_forms"][0]["constraints"]["elicited_bloom_processes"] = ["REMEMBER"]
@@ -264,6 +257,9 @@ def test_api_publication_validates_automatic_rule_settings(
         f"{definition['assessment_definition_id']}/history"
     ).json()
     assert history[0]["approval_state"] == ("APPROVED" if expected_status == 200 else "DRAFT")
+    if expected_status == 200:
+        assert history[0]["approved_at"].endswith("Z")
+        assert history[0]["approved_at"] == response.json()["approved_at"]
 
 
 def test_educator_can_save_a_versioned_draft_revision(

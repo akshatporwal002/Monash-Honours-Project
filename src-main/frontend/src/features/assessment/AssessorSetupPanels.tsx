@@ -13,6 +13,7 @@ import {
 } from '../../components/ui'
 import type { AssessmentDefinition } from './api'
 import type { SetupValues } from './assessmentDraft'
+import { AssessmentTaskPicker } from './AssessmentTaskPicker'
 import { purposeLabels } from './assessmentReviewPresentation'
 import { assessmentPurposeValues, bloomKnowledgeValues, bloomProcessValues } from './types'
 import styles from './assessment.module.css'
@@ -35,6 +36,7 @@ function AssessmentTargetFields({
 }) {
   return (
     <Card eyebrow="Outcome and source">
+      <AssessmentTaskPicker courseId={values.courseId} lockedIdentity={lockedIdentity} onUpdate={onUpdate} />
       <fieldset className={styles.fieldset}>
         <legend className={styles.legend}>Assessment target</legend>
         <div className={styles.formGrid}>

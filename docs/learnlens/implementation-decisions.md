@@ -184,7 +184,30 @@ The final task-review placement change passed seven targeted frontend tests and 
 The Chrome fixture verified source approval, circuit correction, task approval, course publication rejection,
 and the separate course-lead and administrator appointment steps through ordinary application policies.
 The user explicitly approved staff permission testing within this synthetic localhost fixture.
-Automatic approval review separately blocked browser revocation, which awaits the follow-up reply.
+The user approved all fixture appointment changes. Browser revocation and regrant then passed.
 
-Task 12 remains unmerged. Formal publication still needs exact task-review binding and an authorised assessor path.
-Complete its publication and withdrawal journeys before marking the task done.
+This was an intermediate checkpoint. The formal publication completion below supersedes its remaining-work note.
+
+
+## Task 12: publish only exact reviewed formal content
+
+Bind each new formal task form to its saved task revision and digest.
+Bind publication to the exact educator review event and its approved sources.
+A changed source approval requires fresh teaching review and a new formal definition, even if task text is unchanged.
+Missing or stale formal publication blocks learner work without reverting to practice scoring.
+
+Current assessor access is checked inside the publication service as well as the API.
+The service locks the course while validating authority and saves all approvals together.
+Every early validation failure releases its transaction.
+Blank nested conditions are invalid. Explicit declarations of no tools, support, or transfer are valid where approved.
+The generic validator does not invent a course's teaching policy or activate the separate AI assessment gate.
+
+Migration 0028 preserves legacy forms with absent review bindings. It does not infer historical approval.
+Published references are immutable, and recovery from populated migrations requires a verified pre-upgrade backup.
+
+The assessor task picker reads saved identities and sources. Current assigned assessors receive read-only source controls.
+Human teaching approval and the administrator's appointment remain separate decisions.
+The browser fixture proved publication without policy overrides and without live accounts.
+
+The user's latest instruction limits this run to completing Task 12, then committing, pushing, and merging into main.
+Stop after that integration. Tasks 13 onward remain on the task list.

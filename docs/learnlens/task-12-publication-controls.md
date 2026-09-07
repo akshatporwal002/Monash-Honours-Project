@@ -1,7 +1,7 @@
 # Task 12: educator review and publication controls
 
-Status: partially implemented. Staff eligibility and grant screens, source review, task editing and review,
-and learner publication enforcement are implemented. Formal assessment publication remains unfinished.
+Status: implemented and locally verified. Final integration and remote CI are pending.
+An authorised assessor can publish a reviewed formal form through ordinary application policies.
 
 Branch: `feat/task-12-educator-publication-controls`.
 Base: Task 11 merge `42ffe03b06a47468ecc3dd41975dcee3e9dd7895`.
@@ -79,12 +79,12 @@ Do not enable AI assessment suggestions, research collection, or a live institut
 Real staff can complete scoped authoring and approval records through the implemented application.
 Test fixtures do not establish approval for a live course.
 
-## Next work
+## Completion scope
 
-Connect the formal publication policy to current approved sources, task revisions, conditions, and supported circuit capabilities.
-Verify the actual UI-to-API journey, stale approvals, changed content, revoked grants, missing sources, and unsupported circuits.
-Check read access for an assigned assessor who is not the course owner, including source history and setup screens.
-Update contracts, migration protection, the decision log, and the remaining-task record before the next local merge.
+The final publication implementation below completes the initial checkpoint work.
+Task 13 still owns freezing assessment conditions when work begins.
+Task 15 still owns human criterion entry for unresolved assessment attempts.
+Task 35 still owns the separate AI assessment validation gate.
 
 ## Task revision and review implementation
 
@@ -176,7 +176,52 @@ The browser verified blocked course publication, source approval, saved circuit 
 rejected six-qubit approval, fresh review after correction, and successful one-qubit task approval.
 It also recorded course-lead eligibility and the separate administrator grant, showing an active history entry.
 The user explicitly approved that fixture permission test after automatic approval review initially blocked it.
-Browser grant revocation was separately blocked and awaits the user's reply to the follow-up request.
-API coverage for revocation passes. Complete formal publication and its browser journey remain due.
+The user then approved all fixture appointment changes. Browser revocation and regrant both passed.
+The inactive original grant and active replacement remained visible in history.
 
-No Task 12 merge or remote publication has occurred.
+These earlier checkpoints were not merged separately. The user subsequently authorised Task 12 commit, push, and merge into main.
+
+
+## Formal publication completion
+
+Formal forms now bind an exact saved task revision, content digest, and educator review event.
+Publication checks current source approvals, outcome wording, criteria, conditions, access modes, and supported circuit settings.
+The service and API both require current course assessor access. The service locks the course before checking authority.
+Failed access, missing or stale drafts, and blank reasons release the transaction.
+Blank nested conditions fail validation. Explicit no-tools, no-support, and no-transfer declarations remain valid.
+AI and mixed evaluators remain closed until their separate validation gate passes.
+
+A changed task or source approval blocks new learner work until fresh review and a new formal definition are published.
+A declared formal task never falls back to practice scoring when publication is missing or stale.
+Staff can save changes that invalidate publication and still receive a valid authoring response.
+Saved learner history remains accessible under its existing ownership and course access rules.
+
+The assessor picker loads saved task and outcome IDs, exact review references, and source labels.
+Assigned assessors can inspect saved passages without source approval controls.
+Definition approval dates retain UTC across initial responses and reloaded history.
+
+Migration `20260907_0028` adds nullable bindings without inventing approval for legacy forms.
+Scope guards reject unrelated revisions or review events. Published bindings reject SQL updates and replacement writes.
+Replay preserves legacy values, foreign keys remain valid, and populated history blocks downgrade before schema changes.
+Take a verified backup before upgrading. Restore that backup for rollback when protected history exists.
+
+## Final local evidence
+
+- Full backend run: 849 passed, 85.61% service coverage, including 31 migration checks.
+- Final review regression run: 38 passed after service permission, transaction cleanup, and condition fixes.
+- Frontend suite: 198 passed across 57 files. Lint and production build passed.
+- Chrome browser suite: 18 passed, including assessment authoring and formal learner reads.
+- OpenAPI and generated frontend contracts passed drift checks. Backend lint and format checks passed.
+- Separate Standards and Spec reviews found two gaps. Both fixes passed follow-up review.
+
+Ignored local logs are under `src-main/backend/.tmp-task12`: `formal-full02.log`,
+`review-final01.log`, `formal-frontend01.log`, `formal-build02.log`, and `formal-e2e01.log`.
+The existing large frontend bundle warning and jsdom canvas warnings remain non-blocking.
+
+The manual Chrome journey used a separately migrated synthetic localhost database with ordinary authentication and CSRF checks.
+It approved the source, rejected an unsupported circuit, corrected and approved the task, and exercised staff grant history.
+The assessor then selected the saved circuit, read its exact source, saved complete conditions, and published version 1.
+The browser displayed "Assessment approved and published" and reloaded the saved publication history.
+No live staff, learner, course, provider, or research records were used.
+
+The user requested stopping after Task 12 and its main-branch integration. Later tasks remain outstanding.

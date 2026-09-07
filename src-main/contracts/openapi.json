@@ -399,6 +399,85 @@
         "title": "AssessmentApprovalState",
         "type": "string"
       },
+      "AssessmentAuthoringTaskRead": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Digest"
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "outcome_statement": {
+            "title": "Outcome Statement",
+            "type": "string"
+          },
+          "reviewed": {
+            "title": "Reviewed",
+            "type": "boolean"
+          },
+          "revision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision Id"
+          },
+          "source_materials": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentSourceMaterialRead"
+            },
+            "title": "Source Materials",
+            "type": "array"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_type": {
+            "title": "Task Type",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "title",
+          "task_type",
+          "outcome_id",
+          "outcome_statement",
+          "revision_id",
+          "content_digest",
+          "reviewed",
+          "issues",
+          "source_materials"
+        ],
+        "title": "AssessmentAuthoringTaskRead",
+        "type": "object"
+      },
       "AssessmentConditionsRead": {
         "additionalProperties": false,
         "properties": {
@@ -1668,6 +1747,25 @@
         "title": "AssessmentReviewHistoryRead",
         "type": "object"
       },
+      "AssessmentSourceMaterialRead": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "material_id": {
+            "title": "Material Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "material_id",
+          "label"
+        ],
+        "title": "AssessmentSourceMaterialRead",
+        "type": "object"
+      },
       "AssessmentTaskCriterionRead": {
         "additionalProperties": false,
         "properties": {
@@ -1848,6 +1946,17 @@
             "title": "Task Family",
             "type": "string"
           },
+          "task_revision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Revision Id"
+          },
           "version": {
             "title": "Version",
             "type": "integer"
@@ -1856,6 +1965,7 @@
         "required": [
           "id",
           "learning_task_id",
+          "task_revision_id",
           "version",
           "source_version",
           "source_digest",
@@ -9493,6 +9603,91 @@
           }
         },
         "summary": "Record Assessor Eligibility",
+        "tags": [
+          "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/authoring-tasks": {
+      "get": {
+        "operationId": "read_assessment_authoring_tasks_api_v1_assessment_courses__course_id__authoring_tasks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssessmentAuthoringTaskRead"
+                  },
+                  "title": "Response Read Assessment Authoring Tasks Api V1 Assessment Courses  Course Id  Authoring Tasks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Assessment Authoring Tasks",
         "tags": [
           "assessment"
         ]

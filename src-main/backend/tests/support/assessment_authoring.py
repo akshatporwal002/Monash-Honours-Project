@@ -10,6 +10,7 @@ from app.models.lms import Course, CourseModule, LearningOutcome, OutcomeKind
 from app.models.persistence import LearningTask
 from app.models.user import User, UserRole
 from support.assessment import assign_assessor
+from support.task_review import approve_sourced_fixture_task
 
 
 def seed_authoring_context(session: Session) -> dict[str, str]:
@@ -44,6 +45,7 @@ def seed_authoring_context(session: Session) -> dict[str, str]:
         module="Recall",
         description="Recall one name.",
         instructions="Name the gate.",
+        expected_answer="Hadamard",
         task_type=TaskType.SHORT_ANSWER,
         difficulty="beginner",
         points=0,
@@ -54,6 +56,7 @@ def seed_authoring_context(session: Session) -> dict[str, str]:
     )
     session.add(task)
     session.commit()
+    approve_sourced_fixture_task(session, task)
     assign_assessor(session, educator, course.id, educator)
     return {
         "course_id": course.id,

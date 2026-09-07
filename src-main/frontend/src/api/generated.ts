@@ -63,6 +63,18 @@ export type ApiSchemas = {
     "task_types"?: Array<string>
   }
   "AssessmentApprovalState": "DRAFT" | "APPROVED" | "RETIRED"
+  "AssessmentAuthoringTaskRead": {
+    "content_digest": (string) | (null)
+    "issues": Array<string>
+    "outcome_id": string
+    "outcome_statement": string
+    "reviewed": boolean
+    "revision_id": (string) | (null)
+    "source_materials": Array<ApiSchemas["AssessmentSourceMaterialRead"]>
+    "task_id": string
+    "task_type": string
+    "title": string
+  }
   "AssessmentConditionsRead": {
     "access_conditions": (Record<string, unknown>) | (Array<unknown>)
     "bloom_process": ApiSchemas["BloomProcess"]
@@ -222,6 +234,10 @@ export type ApiSchemas = {
     "review_revision": number
     "reviewed_at": string
   }
+  "AssessmentSourceMaterialRead": {
+    "label": string
+    "material_id": string
+  }
   "AssessmentTaskCriterionRead": {
     "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
     "evidence_description": string
@@ -251,6 +267,7 @@ export type ApiSchemas = {
     "source_digest": string
     "source_version": string
     "task_family": string
+    "task_revision_id": (string) | (null)
     "version": number
   }
   "AssessmentVersionReference": {

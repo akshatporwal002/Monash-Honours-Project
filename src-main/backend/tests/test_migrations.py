@@ -116,6 +116,44 @@ def migration_config(database_url: str) -> Config:
     return config
 
 
+def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_path):
+    url = f"sqlite:///{(tmp_path / 'publication.db').as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "20260907_0027")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        _, _, _, _, form, _ = _blueprint(session)
+        form_id = form.id
+    with engine.connect() as connection:
+        before = dict(connection.execute(text("SELECT * FROM task_form_versions")).mappings().one())
+    command.upgrade(config, "head")
+    command.stamp(config, "20260907_0027")
+    command.upgrade(config, "head")
+    with engine.connect() as connection:
+        after = dict(connection.execute(text("SELECT * FROM task_form_versions")).mappings().one())
+        assert after.pop("task_revision_id") is None
+        assert after == before
+        assert connection.execute(text("SELECT COUNT(*) FROM task_approvals")).scalar_one() == 0
+        assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
+    with pytest.raises(IntegrityError, match="Invalid publication review scope"):
+        with engine.begin() as connection:
+            connection.execute(
+                text("UPDATE task_form_versions SET task_revision_id = 'missing' WHERE id = :id"),
+                {"id": form_id},
+            )
+    with pytest.raises(RuntimeError, match="protected"):
+        command.downgrade(config, "20260907_0027")
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+            == "20260907_0028"
+        )
+        assert "task_revision_id" in {
+            column["name"] for column in inspect(connection).get_columns("task_form_versions")
+        }
+    engine.dispose()
+
+
 def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp_path):
     from app.models import User, UserRole
     from app.services.quantum import CircuitOperation
@@ -154,7 +192,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0027"
+            == "20260907_0028"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:

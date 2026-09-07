@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -29,8 +29,10 @@ from app.models.assessment import (
     TaskForm,
     TaskFormVersion,
 )
-from app.models.lms import PlatformAuditEvent
+from app.models.lms import Course, PlatformAuditEvent
 from app.models.persistence import LearningTask
+from app.models.user import User
+from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
 from app.services.assessment.alignment import (
     AssessmentAlignmentError,
     validate_definition_alignment,
@@ -39,6 +41,7 @@ from app.services.assessment.repository import (
     AssessmentDefinitionNotFoundError,
     AssessmentDefinitionRepository,
 )
+from app.services.task_review import TaskReviewService
 
 
 class AssessmentDefinitionError(Exception):
@@ -182,17 +185,36 @@ class AssessmentDefinitionService:
         actor_user_id: int,
         approval_reason: str,
     ) -> AssessmentDefinitionVersion:
-        version = self._get_expected_draft(
-            course_id=course_id,
-            assessment_definition_id=assessment_definition_id,
-            expected_version=expected_version,
-            for_update=True,
-        )
-        clean_reason = approval_reason.strip()
-        if not clean_reason:
-            raise AssessmentDefinitionValidationError("approval_reason is required")
+        try:
+            self.session.execute(
+                update(Course)
+                .where(Course.id == course_id)
+                .values(id=Course.id, updated_at=Course.updated_at)
+            )
+            actor = self.session.get(User, actor_user_id, populate_existing=True)
+            if actor is None:
+                raise ScopedRoleAccessDeniedError("active course-scoped permission required")
+            RoleAssignmentService(self.session).require_assessor_access(actor, course_id)
+            version = self._get_expected_draft(
+                course_id=course_id,
+                assessment_definition_id=assessment_definition_id,
+                expected_version=expected_version,
+                for_update=True,
+            )
+            clean_reason = approval_reason.strip()
+            if not clean_reason:
+                raise AssessmentDefinitionValidationError("approval_reason is required")
+        except (ScopedRoleAccessDeniedError, SQLAlchemyError, AssessmentDefinitionError):
+            self.session.rollback()
+            raise
         try:
             self._validate_approval_ready(version)
+            from app.services.assessment.publication import current_form_review
+
+            reviews = {
+                form.id: current_form_review(self.session, form)
+                for form in version.task_form_versions
+            }
             approved_at = self._utc(self._now())
             components = self._components(version)
             for component in components:
@@ -208,6 +230,7 @@ class AssessmentDefinitionService:
                         course_id=course_id,
                         assessment_definition_version_id=version.id,
                         task_form_version_id=form.id,
+                        task_review_event_id=reviews[form.id].id,
                         actor_user_id=actor_user_id,
                         approval_reason=clean_reason,
                         approval_state=AssessmentApprovalState.APPROVED,
@@ -412,17 +435,19 @@ class AssessmentDefinitionService:
                     "task form must reference a task in the definition course and outcome"
                 )
             form = TaskForm(assessment_definition_id=assessment_definition_id)
+            revision = TaskReviewService(self.session).capture(task, actor_user_id=actor_user_id)
             self.session.add(
                 TaskFormVersion(
                     course_id=course_id,
                     task_form=form,
                     assessment_definition_version_id=version_row.id,
                     learning_task_id=draft.learning_task_id,
+                    task_revision_id=revision.id,
                     version=version,
                     owner_user_id=actor_user_id,
                     created_by_user_id=actor_user_id,
-                    source_version=draft.source_version,
-                    source_digest=draft.source_digest,
+                    source_version=f"task-revision:{revision.id}",
+                    source_digest=revision.content_digest,
                     task_family=draft.task_family,
                     context=draft.context,
                     constraints=draft.constraints,
@@ -492,6 +517,14 @@ class AssessmentDefinitionService:
             raise AssessmentDefinitionConflictError("assessment definition draft is stale")
 
     def _validate_approval_ready(self, version: AssessmentDefinitionVersion) -> None:
+        if any(
+            criterion.evaluator_type
+            in {CriterionEvaluatorType.VALIDATED_AI, CriterionEvaluatorType.MIXED}
+            for criterion in version.criterion_versions
+        ):
+            raise AssessmentDefinitionValidationError(
+                "AI criterion evaluation requires its separate validation gate"
+            )
         outcome = self.session.get(OutcomeVersion, version.outcome_version_id)
         if outcome is None or outcome.course_id != version.course_id:
             raise AssessmentDefinitionValidationError("definition source outcome is unavailable")

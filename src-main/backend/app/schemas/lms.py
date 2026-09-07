@@ -307,12 +307,31 @@ class AssessmentTaskCriterionRead(LmsSchema):
 class AssessmentTaskFormRead(LmsSchema):
     id: str
     learning_task_id: str
+    task_revision_id: str | None
     version: int
     source_version: str
     source_digest: str
     task_family: str
     context: dict[str, Any] | list[Any]
     constraints: dict[str, Any] | list[Any]
+
+
+class AssessmentSourceMaterialRead(LmsSchema):
+    material_id: str
+    label: str
+
+
+class AssessmentAuthoringTaskRead(LmsSchema):
+    task_id: str
+    title: str
+    task_type: str
+    outcome_id: str
+    outcome_statement: str
+    revision_id: str | None
+    content_digest: str | None
+    reviewed: bool
+    issues: list[str]
+    source_materials: list[AssessmentSourceMaterialRead]
 
 
 class AssessmentDefinitionRead(LmsSchema):
@@ -342,6 +361,13 @@ class AssessmentDefinitionRead(LmsSchema):
     formal_result_eligible: bool | None
     approved_at: datetime | None
     approved_by_user_id: int | None
+
+    @field_validator("approved_at")
+    @classmethod
+    def approval_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
 class EnrollmentCreate(LmsSchema):
