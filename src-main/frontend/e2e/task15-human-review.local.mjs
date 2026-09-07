@@ -51,6 +51,3 @@ try {
   writeFileSync(resolve(scratch, 'result.json'), JSON.stringify({ passed: true, channel: 'chrome-stable', axeViolations: axe.violations.length, keyboardInspectAndConfirm: true, fixture, pageErrors: errors }, null, 2))
   console.log('PASS: real unresolved job, assessor login, frozen multipart evidence and history, criterion entry, audited confirmation, reload, keyboard controls, and Axe')
 } finally { await browser.close() }
-
-
-

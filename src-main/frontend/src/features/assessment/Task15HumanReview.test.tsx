@@ -1,6 +1,7 @@
 ﻿import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ApiError } from '../../app/api'
 import { AssessorReviewUnresolved } from './AssessorReviewUnresolved'
 import { AssessorReviewResponse } from './AssessorReviewResponse'
 import { humanReviewApi } from './assessmentReviewApi'
@@ -107,5 +108,24 @@ describe('Task 15 human assessment', () => {
     expect(screen.queryByRole('button', { name: 'Load more unresolved attempts' })).not.toBeInTheDocument()
   })
 
-})
+  it.each(['network', 'conflict'] as const)('retains criterion entries after a %s failure', async (failure) => {
+    vi.mocked(humanReviewApi.finalise).mockRejectedValueOnce(failure === 'network' ? new Error('offline') : new ApiError('changed', 409))
+    render(<AssessorReviewUnresolved courseId="course-15" onCheckAccess={vi.fn().mockResolvedValue(true)} onAccessRevoked={vi.fn()} onFinalised={vi.fn()} />)
+    fireEvent.click(await screen.findByRole('button', { name: /Inspect attempt/ }))
+    await screen.findByText('My original prediction')
+    fireEvent.change(screen.getByLabelText('Criterion decision'), { target: { value: 'MET' } })
+    fireEvent.change(screen.getByLabelText(/Criterion reason/), { target: { value: 'My retained evidence reason.' } })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.change(screen.getByLabelText('Formal confirmation reason'), { target: { value: 'My retained confirmation reason.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Apply frozen pass rule and confirm result' }))
+    await screen.findByRole('alert')
+    expect(screen.getByDisplayValue('My retained evidence reason.')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('My retained confirmation reason.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Apply frozen pass rule and confirm result' }))
+    await screen.findByText(/Formal result PASS confirmed/)
+    const calls = vi.mocked(humanReviewApi.finalise).mock.calls
+    if (failure === 'network') expect(calls[0][1].idempotency_key).toBe(calls[1][1].idempotency_key)
+    else expect(calls[0][1].idempotency_key).not.toBe(calls[1][1].idempotency_key)
+  })
 
+})

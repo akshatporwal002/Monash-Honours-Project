@@ -23,7 +23,7 @@ MIXED circuit criteria require human assessment. The shared publication gate per
 
 - Backend scoped regression run: 69 tests passed across Task 15 circuit/human/migrated/route tests and existing assessment evaluation, job, and review API tests.
 - Follow-up worker tests: 10 human tests passed, including replaced claims and leases that expire during evaluation. Both leave no criterion or formal decision rows.
-- Frontend: 16 tests passed across new human-review and existing assessor-review tests. TypeScript, ESLint, and the production build passed.
+- Frontend: 16 tests passed across new human-review and existing assessor-review tests. Two further UI retry tests passed, covering retained entries, network replay keys, and refreshed conflict keys. TypeScript, ESLint, and the production build passed.
 - Real Chrome journey `e2e/task15-human-review.local.mjs`: ordinary educator login, persisted unresolved job, full multipart and earlier evidence, keyboard inspection and confirmation, human provenance after reload, zero Axe violations, and no browser page errors.
 - Browser evidence is isolated under `src-main/backend/.tmp-task15/browser02/`. The final result screenshot was inspected after the queue settled.
 - Migrated database tests exercise append-only update/delete/replace guards, repeat migration, protected downgrade refusal, foreign-key checks, simultaneous human actions, expired workers, and read-only evidence reads.
