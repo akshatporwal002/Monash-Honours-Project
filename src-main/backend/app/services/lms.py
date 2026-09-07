@@ -153,10 +153,11 @@ DEMO_ACCOUNTS: tuple[tuple[str, str, UserRole], ...] = (
 
 
 class LmsServiceError(Exception):
-    def __init__(self, status_code: int, detail: str) -> None:
+    def __init__(self, status_code: int, detail: str, *, code: str | None = None) -> None:
         super().__init__(detail)
         self.status_code = status_code
         self.detail = detail
+        self.code = code
 
 
 def _not_found(resource: str) -> LmsServiceError:
@@ -2433,7 +2434,11 @@ class LmsService:
             self.session.execute(select(User.id).where(User.id == student_id).with_for_update())
         except OperationalError as error:
             self.session.rollback()
-            raise _conflict("Another submission is being recorded; retry this request") from error
+            raise LmsServiceError(
+                409,
+                "Another submission is being recorded; retry this request",
+                code="assessment_write_busy",
+            ) from error
 
     @staticmethod
     def _require_not_archived(course: Course) -> None:

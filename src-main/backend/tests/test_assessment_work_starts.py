@@ -460,3 +460,39 @@ def test_start_racing_republication_never_adopts_unseen_standard(db_session):
         assert work.task_form_version_id == form_id
     else:
         assert work is None
+
+
+def test_busy_start_reports_retryable_code_and_can_retry_without_rebinding(db_session):
+    student, task, form, _, _, _ = setup_work(db_session)
+    task_id, form_id = task.id, form.id
+    app = create_app()
+    app.dependency_overrides[get_db] = lambda: db_session
+    with TestClient(app) as client:
+        assert (
+            client.post(
+                "/api/v1/auth/login", json={"email": student.email, "password": DEMO_PASSWORD}
+            ).status_code
+            == 200
+        )
+        csrf = client.cookies.get("ql_csrf")
+        db_session.connection().exec_driver_sql("PRAGMA busy_timeout = 1")
+        with db_session.get_bind().connect() as blocker:
+            blocker.exec_driver_sql("BEGIN IMMEDIATE")
+            response = client.post(
+                f"/api/v1/students/me/tasks/{task_id}/start",
+                json={"task_form_version_id": form_id},
+                headers={"X-CSRF-Token": csrf},
+            )
+            assert response.status_code == 409, response.text
+            assert response.json()["detail"]["code"] == "assessment_write_busy"
+            assert "retry this request" in response.json()["detail"]["message"]
+            blocker.rollback()
+        assert db_session.scalar(select(func.count()).select_from(AssessmentWorkStart)) == 0
+        response = client.post(
+            f"/api/v1/students/me/tasks/{task_id}/start",
+            json={"task_form_version_id": form_id},
+            headers={"X-CSRF-Token": csrf},
+        )
+        assert response.status_code == 200, response.text
+        reference = response.json()["assessment_work_start_id"]
+        assert db_session.get(AssessmentWorkStart, reference).task_form_version_id == form_id

@@ -100,7 +100,11 @@ def get_lms_service(
         session.rollback()
         raise HTTPException(
             status_code=error.status_code,
-            detail=error.detail,
+            detail=(
+                {"message": error.detail, "code": error.code}
+                if isinstance(error, LmsServiceError) and error.code
+                else error.detail
+            ),
         ) from error
 
 

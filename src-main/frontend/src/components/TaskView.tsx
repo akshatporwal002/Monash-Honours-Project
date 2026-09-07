@@ -63,6 +63,10 @@ function messageFor(error: unknown): string {
   return 'The learning service could not complete that action. Please try again.'
 }
 
+function blocksAssessmentWork(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 409 && error.code !== 'assessment_write_busy'
+}
+
 function multipleAnswers(answer: string): string[] {
   try {
     const parsed: unknown = JSON.parse(answer)
@@ -134,6 +138,7 @@ export function TaskView({
 }) {
   const mode = taskMode(task)
   const idempotencyKeyRef = useRef<string | null>(null)
+  const restoredDraftTaskRef = useRef<string | null>(null)
   const feedbackClient = useMemo(
     () => createFeedbackApiClient({ getCsrfToken: csrfToken }),
     [],
@@ -170,7 +175,12 @@ export function TaskView({
   useEffect(() => {
     const controller = new AbortController()
     const restore = async () => {
-      const draft = await api.student.draft(task.id, controller.signal)
+      // A retry after a successful restore must not replace unsaved local edits.
+      const draft = restoredDraftTaskRef.current === task.id
+        ? null
+        : await api.student.draft(task.id, controller.signal)
+      if (controller.signal.aborted) return null
+      restoredDraftTaskRef.current = task.id
       if (task.assessment) {
         try {
           const started = await api.student.startAssessment(
@@ -182,7 +192,7 @@ export function TaskView({
           }
         } catch (error) {
           if (!controller.signal.aborted) {
-            setWorkConflict(error instanceof ApiError && error.status === 409)
+            setWorkConflict(blocksAssessmentWork(error))
             setDraftError(messageFor(error))
           }
         }
@@ -290,7 +300,7 @@ export function TaskView({
       setSimulation(await api.student.simulate(operations, task.id))
       setStatusMessage('Simulation completed and saved with 1,024 shots.')
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) setWorkConflict(true)
+      if (blocksAssessmentWork(error)) setWorkConflict(true)
       setStatusMessage(messageFor(error))
     } finally {
       setBusy(false)
@@ -322,7 +332,7 @@ export function TaskView({
         setDirty(false)
       }
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409) setWorkConflict(true)
+      if (blocksAssessmentWork(error)) setWorkConflict(true)
       setStatusMessage(messageFor(error))
     } finally {
       setBusy(false)

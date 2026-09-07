@@ -86,7 +86,7 @@ test('a submission conflict preserves local edits and stops later writes', async
 })
 
 
-test('a transient start failure can retry the same displayed standard', async () => {
+test('a start retry retains edits made after failure and only retries the displayed standard', async () => {
   let starts = 0
   const mock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
     const url = String(input)
@@ -97,9 +97,58 @@ test('a transient start failure can retry the same displayed standard', async ()
   showTask()
   expect(await screen.findByRole('alert')).toHaveTextContent('Temporary service fault')
   expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled()
-  await userEvent.setup().click(screen.getByRole('button', { name: 'Try restoring again' }))
+  const user = userEvent.setup()
+  const input = screen.getByDisplayValue('My saved reasoning')
+  await user.type(input, ' plus unsaved work after the start failure')
+  await user.click(screen.getByRole('button', { name: 'Try restoring again' }))
   await waitFor(() => expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled())
   const startCalls = mock.mock.calls.filter(([url]) => String(url).endsWith('/start'))
   expect(startCalls).toHaveLength(2)
+  expect(mock.mock.calls.filter(([url]) => String(url).endsWith('/draft'))).toHaveLength(1)
+  expect(screen.getByLabelText('Your response')).toHaveValue('My saved reasoning plus unsaved work after the start failure')
   for (const [, init] of startCalls) expect(JSON.parse(String(init?.body)).task_form_version_id).toBe('form-original')
+})
+
+
+test('retryable write contention keeps local content, work reference and submission key', async () => {
+  let submissions = 0
+  let saves = 0
+  const mock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    const busy = () => response({ detail: { message: 'Another submission is being recorded; retry this request', code: 'assessment_write_busy' } }, 409)
+    if (url.endsWith('/start')) return response(draft)
+    if (url.endsWith('/draft')) {
+      if (init?.method === 'PUT' && ++saves === 1) return busy()
+      return response(draft)
+    }
+    if (init?.method === 'POST') {
+      if (++submissions === 1) return busy()
+      return response({ id: 'attempt-retry', status: 'submitted', score: null, formal_assessment: { result: null }, assessment_work_start_id: 'work-original' })
+    }
+    return response([])
+  })
+  showTask()
+  const input = await screen.findByDisplayValue('My saved reasoning')
+  const user = userEvent.setup()
+  await user.type(input, ' plus local evidence')
+  await user.click(screen.getByRole('button', { name: 'Save draft' }))
+  await screen.findByText('Another submission is being recorded; retry this request')
+  expect(screen.getByRole('button', { name: 'Save draft' })).toBeEnabled()
+  expect(input).toHaveValue('My saved reasoning plus local evidence')
+  await user.click(screen.getByRole('button', { name: 'Save draft' }))
+  await screen.findByText('Draft saved.')
+  await user.click(screen.getByRole('button', { name: 'Submit activity' }))
+  await screen.findByText('Another submission is being recorded; retry this request')
+  expect(screen.getByRole('button', { name: 'Submit activity' })).toBeEnabled()
+  expect(input).toHaveValue('My saved reasoning plus local evidence')
+  await user.click(screen.getByRole('button', { name: 'Submit activity' }))
+  await screen.findByRole('heading', { name: 'Assessment response saved' })
+  const writes = mock.mock.calls.filter(([url, init]) => String(url).endsWith('/submissions') && init?.method === 'POST')
+  expect(writes).toHaveLength(2)
+  const first = JSON.parse(String(writes[0][1]?.body))
+  const second = JSON.parse(String(writes[1][1]?.body))
+  expect(second).toEqual(first)
+  expect(first.idempotency_key).toEqual(expect.any(String))
+  expect(first.assessment_work_start_id).toBe('work-original')
+  expect(mock.mock.calls.filter(([url]) => String(url).endsWith('/start'))).toHaveLength(1)
 })

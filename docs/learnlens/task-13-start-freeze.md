@@ -121,3 +121,31 @@ Set the same `TASK13_BROWSER_RUN` for the backend and browser check.
 Node 22.13.0 and Python 3.11 were used.
 
 Combined full suites, independent Standards and Spec reviews, and integration remain coordinator-owned gates.
+
+
+## Independent review corrections
+
+Two review findings required changes to client retry behavior.
+A temporary SQLite writer conflict now returns HTTP 409 with structured detail:
+`{"message": "Another submission is being recorded; retry this request", "code": "assessment_write_busy"}`.
+The API client exposes that code separately from the readable message.
+The workspace leaves save and submit available for this retryable conflict.
+It preserves local edits, the original work reference, and the submission idempotency key.
+Other HTTP 409 conflicts still block writes, including changed assessment standards.
+No request or successful response schema changed.
+
+After a draft loads successfully, retrying a failed start sends only the exact start request again.
+It does not fetch or apply the saved draft again.
+Edits made after the start failure therefore remain intact.
+A failed draft read can still retry the draft read itself.
+
+The review regression passed 15 backend tests and 29 frontend tests.
+The backend check creates real SQLite write contention, checks its stable error code, and retries the same form.
+Frontend checks cover edits entered after the failure but before retry, no duplicate draft read,
+retryable save and submission conflicts, and unchanged payloads and idempotency keys on retry.
+Existing standard-change conflict tests remain passing.
+Frontend lint and production build passed.
+The fresh Chrome journey passed again against a newly migrated `browser-review` database.
+Review logs are `review-backend06.log`, `review-frontend06.log`, `review-lint06.log`,
+`review-build06.log`, and `browser-review-check.log` under the same ignored scratch directory.
+Both local test servers were stopped after this check.
