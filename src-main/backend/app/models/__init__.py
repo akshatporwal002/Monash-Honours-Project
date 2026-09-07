@@ -1,4 +1,4 @@
-﻿from app.models import (  # noqa: F401
+from app.models import (  # noqa: F401
     assessment_work,
     assessor_eligibility,
     simulation,
@@ -58,7 +58,7 @@ from app.models.enums import (
     WorkflowOutcome,
     WorkflowStage,
 )
-from app.models.episode import EpisodeCheckpoint, EpisodeStageStart
+from app.models.episode import EpisodeCheckpoint, EpisodeHelpUse, EpisodeStageStart
 from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.lms import (
     AttemptStatus,
@@ -124,6 +124,7 @@ __all__ = [
     "HumanAssessmentAction",
     "HumanCriterionDecision",
     "EpisodeCheckpoint",
+    "EpisodeHelpUse",
     "EpisodeStageStart",
     "ContinuationState",
     "Criterion",

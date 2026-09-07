@@ -545,32 +545,21 @@ export const api = {
       return record.result ? { ...record.result, run_id: record.run_id, circuit_version_id: record.circuit_version_id } : null
     },
     checkpointHistory: (taskId: string, signal?: AbortSignal, offset = 0) => request<ApiSchemas['EpisodeCheckpointPage']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/checkpoints?limit=20&offset=${offset}`, { signal }),
+    helpHistory: (taskId: string, signal?: AbortSignal, offset = 0) => request<ApiSchemas['EpisodeHelpUsePage']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/help?limit=20&offset=${offset}`, { signal }),
+    recordHelp: (taskId: string, payload: ApiSchemas['EpisodeHelpUseWrite']) => request<ApiSchemas['EpisodeHelpUseReceipt']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/help`, json('POST', payload)),
     episodeState: (taskId: string, signal?: AbortSignal) => request<EpisodeState | null>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode`, { signal }),
     checkpoint: (taskId: string, response: object, partId: string, stageStartId?: string) => request<ApiSchemas['EpisodeCheckpointReceipt']>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/checkpoints`, json('POST', { response, part_id: partId, stage_start_id: stageStartId ?? null })),
     enterTransfer: (taskId: string, response: object) => request<EpisodeState>(`/students/me/tasks/${encodeURIComponent(taskId)}/episode/transfer`, json('POST', response)),
     saveDraft: (
       taskId: string,
-      payload: {
-        answer: string
-        assessment_work_start_id?: string | null
-        episode?: EpisodePayload | null
-        code?: string
-        circuit?: { qubits: number; operations: GateOperation[] }
-      },
+      payload: ApiSchemas['DraftWrite'],
     ) => request<RawDraft>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/draft`,
       json('PUT', payload),
     ),
     submit: async (
       taskId: string,
-      payload: {
-        answer: string
-        assessment_work_start_id?: string | null
-        episode?: EpisodePayload | null
-        code?: string
-        circuit?: { qubits: number; operations: GateOperation[] }
-        idempotency_key?: string
-      },
+      payload: ApiSchemas['SubmissionCreate'],
     ) => normalizeSubmission(await request<RawSubmission>(
       `/students/me/tasks/${encodeURIComponent(taskId)}/submissions`,
       json('POST', payload),

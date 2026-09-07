@@ -1,5 +1,6 @@
 import { EpisodeSnapshot, EpisodeCircuitText } from "./EpisodeSnapshot"
 import { EpisodeFields } from "./EpisodeFields"
+import { EpisodeSupport } from './EpisodeSupport'
 import type { EpisodePayload, EpisodeState, EpisodeCheckpointSnapshot } from "../app/types"
 import { ArrowLeft, Play } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -28,9 +29,9 @@ const episodeTaskTypes = ['prediction', 'reasoning', 'explanation', 'revision', 
 const emptyEpisode = (): EpisodePayload => ({ schema_version: 'learnlens.episode.v1', supported: {} })
 
 const defaultOptions = [
-  { id: 'a', text: 'It creates an equal superposition of |0âŸ© and |1âŸ©.' },
+  { id: 'a', text: 'It creates an equal superposition of |0⟩ and |1⟩.' },
   { id: 'b', text: 'It measures the qubit immediately.' },
-  { id: 'c', text: 'It always changes |0âŸ© to |1âŸ©.' },
+  { id: 'c', text: 'It always changes |0⟩ to |1⟩.' },
   { id: 'd', text: 'It removes all quantum interference.' },
 ]
 
@@ -162,6 +163,7 @@ export function TaskView({
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [answer, setAnswer] = useState('')
   const [code, setCode] = useState(task.starter_code ?? '')
+  const [savedEpisodeCode, setSavedEpisodeCode] = useState<string | null>(null)
   const [operations, setOperations] = useState<GateOperation[]>([])
   const [simulation, setSimulation] = useState<SimulationResult | null>(null)
   const [submission, setSubmission] = useState<TaskSubmission | null>(null)
@@ -219,6 +221,7 @@ export function TaskView({
         if (!draft) return
         setAnswer(draft.answer)
         if (draft.code !== null) setCode(draft.code)
+        setSavedEpisodeCode(draft.code)
         if (draft.circuit) { setCircuitExtras(draft.circuit); setQubits(draft.circuit.qubits) }
         const optionIds = new Set(options.map((option) => option.id))
         if (mode === 'mcq') {
@@ -286,9 +289,9 @@ export function TaskView({
       : mode === 'multi'
         ? JSON.stringify(selectedOptions)
         : answer,
-    code: mode === 'code-completion' ? code : undefined,
-    circuit: mode === 'circuit' ? { ...circuitExtras, qubits, operations } : undefined,
-  }), [answer, code, mode, operations, selectedOption, selectedOptions, workStartId, episode, hasEpisode, qubits, circuitExtras])
+    code: mode === 'code-completion' ? code : hasEpisode ? savedEpisodeCode : undefined,
+    circuit: mode === 'circuit' ? { ...circuitExtras, qubits, operations } : hasEpisode && Object.keys(circuitExtras).length ? circuitExtras : undefined,
+  }), [answer, code, mode, operations, selectedOption, selectedOptions, workStartId, episode, hasEpisode, qubits, circuitExtras, savedEpisodeCode])
 
   const valid = mode === 'unsupported' ? false : hasEpisode ? Boolean(episode.supported.prediction?.answer?.trim() || episode.supported.reasoning?.trim() || episode.supported.explanation?.trim() || episode.supported.reflection?.trim()) : mode === 'mcq'
     ? Boolean(selectedOption)
@@ -301,6 +304,11 @@ export function TaskView({
       : Boolean(answer.trim())
 
   const touch = () => { idempotencyKeyRef.current = null; setDirty(true) }
+  const changeSupportedInput = () => {
+    setSimulation(null)
+    if (hasEpisode) setEpisode(current => ({ ...current, supported: { ...current.supported, prediction_checkpoint_id: null, simulation_references: [] } }))
+    touch()
+  }
 
   const requestClose = () => {
     if (dirty) setConfirmLeave(true)
@@ -310,8 +318,7 @@ export function TaskView({
   const changeOperations = (next: GateOperation[] | ((current: GateOperation[]) => GateOperation[])) => {
     setOperations(next)
     setSimulation(null)
-    if (hasEpisode) setEpisode(current => ({ ...current, supported: { ...current.supported, simulation_references: [] } }))
-    touch()
+    changeSupportedInput()
   }
 
   const addGate = (gate: GateOperation['gate'], target = 0) => {
@@ -319,9 +326,6 @@ export function TaskView({
       ...current,
       { gate, targets: gate === 'cx' ? [0, 1] : [target] },
     ])
-    setSimulation(null)
-    if (hasEpisode) setEpisode(current => ({ ...current, supported: { ...current.supported, simulation_references: [] } }))
-    touch()
   }
 
   const dropGate = (event: DragEvent<HTMLDivElement>, target: number) => {
@@ -452,7 +456,7 @@ export function TaskView({
         </Button>
         <div className={styles.headerText}>
           <p className={styles.eyebrow}>
-            {task.module} Â· {task.difficulty}
+            {task.module} · {task.difficulty}
           </p>
           <h1 id="task-title" className={styles.title}>{task.title}</h1>
         </div>
@@ -496,7 +500,7 @@ export function TaskView({
 
         <section className={styles.interaction} aria-label="Activity">
           {draftLoading ? (
-            <p className={styles.stateNote} role="status">Restoring your saved workâ€¦</p>
+            <p className={styles.stateNote} role="status">Restoring your saved work…</p>
           ) : (
             <>
               {(mode === 'mcq' || mode === 'multi') && (
@@ -540,7 +544,7 @@ export function TaskView({
                   <div className={styles.codeWindow}>
                     <div className={styles.codeBar}>
                       <span>entanglement.py</span>
-                      <Tag>Python Â· Qiskit</Tag>
+                      <Tag>Python · Qiskit</Tag>
                     </div>
                     <pre className={styles.codePre} aria-label="Qiskit code example"><code>{codeTokens(qiskitCode)}</code></pre>
                   </div>
@@ -548,7 +552,7 @@ export function TaskView({
                     <Textarea
                       rows={6}
                       value={answer}
-                      onChange={(event) => { setAnswer(event.target.value); touch() }}
+                      onChange={(event) => { setAnswer(event.target.value); changeSupportedInput() }}
                       placeholder="Describe the state after the H and CX gates, then explain the expected measurements."
                     />
                   </Field>
@@ -559,14 +563,14 @@ export function TaskView({
                 <div className={styles.codeWindow}>
                   <div className={styles.codeBar}>
                     <span>solution.py</span>
-                    <Tag>Python Â· Qiskit</Tag>
+                    <Tag>Python · Qiskit</Tag>
                   </div>
                   <textarea
                     className={styles.codeEditor}
                     aria-label="Qiskit code editor"
                     spellCheck={false}
                     value={code}
-                    onChange={(event) => { setCode(event.target.value); touch() }}
+                    onChange={(event) => { setCode(event.target.value); changeSupportedInput() }}
                   />
                 </div>
               )}
@@ -576,7 +580,7 @@ export function TaskView({
                   <Textarea
                     rows={12}
                     value={answer}
-                    onChange={(event) => { setAnswer(event.target.value); touch() }}
+                    onChange={(event) => { setAnswer(event.target.value); changeSupportedInput() }}
                     placeholder="Explain your reasoning in your own words."
                   />
                 </Field>
@@ -614,7 +618,7 @@ export function TaskView({
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={(event) => dropGate(event, qubit)}
                       >
-                        <code className={styles.wireLabel}>|0âŸ© q{qubit}</code>
+                        <code className={styles.wireLabel}>|0⟩ q{qubit}</code>
                         <div className={styles.wire}>
                           {operations.map((operation, index) => (
                             operation.targets.includes(qubit)
@@ -626,7 +630,7 @@ export function TaskView({
                                   title="Remove gate"
                                   onClick={() => { changeOperations((current) => current.filter((_, itemIndex) => itemIndex !== index)) }}
                                 >
-                                  {operation.gate === 'cx' ? (qubit === 0 ? 'â—' : 'âŠ•') : operation.gate.toUpperCase()}
+                                  {operation.gate === 'cx' ? (qubit === 0 ? '●' : '⊕') : operation.gate.toUpperCase()}
                                 </button>
                               )
                               : <i key={`${operation.gate}-${index}`} className={styles.wireGap} />
@@ -638,6 +642,8 @@ export function TaskView({
                   <Button variant="secondary" onClick={() => void runSimulation()} disabled={Boolean(draftError) || workConflict || draftLoading || busy || operations.length === 0}>
                     <Play size={15} aria-hidden="true" /> Run 1,024 shots
                   </Button>
+                </div>
+              )}
                   {simulation && (
                     <div className={styles.simulation}>
                       <div className={styles.simulationHead}>
@@ -647,7 +653,7 @@ export function TaskView({
                       <p>Counts show sampled measurements. Exact probabilities describe the ideal circuit before measurement.</p>
                       {Object.entries(simulation.counts).map(([state, count]) => (
                         <div className={styles.resultRow} key={state}>
-                          <code>|{state}âŸ©</code>
+                          <code>|{state}⟩</code>
                           <span className={styles.resultTrack}>
                             <i className={styles.resultFill} style={{ width: `${Math.min(100, Math.max(2, count / simulation.shots * 100))}%` }} />
                           </span>
@@ -667,13 +673,11 @@ export function TaskView({
                       <pre className={styles.circuitText}>{simulation.circuit_text}</pre>
                     </div>
                   )}
-                </div>
-              )}
             </>
           )}
 
           {mode === 'unsupported' && <p role="alert">This task type is not supported yet. Ask your educator for a supported task.</p>}
-          {hasEpisode && <EpisodeFields value={episode} state={episodeState} attempts={attempts ?? []} disabled={busy || draftLoading || workConflict} onChange={value => { setEpisode(value); touch() }} onCheckpoint={() => void recordPrediction()} onTransfer={() => void enterTransfer()} onTransferCheckpoint={() => void recordPrediction(true)} onTransferSimulation={() => void runTransferSimulation()} />}
+          {hasEpisode && <EpisodeFields value={episode} state={episodeState} attempts={attempts ?? []} disabled={busy || draftLoading || workConflict} onChange={value => { setEpisode(value); touch() }} onCheckpoint={() => void recordPrediction()} onTransfer={() => void enterTransfer()} onTransferCheckpoint={() => void recordPrediction(true)} onTransferSimulation={() => void runTransferSimulation()} support={episodeState && <EpisodeSupport taskId={task.id} workId={workStartId} state={episodeState} disabled={busy || draftLoading || workConflict} />} />}
           {checkpointHistory.length > 0 && <Card heading="Earlier predictions"><details><summary>View saved predictions and inputs</summary>{checkpointHistory.map((checkpoint, index) => <section key={`${checkpoint.created_at}-${index}`}><h3>{checkpoint.part_id === episodeState?.transfer_part_id ? 'Fresh application' : 'Supported'} prediction, {new Date(checkpoint.created_at).toLocaleString()}</h3><EpisodeSnapshot episode={{ schema_version: 'learnlens.episode.v1', supported: { prediction: checkpoint.prediction } }} />{checkpoint.input_content.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{checkpoint.input_content.answer}</pre>}{checkpoint.input_content.code && <pre>{checkpoint.input_content.code}</pre>}{checkpoint.input_content.circuit && <EpisodeCircuitText circuit={checkpoint.input_content.circuit} />}</section>)}{checkpointOffset !== null && <Button variant="secondary" disabled={historyLoading} onClick={() => { setHistoryLoading(true); api.student.checkpointHistory(task.id, undefined, checkpointOffset).then(page => { setCheckpointHistory(current => [...current, ...page.items]); setCheckpointOffset(page.next_offset) }).catch(() => setStatusMessage('Earlier predictions could not be loaded. Try again.')).finally(() => setHistoryLoading(false)) }}>{historyLoading ? 'Loading earlier predictions...' : 'Load earlier predictions'}</Button>}</details></Card>}
           {draftError && (
             <div className={styles.alert} role="alert">
@@ -709,7 +713,7 @@ export function TaskView({
           )}
           <Card eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (
-              <p className={styles.stateNote}>Loading previous attemptsâ€¦</p>
+              <p className={styles.stateNote}>Loading previous attempts…</p>
             ) : attempts.length === 0 ? (
               <p className={styles.stateNote}>
                 {attemptsError || 'No attempts yet. Submit this activity when you are ready.'}

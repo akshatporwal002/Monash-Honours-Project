@@ -40,6 +40,7 @@ EXPECTED_TABLES = {
     "human_assessment_actions",
     "human_criterion_decisions",
     "episode_checkpoints",
+    "episode_help_uses",
     "episode_stage_starts",
     "assessment_work_starts",
     "task_revisions",

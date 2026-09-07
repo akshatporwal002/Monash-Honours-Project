@@ -21,16 +21,7 @@ export interface ScopedRoleAssignment {
   valid_until: string | null
 }
 
-export type TaskType =
-  | 'multiple_choice'
-  | 'multiple_answer'
-  | 'short_answer'
-  | 'code_explanation'
-  | 'code_completion'
-  | 'quantum_circuit'
-  | 'quiz'
-  | 'code'
-  | 'circuit'
+export type TaskType = ApiSchemas['TaskType']
 
 export type LearningState = 'locked' | 'not_started' | 'draft' | 'in_progress' | 'submitted' | 'completed'
 

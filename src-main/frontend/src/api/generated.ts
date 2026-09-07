@@ -516,6 +516,31 @@ export type ApiSchemas = {
     "response": ApiSchemas["DraftWrite"]
     "stage_start_id"?: (string) | (null)
   }
+  "EpisodeHelpUsePage": {
+    "items": Array<ApiSchemas["EpisodeHelpUseRead"]>
+    "next_offset": (number) | (null)
+  }
+  "EpisodeHelpUseRead": {
+    "assessment_work_start_id": string
+    "created_at": string
+    "id": string
+    "item_index": number
+    "kind": "conceptual_hint" | "accessibility"
+    "part_id": string
+    "stage_start_id": (string) | (null)
+    "task_form_version_id": string
+  }
+  "EpisodeHelpUseReceipt": {
+    "content": (string) | (null)
+    "record": ApiSchemas["EpisodeHelpUseRead"]
+  }
+  "EpisodeHelpUseWrite": {
+    "assessment_work_start_id": string
+    "item_index": number
+    "kind": "conceptual_hint" | "accessibility"
+    "request_key": string
+    "stage_start_id"?: (string) | (null)
+  }
   "EpisodePayloadV1": {
     "schema_version"?: "learnlens.episode.v1"
     "supported": ApiSchemas["EpisodeStageResponseV1"]

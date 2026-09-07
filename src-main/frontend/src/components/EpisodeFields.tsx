@@ -1,10 +1,11 @@
 import styles from "./EpisodeFields.module.css"
+import type { ReactNode } from 'react'
 import { EpisodeCircuitText } from "./EpisodeSnapshot"
 import type { EpisodePayload, EpisodeProcess, EpisodeState, TaskSubmission } from '../app/types'
 import { Button, Card, Field, Textarea } from './ui'
 
 
-export function EpisodeFields({ value, state, attempts, disabled, onChange, onCheckpoint, onTransfer, onTransferCheckpoint, onTransferSimulation }: {
+export function EpisodeFields({ value, state, attempts, disabled, onChange, onCheckpoint, onTransfer, onTransferCheckpoint, onTransferSimulation, support }: {
   value: EpisodePayload
   state: EpisodeState | null
   attempts: TaskSubmission[]
@@ -14,9 +15,13 @@ export function EpisodeFields({ value, state, attempts, disabled, onChange, onCh
   onTransfer: () => void
   onTransferCheckpoint: () => void
   onTransferSimulation: () => void
+  support?: ReactNode
 }) {
   const update = (field: keyof EpisodeProcess, content: unknown) => onChange({ ...value, supported: { ...value.supported, [field]: content } })
-  const transferChange = (content: EpisodePayload['transfer']) => onChange({ ...value, transfer: content })
+  const transferChange = (transfer: EpisodePayload['transfer']) => {
+    const changedInput = JSON.stringify(transfer?.content) !== JSON.stringify(value.transfer?.content)
+    onChange({ ...value, transfer: transfer && changedInput ? { ...transfer, process: { ...transfer.process, prediction_checkpoint_id: null, simulation_references: [] } } : transfer })
+  }
   const addTransferGate = (gate: 'h' | 'x') => {
     if (!value.transfer) return
     const circuit = value.transfer.content.circuit ?? state?.transfer?.starter_circuit ?? { qubits: 1, operations: [] }
@@ -49,15 +54,14 @@ export function EpisodeFields({ value, state, attempts, disabled, onChange, onCh
     {state && <>
       <section className={styles.support} aria-label="Approved support">
         <h3>Approved support</h3>
-        {state.transfer ? <p>Fresh application is unaided. Accessibility support remains available.</p> : <details><summary>Conceptual hints, use as often as needed</summary>{(state.supported_hints ?? []).map((hint, index) => <p key={index}>{hint}</p>)}</details>}
-        {(state.accessibility_support ?? []).map((support, index) => <p key={index}>{support}</p>)}
+        {support ?? (state.accessibility_support ?? []).map((description, index) => <p key={index}>{description}</p>)}
       </section>
       <section className={styles.transfer} id="episode-transfer" aria-label="Fresh application">
         <h3>Fresh application</h3>
         {state.transfer ? <>
           <p>{state.transfer.prompt}</p><p>{state.transfer.instructions}</p>
-          <Field label="Fresh application response"><Textarea disabled={disabled} value={value.transfer?.content.answer ?? ''} onChange={event => onChange({ ...value, transfer: { stage_start_id: state.transfer!.stage_start_id, part_id: state.transfer!.part_id, content: { ...value.transfer?.content, answer: event.target.value }, process: value.transfer?.process ?? {} } })} /></Field>
-          <Field label="Fresh application code"><Textarea disabled={disabled} spellCheck={false} value={value.transfer?.content.code ?? state.transfer.starter_code ?? ''} onChange={event => onChange({ ...value, transfer: { stage_start_id: state.transfer!.stage_start_id, part_id: state.transfer!.part_id, content: { answer: '', ...value.transfer?.content, code: event.target.value }, process: value.transfer?.process ?? {} } })} /></Field>
+          <Field label="Fresh application response"><Textarea disabled={disabled} value={value.transfer?.content.answer ?? ''} onChange={event => transferChange({ stage_start_id: state.transfer!.stage_start_id, part_id: state.transfer!.part_id, content: { ...value.transfer?.content, answer: event.target.value }, process: value.transfer?.process ?? {} })} /></Field>
+          <Field label="Fresh application code"><Textarea disabled={disabled} spellCheck={false} value={value.transfer?.content.code ?? state.transfer.starter_code ?? ''} onChange={event => transferChange({ stage_start_id: state.transfer!.stage_start_id, part_id: state.transfer!.part_id, content: { answer: '', ...value.transfer?.content, code: event.target.value }, process: value.transfer?.process ?? {} })} /></Field>
           {state.transfer.starter_circuit && <>
             <fieldset className={styles.stage} disabled={disabled}><legend>Fresh application circuit</legend>
               <Button onClick={() => addTransferGate('h')}>Add fresh H gate</Button>{' '}

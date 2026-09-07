@@ -208,6 +208,66 @@ def test_invalid_revision_keeps_saved_work(db_session):
     assert lms.get_draft(student, task.id).episode == payload.episode
 
 
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("answer", "Changed answer"),
+        ("code", "x(0)"),
+        ("circuit", {"qubits": 1, "operations": [{"gate": "x", "targets": [0]}]}),
+    ],
+)
+def test_checkpoint_rejects_changed_input_in_draft_entry_submit_and_reader(
+    db_session, field, value
+):
+    from sqlalchemy.orm.attributes import set_committed_value
+
+    from app.services.episode_contract import FrozenResponseInvalid
+    from app.services.episode_responses import SqlAlchemyFrozenResponseReader
+
+    lms, student, task, started = setup_episode(db_session)
+    payload = complete(lms, student, task, started)
+    changed = payload.model_copy(update={field: value})
+    for operation in (lms.save_draft, lms.episode_transfer):
+        with pytest.raises(TaskReviewError, match="checkpoint input has changed"):
+            operation(student, task.id, changed)
+        db_session.rollback()
+    with pytest.raises(TaskReviewError, match="checkpoint input has changed"):
+        lms.submit(
+            student, task.id, SubmissionCreate(**changed.model_dump(), idempotency_key="changed")
+        )
+    db_session.rollback()
+    first = lms.submit(
+        student, task.id, SubmissionCreate(**payload.model_dump(), idempotency_key="valid")
+    )
+    reference = assessment_reference(db_session, first.id)
+    response = db_session.get(SubmissionAttempt, first.id)
+    set_committed_value(response, field, value)
+    set_committed_value(
+        response,
+        "content_digest",
+        canonical_response_digest(
+            content=ResponseContent(
+                answer=response.answer, code=response.code, circuit=response.circuit
+            ),
+            episode=payload.episode,
+            schema_version=response.response_schema_version,
+            assessment_work_start_id=response.assessment_work_start_id,
+            task_form_version_id=response.task_form_version_id,
+            declared_conditions=response.declared_conditions,
+        ),
+    )
+    with pytest.raises(FrozenResponseInvalid, match="checkpoint input has changed"):
+        SqlAlchemyFrozenResponseReader(db_session).read(assessment=reference)
+    db_session.expire(response)
+    raw = changed.episode.model_dump(mode="json")
+    raw["supported"]["prediction_checkpoint_id"] = None
+    raw["supported"]["simulation_references"] = []
+    editable = changed.model_copy(update={"episode": EpisodePayloadV1.model_validate(raw)})
+    lms.save_draft(student, task.id, editable)
+    replacement = lms.episode_checkpoint(student, task.id, editable, "supported", None)
+    assert replacement["checkpoint_id"] != payload.episode.supported.prediction_checkpoint_id
+
+
 @pytest.mark.parametrize("change", ["episode", "work", "form", "conditions"])
 def test_digest_binds_episode_and_frozen_references(change):
     args = dict(
@@ -361,11 +421,24 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
     engine = create_engine(f"sqlite:///{path.as_posix()}")
     with Session(engine) as session:
         lms, student, task, started = setup_episode(session)
+        from app.schemas.episode import EpisodeHelpUseWrite
+
+        lms.episode_help_use(
+            student,
+            task.id,
+            EpisodeHelpUseWrite(
+                assessment_work_start_id=started.assessment_work_start_id,
+                kind="conceptual_hint",
+                item_index=0,
+                request_key="migrated-hint",
+            ),
+        )
         payload = complete(lms, student, task, started)
         lms.submit(
             student, task.id, SubmissionCreate(**payload.model_dump(), idempotency_key="migrated")
         )
         original = list(session.execute(text("SELECT * FROM episode_checkpoints")).mappings())
+        original_help = list(session.execute(text("SELECT * FROM episode_help_uses")).mappings())
     command.stamp(config, "20260907_0029")
     command.upgrade(config, "head")
     with engine.connect() as connection:
@@ -374,10 +447,17 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
             == original
         )
         assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
+        assert (
+            list(connection.execute(text("SELECT * FROM episode_help_uses")).mappings())
+            == original_help
+        )
     for statement in (
         "UPDATE episode_checkpoints SET prediction='{}'",
         "DELETE FROM episode_stage_starts",
         "INSERT OR REPLACE INTO episode_checkpoints SELECT * FROM episode_checkpoints",
+        "UPDATE episode_help_uses SET item_index=1",
+        "DELETE FROM episode_help_uses",
+        "INSERT OR REPLACE INTO episode_help_uses SELECT * FROM episode_help_uses",
     ):
         with pytest.raises(IntegrityError, match="protected"):
             with engine.begin() as connection:
@@ -387,9 +467,13 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260907_0030"
+            == "20260907_0031"
         )
         assert inspect(connection).has_table("episode_checkpoints")
+        assert (
+            list(connection.execute(text("SELECT * FROM episode_help_uses")).mappings())
+            == original_help
+        )
     engine.dispose()
 
 
@@ -713,6 +797,50 @@ def test_episode_routes_have_safe_typed_responses_and_bounded_history(db_session
             assert response
         transfer_schema = schema["components"]["schemas"]["EpisodeTransferRead"]
         assert "solution" not in transfer_schema["properties"]
+
+
+@pytest.mark.parametrize(
+    "task_type",
+    [
+        TaskType.PREDICTION,
+        TaskType.REASONING,
+        TaskType.EXPLANATION,
+        TaskType.REVISION,
+        TaskType.REFLECTION,
+        TaskType.TRANSFER,
+    ],
+)
+def test_every_typed_episode_can_run_its_approved_fresh_circuit(db_session, task_type):
+    lms, student, task, started = setup_episode(db_session, task_type)
+    payload = complete(lms, student, task, started)
+    raw = payload.episode.model_dump(mode="json")
+    raw["transfer"]["process"]["prediction"] = {"answer": "Half each"}
+    payload = payload.model_copy(update={"episode": EpisodePayloadV1.model_validate(raw)})
+    transfer = payload.episode.transfer
+    checkpoint = lms.episode_checkpoint(
+        student, task.id, payload, transfer.part_id, transfer.stage_start_id
+    )
+    request = SimulationRequest(
+        task_id=task.id,
+        qubits=1,
+        operations=[{"gate": "h", "targets": [0]}],
+        prediction_checkpoint_id=checkpoint["checkpoint_id"],
+        episode_stage_start_id=transfer.stage_start_id,
+        episode_part_id=transfer.part_id,
+    )
+    result = lms.simulate_student_circuit(student, request)
+    assert result["result"]["probabilities"] == pytest.approx({"0": 0.5, "1": 0.5})
+    changed = checkpoint["draft"].model_dump(exclude={"id", "task_id", "updated_at"})
+    changed["episode"]["transfer"]["content"]["circuit"]["operations"] = [
+        {"gate": "x", "targets": [0]}
+    ]
+    with pytest.raises(TaskReviewError, match="checkpoint input has changed"):
+        lms.save_draft(student, task.id, DraftWrite.model_validate(changed))
+    db_session.rollback()
+    with pytest.raises(TaskReviewError):
+        lms.simulate_student_circuit(
+            student, request.model_copy(update={"episode_stage_start_id": "foreign"})
+        )
 
 
 def test_foreign_revision_simulation_and_transfer_references_are_denied(db_session):
