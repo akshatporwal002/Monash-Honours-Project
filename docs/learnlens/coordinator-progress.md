@@ -79,7 +79,7 @@ Both reviewers cleared that additive change. It was pushed and merged into integ
 Task 13 focused checks passed 44 backend/migration checks and 28 frontend tests, plus the production build.
 Its browser journey then exposed a pre-existing migrated-database republishing fault.
 Definition updates created a fresh task-form identity with version 2, which the database correctly rejected.
-The worker is repairing identity-local version sequencing and testing added, removed, and restored criteria.
+The worker repaired identity-local version sequencing and tested added, removed, and restored criteria.
 The authenticated start/save/reload/republish/conflict path now passes with the original draft and start reference preserved.
 Browser evidence is in the Task 13 worktree under `src-main/backend/.tmp-task13/browser`.
 The final visual fixes passed. The final focused run passed 76 backend checks, 28 frontend tests, lint, and build.
@@ -99,9 +99,13 @@ Combined frontend checks passed 203 tests across 58 files, lint, and build using
 Backend lint and formatting, both generated-contract checks, and the single migration head check passed.
 The initial browser run passed 69 of 72 cases. Firefox timed out during context teardown.
 Two WebKit authoring cases found dropdown options outside the viewport. A targeted rerun reproduced one failure.
-The coordinator is checking a trigger-visibility precondition without changing product behavior or test timeouts.
+Commit `8aba39633654a569e2a75f77847e12bb1b5c5b74` adds a trigger-visibility precondition before opening dropdowns.
+Ten repeated WebKit authoring cases passed. Both independent reviews cleared the exact corrective commit.
+Three isolated Firefox accessibility reruns passed without changes to product behavior or test timeouts.
 Evidence is under `.tmp-coordinator/evidence/batch-a-final`; initial failed browser artifacts were preserved there.
-The current batch remains gated on final browser checks and GitHub CI.
+The final combined browser and accessibility run passed all 72 cases across Chrome, Edge, Firefox, and WebKit.
+The final commit-range secret scan examined nine commits and found no leaks.
+The current batch remains gated on full GitHub CI before main integration.
 
 Pinned Node 22.13.0 is installed under `.tmp-coordinator/tools`, with its archive SHA-256 verified against nodejs.org.
 The host default remains Node 24; batch checks use the pinned executable explicitly.

@@ -5,7 +5,9 @@ Reviewed on 6 September 2026 against local `main` at `d049eef`.
 Coordinator update, 7 September 2026: Tasks 13 onward are active under the
 [batch progress record](docs/learnlens/coordinator-progress.md).
 The verified starting main is `d5ac7cb335a2b1ccdab674e0cab4c61c950b9b35`, including Task 12 through PR 8.
-Its post-merge CI passed. Task 13 implementation and Task 32 drafting are in progress, not yet verified or merged.
+Its post-merge CI passed. Task 13 is implemented and independently reviewed on the temporary integration branch.
+Local validation passed after the documented readiness and browser-test corrections. Full GitHub CI and main integration remain due.
+Task 32 has a reviewed protocol and data-plan draft naming Arv Surana as lead. Study approval remains outstanding.
 
 This is the recommended work order for completing the proposed LearnLens architecture and the wider repository requirements. Each numbered task states its dependencies, current gap, and completion check. Tasks with no shared dependency can run in parallel. A dependency means the earlier task must supply the needed working contract or behaviour before integration.
 
