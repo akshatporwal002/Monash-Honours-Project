@@ -65,7 +65,7 @@ class SqlAlchemyEvidenceRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def capture(self, capture: EvidenceCapture) -> EvidenceWriteResult:
+    def capture(self, capture: EvidenceCapture, *, commit: bool = True) -> EvidenceWriteResult:
         """Atomically store an evidence record, its optional artefact, and its links."""
 
         self._validate_capture(capture)
@@ -88,9 +88,13 @@ class SqlAlchemyEvidenceRepository:
                 # capture in one transaction while satisfying SQLite FK checks.
                 self._session.flush()
                 self._session.add_all(self._link_models(capture.links))
-                self._session.commit()
+                self._session.flush()
+                if commit:
+                    self._session.commit()
             except IntegrityError:
                 self._session.rollback()
+                if not commit:
+                    raise EvidencePersistenceError("evidence transaction failed") from None
                 winner = self._by_idempotency(
                     record.course_id,
                     learner_id,

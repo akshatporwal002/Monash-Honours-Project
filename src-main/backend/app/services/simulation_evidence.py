@@ -265,6 +265,10 @@ class SimulationEvidenceService:
                 )
             )
             try:
+                session.flush()
+                from app.services.evidence.live import LiveEvidenceCapture
+
+                LiveEvidenceCapture(session).simulation(run, session.get(SimulationOutcome, run_id))
                 session.commit()
             except IntegrityError:
                 session.rollback()
