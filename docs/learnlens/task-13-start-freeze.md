@@ -149,3 +149,17 @@ The fresh Chrome journey passed again against a newly migrated `browser-review` 
 Review logs are `review-backend06.log`, `review-frontend06.log`, `review-lint06.log`,
 `review-build06.log`, and `browser-review-check.log` under the same ignored scratch directory.
 Both local test servers were stopped after this check.
+
+
+## Integration readiness correction
+
+The combined integration run found that runtime readiness still required migration `20260907_0028`.
+That stale pin rejected a database correctly migrated to Task 13's `20260907_0029`.
+`app/core/readiness.py` now requires `20260907_0029`.
+The existing migration-head assertion and readiness expectations were left intact.
+
+All 17 focused deployment, Person 4 end-to-end, worker health, and health-route checks passed.
+All seven Windows launcher checks passed, including real disposable child processes.
+Readiness lint and formatting checks passed.
+Evidence is in `.tmp-task13/readiness07.log` and `.tmp-task13/launch07.log`.
+This correction does not change the schema or assessment contracts.
