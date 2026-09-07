@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_attempt
+from support.task_review import bind_reviewed_fixture_form
 
 from app.domain.assessment import CriterionDecision
 from app.models.assessment import (
@@ -14,9 +15,10 @@ from app.models.assessment import (
     AssessmentDefinitionVersion,
     CriterionEvaluation,
     TaskApproval,
+    TaskFormVersion,
 )
 from app.models.lms import AttemptStatus, SubmissionAttempt
-from app.models.persistence import LearningTask
+from app.models.persistence import LearningMaterial, LearningTask, MaterialChunk
 from app.schemas.assessment import EvidenceReference
 from app.schemas.feedback import (
     AssessmentContextStatus,
@@ -37,6 +39,7 @@ from app.services.feedback.providers import SqlAlchemyTaskProvider
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.feedback.runtime import LmsSubmissionProvider
 from app.services.local_ai import LocalFeedbackJudge
+from app.services.rag.source_history import bind_sources, record_approval, snapshot_source
 
 NOW = datetime(2026, 8, 21, 10, 0, tzinfo=UTC)
 
@@ -52,8 +55,50 @@ def _approved_attempt(db_session: Session):
     assert task is not None
     definition.formal_result_eligible = True
     definition.result_eligibility_declared_at = NOW
-    task.source_references = ["approved-source-1"]
+    material = LearningMaterial(
+        course_id=attempt.course_id,
+        original_filename="source.pdf",
+        mime_type="application/pdf",
+        content_hash="fixture-source",
+    )
+    db_session.add(material)
+    db_session.flush()
+    chunk = MaterialChunk(
+        id="approved-source-1",
+        material_id=material.id,
+        chunk_index=0,
+        chunk_text="The preserved source explains the interference pattern.",
+        token_count=8,
+        chunk_hash="fixture-passage",
+    )
+    db_session.add(chunk)
+    revision = snapshot_source(db_session, material, [chunk])
+    record_approval(
+        db_session,
+        course_id=attempt.course_id,
+        material_id=material.id,
+        revision_id=revision.id,
+        actor_id=str(owner.id),
+        state="APPROVED",
+        reason="Synthetic source reviewed for feedback context",
+        expected_sequence=0,
+    )
+    task.source_references = [chunk.id]
+    bind_sources(
+        db_session,
+        course_id=attempt.course_id,
+        output_type="assessment",
+        output_id=attempt.id,
+        output_version=attempt.task_form_version_id,
+        references=[chunk.id],
+        strict=True,
+    )
     db_session.commit()
+    form = db_session.get(TaskFormVersion, attempt.task_form_version_id)
+    review_event = bind_reviewed_fixture_form(db_session, form)
+    form.approval_state = AssessmentApprovalState.APPROVED
+    form.approved_at = NOW
+    form.approved_by_user_id = owner.id
     definition.approval_state = AssessmentApprovalState.APPROVED
     definition.approved_at = NOW
     definition.approved_by_user_id = owner.id
@@ -62,6 +107,7 @@ def _approved_attempt(db_session: Session):
             course_id=attempt.course_id,
             assessment_definition_version_id=definition.id,
             task_form_version_id=attempt.task_form_version_id,
+            task_review_event_id=review_event.id,
             actor_user_id=owner.id,
             approval_reason="The frozen task form is approved for feedback context tests.",
             approval_state=AssessmentApprovalState.APPROVED,

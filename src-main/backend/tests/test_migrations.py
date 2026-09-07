@@ -37,6 +37,8 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "task_revisions",
+    "task_review_events",
     "assessment_definition_versions",
     "assessment_definitions",
     "assessment_legacy_history",
@@ -50,6 +52,7 @@ EXPECTED_TABLES = {
     "assessment_evaluation_jobs",
     "appeals_or_corrections",
     "assessor_reviews",
+    "assessor_eligibility_approvals",
     "achievements",
     "alembic_version",
     "audit_events",
@@ -61,6 +64,9 @@ EXPECTED_TABLES = {
     "criterion_evaluations",
     "criterion_versions",
     "courses",
+    "circuit_versions",
+    "simulation_runs",
+    "simulation_outcomes",
     "enrollments",
     "feedback_records",
     "feedback_reports",
@@ -71,6 +77,10 @@ EXPECTED_TABLES = {
     "learning_outcomes",
     "learning_tasks",
     "material_chunks",
+    "source_revisions",
+    "source_passages",
+    "source_approvals",
+    "source_uses",
     "outcome_versions",
     "pass_rule_versions",
     "pass_rules",
@@ -104,6 +114,279 @@ def migration_config(database_url: str) -> Config:
     config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
     config.set_main_option("sqlalchemy.url", database_url)
     return config
+
+
+def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_path):
+    url = f"sqlite:///{(tmp_path / 'publication.db').as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "20260907_0027")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        _, _, _, _, form, _ = _blueprint(session)
+        form_id = form.id
+    with engine.connect() as connection:
+        before = dict(connection.execute(text("SELECT * FROM task_form_versions")).mappings().one())
+    command.upgrade(config, "head")
+    command.stamp(config, "20260907_0027")
+    command.upgrade(config, "head")
+    with engine.connect() as connection:
+        after = dict(connection.execute(text("SELECT * FROM task_form_versions")).mappings().one())
+        assert after.pop("task_revision_id") is None
+        assert after == before
+        assert connection.execute(text("SELECT COUNT(*) FROM task_approvals")).scalar_one() == 0
+        assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
+    with pytest.raises(IntegrityError, match="Invalid publication review scope"):
+        with engine.begin() as connection:
+            connection.execute(
+                text("UPDATE task_form_versions SET task_revision_id = 'missing' WHERE id = :id"),
+                {"id": form_id},
+            )
+    with pytest.raises(RuntimeError, match="protected"):
+        command.downgrade(config, "20260907_0027")
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+            == "20260907_0028"
+        )
+        assert "task_revision_id" in {
+            column["name"] for column in inspect(connection).get_columns("task_form_versions")
+        }
+    engine.dispose()
+
+
+def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp_path):
+    from app.models import User, UserRole
+    from app.services.quantum import CircuitOperation
+    from app.services.simulation_evidence import SimulationEvidenceService
+
+    url = f"sqlite:///{(tmp_path / 'simulation.db').as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "head")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        user = User(
+            email="migration@example.test",
+            password_hash="unused",
+            full_name="Migration learner",
+            role=UserRole.STUDENT,
+        )
+        session.add(user)
+        session.commit()
+        service = SimulationEvidenceService(session)
+        run_id, _ = service.prepare(
+            owner_id=user.id,
+            task_id=None,
+            qubits=1,
+            operations=[CircuitOperation("h", (0,))],
+            request_key="migration-run",
+        )
+        service.finish(run_id, status="failed", error_code="simulation_unavailable")
+        before = service.read(run_id)
+    command.stamp(config, "20260907_0024")
+    command.upgrade(config, "head")
+    command.check(config)
+    with Session(engine) as session:
+        assert SimulationEvidenceService(session).read(run_id) == before
+    with pytest.raises(RuntimeError, match="Simulation evidence is protected"):
+        command.downgrade(config, "20260907_0024")
+    with engine.connect() as connection:
+        assert (
+            connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+            == "20260907_0028"
+        )
+    with pytest.raises(IntegrityError, match="append-only"):
+        with engine.begin() as connection:
+            connection.execute(text("UPDATE simulation_outcomes SET error_code = 'changed'"))
+    engine.dispose()
+
+
+def test_assessor_eligibility_migration_preserves_unapproved_legacy_grants(tmp_path):
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from app.api.assessment_dependencies import get_scoped_role_eligibility
+    from app.models import Course, RoleAssignment, ScopedRole, User, UserRole
+    from app.models.assessor_eligibility import AssessorEligibilityApproval
+    from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
+    from app.services.assessment.eligibility import AssessorEligibilityService
+
+    url = f"sqlite:///{(tmp_path / 'eligibility.db').as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "20260907_0025")
+    engine = create_engine(url)
+    legacy_id = str(uuid4())
+    now = datetime.now(UTC)
+    with Session(engine) as session:
+        lead = User(
+            email="lead@migration.test",
+            password_hash="unused",
+            full_name="Course lead",
+            role=UserRole.EDUCATOR,
+        )
+        admin = User(
+            email="admin@migration.test",
+            password_hash="unused",
+            full_name="Administrator",
+            role=UserRole.ADMINISTRATOR,
+        )
+        session.add_all([lead, admin])
+        session.flush()
+        course = Course(educator_id=lead.id, code="MIG-ELIG", title="Eligibility migration")
+        session.add(course)
+        session.flush()
+        lead_id, admin_id, course_id = lead.id, admin.id, course.id
+        session.execute(
+            text("""INSERT INTO role_assignments
+            (id, subject_user_id, course_id, role, version, assigned_by_user_id, reason, assigned_at, valid_from)
+            VALUES (:id, :subject, :course, 'assessor', 1, :admin, 'Legacy grant', :now, :now)"""),
+            {
+                "id": legacy_id,
+                "subject": lead_id,
+                "course": course_id,
+                "admin": admin_id,
+                "now": now,
+            },
+        )
+        session.commit()
+    command.upgrade(config, "head")
+    with Session(engine) as session:
+        lead, admin = session.get(User, lead_id), session.get(User, admin_id)
+        assignments = RoleAssignmentService(
+            session, assignment_eligibility=get_scoped_role_eligibility()
+        )
+        legacy = session.get(RoleAssignment, legacy_id)
+        assert legacy.reason == "Legacy grant"
+        assert legacy.eligibility_approval_id is None
+        assert session.query(AssessorEligibilityApproval).count() == 0
+        with pytest.raises(ScopedRoleAccessDeniedError):
+            assignments.require_assessor_access(lead, course_id)
+        approval = AssessorEligibilityService(session).record(
+            lead,
+            course_id=course_id,
+            subject_user_id=lead.id,
+            expected_version=0,
+            state="APPROVED",
+            reason="Course lead confirms eligibility",
+        )
+        granted = assignments.assign(
+            admin,
+            subject_user_id=lead.id,
+            course_id=course_id,
+            role=ScopedRole.ASSESSOR,
+            reason="New approved appointment",
+        )
+        assert granted.eligibility_approval_id == approval.id
+        assert granted.version == 2
+        assert legacy.eligibility_approval_id is None
+        approval_id, grant_id = approval.id, granted.id
+    command.stamp(config, "20260907_0025")
+    command.upgrade(config, "head")
+    command.check(config)
+    with Session(engine) as session:
+        assert session.get(RoleAssignment, grant_id).eligibility_approval_id == approval_id
+    with pytest.raises(RuntimeError, match="Assessor eligibility history is protected"):
+        command.downgrade(config, "20260907_0025")
+    with pytest.raises(IntegrityError, match="append-only"):
+        with engine.begin() as connection:
+            connection.execute(text("DELETE FROM assessor_eligibility_approvals"))
+    engine.dispose()
+
+
+def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tmp_path):
+    from sqlalchemy import func, select
+
+    from app.models import (
+        Course,
+        CourseModule,
+        LearningOutcome,
+        LearningTask,
+        OutcomeKind,
+        TaskType,
+    )
+    from app.models.task_review import TaskReviewEvent, TaskRevision
+    from app.services.task_review import TaskReviewService, snapshot_digest, task_snapshot
+
+    database_path = tmp_path / "task-review.db"
+    url = f"sqlite:///{database_path.as_posix()}"
+    config = migration_config(url)
+    command.upgrade(config, "20260907_0026")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        owner = User(
+            email="legacy-task@test.example",
+            full_name="Legacy educator",
+            password_hash="unused",
+            role=UserRole.EDUCATOR,
+        )
+        session.add(owner)
+        session.flush()
+        course = Course(educator_id=owner.id, code="TASK-LEGACY", title="Legacy task course")
+        session.add(course)
+        session.flush()
+        module = CourseModule(course_id=course.id, title="Gates", position=1)
+        session.add(module)
+        session.flush()
+        outcome = LearningOutcome(
+            module_id=module.id,
+            title="Hadamard",
+            statement="Predict Hadamard measurement",
+            kind=OutcomeKind.TOPIC,
+            position=1,
+        )
+        session.add(outcome)
+        session.flush()
+        session.add(
+            LearningTask(
+                slug="legacy-hadamard",
+                title="Predict",
+                module="Gates",
+                description="Predict H on zero",
+                instructions="Explain your answer",
+                task_type=TaskType.SHORT_ANSWER,
+                difficulty="beginner",
+                points=100,
+                position=1,
+                expected_answer="Equal probabilities",
+                marking_criteria={"required_keywords": ["equal"]},
+                source_references=[],
+                course_id=course.id,
+                module_id=module.id,
+                learning_outcome_id=outcome.id,
+            )
+        )
+        session.commit()
+        tasks = list(session.scalars(select(LearningTask)))
+        expected = {task.id: task_snapshot(session, task) for task in tasks}
+    command.upgrade(config, "head")
+    command.check(config)
+    with Session(engine) as session:
+        revisions = list(session.scalars(select(TaskRevision)))
+        assert len(revisions) == len(expected) > 0
+        for revision in revisions:
+            assert revision.snapshot == expected[revision.task_id]
+            assert revision.content_digest == snapshot_digest(expected[revision.task_id])
+            assert revision.provenance == "LEGACY"
+            assert revision.actor_user_id is None
+            assert not TaskReviewService(session).summary(
+                session.get(LearningTask, revision.task_id)
+            )["available"]
+        assert session.scalar(select(func.count()).select_from(TaskReviewEvent)) == 0
+    before = database_manifest(database_path)
+    command.stamp(config, "20260907_0026")
+    command.upgrade(config, "head")
+    assert database_manifest(database_path) == before
+    with pytest.raises(RuntimeError, match="Task review history is protected"):
+        command.downgrade(config, "20260907_0026")
+    assert database_manifest(database_path) == before
+    for statement in (
+        "UPDATE task_revisions SET version = version + 1",
+        "DELETE FROM task_revisions",
+        "INSERT OR REPLACE INTO task_revisions SELECT * FROM task_revisions",
+    ):
+        with pytest.raises(IntegrityError, match="append-only"):
+            with engine.begin() as connection:
+                connection.execute(text(statement))
+    engine.dispose()
 
 
 def _load_sql_fixture(engine: Engine, fixture_path: Path) -> None:
@@ -1900,6 +2183,7 @@ def test_definition_migration_upgrades_clean_database(tmp_path: Path) -> None:
         "revoked_by_user_id",
         "revocation_reason",
         "supersedes_assignment_id",
+        "eligibility_approval_id",
     } == role_assignment_columns
     assert {index["name"] for index in inspector.get_indexes("role_assignments")} >= {
         "ix_role_assignments_subject_course_role_active"

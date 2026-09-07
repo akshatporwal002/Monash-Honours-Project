@@ -41,6 +41,46 @@ const weeklyOutcome = {
   position: 1,
 }
 
+test('shows scheduled recovery and lets an educator retry after automatic attempts stop', async () => {
+  let reads = 0
+  const material = {
+    id: 'material-retry',
+    original_filename: 'saved-notes.pdf',
+    source_url: null,
+    indexing_status: 'failed',
+    extraction_error: 'The saved material could not be processed.',
+    processing_attempts: 3,
+  }
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/courses')) return response([course])
+    if (url.endsWith('/courses/course-1/materials/list')) {
+      reads += 1
+      return response([{ ...material, processing_retry_at: reads === 1 ? '2026-09-07T05:00:00Z' : null }])
+    }
+    if (url.endsWith('/courses/course-1/modules')) return response([module])
+    if (url.endsWith('/modules/module-1/outcomes')) return response([weeklyOutcome])
+    if (url.endsWith('/courses/course-1') && init?.method === 'PATCH') return response(course)
+    if (url.endsWith('/materials/material-retry/process?force=true') && init?.method === 'POST') {
+      return response({ material: { ...material, indexing_status: 'indexed', extraction_error: null, processing_retry_at: null } })
+    }
+    throw new Error(`Unexpected request: ${url}`)
+  })
+  render(<CourseEditor />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('combobox', { name: 'Choose a course to edit' }))
+  await user.click(await screen.findByRole('option', { name: /QL-101/ }))
+  await user.click(await screen.findByRole('button', { name: /Save and add materials/ }))
+  expect(await screen.findByText(/Retry scheduled:/)).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /Retry processing/ })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Refresh status' }))
+  expect(await screen.findByText(material.extraction_error)).toBeInTheDocument()
+  await user.click(await screen.findByRole('button', { name: 'Retry processing saved-notes.pdf' }))
+  await waitFor(() => expect(screen.getByRole('button', { name: /Define outcomes/ })).toBeEnabled())
+  expect(screen.queryByRole('button', { name: /Retry processing/ })).not.toBeInTheDocument()
+  expect(fetchMock.mock.calls.some(([url, init]) => String(url).endsWith('/process?force=true') && init?.method === 'POST')).toBe(true)
+})
+
 test('reloads and edits persisted modules, weekly outcomes, and enrollment status', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)

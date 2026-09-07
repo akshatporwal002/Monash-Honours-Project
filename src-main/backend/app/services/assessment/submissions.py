@@ -23,6 +23,8 @@ from app.models.assessment import (
 )
 from app.models.lms import SubmissionAttempt
 from app.models.persistence import LearningTask
+from app.services.rag.source_history import bind_sources
+from app.services.task_review import TaskReviewError
 
 
 @dataclass(frozen=True)
@@ -59,8 +61,8 @@ class AssessmentSubmissionService:
         return declaration.versions if declaration is not None else None
 
     def declaration_for_task(self, task: LearningTask) -> AssessmentTaskDeclaration | None:
-        form = self.session.scalar(
-            select(TaskFormVersion)
+        approved_form = self.session.execute(
+            select(TaskFormVersion, TaskApproval)
             .join(TaskApproval, TaskApproval.task_form_version_id == TaskFormVersion.id)
             .join(
                 AssessmentDefinitionVersion,
@@ -69,6 +71,7 @@ class AssessmentSubmissionService:
             .where(
                 TaskFormVersion.course_id == task.course_id,
                 TaskFormVersion.learning_task_id == task.id,
+                TaskFormVersion.approval_state == AssessmentApprovalState.APPROVED,
                 TaskApproval.approval_state == AssessmentApprovalState.APPROVED,
                 AssessmentDefinitionVersion.approval_state == AssessmentApprovalState.APPROVED,
                 AssessmentDefinitionVersion.formal_result_eligible.is_(True),
@@ -81,9 +84,32 @@ class AssessmentSubmissionService:
                 TaskFormVersion.created_at.desc(),
                 TaskFormVersion.id.desc(),
             )
-        )
-        if form is None:
+        ).first()
+        if approved_form is None:
+            declared = self.session.scalar(
+                select(TaskFormVersion.id)
+                .join(
+                    AssessmentDefinitionVersion,
+                    AssessmentDefinitionVersion.id
+                    == TaskFormVersion.assessment_definition_version_id,
+                )
+                .where(
+                    TaskFormVersion.course_id == task.course_id,
+                    TaskFormVersion.learning_task_id == task.id,
+                    AssessmentDefinitionVersion.formal_result_eligible.is_(True),
+                    AssessmentDefinitionVersion.purpose.notin_(
+                        [AssessmentPurpose.DIAGNOSTIC, AssessmentPurpose.FORMATIVE]
+                    ),
+                )
+                .limit(1)
+            )
+            if declared:
+                raise TaskReviewError("The formal assessment is not currently published", 409)
             return None
+        form, approval = approved_form
+        from app.services.assessment.publication import require_current_publication
+
+        require_current_publication(self.session, form, approval)
         bloom = self.session.scalar(
             select(BloomTargetVersion).where(
                 BloomTargetVersion.assessment_definition_version_id
@@ -144,6 +170,14 @@ class AssessmentSubmissionService:
         )
         self.session.add(attempt)
         self.session.flush()
+        bind_sources(
+            self.session,
+            course_id=attempt.course_id,
+            output_type="assessment",
+            output_id=attempt.id,
+            output_version=versions.task_form_version_id,
+            references=task.source_references or [],
+        )
         self.session.add(
             AssessmentEvaluationJob(
                 assessment_attempt_id=attempt.id,

@@ -41,3 +41,13 @@ Assign assessor permission explicitly for each course to approved teaching staff
 Still needed to complete this ticket: Name eligible staff roles, the grant and revocation authority, course scope, audit requirements, and approver.
 
 The ticket remains open for these details and any required approval evidence.
+
+## Selected option approved
+
+On 2026-09-07, the requesting user selected option A for D-02.
+Approval record: `task-08-selections-v1`.
+
+The [approved selection](../../../docs/learnlens/task-08-approved-selections.md#d-02)
+records the exact policy, scope, effective date, and remaining activation requirements.
+It controls any conflicting earlier recommendation in this ticket.
+The chosen option is settled. This ticket remains open only for its outstanding detailed records and evidence.

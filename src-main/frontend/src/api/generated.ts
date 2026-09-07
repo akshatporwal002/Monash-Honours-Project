@@ -63,6 +63,18 @@ export type ApiSchemas = {
     "task_types"?: Array<string>
   }
   "AssessmentApprovalState": "DRAFT" | "APPROVED" | "RETIRED"
+  "AssessmentAuthoringTaskRead": {
+    "content_digest": (string) | (null)
+    "issues": Array<string>
+    "outcome_id": string
+    "outcome_statement": string
+    "reviewed": boolean
+    "revision_id": (string) | (null)
+    "source_materials": Array<ApiSchemas["AssessmentSourceMaterialRead"]>
+    "task_id": string
+    "task_type": string
+    "title": string
+  }
   "AssessmentConditionsRead": {
     "access_conditions": (Record<string, unknown>) | (Array<unknown>)
     "bloom_process": ApiSchemas["BloomProcess"]
@@ -222,6 +234,10 @@ export type ApiSchemas = {
     "review_revision": number
     "reviewed_at": string
   }
+  "AssessmentSourceMaterialRead": {
+    "label": string
+    "material_id": string
+  }
   "AssessmentTaskCriterionRead": {
     "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
     "evidence_description": string
@@ -251,6 +267,7 @@ export type ApiSchemas = {
     "source_digest": string
     "source_version": string
     "task_family": string
+    "task_revision_id": (string) | (null)
     "version": number
   }
   "AssessmentVersionReference": {
@@ -269,6 +286,31 @@ export type ApiSchemas = {
     "response_version_id": string
     "task_form_version": number
     "task_id": string
+  }
+  "AssessorCandidateRead": {
+    "currently_eligible": boolean
+    "full_name": string
+    "latest_approval": (ApiSchemas["AssessorEligibilityRead"]) | (null)
+    "subject_user_id": number
+  }
+  "AssessorEligibilityRead": {
+    "actor_user_id": number
+    "course_id": string
+    "created_at": string
+    "id": string
+    "policy_version": string
+    "reason": string
+    "state": "APPROVED" | "WITHDRAWN"
+    "subject_user_id": number
+    "valid_until": (string) | (null)
+    "version": number
+  }
+  "AssessorEligibilityWrite": {
+    "expected_version": number
+    "reason": string
+    "state": "APPROVED" | "WITHDRAWN"
+    "subject_user_id": number
+    "valid_until"?: (string) | (null)
   }
   "AssessorReviewAction": "CONFIRM" | "OVERRIDE" | "WITHHOLD" | "VOID" | "RETURN"
   "AttemptRead": {
@@ -296,6 +338,9 @@ export type ApiSchemas = {
   }
   "BloomKnowledge": "FACTUAL" | "CONCEPTUAL" | "PROCEDURAL" | "METACOGNITIVE"
   "BloomProcess": "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYSE" | "EVALUATE" | "CREATE"
+  "Body_replace_material_api_v1_courses__course_id__materials__material_id__replacement_post": {
+    "file": string
+  }
   "Body_upload_course_material_api_v1_courses__course_id__materials_upload_post": {
     "file": string
   }
@@ -579,6 +624,7 @@ export type ApiSchemas = {
     "content_hash": string
     "course_id": string
     "created_at": string
+    "current_source_revision_id"?: (string) | (null)
     "error_code"?: (string) | (null)
     "extracted_at"?: (string) | (null)
     "extraction_error"?: (string) | (null)
@@ -590,7 +636,12 @@ export type ApiSchemas = {
     "mime_type": string
     "module_id"?: (string) | (null)
     "original_filename"?: (string) | (null)
+    "processing_attempts"?: number
+    "processing_backend"?: string
+    "processing_lease_expires_at"?: (string) | (null)
+    "processing_retry_at"?: (string) | (null)
     "processing_revision"?: number
+    "retired_at"?: (string) | (null)
     "source_url"?: (string) | (null)
     "storage_key"?: (string) | (null)
   }
@@ -629,12 +680,17 @@ export type ApiSchemas = {
   "MaterialRead": {
     "course_id": string
     "created_at": string
+    "error_code"?: (string) | (null)
+    "extraction_error"?: (string) | (null)
     "file_size_bytes": (number) | (null)
     "id": string
     "indexing_status": ApiSchemas["MaterialIndexStatus"]
     "mime_type": string
     "module_id": (string) | (null)
     "original_filename": (string) | (null)
+    "processing_attempts"?: number
+    "processing_lease_expires_at"?: (string) | (null)
+    "processing_retry_at"?: (string) | (null)
     "source_url": (string) | (null)
   }
   "MetricValue": {
@@ -784,11 +840,31 @@ export type ApiSchemas = {
     "reason": string
     "role": ApiSchemas["ScopedRole"]
     "subject_user_id": number
+    "valid_from"?: (string) | (null)
+    "valid_until"?: (string) | (null)
+  }
+  "ScopedRoleAssignmentHistoryRead": {
+    "assigned_at": string
+    "assigned_by_user_id": number
+    "course_id": string
+    "currently_active": boolean
+    "eligibility_approval_id": (string) | (null)
+    "id": string
+    "reason": string
+    "revocation_reason": (string) | (null)
+    "revoked_at": (string) | (null)
+    "revoked_by_user_id": (number) | (null)
+    "role": ApiSchemas["ScopedRole"]
+    "subject_user_id": number
+    "valid_from": string
+    "valid_until": (string) | (null)
+    "version": number
   }
   "ScopedRoleAssignmentRead": {
     "assigned_at": string
     "assigned_by_user_id": number
     "course_id": string
+    "eligibility_approval_id": (string) | (null)
     "id": string
     "reason": string
     "revoked_at": (string) | (null)
@@ -821,12 +897,99 @@ export type ApiSchemas = {
     "circuit_text": string
     "counts": Partial<Record<string, number>>
     "engine": string
+    "engine_versions"?: Partial<Record<string, string>>
+    "measurement_mapping"?: Array<Array<number>>
+    "policy_version"?: string
     "probabilities": Partial<Record<string, number>>
+    "probability_method"?: "exact_statevector"
+    "qubit_order"?: Array<number>
+    "sampled_frequencies"?: Partial<Record<string, number>>
+    "seed"?: number
+    "shots"?: number
+    "statevector"?: Array<Array<number>>
   }
   "SimulationRequest": {
     "operations"?: Array<ApiSchemas["GateOperation"]>
     "qubits"?: number
+    "request_key"?: (string) | (null)
+    "seed"?: number
     "shots"?: number
+    "task_id"?: (string) | (null)
+  }
+  "SimulationRunRead": {
+    "circuit": Record<string, unknown>
+    "circuit_version_id": string
+    "content_digest": string
+    "course_id": (string) | (null)
+    "created_at": string
+    "deadline_at": string
+    "engine_versions": Partial<Record<string, string>>
+    "error_code": (string) | (null)
+    "finished_at": (string) | (null)
+    "owner_id": number
+    "policy_version": string
+    "purpose": "practice" | "task" | "feedback"
+    "result": (ApiSchemas["SimulationRead"]) | (null)
+    "run_id": string
+    "seed": number
+    "shots": number
+    "status": "pending" | "completed" | "failed" | "timed_out" | "interrupted"
+    "submission_id": (string) | (null)
+    "task_id": (string) | (null)
+  }
+  "SourceApprovalRead": {
+    "actor_id": string
+    "created_at": string
+    "id": string
+    "reason": string
+    "revision_id": string
+    "sequence": number
+    "state": string
+  }
+  "SourceApprovalRequest": {
+    "expected_sequence"?: (number) | (null)
+    "reason": string
+    "state": string
+  }
+  "SourcePassageRead": {
+    "chunk_hash": string
+    "chunk_index": number
+    "chunk_text": string
+    "course_id": string
+    "heading": (string) | (null)
+    "id": string
+    "location_label": (string) | (null)
+    "revision_id": string
+  }
+  "SourceRevisionRead": {
+    "approval_state"?: string
+    "approvals"?: Array<ApiSchemas["SourceApprovalRead"]>
+    "content_hash": string
+    "course_id": string
+    "created_at": string
+    "extraction_version": string
+    "id": string
+    "material_id": string
+    "mime_type": string
+    "module_id": (string) | (null)
+    "passages"?: Array<ApiSchemas["SourcePassageRead"]>
+    "provenance": string
+    "source_label": string
+    "storage_key": (string) | (null)
+    "version": number
+  }
+  "SourceUseRead": {
+    "approval_id": (string) | (null)
+    "course_id": string
+    "created_at": string
+    "id": string
+    "material_id": string
+    "output_id": string
+    "output_type": string
+    "output_version": string
+    "passage_id": string
+    "revision_id": string
+    "source_id": string
   }
   "StaleEvidenceReference": {
     "mismatched_fields": Array<string>
@@ -916,11 +1079,54 @@ export type ApiSchemas = {
     "task_type": ApiSchemas["TaskType"]
     "title": string
   }
+  "TaskReviewEventRead": {
+    "actor_user_id": number
+    "course_id": string
+    "created_at": string
+    "id": string
+    "policy_version": string
+    "reason": string
+    "source_approvals": Partial<Record<string, string>>
+    "state": "SUBMITTED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+    "task_revision_id": string
+    "version": number
+  }
+  "TaskReviewHistoryRead": {
+    "events": Array<ApiSchemas["TaskReviewEventRead"]>
+    "revision": ApiSchemas["TaskRevisionRead"]
+  }
+  "TaskReviewSummary": {
+    "available": boolean
+    "content_digest": (string) | (null)
+    "issues": Array<string>
+    "review_version": number
+    "revision": number
+    "revision_id": (string) | (null)
+    "state": "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+  }
+  "TaskReviewWrite": {
+    "expected_review_version": number
+    "expected_revision_id": string
+    "reason": string
+    "state": "SUBMITTED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+  }
+  "TaskRevisionRead": {
+    "actor_user_id": (number) | (null)
+    "content_digest": string
+    "course_id": string
+    "created_at": string
+    "id": string
+    "provenance": "AUTHORED" | "GENERATED" | "LEGACY"
+    "snapshot": Record<string, unknown>
+    "task_id": string
+    "version": number
+  }
   "TaskType": "multiple_choice" | "multiple_answer" | "short_answer" | "code_explanation" | "code_completion" | "quantum_circuit" | "quiz" | "code" | "circuit"
   "TaskUpdate": {
     "difficulty"?: ("beginner" | "intermediate" | "advanced") | (null)
     "due_at"?: (string) | (null)
     "expected_answer"?: (string) | (null)
+    "expected_revision_id"?: (string) | (null)
     "instructions"?: (string) | (null)
     "marking_criteria"?: (Record<string, unknown>) | (null)
     "points"?: (number) | (null)

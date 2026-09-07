@@ -11,6 +11,7 @@ from app.models.lms import Course, CourseState, Enrollment
 from app.models.persistence import StudentProfile
 from app.models.user import User, UserRole
 from support.assessment import build_assessment_blueprint
+from support.task_review import bind_reviewed_fixture_form
 
 
 def seed_assessed_reads(session: Session) -> dict[str, str]:
@@ -34,6 +35,10 @@ def seed_assessed_reads(session: Session) -> dict[str, str]:
     definition.formal_result_eligible = True
     definition.result_eligibility_declared_at = datetime(2026, 8, 16, tzinfo=UTC)
     session.commit()
+    review_event = bind_reviewed_fixture_form(session, form)
+    form.approval_state = AssessmentApprovalState.APPROVED
+    form.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
+    form.approved_by_user_id = owner.id
     definition.approval_state = AssessmentApprovalState.APPROVED
     definition.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
     definition.approved_by_user_id = owner.id
@@ -42,6 +47,7 @@ def seed_assessed_reads(session: Session) -> dict[str, str]:
             course_id=definition.course_id,
             assessment_definition_version_id=definition.id,
             task_form_version_id=form.id,
+            task_review_event_id=review_event.id,
             actor_user_id=owner.id,
             approval_reason="Approved read test form.",
             approval_state=AssessmentApprovalState.APPROVED,

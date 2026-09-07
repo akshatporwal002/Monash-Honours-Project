@@ -67,11 +67,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!response.ok) {
     let detail = 'The request could not be completed.'
     try {
-      const payload = (await response.json()) as { detail?: string | Array<{ msg?: string }> }
+      const payload = (await response.json()) as { detail?: string | Array<{ msg?: string }> | { message?: string } }
       if (typeof payload.detail === 'string') detail = payload.detail
       if (Array.isArray(payload.detail)) {
         detail = payload.detail.map((item) => item.msg).filter(Boolean).join(' ') || detail
       }
+      if (payload.detail && typeof payload.detail === 'object' && 'message' in payload.detail && typeof payload.detail.message === 'string') detail = payload.detail.message
     } catch {
       // Reduce non-JSON failures to a safe message without exposing server internals.
     }
@@ -213,11 +214,23 @@ interface RawDraft {
   updated_at: string
 }
 
+export interface CourseMaterial {
+  id: string
+  filename: string
+  status: string
+  error?: string | null
+  retryAt?: string | null
+  processingAttempts?: number
+}
+
 interface RawMaterial {
   id: string
   original_filename: string | null
   source_url: string | null
   indexing_status: string
+  extraction_error?: string | null
+  processing_retry_at?: string | null
+  processing_attempts?: number
 }
 
 interface RawSettings {
@@ -376,11 +389,14 @@ function normalizeSubmission(raw: RawSubmission): TaskSubmission {
   }
 }
 
-function normalizeMaterial(raw: RawMaterial): { id: string; filename: string; status: string } {
+function normalizeMaterial(raw: RawMaterial): CourseMaterial {
   return {
     id: raw.id,
     filename: raw.original_filename ?? raw.source_url ?? 'Linked learning source',
     status: raw.indexing_status,
+    error: raw.extraction_error ?? null,
+    retryAt: raw.processing_retry_at ?? null,
+    processingAttempts: raw.processing_attempts ?? 0,
   }
 }
 
@@ -396,6 +412,38 @@ function normalizeSettings(raw: RawSettings): SystemSettings {
 }
 
 export const api = {
+  assessorAccess: {
+    candidates: (courseId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['AssessorCandidateRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/assessor-candidates?limit=20&offset=${offset}`, { signal }),
+    eligibilityHistory: (courseId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['AssessorEligibilityRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/assessor-eligibility?limit=20&offset=${offset}`, { signal }),
+    recordEligibility: (courseId: string, payload: ApiSchemas['AssessorEligibilityWrite']) =>
+      request<ApiSchemas['AssessorEligibilityRead']>(`/assessment/courses/${encodeURIComponent(courseId)}/assessor-eligibility`, json('POST', payload)),
+    grantHistory: (courseId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['ScopedRoleAssignmentHistoryRead'][]>(`/assessment/admin/courses/${encodeURIComponent(courseId)}/assignments?limit=20&offset=${offset}`, { signal }),
+    grant: (courseId: string, payload: ApiSchemas['ScopedRoleAssignmentCreate']) =>
+      request<ApiSchemas['ScopedRoleAssignmentRead']>(`/assessment/admin/courses/${encodeURIComponent(courseId)}/assignments`, json('POST', payload)),
+    revoke: (assignmentId: string, reason: string) =>
+      request<ApiSchemas['ScopedRoleAssignmentRead']>(`/assessment/admin/assignments/${encodeURIComponent(assignmentId)}`, json('DELETE', { reason })),
+  },
+  sourceReview: {
+    history: (courseId: string, materialId: string, signal?: AbortSignal) =>
+      request<ApiSchemas['SourceRevisionRead'][]>(`/courses/${encodeURIComponent(courseId)}/materials/${encodeURIComponent(materialId)}/revisions`, { signal }),
+    record: (courseId: string, materialId: string, revisionId: string, payload: ApiSchemas['SourceApprovalRequest']) =>
+      request<ApiSchemas['SourceApprovalRead']>(`/courses/${encodeURIComponent(courseId)}/materials/${encodeURIComponent(materialId)}/revisions/${encodeURIComponent(revisionId)}/approvals`, json('POST', payload)),
+  },
+  taskReview: {
+    tasks: (courseId: string, signal?: AbortSignal) =>
+      request<ApiSchemas['TaskRead'][]>(`/courses/${encodeURIComponent(courseId)}/tasks`, { signal }),
+    summary: (taskId: string, signal?: AbortSignal) =>
+      request<ApiSchemas['TaskReviewSummary']>(`/tasks/${encodeURIComponent(taskId)}/review`, { signal }),
+    history: (taskId: string, offset = 0, signal?: AbortSignal) =>
+      request<ApiSchemas['TaskReviewHistoryRead'][]>(`/tasks/${encodeURIComponent(taskId)}/review/history?limit=20&offset=${offset}`, { signal }),
+    record: (taskId: string, payload: ApiSchemas['TaskReviewWrite']) =>
+      request<ApiSchemas['TaskReviewEventRead']>(`/tasks/${encodeURIComponent(taskId)}/review`, json('POST', payload)),
+    edit: (taskId: string, payload: ApiSchemas['TaskUpdate']) =>
+      request<ApiSchemas['TaskRead']>(`/tasks/${encodeURIComponent(taskId)}`, json('PATCH', payload)),
+  },
   auth: {
     me: async (signal?: AbortSignal) =>
       normalizeAuthUser(await request<RawAuthUser>('/auth/me', { signal })),
@@ -404,6 +452,8 @@ export const api = {
     logout: () => request<void>('/auth/logout', { method: 'POST' }),
   },
   assessment: {
+    authoringTasks: (courseId: string, offset = 0) =>
+      request<ApiSchemas['AssessmentAuthoringTaskRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/authoring-tasks?limit=20&offset=${offset}`),
     createDefinition: (
       courseId: string,
       outcomeId: string,
@@ -499,11 +549,27 @@ export const api = {
         `/students/me/tasks/${encodeURIComponent(taskId)}/submissions`,
         { signal },
       )).map(normalizeSubmission),
-    simulate: (operations: GateOperation[]) =>
-      request<SimulationResult>(
+    simulate: async (operations: GateOperation[], taskId: string): Promise<SimulationResult> => {
+      const record = await request<{
+        run_id: string
+        status: 'pending' | 'completed' | 'failed' | 'timed_out' | 'interrupted'
+        result: Omit<SimulationResult, 'run_id'> | null
+      }>(
         '/students/me/simulate',
-        json('POST', { qubits: 2, operations, shots: 1024 }),
-      ),
+        json('POST', { qubits: 2, operations, shots: 1024, task_id: taskId, request_key: crypto.randomUUID() }),
+      )
+      if (record.status !== 'completed' || !record.result) {
+        const messages = {
+          pending: 'This simulation is still running. Its request has been saved.',
+          failed: 'Simulation failed. Your circuit and the failed run have been saved. Try again.',
+          timed_out: 'Simulation reached its time limit. Your circuit and the failed run have been saved.',
+          interrupted: 'Simulation was interrupted. Your circuit and the interrupted run have been saved.',
+          completed: 'The saved simulation result could not be read.',
+        }
+        throw new ApiError(messages[record.status], 200)
+      }
+      return { ...record.result, run_id: record.run_id }
+    },
     markNotificationRead: (notificationId: string) =>
       request<void>(
         `/students/me/reminders/${encodeURIComponent(notificationId)}/read`,
@@ -643,6 +709,13 @@ export const api = {
         { method: 'POST' },
       )
       return normalizeMaterial(processed.material)
+    },
+    retryMaterial: async (courseId: string, materialId: string) => {
+      const result = await request<{ material: RawMaterial }>(
+        `/courses/${encodeURIComponent(courseId)}/materials/${encodeURIComponent(materialId)}/process?force=true`,
+        { method: 'POST' },
+      )
+      return normalizeMaterial(result.material)
     },
     listMaterials: async (courseId: string) =>
       (await request<RawMaterial[]>(`/courses/${encodeURIComponent(courseId)}/materials/list`)).map(normalizeMaterial),

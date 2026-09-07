@@ -39,6 +39,7 @@ from app.domain.assessment import (
     CriterionDecision,
     ResultState,
 )
+from app.models.publication_integrity import install_binding_guards
 
 if TYPE_CHECKING:
     from app.models.lms import LearningOutcome
@@ -514,6 +515,9 @@ class TaskFormVersion(AssessmentVersionRecord, Base):
     learning_task_id: Mapped[str] = mapped_column(
         ForeignKey("learning_tasks.id", ondelete="RESTRICT"), nullable=False
     )
+    task_revision_id: Mapped[str | None] = mapped_column(
+        ForeignKey("task_revisions.id"), nullable=True
+    )
     source_version: Mapped[str] = mapped_column(String(100), nullable=False)
     source_digest: Mapped[str] = mapped_column(String(100), nullable=False)
     task_family: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -549,6 +553,9 @@ class TaskApproval(Base):
     task_form_version_id: Mapped[str] = mapped_column(
         ForeignKey("task_form_versions.id", ondelete="RESTRICT"), nullable=False
     )
+    task_review_event_id: Mapped[str | None] = mapped_column(
+        ForeignKey("task_review_events.id"), nullable=True
+    )
     actor_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
@@ -570,6 +577,9 @@ class TaskApproval(Base):
     )
 
     task_form_version: Mapped[TaskFormVersion] = relationship(back_populates="approvals")
+
+
+install_binding_guards(TaskFormVersion.__table__, TaskApproval.__table__)
 
 
 class AssessmentAttempt(Base):

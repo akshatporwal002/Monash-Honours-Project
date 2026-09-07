@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
@@ -28,7 +28,6 @@ from app.models import (
     LearningMaterial,
     LearningOutcome,
     LearningTask,
-    MaterialChunk,
     MaterialIndexStatus,
     OutcomeKind,
     OutcomeVersion,
@@ -90,6 +89,11 @@ from app.schemas.lms import (
     TaskUpdate,
     WeeklyEngagementRead,
 )
+from app.schemas.student import SimulationRequest
+from app.services.assessment.publication import (
+    learner_task_available,
+    require_learner_task_available,
+)
 from app.services.assessment.submissions import (
     AssessmentSubmissionService,
     AssessmentTaskDeclaration,
@@ -98,10 +102,14 @@ from app.services.assessment.submissions import (
 from app.services.authentication import normalize_email
 from app.services.gamification import GamificationService, ensure_default_achievements
 from app.services.learning_events import HmacSha256Pseudonymizer
+from app.services.quantum import CircuitOperation, QuantumSimulationError
 from app.services.rag.errors import RagError
+from app.services.rag.source_history import bind_sources, output_digest, resolve_passages
 from app.services.rag.storage import FileStorage
 from app.services.rag.task_generation import GenerateTasksInput
+from app.services.simulation_evidence import SimulationEvidenceError, SimulationEvidenceService
 from app.services.task_generation_runtime import build_grounded_task_generation_service
+from app.services.task_review import TaskReviewError, TaskReviewService
 from app.services.task_types import (
     DEFAULT_TASK_TYPE_REGISTRY,
     InvalidTaskSubmissionError,
@@ -244,6 +252,12 @@ class LmsService:
         state: CourseState,
     ) -> CourseRead:
         course = self._require_course_owner(educator, course_id)
+        self.session.execute(
+            update(Course)
+            .where(Course.id == course_id)
+            .values(id=Course.id, updated_at=Course.updated_at)
+        )
+        self.session.refresh(course)
         if state is CourseState.PUBLISHED:
             if course.state is CourseState.ARCHIVED:
                 raise _conflict("Archived courses cannot be published")
@@ -346,13 +360,32 @@ class LmsService:
         course_id: str,
         outcome_id: str,
     ) -> OutcomeVersion:
-        """Freeze the course owner's current outcome wording for an assessment draft.
+        """Freeze current course wording for an owner or currently assigned assessor."""
+        from app.services.assessment.access import (
+            RoleAssignmentService,
+            ScopedRoleAccessDeniedError,
+        )
 
-        This records the educator-approved course source. It does not approve a
-        formal assessment definition or task form, which remains assessor-only.
-        """
-
-        course = self._require_course_owner(educator, course_id)
+        self.session.execute(
+            update(Course)
+            .where(Course.id == course_id)
+            .values(id=Course.id, updated_at=Course.updated_at)
+        )
+        course = self._get_course(course_id)
+        current_actor = self.session.get(User, educator.id, populate_existing=True)
+        if (
+            current_actor is None
+            or not current_actor.is_active
+            or current_actor.role is not UserRole.EDUCATOR
+        ):
+            raise _forbidden()
+        if course.educator_id != educator.id:
+            try:
+                RoleAssignmentService(self.session).require_assessor_access(
+                    current_actor, course_id
+                )
+            except ScopedRoleAccessDeniedError:
+                raise _forbidden() from None
         self._require_not_archived(course)
         outcome = self._get_outcome(outcome_id)
         module = self._get_module(outcome.module_id)
@@ -471,6 +504,7 @@ class LmsService:
         return [
             self._task_read(task, actor if actor.role is UserRole.STUDENT else None)
             for task in tasks
+            if actor.role is not UserRole.STUDENT or learner_task_available(self.session, task)
         ]
 
     def create_task(
@@ -511,6 +545,20 @@ class LmsService:
         )
         self.session.add(task)
         self.session.flush()
+        try:
+            task.source_references = bind_sources(
+                self.session,
+                course_id=course.id,
+                output_type="task",
+                output_id=task.id,
+                output_version=output_digest([task.instructions, task.source_references]),
+                references=task.source_references,
+                strict=True,
+            )
+        except ValueError as error:
+            self.session.rollback()
+            raise _unprocessable(str(error)) from error
+        TaskReviewService(self.session).capture(task, educator.id)
         self._audit(educator, "task.created", "task", task.id)
         self._commit()
         return self._task_read(task)
@@ -546,6 +594,7 @@ class LmsService:
             raise _unprocessable(str(error)) from error
         for task in tasks:
             task.due_at = payload.due_at
+            TaskReviewService(self.session).capture(task, educator.id)
             self._audit(educator, "task.generated", "task", task.id)
         self._commit()
         return [self._task_read(task) for task in tasks]
@@ -560,6 +609,8 @@ class LmsService:
         course = self._require_course_owner(educator, task.course_id or "")
         self._require_not_archived(course)
         values = payload.model_dump(exclude_unset=True)
+        review = TaskReviewService(self.session)
+        review.prepare_edit(educator, task, values.pop("expected_revision_id", None))
         final_position = values.get("position", task.position)
         prerequisites = values.get("prerequisite_task_ids", task.prerequisite_task_ids)
         self._validate_prerequisites(course.id, prerequisites, final_position, task.id)
@@ -569,8 +620,24 @@ class LmsService:
                 values.get("source_references", task.source_references),
             )
         mapping = {"prompt": "description"}
+        if review.latest_revision(task.id) is None:
+            review.capture(task, provenance="LEGACY")
         for name, value in values.items():
             setattr(task, mapping.get(name, name), value)
+        try:
+            task.source_references = bind_sources(
+                self.session,
+                course_id=course.id,
+                output_type="task",
+                output_id=task.id,
+                output_version=output_digest([task.instructions, task.source_references]),
+                references=task.source_references,
+                strict=True,
+            )
+        except ValueError as error:
+            self.session.rollback()
+            raise _unprocessable(str(error)) from error
+        review.capture(task, educator.id)
         self._audit(educator, "task.updated", "task", task.id)
         self._commit()
         return self._task_read(task)
@@ -580,6 +647,8 @@ class LmsService:
         if not task.course_id:
             raise _not_found("Task")
         self._require_course_read(actor, task.course_id)
+        if actor.role is UserRole.STUDENT:
+            require_learner_task_available(self.session, task)
         return self._task_read(task, actor if actor.role is UserRole.STUDENT else None)
 
     def get_student_task(self, student: User, task_id: str) -> TaskRead:
@@ -618,7 +687,7 @@ class LmsService:
         return DraftRead.model_validate(draft)
 
     def get_draft(self, student: User, task_id: str) -> DraftRead | None:
-        task = self._require_student_task(student, task_id)
+        task = self._require_student_task(student, task_id, require_available=False)
         draft = self.session.scalar(
             select(SubmissionDraft).where(
                 SubmissionDraft.student_id == student.id,
@@ -777,7 +846,7 @@ class LmsService:
         return self._attempt_read(attempt, points_awarded)
 
     def list_attempts(self, student: User, task_id: str) -> list[AttemptRead]:
-        self._require_student_task(student, task_id)
+        self._require_student_task(student, task_id, require_available=False)
         attempts = list(
             self.session.scalars(
                 select(SubmissionAttempt)
@@ -1305,7 +1374,9 @@ class LmsService:
         return list(
             self.session.scalars(
                 select(LearningMaterial)
-                .where(LearningMaterial.course_id == course_id)
+                .where(
+                    LearningMaterial.course_id == course_id, LearningMaterial.retired_at.is_(None)
+                )
                 .order_by(LearningMaterial.created_at.desc())
             ).all()
         )
@@ -1323,7 +1394,7 @@ class LmsService:
                 LearningMaterial.course_id == course_id,
             )
         )
-        if material is None:
+        if material is None or material.retired_at is not None:
             raise _not_found("Learning material")
         return material
 
@@ -1589,12 +1660,78 @@ class LmsService:
             raise _conflict("Student profile setup is incomplete")
         return profile
 
-    def _require_student_task(self, student: User, task_id: str) -> LearningTask:
+    def _require_student_task(
+        self, student: User, task_id: str, *, require_available: bool = True
+    ) -> LearningTask:
         task = self._get_task(task_id)
         if not task.course_id:
             raise _not_found("Task")
         self._require_course_read(student, task.course_id)
+        if require_available:
+            require_learner_task_available(self.session, task)
         return task
+
+    def simulate_student_circuit(self, student: User, payload: SimulationRequest) -> dict:
+        if payload.task_id:
+            task = self._require_student_task(student, payload.task_id)
+            self._require_unlocked(student, task)
+            if task.task_type.value not in {"circuit", "quantum_circuit"}:
+                raise LmsServiceError(422, "This task does not support circuit simulation")
+        try:
+            return SimulationEvidenceService(self.session).execute(
+                owner_id=student.id,
+                task_id=payload.task_id,
+                qubits=payload.qubits,
+                operations=[
+                    CircuitOperation(op.gate, tuple(op.targets)) for op in payload.operations
+                ],
+                shots=payload.shots,
+                seed=payload.seed,
+                request_key=payload.request_key,
+            )
+        except QuantumSimulationError as error:
+            raise LmsServiceError(422, str(error)) from error
+        except SimulationEvidenceError as error:
+            raise LmsServiceError(409, str(error)) from error
+
+    def read_simulation(self, actor: User, run_id: str) -> dict:
+        from app.models.simulation import CircuitVersion, SimulationRun
+
+        run = self.session.get(SimulationRun, run_id)
+        if run is None:
+            raise _not_found("Simulation")
+        circuit = self.session.get(CircuitVersion, run.circuit_version_id)
+        if actor.role is UserRole.STUDENT:
+            if run.owner_id != actor.id:
+                raise _not_found("Simulation")
+            if circuit.course_id:
+                self._require_course_read(actor, circuit.course_id)
+        elif circuit.course_id:
+            self._require_course_read(actor, circuit.course_id)
+        else:
+            raise _not_found("Simulation")
+        return SimulationEvidenceService(self.session).read(run_id)
+
+    def list_student_simulations(self, student: User, task_id: str, limit: int) -> list[dict]:
+        from app.models.simulation import CircuitVersion, SimulationRun
+
+        self._require_student_task(student, task_id, require_available=False)
+        ids = self.session.scalars(
+            select(SimulationRun.id)
+            .join(
+                CircuitVersion,
+                CircuitVersion.id == SimulationRun.circuit_version_id,
+            )
+            .where(
+                CircuitVersion.task_id == task_id,
+                SimulationRun.owner_id == student.id,
+                SimulationRun.purpose == "task",
+            )
+            .order_by(SimulationRun.created_at.desc(), SimulationRun.id)
+            .limit(limit)
+        ).all()
+        service = SimulationEvidenceService(self.session)
+        return [service.read(run_id) for run_id in ids]
 
     def _require_unlocked(self, student: User, task: LearningTask) -> None:
         completed = set(
@@ -1628,13 +1765,14 @@ class LmsService:
         )
         if not course_ids:
             return []
-        return list(
+        tasks = list(
             self.session.scalars(
                 select(LearningTask)
                 .where(LearningTask.course_id.in_(course_ids))
                 .order_by(LearningTask.position)
             ).all()
         )
+        return [task for task in tasks if learner_task_available(self.session, task)]
 
     def _get_or_create_draft(self, student_id: int, task_id: str) -> SubmissionDraft:
         draft = self.session.scalar(
@@ -1705,7 +1843,13 @@ class LmsService:
                 access_status = "in_progress"
         if not task.course_id or not task.module_id or not task.learning_outcome_id:
             raise _not_found("Task")
-        assessment = AssessmentSubmissionService(self.session).declaration_for_task(task)
+        try:
+            assessment = AssessmentSubmissionService(self.session).declaration_for_task(task)
+        except TaskReviewError:
+            if student is not None:
+                raise
+            # Staff must still see saved edits when they invalidate publication.
+            assessment = None
         return TaskRead(
             id=task.id,
             title=task.title,
@@ -1997,23 +2141,14 @@ class LmsService:
             raise _unprocessable(
                 "Generated tasks require at least one authorised course source reference"
             )
-        chunk_ids = set(
-            self.session.scalars(
-                select(MaterialChunk.id)
-                .join(
-                    LearningMaterial,
-                    LearningMaterial.id == MaterialChunk.material_id,
-                )
-                .where(
-                    LearningMaterial.course_id == course_id,
-                    MaterialChunk.id.in_(normalized),
-                    func.length(func.trim(MaterialChunk.chunk_text)) > 0,
-                )
-            ).all()
-        )
+        chunk_ids = {
+            reference
+            for reference, passage, _ in resolve_passages(self.session, course_id, normalized)
+            if passage.chunk_text.strip()
+        }
         if set(normalized) != chunk_ids:
             raise _unprocessable(
-                "Generated task source references must identify indexed chunks in this course"
+                "Generated task source references must identify preserved passages in this course"
             )
         return normalized
 
@@ -2056,11 +2191,16 @@ class LmsService:
             if modules
             else 0
         )
-        tasks = self.session.scalar(
-            select(func.count(LearningTask.id)).where(LearningTask.course_id == course.id)
+        tasks = list(
+            self.session.scalars(select(LearningTask).where(LearningTask.course_id == course.id))
         )
         if not modules or not outcomes or not tasks:
             raise _conflict("Add a module, learning outcome, and task before publishing")
+        review = TaskReviewService(self.session)
+        if any(not review.summary(task)["available"] for task in tasks):
+            raise _conflict("Every task needs current educator approval before publishing")
+        for task in tasks:
+            require_learner_task_available(self.session, task)
 
     def _course_read(self, course: Course) -> CourseRead:
         module_count = (
@@ -2303,7 +2443,7 @@ def bootstrap_demo(session: Session) -> tuple[list[User], Course]:
             code="QL-101",
             title="Quantum Computing Foundations",
             description="A compact introduction to qubits, circuits, and measurement.",
-            state=CourseState.PUBLISHED,
+            state=CourseState.DRAFT,
         )
         session.add(course)
         session.flush()
@@ -2464,6 +2604,8 @@ def bootstrap_demo(session: Session) -> tuple[list[User], Course]:
                 prerequisite_task_ids=[previous_id] if previous_id else [],
             )
             session.add(task)
+            session.flush()
+            TaskReviewService(session).capture(task)
             previous_id = task.id
     enrollment = session.scalar(
         select(Enrollment).where(

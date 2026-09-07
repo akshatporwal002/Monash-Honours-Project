@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import SessionLocal, get_db
-from app.models.user import ScopedRole, User
+from app.models.user import ScopedRole, User, UserRole
 from app.services.assessment.access import (
     RoleAssignmentConflictError,
     RoleAssignmentNotFoundError,
@@ -39,15 +39,24 @@ AssessmentPublicationPolicy = Callable[[User, str], bool]
 
 
 def get_scoped_role_eligibility() -> ScopedRoleEligibility:
-    """Fail closed until the product owner supplies an eligibility policy."""
+    """D-02 teaching-account eligibility, with course approval enforced by the service."""
 
-    return None
+    return lambda subject, role: role is ScopedRole.ASSESSOR and subject.role is UserRole.EDUCATOR
 
 
-def get_assessment_publication_policy() -> AssessmentPublicationPolicy:
-    """Fail closed until the live-pilot publication policy is approved."""
+def get_assessment_publication_policy(
+    session: Annotated[Session, Depends(get_db)],
+) -> AssessmentPublicationPolicy:
+    """D-02 authorises current course assessors; definition checks enforce content readiness."""
 
-    return lambda _actor, _course_id: False
+    def permitted(actor: User, course_id: str) -> bool:
+        try:
+            RoleAssignmentService(session).require_assessor_access(actor, course_id)
+        except ScopedRoleAccessDeniedError:
+            return False
+        return True
+
+    return permitted
 
 
 def get_role_assignment_service(

@@ -2,53 +2,61 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from collections.abc import Callable
+from datetime import datetime
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
+from app.core.config import Settings, settings
 from app.models import LearningMaterial, MaterialChunk, MaterialIndexStatus
 from app.services.rag.chunking import HeadingAwareChunker, WhitespaceTokenCounter
 from app.services.rag.errors import (
     InvalidMaterialStateError,
-    MaterialAlreadyProcessingError,
 )
 from app.services.rag.extraction.docx import DocxDocumentExtractor
 from app.services.rag.extraction.pdf import PdfDocumentExtractor
 from app.services.rag.extraction.pptx import PptxDocumentExtractor
 from app.services.rag.normalisation import ensure_document_size, normalise_text
+from app.services.rag.processing_claims import LostMaterialClaim, MaterialProcessingClaims, utc_now
+from app.services.rag.source_history import snapshot_source
 from app.services.rag.storage import FileStorage
 
 
 class OfflineMaterialProcessor:
     """Compatibility adapter for the explicit material processing endpoint."""
 
-    def __init__(self, session: Session, storage: FileStorage) -> None:
+    def __init__(
+        self,
+        session: Session,
+        storage: FileStorage,
+        *,
+        now: Callable[[], datetime] = utc_now,
+        configured_settings: Settings = settings,
+    ) -> None:
         self.session = session
         self.storage = storage
+        self.now = now
+        self.config = configured_settings
 
     def process(
-        self,
-        material: LearningMaterial,
-        force: bool = False,
+        self, material: LearningMaterial, force: bool = False, *, recover: bool = False
     ) -> tuple[int, int]:
-        if material.indexing_status is MaterialIndexStatus.PROCESSING:
-            raise MaterialAlreadyProcessingError()
+        self.session.refresh(material)
+        if material.retired_at is not None:
+            raise InvalidMaterialStateError()
         if material.indexing_status is MaterialIndexStatus.INDEXED and not force:
             count = self._chunk_count(material.id)
             return count, count
-        if material.indexing_status not in {
-            MaterialIndexStatus.PENDING,
-            MaterialIndexStatus.FAILED,
-            MaterialIndexStatus.EXTRACTED,
-            MaterialIndexStatus.INDEXED,
-        }:
-            raise InvalidMaterialStateError()
-        if force:
-            material.processing_revision += 1
-            self.session.commit()
-        index_material_offline(self.session, self.storage, material)
+        index_material_offline(
+            self.session,
+            self.storage,
+            material,
+            force=force,
+            recover=recover,
+            now=self.now,
+            configured_settings=self.config,
+        )
         count = self._chunk_count(material.id)
         return count, count
 
@@ -67,6 +75,11 @@ def index_material_offline(
     session: Session,
     storage: FileStorage,
     material: LearningMaterial,
+    *,
+    force: bool = False,
+    recover: bool = False,
+    now: Callable[[], datetime] = utc_now,
+    configured_settings: Settings = settings,
 ) -> LearningMaterial:
     """Extract and persist chunks without downloading an embedding model."""
     extractors = {
@@ -78,12 +91,10 @@ def index_material_offline(
             "application/vnd.openxmlformats-officedocument.presentationml.presentation"
         ): PptxDocumentExtractor(),
     }
-    extractor = extractors[material.mime_type]
-    if not material.storage_key:
-        raise ValueError("Uploaded material has no storage key")
-    material.indexing_status = MaterialIndexStatus.PROCESSING
-    session.commit()
+    claims = MaterialProcessingClaims(session, now=now, configured_settings=configured_settings)
+    claim = claims.claim(material, backend="offline", force=force, recover=recover)
     try:
+        extractor = extractors[material.mime_type]
         with storage.open_read(material.storage_key) as source:
             extracted = extractor.extract(source)
         blocks = tuple(
@@ -98,47 +109,49 @@ def index_material_offline(
         )
         ensure_document_size(
             [block.text for block in blocks],
-            settings.rag_max_extracted_chars,
+            configured_settings.rag_max_extracted_chars,
         )
         drafts = HeadingAwareChunker(
             WhitespaceTokenCounter(),
-            settings.rag_chunk_target_tokens,
-            settings.rag_chunk_max_tokens,
-            settings.rag_chunk_overlap_tokens,
+            configured_settings.rag_chunk_target_tokens,
+            configured_settings.rag_chunk_max_tokens,
+            configured_settings.rag_chunk_overlap_tokens,
         ).chunk(blocks)
+        claims.guard_publication(claim)
+        session.refresh(material)
         session.execute(delete(MaterialChunk).where(MaterialChunk.material_id == material.id))
-        now = datetime.now(UTC)
-        session.add_all(
-            [
-                MaterialChunk(
-                    material_id=material.id,
-                    chunk_index=draft.chunk_index,
-                    chunk_text=draft.text,
-                    heading=draft.heading,
-                    location_label=draft.location_label,
-                    token_count=draft.token_count,
-                    chunk_hash=draft.chunk_hash,
-                    embedding_model="local-lexical-v1",
-                    embedding_version="v1",
-                    embedding_dimension=0,
-                    indexed_at=now,
-                )
-                for draft in drafts
-            ]
+        finished_at = claims.now()
+        chunks = [
+            MaterialChunk(
+                material_id=material.id,
+                chunk_index=draft.chunk_index,
+                chunk_text=draft.text,
+                heading=draft.heading,
+                location_label=draft.location_label,
+                token_count=draft.token_count,
+                chunk_hash=draft.chunk_hash,
+                embedding_model="local-lexical-v1",
+                embedding_version="v1",
+                embedding_dimension=0,
+                indexed_at=finished_at,
+            )
+            for draft in drafts
+        ]
+        session.add_all(chunks)
+        snapshot_source(
+            session, material, chunks, blocks=blocks, extraction_version="heading-chunker-v1"
         )
+        material.extraction_error = material.failure_stage = material.error_code = None
         material.indexing_status = MaterialIndexStatus.INDEXED
-        material.extracted_at = now
-        material.indexed_at = now
-        session.commit()
-    except Exception:
+        material.extracted_at = finished_at
+        material.indexed_at = finished_at
+        claims.complete(claim)
+    except LostMaterialClaim:
         session.rollback()
-        stored = session.get(LearningMaterial, material.id)
-        if stored is not None:
-            stored.indexing_status = MaterialIndexStatus.FAILED
-            stored.failure_stage = "extraction"
-            stored.error_code = "local_indexing_failed"
-            stored.extraction_error = "The material was saved but its text could not be indexed."
-            session.commit()
+        raise
+    except Exception as error:
+        claims.fail(claim, error)
+        session.refresh(material)
         raise
     session.refresh(material)
     return material

@@ -86,7 +86,9 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: none. Suggested owners: product owner, assessors, privacy, research, and operations.
 
-    All 12 entries in the decision register remain `PENDING`. Record named owners, approved values, versions, dates, and affected scope. Start with one quantum outcome and its real criteria, tools, help rules, and learner result policy. Also resolve reassessment, role assignment, evaluator release, retention, escalation, legacy retirement, reuse, and release environments.
+    The user selected D-05 B, D-07 C, and A for every other offered decision. D-10 retains its immediate legacy-retirement approval. Record named owners, remaining detailed values, versions, dates, and affected scope. Start with one quantum outcome and its real criteria, tools, help rules, and learner result policy. Also finish the scoped records for reassessment, role assignment, evaluator release, retention, escalation, reuse, and release environments.
+
+    Task 8 progress, 7 September 2026: [approved selections](docs/learnlens/task-08-approved-selections.md) record the user's choices. D-05 allows unrestricted approved conceptual hints during supported assessment, with separate unaided transfer. D-07 allows AI criterion suggestions only after validation, with human confirmation. The [decision package](docs/learnlens/task-08-decision-package.md) retains outstanding details and activation evidence. Task 8 is partial; the selected options do not need to be chosen again.
 
     Done when each dependent feature has the specific approval it needs. Unrelated implementation can continue while a decision remains pending. Test fixture settings do not approve live policy.
 
@@ -95,6 +97,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 9. **Preserve the exact approved sources used by each output.**
 
     Dependencies: none for versioned storage; Task 8, D-08, for retention and destructive deletion rules. Suggested owner: retrieval and data.
+
+    Task 9 progress, 7 September 2026: implemented and locally verified. The [source-history handoff](docs/learnlens/task-09-source-history.md) records immutable revisions, approval events, preserved output citations, reviewer routes, retirement, and migration evidence. The full backend suite passed 741 tests with 85.31% service coverage; 178 frontend tests passed. Publication approval enforcement remains Task 12, and processing recovery remains Task 10.
 
     Material reprocessing deletes and recreates chunks. Current task references and hashes do not preserve a complete immutable source revision and passage. Add durable source versions, locations, approval state, and output links. Reprocessing, replacement, or retirement must preserve evidence already used by a task, feedback item, or assessment.
 
@@ -106,6 +110,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Task 9. Suggested owner: retrieval and worker.
 
+    Task 10 progress, 7 September 2026: implemented and locally verified. The [processing-recovery handoff](docs/learnlens/task-10-material-processing-recovery.md) records durable claims, restart recovery, bounded retries, publication checks, educator controls, and migration evidence. The final backend suite passed 754 tests with 85.69% service coverage; 179 frontend tests passed.
+
     Processing saves `PROCESSING` before extraction. Later requests reject material already in that state, and the worker has no material recovery pass. Add durable processing claims, stale-claim recovery, bounded retries, and clear terminal errors.
 
     Done when a saved upload finishes or reports a recoverable failure after interruption. Concurrent workers must not publish duplicate or partial source revisions. Retain the original upload and useful processing status.
@@ -116,6 +122,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: none. Suggested owner: quantum services.
 
+    Task 11 progress, 7 September 2026: implemented and locally verified. The [simulation-evidence handoff](docs/learnlens/task-11-simulation-evidence.md) records process timeouts, immutable circuit and run history, exact probabilities, saved feedback references, scoped reads, replay, interrupted-run recovery, and migration protection. The final backend suite passed 782 tests with 85.52% service coverage; 180 frontend tests passed. Supported capabilities are ready for Task 12 publication checks.
+
     Simulation supports H, X, and CX, with qubit and shot limits. It lacks an operation limit and process-level timeout. Its probabilities are sampled frequencies. Feedback reruns circuits without saving a durable run there. Persist circuit versions, digest, qubit order, measurement mapping, seed, shots, engine versions, counts, and run status. Expose the supported capabilities for publication checks in Task 12.
 
     Done when runs are bounded and reproducible from saved settings. Use exact probabilities or sampling tolerances where justified. Gate presence or distribution agreement must not stand in for every state property or conceptual claim.
@@ -125,6 +133,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 12. **Finish educator approval, assessor setup, and publication controls.**
 
     Dependencies: Tasks 2 and 9; Task 8, D-02, D-04, and D-05. Circuit publication also needs Task 11. Suggested owner: course and assessment teams.
+
+    Task 12 progress, 7 September 2026: implemented and locally verified. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records explicit staff eligibility and grants, source and task review, immutable history, current formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides. Integration and remote checks are tracked in [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8).
 
     Generated tasks become ordinary task rows without a general review lifecycle. Course publication checks do not prove individual task approval. Formal definition approval exists, but runtime publication policy remains closed. Add review, edit, approve, reject, and history controls. Connect approved role policies and require complete outcome, criterion, source, support, access, and task-form versions.
 

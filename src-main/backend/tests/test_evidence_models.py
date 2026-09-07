@@ -228,7 +228,14 @@ def test_evidence_migration_is_append_only_and_preserves_legacy_records(tmp_path
     with sqlite3.connect(clean_head_backup.backup_path) as source_connection:
         with sqlite3.connect(database_path) as restored_connection:
             source_connection.backup(restored_connection)
-    command.downgrade(config, "20260815_0018")
+    restored_manifest = database_manifest(database_path)
+    # Head now archives legacy task content even before new learning evidence exists.
+    with pytest.raises(RuntimeError, match="Task review history is protected"):
+        command.downgrade(config, "20260815_0018")
+    assert database_manifest(database_path) == restored_manifest
+    with sqlite3.connect(backup.backup_path) as source_connection:
+        with sqlite3.connect(database_path) as restored_connection:
+            source_connection.backup(restored_connection)
     downgraded_engine = create_engine(database_url)
     try:
         assert NEW_TABLES.isdisjoint(inspect(downgraded_engine).get_table_names())

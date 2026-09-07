@@ -124,6 +124,10 @@ class RoleAssignment(Base):
         nullable=False,
     )
     version: Mapped[int] = mapped_column(Integer, nullable=False)
+    eligibility_approval_id: Mapped[str | None] = mapped_column(
+        ForeignKey("assessor_eligibility_approvals.id"),
+        nullable=True,
+    )
     assigned_by_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,

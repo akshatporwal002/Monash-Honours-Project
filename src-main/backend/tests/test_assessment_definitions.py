@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from support.assessment import assign_assessor
+from support.task_review import approve_sourced_fixture_task
 
 from app.core.security import hash_password
 from app.domain.assessment import AssessmentPurpose, BloomKnowledge, BloomProcess
@@ -17,6 +19,7 @@ from app.models.enums import TaskType
 from app.models.lms import Course, CourseModule, LearningOutcome, OutcomeKind
 from app.models.persistence import LearningTask
 from app.models.user import User, UserRole
+from app.services.assessment.access import ScopedRoleAccessDeniedError
 from app.services.assessment.definitions import (
     AssessmentDefinitionConflictError,
     AssessmentDefinitionDraft,
@@ -69,6 +72,7 @@ def _setup(session: Session) -> tuple[str, str, int, str]:
             module="Quantum evidence",
             description="Analyse an interference observation.",
             instructions="Use the observed pattern to justify the claim.",
+            expected_answer="Connect the observed pattern to the claim.",
             task_type=TaskType.QUIZ,
             difficulty="intermediate",
             points=0,
@@ -93,6 +97,10 @@ def _setup(session: Session) -> tuple[str, str, int, str]:
     )
     session.add(source)
     session.commit()
+    approve_sourced_fixture_task(
+        session, session.scalar(select(LearningTask).where(LearningTask.course_id == course.id))
+    )
+    assign_assessor(session, owner, course.id, owner)
     return course.id, outcome.id, owner.id, source.id
 
 
@@ -202,7 +210,7 @@ def test_stale_definition_update_returns_conflict(db_session: Session) -> None:
     )
     db_session.add(other_course)
     db_session.commit()
-    with pytest.raises(AssessmentDefinitionConflictError):
+    with pytest.raises(ScopedRoleAccessDeniedError):
         service.approve(
             course_id=other_course.id,
             assessment_definition_id=created.assessment_definition_id,
@@ -388,3 +396,24 @@ def test_invalid_rule_settings_block_approval_atomically(
         row.approval_state is AssessmentApprovalState.DRAFT for row in created.criterion_versions
     )
     assert db_session.scalars(select(TaskApproval)).all() == []
+
+
+@pytest.mark.parametrize("reason, expected_version", [("", 1), ("Checked", 99)])
+def test_failed_approval_releases_service_transaction(db_session, reason, expected_version):
+    course_id, outcome_id, owner_id, outcome_version_id = _setup(db_session)
+    service = _service(db_session)
+    draft = service.create_draft(
+        course_id=course_id,
+        learning_outcome_id=outcome_id,
+        actor_user_id=owner_id,
+        draft=_draft(outcome_version_id=outcome_version_id, task_id=_task_id(db_session)),
+    )
+    with pytest.raises((AssessmentDefinitionValidationError, AssessmentDefinitionConflictError)):
+        service.approve(
+            course_id=course_id,
+            assessment_definition_id=draft.assessment_definition_id,
+            expected_version=expected_version,
+            actor_user_id=owner_id,
+            approval_reason=reason,
+        )
+    assert not db_session.in_transaction()

@@ -83,10 +83,17 @@ class LocalFileStorage:
         )
 
     def commit(self, staged: StagedUpload, material_id: str) -> str:
-        storage_key = f"{material_id}/source{staged.safe_extension}"
+        digest = staged.content_hash.removeprefix("sha256:")
+        storage_key = f"{material_id}/source-{digest}{staged.safe_extension}"
         destination = self._resolve_key(storage_key)
         destination.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(staged.temporary_path, destination)
+        # Identical bytes may reuse a path; different revisions never replace an old file.
+        if destination.exists():
+            if hashlib.sha256(destination.read_bytes()).hexdigest() != digest:
+                raise ValueError("Stored source content does not match its immutable key")
+            staged.temporary_path.unlink(missing_ok=True)
+        else:
+            os.replace(staged.temporary_path, destination)
         return storage_key
 
     def delete(self, storage_key: str | None) -> None:

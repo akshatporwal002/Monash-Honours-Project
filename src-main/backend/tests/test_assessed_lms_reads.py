@@ -7,6 +7,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_blueprint
+from support.task_review import (
+    approve_fixture_task,
+    bind_reviewed_fixture_form,
+    bootstrap_reviewed_demo,
+)
 
 from app.db.session import get_db
 from app.main import create_app
@@ -22,11 +27,11 @@ from app.models.lms import (
 from app.models.persistence import LearningTask
 from app.models.user import UserRole
 from app.schemas.lms import SubmissionCreate
-from app.services.lms import DEMO_PASSWORD, LmsService, bootstrap_demo
+from app.services.lms import DEMO_PASSWORD, LmsService
 
 
 def prepare_reads(session: Session, legacy_score: int | None):
-    users, _ = bootstrap_demo(session)
+    users, _ = bootstrap_reviewed_demo(session)
     student = next(user for user in users if user.role is UserRole.STUDENT)
     definition, _, _, _, form, owner = build_assessment_blueprint(session)
     course = session.get(Course, definition.course_id)
@@ -56,6 +61,7 @@ def prepare_reads(session: Session, legacy_score: int | None):
             module=task.module,
             description="Practice",
             instructions="Practice",
+            expected_answer="Practice",
             task_type=task.task_type,
             difficulty="beginner",
             points=0,
@@ -66,6 +72,7 @@ def prepare_reads(session: Session, legacy_score: int | None):
         )
         session.add(practice)
         session.flush()
+        approve_fixture_task(session, practice)
         practice_draft = SubmissionDraft(student_id=student.id, task_id=practice.id)
         session.add(practice_draft)
         session.flush()
@@ -84,6 +91,10 @@ def prepare_reads(session: Session, legacy_score: int | None):
     definition.formal_result_eligible = True
     definition.result_eligibility_declared_at = datetime(2026, 8, 16, tzinfo=UTC)
     session.commit()
+    review_event = bind_reviewed_fixture_form(session, form)
+    form.approval_state = AssessmentApprovalState.APPROVED
+    form.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
+    form.approved_by_user_id = owner.id
     definition.approval_state = AssessmentApprovalState.APPROVED
     definition.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
     definition.approved_by_user_id = owner.id
@@ -92,6 +103,7 @@ def prepare_reads(session: Session, legacy_score: int | None):
             course_id=course.id,
             assessment_definition_version_id=definition.id,
             task_form_version_id=form.id,
+            task_review_event_id=review_event.id,
             actor_user_id=owner.id,
             approval_reason="Approved test form.",
             approval_state=AssessmentApprovalState.APPROVED,
@@ -100,6 +112,7 @@ def prepare_reads(session: Session, legacy_score: int | None):
         )
     )
     session.commit()
+    approve_fixture_task(session, task)
     attempt = LmsService(session).submit(
         student,
         task.id,

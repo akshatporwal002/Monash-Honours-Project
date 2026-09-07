@@ -7,6 +7,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import Field
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.api.assessment_dependencies import (
@@ -28,16 +29,22 @@ from app.domain.assessment import (
     ResultState,
 )
 from app.models.assessment import AssessmentDefinitionVersion
+from app.models.lms import Course
 from app.models.user import RoleAssignment, UserRole
 from app.schemas.lms import (
+    AssessmentAuthoringTaskRead,
     AssessmentDefinitionApproval,
     AssessmentDefinitionDraftCreate,
     AssessmentDefinitionDraftUpdate,
     AssessmentDefinitionRead,
     AssessmentTaskCriterionRead,
     AssessmentTaskFormRead,
+    AssessorCandidateRead,
+    AssessorEligibilityRead,
+    AssessorEligibilityWrite,
     LmsSchema,
     ScopedRoleAssignmentCreate,
+    ScopedRoleAssignmentHistoryRead,
     ScopedRoleAssignmentRead,
     ScopedRoleAssignmentRevoke,
 )
@@ -48,6 +55,7 @@ from app.services.assessment.definitions import (
     CriterionDraft,
     TaskFormDraft,
 )
+from app.services.assessment.eligibility import AssessorEligibilityService
 from app.services.assessment.repository import AssessmentDefinitionNotFoundError
 from app.services.assessment.review import (
     AssessmentReviewActionRequest,
@@ -142,6 +150,65 @@ def get_assessment_review_service(
 ReviewService = Annotated[AssessmentReviewService, Depends(get_assessment_review_service)]
 
 
+@router.get(
+    "/courses/{course_id}/authoring-tasks", response_model=list[AssessmentAuthoringTaskRead]
+)
+def read_assessment_authoring_tasks(
+    course_id: str,
+    actor: CurrentUser,
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    from app.services.assessment.publication import authoring_tasks
+    from app.services.task_review import TaskReviewError
+
+    try:
+        return authoring_tasks(session, actor, course_id, limit=limit, offset=offset)
+    except TaskReviewError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+
+
+@router.post(
+    "/courses/{course_id}/assessor-eligibility",
+    response_model=AssessorEligibilityRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def record_assessor_eligibility(
+    course_id: str,
+    payload: AssessorEligibilityWrite,
+    educator: CurrentEducator,
+    request: Request,
+    session: Annotated[Session, Depends(get_db)],
+):
+    try:
+        return AssessorEligibilityService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        ).record(educator, course_id=course_id, **payload.model_dump())
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
+@router.get(
+    "/courses/{course_id}/assessor-eligibility", response_model=list[AssessorEligibilityRead]
+)
+def read_assessor_eligibility(
+    course_id: str,
+    actor: CurrentUser,
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    try:
+        return AssessorEligibilityService(session).history(
+            actor, course_id, limit=limit, offset=offset
+        )
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
 @router.post(
     "/admin/courses/{course_id}/assignments",
     response_model=ScopedRoleAssignmentRead,
@@ -160,7 +227,56 @@ def assign_scoped_role(
             course_id=course_id,
             role=payload.role,
             reason=payload.reason,
+            valid_from=payload.valid_from,
+            valid_until=payload.valid_until,
         )
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
+@router.get("/courses/{course_id}/assessor-candidates", response_model=list[AssessorCandidateRead])
+def read_assessor_candidates(
+    course_id: str,
+    actor: CurrentUser,
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    try:
+        return AssessorEligibilityService(session).candidates(
+            actor, course_id, limit=limit, offset=offset
+        )
+    except Exception as error:
+        raise_assignment_http_error(error)
+        raise
+
+
+@router.get(
+    "/admin/courses/{course_id}/assignments",
+    response_model=list[ScopedRoleAssignmentHistoryRead],
+)
+def read_scoped_role_history(
+    course_id: str,
+    administrator: CurrentAdministrator,
+    assignments: RoleAssignments,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    try:
+        rows = assignments.history(administrator, course_id, limit=limit, offset=offset)
+        return [
+            {
+                **ScopedRoleAssignmentRead.model_validate(row).model_dump(),
+                "currently_active": any(
+                    active.id == row.id
+                    for active in assignments.list_active_assignments(row.subject_user_id)
+                ),
+                "revocation_reason": row.revocation_reason,
+                "revoked_by_user_id": row.revoked_by_user_id,
+            }
+            for row in rows
+        ]
     except Exception as error:
         raise_assignment_http_error(error)
         raise
@@ -275,6 +391,11 @@ def publish_assessment_definition(
     publication_policy: PublicationPolicy,
 ) -> AssessmentDefinitionRead:
     try:
+        definitions.session.execute(
+            update(Course)
+            .where(Course.id == course_id)
+            .values(id=Course.id, updated_at=Course.updated_at)
+        )
         assignments.require_assessor_access(actor, course_id)
     except Exception as error:
         raise_assignment_http_error(error)
@@ -298,7 +419,7 @@ def publish_assessment_definition(
     if not publication_policy(actor, course_id):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Assessment publication is blocked until the live-pilot policy is approved",
+            detail="Current course assessor approval is required for publication",
         )
     try:
         approved = definitions.approve(
@@ -487,6 +608,7 @@ def _definition_read(version: AssessmentDefinitionVersion) -> AssessmentDefiniti
             AssessmentTaskFormRead(
                 id=form.id,
                 learning_task_id=form.learning_task_id,
+                task_revision_id=form.task_revision_id,
                 version=form.version,
                 source_version=form.source_version,
                 source_digest=form.source_digest,

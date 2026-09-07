@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -32,6 +32,41 @@ UuidString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=
 
 class LmsSchema(BaseModel):
     model_config = ConfigDict(extra="forbid", from_attributes=True)
+
+
+class AssessorEligibilityWrite(LmsSchema):
+    subject_user_id: Annotated[int, Field(gt=0, strict=True)]
+    expected_version: Annotated[int, Field(ge=0, strict=True)]
+    state: Literal["APPROVED", "WITHDRAWN"]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    valid_until: datetime | None = None
+
+
+class AssessorEligibilityRead(LmsSchema):
+    id: str
+    course_id: str
+    subject_user_id: int
+    actor_user_id: int
+    version: int
+    state: Literal["APPROVED", "WITHDRAWN"]
+    reason: str
+    policy_version: str
+    created_at: datetime
+    valid_until: datetime | None
+
+    @field_validator("created_at", "valid_until")
+    @classmethod
+    def normalize_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
+
+
+class AssessorCandidateRead(LmsSchema):
+    subject_user_id: int
+    full_name: str
+    latest_approval: AssessorEligibilityRead | None
+    currently_eligible: bool
 
 
 class CourseCreate(LmsSchema):
@@ -158,6 +193,8 @@ class ScopedRoleAssignmentCreate(LmsSchema):
     subject_user_id: Annotated[int, Field(gt=0)]
     role: ScopedRole
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2_000)]
+    valid_from: datetime | None = None
+    valid_until: datetime | None = None
 
 
 class ScopedRoleAssignmentRevoke(LmsSchema):
@@ -176,6 +213,20 @@ class ScopedRoleAssignmentRead(LmsSchema):
     valid_from: datetime
     valid_until: datetime | None
     revoked_at: datetime | None
+    eligibility_approval_id: str | None
+
+    @field_validator("assigned_at", "valid_from", "valid_until", "revoked_at")
+    @classmethod
+    def normalize_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
+
+
+class ScopedRoleAssignmentHistoryRead(ScopedRoleAssignmentRead):
+    currently_active: bool
+    revocation_reason: str | None
+    revoked_by_user_id: int | None
 
 
 class AssessmentCriterionDraft(LmsSchema):
@@ -256,12 +307,31 @@ class AssessmentTaskCriterionRead(LmsSchema):
 class AssessmentTaskFormRead(LmsSchema):
     id: str
     learning_task_id: str
+    task_revision_id: str | None
     version: int
     source_version: str
     source_digest: str
     task_family: str
     context: dict[str, Any] | list[Any]
     constraints: dict[str, Any] | list[Any]
+
+
+class AssessmentSourceMaterialRead(LmsSchema):
+    material_id: str
+    label: str
+
+
+class AssessmentAuthoringTaskRead(LmsSchema):
+    task_id: str
+    title: str
+    task_type: str
+    outcome_id: str
+    outcome_statement: str
+    revision_id: str | None
+    content_digest: str | None
+    reviewed: bool
+    issues: list[str]
+    source_materials: list[AssessmentSourceMaterialRead]
 
 
 class AssessmentDefinitionRead(LmsSchema):
@@ -291,6 +361,13 @@ class AssessmentDefinitionRead(LmsSchema):
     formal_result_eligible: bool | None
     approved_at: datetime | None
     approved_by_user_id: int | None
+
+    @field_validator("approved_at")
+    @classmethod
+    def approval_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
 class EnrollmentCreate(LmsSchema):
@@ -342,6 +419,7 @@ class TaskCreate(LmsSchema):
 
 
 class TaskUpdate(LmsSchema):
+    expected_revision_id: UuidString | None = None
     title: Title | None = None
     prompt: NonEmpty | None = None
     instructions: NonEmpty | None = None
@@ -609,7 +687,19 @@ class MaterialRead(LmsSchema):
     mime_type: str
     indexing_status: MaterialIndexStatus
     file_size_bytes: int | None
+    extraction_error: str | None = None
+    error_code: str | None = None
+    processing_attempts: int = 0
+    processing_retry_at: datetime | None = None
+    processing_lease_expires_at: datetime | None = None
     created_at: datetime
+
+    @field_validator("processing_lease_expires_at", "processing_retry_at")
+    @classmethod
+    def processing_dates_are_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
 class AdminUserCreate(LmsSchema):

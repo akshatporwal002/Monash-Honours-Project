@@ -129,8 +129,29 @@ def _require_text(value: Any, name: str) -> None:
 
 
 def _require_nonempty_structure(value: Any, name: str) -> None:
-    if not _is_nonempty_structure(value):
+    explicit_empty_allowance = name in {"permitted_tools", "instructional_support"}
+    if not _is_nonempty_structure(value) or not _has_declaration(value, explicit_empty_allowance):
         raise AssessmentAlignmentError(f"{name} must be a non-empty object or list")
+
+
+def _has_declaration(value: Any, explicit_empty_allowance: bool = False) -> bool:
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (bool, int, float)):
+        return True
+    if isinstance(value, list):
+        return any(_has_declaration(item, explicit_empty_allowance) for item in value)
+    if isinstance(value, dict):
+        return any(
+            isinstance(key, str)
+            and bool(key.strip())
+            and (
+                (explicit_empty_allowance and key == "allowed" and item == [])
+                or _has_declaration(item, explicit_empty_allowance)
+            )
+            for key, item in value.items()
+        )
+    return False
 
 
 def _is_nonempty_structure(value: Any) -> bool:

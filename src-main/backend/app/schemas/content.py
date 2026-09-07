@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated
 
@@ -62,7 +62,89 @@ class LearningMaterialRead(LearningMaterialCreate):
     failure_stage: str | None = None
     error_code: str | None = None
     processing_revision: Annotated[int, Field(ge=0)] = 0
+    current_source_revision_id: str | None = None
+    retired_at: datetime | None = None
+    processing_attempts: int = 0
+    processing_lease_expires_at: datetime | None = None
+    processing_retry_at: datetime | None = None
+    processing_backend: str = "offline"
     created_at: datetime
+
+    @field_validator("processing_lease_expires_at", "processing_retry_at")
+    @classmethod
+    def processing_dates_are_utc(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
+
+
+class SourceApprovalRequest(ContentSchema):
+    expected_sequence: Annotated[int, Field(ge=0)] | None = None
+    state: Annotated[str, StringConstraints(pattern="^(APPROVED|REVOKED)$")]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+
+
+class SourceApprovalRead(ContentSchema):
+    id: str
+    revision_id: str
+    sequence: int
+    state: str
+    actor_id: str
+    reason: str
+    created_at: datetime
+
+    @field_validator("created_at")
+    @classmethod
+    def normalize_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
+class SourcePassageRead(ContentSchema):
+    id: str
+    revision_id: str
+    course_id: str
+    chunk_index: int
+    chunk_text: str
+    heading: str | None
+    location_label: str | None
+    chunk_hash: str
+
+
+class SourceUseRead(ContentSchema):
+    id: str
+    course_id: str
+    output_type: str
+    output_id: str
+    output_version: str
+    source_id: str
+    passage_id: str
+    approval_id: str | None
+    created_at: datetime
+    revision_id: str
+    material_id: str
+
+
+class SourceRevisionRead(ContentSchema):
+    id: str
+    material_id: str
+    course_id: str
+    module_id: str | None
+    version: int
+    source_label: str
+    mime_type: str
+    content_hash: str
+    storage_key: str | None
+    extraction_version: str
+    provenance: str
+    created_at: datetime
+    approval_state: str = "UNREVIEWED"
+    approvals: list[SourceApprovalRead] = Field(default_factory=list)
+    passages: list[SourcePassageRead] = Field(default_factory=list)
+
+    @field_validator("created_at")
+    @classmethod
+    def normalize_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 class MaterialChunkCreate(ContentSchema):

@@ -42,3 +42,13 @@ Use accurate prediction, a sound explanation, and application to a fresh case as
 Still needed to complete this ticket: The assessor must approve the Bloom target, exact criteria, pass rule, evidence sufficiency, valid examples, and evaluator boundaries.
 
 The ticket remains open for these details and any required approval evidence.
+
+## Selected option approved
+
+On 2026-09-07, the requesting user selected option A for D-04.
+Approval record: `task-08-selections-v1`.
+
+The [approved selection](../../../docs/learnlens/task-08-approved-selections.md#d-04)
+records the exact policy, scope, effective date, and remaining activation requirements.
+It controls any conflicting earlier recommendation in this ticket.
+The chosen option is settled. This ticket remains open only for its outstanding detailed records and evidence.

@@ -69,3 +69,11 @@ The map itself does not approve deployment or pilot activation.
 - Collecting live study data, running release experiments, deploying, or activating the pilot during charting.
 - A requirement to split work equally among the five members.
 - Reopening fixed assessment rules or adding separate agent servers and a new database without evidence.
+
+## Task 8 option selections recorded
+
+On 2026-09-07, the user selected D-05 B, D-07 C, and A for every other offered decision.
+The [approval record](../../docs/learnlens/task-08-approved-selections.md) preserves the choices and their scope.
+D-05 has no instructional hint-count cap during supported assessment; transfer remains unaided.
+D-07 permits AI criterion suggestions after validation, with human confirmation of formal results.
+D-10 keeps its earlier immediate-retirement approval. Remaining scoped records and external evidence are still due.

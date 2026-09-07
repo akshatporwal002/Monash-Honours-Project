@@ -52,7 +52,7 @@ def test_storage_enforces_size_and_keeps_committed_file_inside_root(tmp_path: Pa
     staged = storage.stage_upload("lecture.docx", io.BytesIO(_docx_bytes()))
     storage_key = storage.commit(staged, "material-1")
 
-    assert storage_key == "material-1/source.docx"
+    assert storage_key == f"material-1/source-{staged.content_hash.removeprefix('sha256:')}.docx"
     assert (tmp_path / storage_key).is_file()
     storage.delete(storage_key)
     assert not (tmp_path / storage_key).exists()
@@ -100,7 +100,8 @@ def test_upload_list_read_duplicate_and_delete_are_course_scoped(
     material = response.json()
     assert material["course_id"] == "course-1"
     assert material["indexing_status"] == "pending"
-    assert material["storage_key"].endswith("/source.docx")
+    assert material["storage_key"].endswith(".docx")
+    assert "/source-" in material["storage_key"]
     assert (storage.upload_dir / material["storage_key"]).is_file()
 
     assert client.get("/api/v1/courses/course-1/materials").json()[0]["id"] == material["id"]
@@ -114,8 +115,10 @@ def test_upload_list_read_duplicate_and_delete_are_course_scoped(
     assert duplicate.json()["detail"]["existing_material_id"] == material["id"]
 
     assert client.delete(f"/api/v1/courses/course-1/materials/{material['id']}").status_code == 204
-    assert session.get(LearningMaterial, material["id"]) is None
-    assert not (storage.upload_dir / material["storage_key"]).exists()
+    assert session.get(LearningMaterial, material["id"]).retired_at is not None
+    assert (storage.upload_dir / material["storage_key"]).exists()
+    assert client.get("/api/v1/courses/course-1/materials").json() == []
+    assert client.get(f"/api/v1/courses/course-1/materials/{material['id']}").status_code == 404
 
 
 def test_processing_status_and_new_material_fields_are_persisted(

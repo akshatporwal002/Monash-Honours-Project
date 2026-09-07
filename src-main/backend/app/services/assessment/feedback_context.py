@@ -22,6 +22,7 @@ from app.models.assessment import (
 )
 from app.models.lms import SubmissionAttempt
 from app.models.persistence import LearningTask
+from app.models.source_history import SourceUse
 from app.schemas.assessment import AssessmentVersionReference, EvidenceReference
 from app.schemas.feedback import (
     AssessmentContextStatus,
@@ -128,7 +129,17 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
                     for criterion in criteria
                 ],
                 learning_outcome_id=outcome.learning_outcome_id,
-                source_references=list(task.source_references or []),
+                source_references=list(
+                    self._session.scalars(
+                        select(SourceUse.passage_id)
+                        .where(
+                            SourceUse.output_type == "assessment",
+                            SourceUse.output_id == attempt.id,
+                            SourceUse.course_id == attempt.course_id,
+                        )
+                        .order_by(SourceUse.passage_id)
+                    )
+                ),
             )
             context = AssessmentFeedbackContext(
                 assessment=reference,

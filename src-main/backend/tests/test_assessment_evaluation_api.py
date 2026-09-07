@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_attempt as _attempt_context
+from support.task_review import bind_reviewed_fixture_form
 
 from app.domain.assessment import (
     AssessmentAttemptState,
@@ -94,6 +95,10 @@ def _ready_attempt(session: Session):
     definition.formal_result_eligible = True
     definition.result_eligibility_declared_at = datetime(2026, 8, 16, tzinfo=UTC)
     session.commit()
+    review_event = bind_reviewed_fixture_form(session, form)
+    form.approval_state = AssessmentApprovalState.APPROVED
+    form.approved_at = datetime.now(UTC)
+    form.approved_by_user_id = owner.id
     definition.approval_state = AssessmentApprovalState.APPROVED
     definition.approved_at = datetime(2026, 8, 16, tzinfo=UTC)
     definition.approved_by_user_id = owner.id
@@ -102,6 +107,7 @@ def _ready_attempt(session: Session):
             course_id=attempt.course_id,
             assessment_definition_version_id=definition.id,
             task_form_version_id=form.id,
+            task_review_event_id=review_event.id,
             actor_user_id=owner.id,
             approval_reason="The frozen task form is approved for this assessment.",
             approval_state=AssessmentApprovalState.APPROVED,
