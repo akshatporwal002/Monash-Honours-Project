@@ -78,7 +78,7 @@ async def save_preferences(
                 actor_id=student.id,
                 action="learner_preferences.saved",
                 resource_type="learner_preference_revision",
-            resource_id=_audit_fingerprint(str(result.revision)),
+                resource_id=_audit_fingerprint(str(result.revision)),
                 correlation_id=str(uuid4()),
                 outcome="success",
                 details={

@@ -121,5 +121,11 @@ def test_preference_save_and_replay_are_audited_without_preference_values(db_ses
             for event in events
         ]
     )
-    for value in ("SLOWER", "TEXT", "DETAILED", "optional_breaks_enabled", "repeat_practice_enabled"):
+    for value in (
+        "SLOWER",
+        "TEXT",
+        "DETAILED",
+        "optional_breaks_enabled",
+        "repeat_practice_enabled",
+    ):
         assert value not in stored
