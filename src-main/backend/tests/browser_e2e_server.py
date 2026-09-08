@@ -405,6 +405,11 @@ def _build_app(database_url: str):
         with session_factory() as session:
             return seed_authoring_context(session)
 
+    @app.post("/e2e/tutor-episode-fixture")
+    def tutor_episode_fixture():
+        with session_factory() as session:
+            return seed_review_context(session, episode=True)
+
     @app.post("/e2e/assessed-read-fixture")
     def assessed_read_fixture():
         with session_factory() as session:

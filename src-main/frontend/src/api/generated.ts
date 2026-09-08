@@ -63,6 +63,11 @@ export type ApiSchemas = {
     "start_at"?: (string) | (null)
     "task_types"?: Array<string>
   }
+  "AppealResolutionWrite": {
+    "expected_decision_revision": number
+    "learner_notice": string
+    "reason": string
+  }
   "AssessedFeedbackView": {
     "approved_hints": Array<string>
     "assessment": ApiSchemas["AssessmentVersionReference"]
@@ -901,6 +906,34 @@ export type ApiSchemas = {
     "outcome_id": string
     "target": ApiSchemas["CorrectionTarget"]
   }
+  "LearnerAppealRead": {
+    "decision_id": string
+    "decision_revision": number
+    "id": string
+    "learner_notice"?: (string) | (null)
+    "reason": string
+    "request_kind": string
+    "requested_at": string
+    "resolved_at"?: (string) | (null)
+    "response_version_id": string
+    "state": string
+  }
+  "LearnerAppealWrite": {
+    "idempotency_key": string
+    "reason": string
+    "request_kind"?: "REVIEW" | "CORRECTION" | "APPEAL"
+  }
+  "LearnerCriterionRead": {
+    "decision"?: (ApiSchemas["CriterionDecision"]) | (null)
+    "description": string
+    "evidence_description": string
+    "id": string
+    "mandatory": boolean
+  }
+  "LearnerDecisionEventRead": {
+    "action": string
+    "at": string
+  }
   "LearnerModelDimension": "PRIOR_KNOWLEDGE" | "REASONING_STRENGTH" | "REASONING_GAP" | "POSSIBLE_MISCONCEPTION" | "CONFIDENCE_CALIBRATION" | "FEEDBACK_USE" | "SCAFFOLD_DEPENDENCE" | "INDEPENDENCE" | "TRANSFER" | "EXPLICIT_PREFERENCE"
   "LearnerModelTimelineCorrection": {
     "annotation": ApiSchemas["LearnerAnnotationPayload"]
@@ -965,6 +998,23 @@ export type ApiSchemas = {
     "pace": ApiSchemas["PreferencePace"]
     "personalisation_enabled": boolean
     "repeat_practice_enabled": boolean
+  }
+  "LearnerResultRead": {
+    "assessment_attempt_id": string
+    "bloom_process": ApiSchemas["BloomProcess"]
+    "can_request_review": boolean
+    "criteria": Array<ApiSchemas["LearnerCriterionRead"]>
+    "decision_id": (string) | (null)
+    "evidence_response_id": string
+    "history": Array<ApiSchemas["LearnerDecisionEventRead"]>
+    "next_action": string
+    "outcome": string
+    "reason": string
+    "requests": Array<ApiSchemas["LearnerAppealRead"]>
+    "response_version_id": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "review_revision": number
+    "status": string
   }
   "LearningEventReceipt": {
     "learning_event_id": string
@@ -1563,6 +1613,29 @@ export type ApiSchemas = {
     "part_id": string
     "process": ApiSchemas["EpisodeStageResponseV1"]
     "stage_start_id": string
+  }
+  "TutorConversationRead": {
+    "context_token": string
+    "instructional_help_available": boolean
+    "next_offset"?: (number) | (null)
+    "revision": number
+    "status": string
+    "turns": Array<ApiSchemas["TutorTurnRead"]>
+  }
+  "TutorTurnRead": {
+    "created_at": string
+    "id": string
+    "kind": string
+    "message": string
+    "reply": string
+    "revision": number
+    "source_references": Array<string>
+  }
+  "TutorTurnWrite": {
+    "context_token": string
+    "expected_revision": number
+    "idempotency_key": string
+    "message": string
   }
   "UnresolvedAssessmentRead": {
     "assessment_attempt_id": string

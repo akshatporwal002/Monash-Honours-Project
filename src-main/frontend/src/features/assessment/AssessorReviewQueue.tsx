@@ -12,6 +12,7 @@ import type { ReviewFilters } from './AssessorReviewPanels'
 import { lifecycleLabels, resultLabels } from './assessmentReviewPresentation'
 import { useAssessorReviewQueue } from './useAssessorReviewQueue'
 import { AssessorReviewUnresolved } from './AssessorReviewUnresolved'
+import { AssessorAppeals } from './AssessorAppeals'
 import styles from './assessment.module.css'
 
 function activeFilterSummary(filters: ReviewFilters): string {
@@ -74,6 +75,7 @@ export function AssessorReviewQueue({
         }
       />
       {queue.error && <p className={styles.alert} role="alert">{queue.error}</p>}
+      {queue.accessReady && queue.filters.courseId && <AssessorAppeals key={`appeals-${queue.filters.courseId}`} courseId={queue.filters.courseId} onOpenDecision={queue.reloadCurrentDetail} />}
       {queue.status && <p className={styles.status} role="status">{queue.status}</p>}
       <ReviewFiltersPanel
         assignments={queue.assessorAssignments}

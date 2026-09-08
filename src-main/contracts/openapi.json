@@ -399,6 +399,35 @@
         "title": "AnalyticsFilterSnapshot",
         "type": "object"
       },
+      "AppealResolutionWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_decision_revision": {
+            "minimum": 0.0,
+            "title": "Expected Decision Revision",
+            "type": "integer"
+          },
+          "learner_notice": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Learner Notice",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_decision_revision",
+          "reason",
+          "learner_notice"
+        ],
+        "title": "AppealResolutionWrite",
+        "type": "object"
+      },
       "AssessedFeedbackView": {
         "additionalProperties": false,
         "properties": {
@@ -6144,6 +6173,171 @@
         "title": "LearnerAnnotationRequest",
         "type": "object"
       },
+      "LearnerAppealRead": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "decision_revision": {
+            "title": "Decision Revision",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "learner_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learner Notice"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_kind": {
+            "title": "Request Kind",
+            "type": "string"
+          },
+          "requested_at": {
+            "format": "date-time",
+            "title": "Requested At",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "response_version_id": {
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "response_version_id",
+          "decision_id",
+          "request_kind",
+          "reason",
+          "state",
+          "requested_at",
+          "decision_revision"
+        ],
+        "title": "LearnerAppealRead",
+        "type": "object"
+      },
+      "LearnerAppealWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_kind": {
+            "default": "REVIEW",
+            "enum": [
+              "REVIEW",
+              "CORRECTION",
+              "APPEAL"
+            ],
+            "title": "Request Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "idempotency_key"
+        ],
+        "title": "LearnerAppealWrite",
+        "type": "object"
+      },
+      "LearnerCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CriterionDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "evidence_description": {
+            "title": "Evidence Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "mandatory": {
+            "title": "Mandatory",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "evidence_description",
+          "mandatory"
+        ],
+        "title": "LearnerCriterionRead",
+        "type": "object"
+      },
+      "LearnerDecisionEventRead": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "at"
+        ],
+        "title": "LearnerDecisionEventRead",
+        "type": "object"
+      },
       "LearnerModelDimension": {
         "description": "Observed learning dimensions, never fixed learner traits or results.",
         "enum": [
@@ -6538,6 +6732,111 @@
           "idempotency_key"
         ],
         "title": "LearnerPreferencesWrite",
+        "type": "object"
+      },
+      "LearnerResultRead": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_attempt_id": {
+            "title": "Assessment Attempt Id",
+            "type": "string"
+          },
+          "bloom_process": {
+            "$ref": "#/components/schemas/BloomProcess"
+          },
+          "can_request_review": {
+            "title": "Can Request Review",
+            "type": "boolean"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "decision_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Id"
+          },
+          "evidence_response_id": {
+            "title": "Evidence Response Id",
+            "type": "string"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerDecisionEventRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "next_action": {
+            "title": "Next Action",
+            "type": "string"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requests": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerAppealRead"
+            },
+            "title": "Requests",
+            "type": "array"
+          },
+          "response_version_id": {
+            "title": "Response Version Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_revision": {
+            "title": "Review Revision",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "response_version_id",
+          "assessment_attempt_id",
+          "decision_id",
+          "result",
+          "status",
+          "bloom_process",
+          "outcome",
+          "criteria",
+          "evidence_response_id",
+          "reason",
+          "next_action",
+          "review_revision",
+          "can_request_review",
+          "history",
+          "requests"
+        ],
+        "title": "LearnerResultRead",
         "type": "object"
       },
       "LearningEventReceipt": {
@@ -10599,6 +10898,138 @@
         "title": "TransferResponseV1",
         "type": "object"
       },
+      "TutorConversationRead": {
+        "additionalProperties": false,
+        "properties": {
+          "context_token": {
+            "title": "Context Token",
+            "type": "string"
+          },
+          "instructional_help_available": {
+            "title": "Instructional Help Available",
+            "type": "boolean"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/TutorTurnRead"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "context_token",
+          "revision",
+          "instructional_help_available",
+          "status",
+          "turns"
+        ],
+        "title": "TutorConversationRead",
+        "type": "object"
+      },
+      "TutorTurnRead": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "source_references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source References",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "message",
+          "reply",
+          "kind",
+          "created_at",
+          "source_references"
+        ],
+        "title": "TutorTurnRead",
+        "type": "object"
+      },
+      "TutorTurnWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "context_token": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Context Token",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "idempotency_key",
+          "expected_revision",
+          "context_token"
+        ],
+        "title": "TutorTurnWrite",
+        "type": "object"
+      },
       "UnresolvedAssessmentRead": {
         "additionalProperties": false,
         "properties": {
@@ -13374,6 +13805,79 @@
         ]
       }
     },
+    "/api/v1/assessment/courses/{course_id}/review-requests": {
+      "get": {
+        "operationId": "review_requests_api_v1_assessment_courses__course_id__review_requests_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LearnerAppealRead"
+                  },
+                  "title": "Response Review Requests Api V1 Assessment Courses  Course Id  Review Requests Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review Requests",
+        "tags": [
+          "learner results"
+        ]
+      }
+    },
     "/api/v1/assessment/courses/{course_id}/unresolved-attempts": {
       "get": {
         "operationId": "unresolved_assessment_queue_api_v1_assessment_courses__course_id__unresolved_attempts_get",
@@ -13580,6 +14084,74 @@
         "summary": "Record Assessment Review Action",
         "tags": [
           "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/review-requests/{appeal_id}/resolve": {
+      "post": {
+        "operationId": "resolve_review_api_v1_assessment_review_requests__appeal_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "appeal_id",
+            "required": true,
+            "schema": {
+              "title": "Appeal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppealResolutionWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerAppealRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Review",
+        "tags": [
+          "learner results"
         ]
       }
     },
@@ -17828,6 +18400,132 @@
         ]
       }
     },
+    "/api/v1/students/me/responses/{response_id}/result": {
+      "get": {
+        "operationId": "read_result_api_v1_students_me_responses__response_id__result_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "title": "Response Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerResultRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Result",
+        "tags": [
+          "learner results"
+        ]
+      }
+    },
+    "/api/v1/students/me/responses/{response_id}/review-requests": {
+      "post": {
+        "operationId": "request_review_api_v1_students_me_responses__response_id__review_requests_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "title": "Response Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnerAppealWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerAppealRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Review",
+        "tags": [
+          "learner results"
+        ]
+      }
+    },
     "/api/v1/students/me/simulate": {
       "post": {
         "operationId": "simulate_student_circuit_api_v1_students_me_simulate_post",
@@ -18772,6 +19470,141 @@
         "summary": "Submit Student Task",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/tutor": {
+      "get": {
+        "operationId": "read_conversation_api_v1_students_me_tasks__task_id__tutor_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorConversationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Conversation",
+        "tags": [
+          "tutor"
+        ]
+      },
+      "post": {
+        "operationId": "send_message_api_v1_students_me_tasks__task_id__tutor_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorTurnWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorTurnRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Message",
+        "tags": [
+          "tutor"
         ]
       }
     },

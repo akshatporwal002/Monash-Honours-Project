@@ -1,9 +1,11 @@
 from app.models import (  # noqa: F401
+    appeal_resolution,
     assessment_work,
     assessor_eligibility,
     simulation,
     source_history,
     task_review,
+    tutor,
 )
 from app.models.assessment import (
     AppealOrCorrection,

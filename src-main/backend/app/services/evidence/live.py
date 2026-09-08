@@ -56,6 +56,26 @@ class LiveEvidenceCapture:
         self.session = session
         self.repository = SqlAlchemyEvidenceRepository(session)
 
+    def tutor(self, task, turn):
+        """Record the accepted dialogue without interpreting it as understanding."""
+        return self._write(
+            task=task,
+            learner_id=turn.student_id,
+            source=turn.id,
+            field="tutor_dialogue",
+            kind=EvidenceType.SCAFFOLD,
+            value={
+                "message": turn.learner_text,
+                "reply": turn.reply,
+                "kind": turn.kind,
+                "quality": turn.quality,
+                "context": turn.context,
+            },
+            occurred_at=turn.created_at,
+            work_id=turn.assessment_work_start_id,
+            support=InstructionalSupportLevel.CONCEPT_CUE,
+        )
+
     def _write(
         self,
         *,

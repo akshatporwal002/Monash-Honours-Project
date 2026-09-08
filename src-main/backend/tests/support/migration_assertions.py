@@ -6,8 +6,10 @@ from scripts.verify_sqlite_backup import TableVerification, database_manifest
 
 
 def protected_history_manifest(database_path: Path) -> dict[str, TableVerification]:
-    """Exclude migration bookkeeping and Task 20's safely removable empty table."""
+    """Exclude bookkeeping and safely removable empty extension tables."""
     manifest = database_manifest(database_path)
     manifest.pop("alembic_version", None)
-    manifest.pop("learner_preference_revisions", None)
+    for name in ("learner_preference_revisions", "tutor_turns", "appeal_resolutions"):
+        if name in manifest and manifest[name].row_count == 0:
+            manifest.pop(name)
     return manifest

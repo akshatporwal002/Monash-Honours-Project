@@ -38,6 +38,7 @@ function installQueueFetch(overrides: {
   let actionIndex = 0
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
+    if (url.includes('/review-requests')) return response([])
     if (url.includes('/unresolved-attempts')) return response([])
     if (url.includes('/review-queue')) return response([overrides.queueDetail ?? review])
     if (url.includes('/decisions/decision-1/review') && init?.method === 'POST') {

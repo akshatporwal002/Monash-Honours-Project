@@ -11,6 +11,7 @@ from app.models.assessment import AssessmentAttempt, CriterionEvaluation, TaskFo
 from app.models.lms import CourseState, LearningOutcome, PlatformAuditEvent
 from app.models.persistence import LearningTask
 from app.models.user import User, UserRole
+from app.schemas.episode import EpisodePlanV1
 from app.schemas.lms import SubmissionCreate
 from app.services.assessment.definitions import (
     AssessmentDefinitionDraft,
@@ -26,7 +27,7 @@ from support.task_review import approve_sourced_fixture_task
 ANSWER = "The response links the observation to the claim."
 
 
-def seed_review_context(session: Session) -> dict[str, str]:
+def seed_review_context(session: Session, *, episode: bool = False) -> dict[str, str]:
     context = seed_authoring_context(session)
     actor = session.scalar(select(User).where(User.email == context["educator_email"]))
     task = session.get(LearningTask, context["task_id"])
@@ -35,6 +36,17 @@ def seed_review_context(session: Session) -> dict[str, str]:
     task.description = "Explain how an interference observation supports a quantum claim."
     task.instructions = "Link the observation to the claim."
     task.expected_answer = ANSWER
+    if episode:
+        task.marking_criteria = {
+            "episode_plan": EpisodePlanV1(
+                supported_hints=("Connect the observed pattern to the claim.",),
+                accessibility_support=("Use the written task description with a screen reader.",),
+                transfer={
+                    "prompt": "Explain a new observation independently.",
+                    "solution": {"answer": "PRIVATE fresh solution"},
+                },
+            ).model_dump(mode="json")
+        }
     outcome.title = "Explain the evidence relationship"
     outcome.statement = "Explain how the observation supports the claim."
     session.commit()
@@ -58,7 +70,9 @@ def seed_review_context(session: Session) -> dict[str, str]:
             permitted_tools={"allowed": ["course notes"]},
             instructional_support={"allowed": ["approved conceptual hints"]},
             access_conditions={"modes": [{"mode": "screen_reader", "preserves_construct": True}]},
-            transfer_rule={
+            transfer_rule={"required": True, "independence": "unaided fresh application"}
+            if episode
+            else {
                 "required": False,
                 "reason": "This fixture isolates existing decision review.",
             },
@@ -122,6 +136,12 @@ def seed_review_context(session: Session) -> dict[str, str]:
     lms.set_course_state(actor, context["course_id"], CourseState.PUBLISHED)
     lms.enroll_student(actor, context["course_id"], student.id)
     started = lms.start_assessment_work(student, task.id, form.id)
+    if episode:
+        return {
+            "student_email": student.email,
+            "student_password": "assessment-review-student-test-password",
+            "task_id": task.id,
+        }
     response = lms.submit(
         student,
         task.id,
@@ -161,6 +181,9 @@ def seed_review_context(session: Session) -> dict[str, str]:
     )
     session.commit()
     return {
+        "student_email": student.email,
+        "student_password": "assessment-review-student-test-password",
+        "task_id": task.id,
         "educator_email": context["educator_email"],
         "educator_password": context["educator_password"],
         "course_id": attempt.course_id,

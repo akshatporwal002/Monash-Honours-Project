@@ -23,6 +23,8 @@ import {
 } from './ui'
 import type { DescriptionItem } from './ui'
 import type { BloomKnowledge, BloomProcess } from '../features/assessment/types'
+import { LearnerResultPanel } from '../features/assessment/LearnerResultPanel'
+import { TutorPanel } from '../features/tutor/TutorPanel'
 import styles from './TaskView.module.css'
 import { LearnerPreferencesSummary } from '../features/preferences/LearnerPreferencesSummary'
 
@@ -705,7 +707,7 @@ export function TaskView({
               </h2>
               <p className={styles.submissionText}>
                 {submission.formal_assessment
-                  ? 'Your response is saved for assessment and review. The formal result is not available.'
+                  ? 'Your response is saved. Open its assessment result and review details in your attempt history.'
                   : 'Your response is saved. Validated AI feedback is prepared separately below.'}
               </p>
             </Card>
@@ -713,6 +715,7 @@ export function TaskView({
           {latestFeedbackReference && (
             <FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} />
           )}
+          {!draftLoading && !workConflict && <TutorPanel key={`${task.id}-${episodeState?.transfer?.stage_start_id ?? 'supported'}`} taskId={task.id} />}
           <Card eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (
               <p className={styles.stateNote}>Loading previous attempts…</p>
@@ -727,7 +730,6 @@ export function TaskView({
                     <span className={styles.attemptNumber}>#{item.attempt_number ?? attempts.length - index}</span>
                     <div className={styles.attemptBody}>
                       <strong>{attemptLabel(item)}</strong>
-                      {item.formal_assessment && <small>Formal result unavailable.</small>}
                       <small className={styles.attemptStatus}>{item.status.replace('_', ' ')}</small>
                       <details><summary>Saved response</summary>
                         {item.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{item.answer}</pre>}
@@ -743,6 +745,7 @@ export function TaskView({
                         })}
                       </time>
                     ) : <time className={styles.attemptTime}>Just now</time>}
+                    {item.formal_assessment && item.id && <div className={styles.attemptResult}><LearnerResultPanel responseId={item.id} /></div>}
                   </li>
                 ))}
               </ol>
