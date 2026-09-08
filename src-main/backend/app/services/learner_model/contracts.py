@@ -113,11 +113,30 @@ class LearnerModelBuildCommand(FrozenLearnerModelContract):
         return value
 
 
+class LearnerModelUpdateCommand(FrozenLearnerModelContract):
+    """The sole application command; persistence identity is module-controlled."""
+
+    course_id: OpaqueId
+    learner_id: OpaqueId
+    outcome_id: OpaqueId
+    model_source: ModelSource = ModelSource.RULE_BASED
+    model_version: ContractVersion
+    rule_version: ContractVersion
+    actor_reference: OpaqueId
+    agent_reference: OpaqueId | None = None
+    adjudicator_reference: OpaqueId
+    adjudication_rule_version: ContractVersion
+    reviewed_by_reference: OpaqueId | None = None
+    correlation_id: OpaqueId
+    evidence_signals: tuple[LearnerModelEvidenceSignal, ...] = Field(min_length=1)
+
+
 __all__ = [
     "FrozenLearnerModelContract",
     "LearnerModelBuildCommand",
     "LearnerModelEvidenceSignal",
     "LearnerModelSnapshotPayload",
+    "LearnerModelUpdateCommand",
     "LearnerOutcomeEstimatePayload",
     "RuleCode",
     "Uncertainty",

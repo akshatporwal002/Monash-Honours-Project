@@ -207,9 +207,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 9, 11, and 14. Suggested owner: evidence services.
 
-    Task 17 progress, 8 September 2026: implemented on
-    `feat/task-17-live-evidence-capture`; final delivery checks and review
-    evidence remain in progress. See the [live-evidence handoff](docs/learnlens/task-17-live-evidence.md).
+    Task 17 progress, 8 September 2026: delivered in merge commit `06aa01a`.
+    See the [live-evidence handoff](docs/learnlens/task-17-live-evidence.md).
 
     Append-only evidence services, trusted adapters, privacy checks, and replay controls exist. They are not connected to the mounted learner workflow. Record predictions, reasoning, hints, simulation, responses, revisions, feedback use, reflection, and transfer. Link each item to its task, response, conditions, source, and earlier evidence where relevant.
 
@@ -220,6 +219,11 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 18. **Update the shared learner model from real evidence.**
 
     Dependencies: Task 17. Suggested owner: learner services.
+
+    Task 18 progress, 8 September 2026: the controlled, deterministic update
+    path consumes scoped persisted evidence, writes cumulative append-only
+    snapshots, and returns structurally validated teaching views. The final
+    verification record is in the [learner-model handoff](docs/learnlens/task-18-shared-learner-model.md).
 
     The versioned model builder and repository exist without application consumers. Define how observations support or contradict an estimate, then connect one controlled update path. Keep understanding, possible misconceptions, assistance, response to feedback, and transfer distinct. Preserve prior snapshots, uncertainty, recency, rule versions, and evidence links.
 
