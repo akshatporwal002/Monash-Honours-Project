@@ -60,6 +60,14 @@ from app.models.enums import (
 )
 from app.models.episode import EpisodeCheckpoint, EpisodeHelpUse, EpisodeStageStart
 from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
+from app.models.learner_model import (
+    LearnerModelAnnotation,
+    LearnerModelCorrectionReview,
+    LearnerModelCorrectionSnapshotLink,
+    LearnerModelEvidenceLink,
+    LearnerModelSnapshot,
+    LearnerOutcomeEstimate,
+)
 from app.models.lms import (
     AttemptStatus,
     Course,
@@ -147,6 +155,12 @@ __all__ = [
     "ImmutableAssessmentVersionError",
     "LearningEvent",
     "LearningEventType",
+    "LearnerModelAnnotation",
+    "LearnerModelCorrectionReview",
+    "LearnerModelCorrectionSnapshotLink",
+    "LearnerModelEvidenceLink",
+    "LearnerModelSnapshot",
+    "LearnerOutcomeEstimate",
     "LearningMaterial",
     "LearningOutcome",
     "LearningTask",

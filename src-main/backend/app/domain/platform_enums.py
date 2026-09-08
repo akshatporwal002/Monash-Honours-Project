@@ -64,6 +64,11 @@ class CorrectionAction(StrEnum):
     NEEDS_REVIEW = "NEEDS_REVIEW"
 
 
+class CorrectionTargetKind(StrEnum):
+    EVIDENCE = "EVIDENCE"
+    ESTIMATE = "ESTIMATE"
+
+
 class ModelSource(StrEnum):
     RULE_BASED = "RULE_BASED"
     ADVISORY_MODEL = "ADVISORY_MODEL"
@@ -95,6 +100,7 @@ class EvidenceLinkRelation(StrEnum):
 __all__ = [
     "AccessSupportState",
     "CorrectionAction",
+    "CorrectionTargetKind",
     "EvidenceLinkRelation",
     "EvidenceProvenance",
     "EvidenceType",
