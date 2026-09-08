@@ -166,3 +166,23 @@ The offered choices are settled and must not be requested again.
 Task 8 remains partial because it also requires concrete owners, scoped approval records, and outstanding policy details.
 The implementation request does not supply missing institutional records or validation evidence.
 Keep the selected policies separate from those remaining activation gates.
+
+## Manual completion notes
+
+On 9 September 2026, the requesting user asked for missing information to be
+left as comments for the team to complete manually. The selections above remain
+approved. These comments identify records to supply; they do not authorise live
+activation or indicate that the records exist.
+
+<!-- TODO D-01: Record the product owner, assessor, course IDs and approval date for the learner visibility state table in task-08-decision-package.md. -->
+<!-- TODO D-02: Name each course lead, eligible assessor and administrator who records grants; include course IDs, scope, validity and revocation authority. -->
+<!-- TODO D-03: Name researchers and grant authority; supply study/course IDs, approved field paths and access end dates. -->
+<!-- TODO D-04: Supply the approved Q-SINGLE-01 outcome, three criteria, exact preserved source passages, task forms, assessor and approval date/version. -->
+<!-- TODO D-05: Attach assessor-approved conceptual hints, equivalent fresh forms, permitted tools and access conditions for the selected supported/unaided stages. -->
+<!-- TODO D-06: Record reassessment eligibility, equivalent forms, current-result selection, evidence sufficiency and responsible assessor. -->
+<!-- TODO D-07: Name expert reviewers; attach approved cases, numerical error limits, fairness and revalidation rules, measured validation and signed AI evaluator release decision. -->
+<!-- TODO D-08: Supply study approval, consent/withdrawal version, exact fields, record-class retention schedule and privacy/data owners. No blanket deletion period is implied. -->
+<!-- TODO D-09: Name primary/backup staff for both queues, staffed calendar/timezone, severity definitions, resolution targets and sampling policy. -->
+<!-- D-10 is already approved: no further policy selection is needed; Task 29 supplies implementation and protected-history evidence. -->
+<!-- TODO D-11: Attach the conditional-programming module and approved sources; name an independent verifier and link the complete effort record against the 16-hour target. -->
+<!-- TODO D-12: Supply approved host, operations owner, providers/models, budget, reviewers, schedule and release authority; link real validation evidence. -->

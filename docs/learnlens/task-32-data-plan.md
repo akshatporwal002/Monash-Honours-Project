@@ -298,3 +298,12 @@ Arv Surana is the named research lead. Other named holders and all approval iden
 Each signed record must link the protocol and data-plan versions it approves.
 The research lead must include the approved versions in preregistration before recruitment, as required by BP12.
 Task 32 remains `PARTIAL`; Task 33 remains a separate implementation and verification gate.
+
+<!-- Manual completion requested by the user on 2026-09-09. Each entry needs a real named owner, date, scope, version and evidence reference. -->
+<!-- TODO T32-DATA-FIELDS: Arv Surana and the named privacy reviewer must approve exact field paths, purposes, collection modes and recipients. -->
+<!-- TODO T32-CONSENT: Attach approved participant information, consent version, withdrawal process/cutoff and independent complaint contact from the responsible investigator. -->
+<!-- TODO T32-RETENTION: Name the data owner and records adviser; complete every record class, authority/version, retention trigger, review date and hold process. -->
+<!-- TODO T32-ACCESS: Name grant authority/researchers, approved courses/studies/fields, operations access and expiry dates. -->
+<!-- TODO T32-STORAGE: Attach institutional host/provider approval, location, encryption, backup/restore, access logging and incident owner arrangements. -->
+<!-- TODO T32-DISCLOSURE: Name the privacy reviewer; approve recipient controls, small-cell/complementary suppression and final output review. -->
+<!-- TODO T33-ENFORCEMENT: Link tested consent, revocation, withdrawal, field filtering and restore enforcement for these exact approved versions before activation. -->
