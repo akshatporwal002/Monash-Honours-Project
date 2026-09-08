@@ -235,11 +235,21 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 17 and 18. Suggested owner: learner services and frontend.
 
-    Stored branch `origin/raveen-learning-intelligence` contains correction contracts, services, models, a migration, and tests. Review and reuse that work before rebuilding it. It is not integrated into local `main`, and it does not add mounted correction routes or screens. Reconcile its migration with current main, then add learner annotations and authorised educator corrections.
+    Completed, 8 September 2026: learner annotations and authorised educator
+    corrections are append-only, history-protected records. The mounted API
+    exposes authorised, cursor-paginated correction/evidence/model-history
+    streams, while legacy grouped payloads remain bounded to their existing
+    contract. Learner and educator workspaces include accessible validation,
+    stale-review refresh/resubmit handling, and learner selection from the
+    educator workspace. Browser journeys cover authenticated learner
+    corrections and educator stale-review recovery.
 
-    Done when learners can inspect and challenge an estimate. Keep original evidence, review reasons, correction history, and later snapshots. Prove one migration head and protected-history recovery.
+    The migration is `20260908_0032_learner_model_corrections.py`, with a
+    single current head and protected-history downgrade recovery. A post-merge
+    CI repair updated legacy protected-downgrade assertions to that head in
+    commit `704283a`.
 
-    Evidence: [current learner-model services](src-main/backend/app/services/learner_model), [current API router](src-main/backend/app/api/router.py), and the stored branch diff. Its proposed migration is `20260824_0022_learner_model_corrections.py`; current main's head is `20260821_0022`.
+    Evidence: [learner-model services](src-main/backend/app/services/learner_model), [API router](src-main/backend/app/api/router.py), [correction migration](src-main/backend/migrations/versions/20260908_0032_learner_model_corrections.py), and [browser journeys](src-main/frontend/e2e/learner-model.e2e.ts).
 
 20. **Add learner preferences and control over non-essential support.**
 
