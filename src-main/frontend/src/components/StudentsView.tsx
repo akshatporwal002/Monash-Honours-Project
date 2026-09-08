@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Send, Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { api } from '../app/api'
 import type { EducatorStudent, StudentRisk } from '../app/types'
@@ -246,6 +247,7 @@ export function StudentsView() {
                       <th scope="row" className={styles.studentCell}>
                         <strong className={styles.studentName}>{student.display_name}</strong>
                         <small className={styles.studentEmail}>{student.email}</small>
+                        {student.course_id && <Link to={`/educator/learner-model?course=${encodeURIComponent(student.course_id)}&learner=${encodeURIComponent(student.student_id)}`}>Review learner model</Link>}
                       </th>
                       <td>{student.course_title || 'All courses'}</td>
                       <td>

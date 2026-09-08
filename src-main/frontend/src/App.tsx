@@ -16,6 +16,8 @@ import { ScreenState } from './components/ScreenPrimitives'
 import { Button } from './components/ui'
 import { StudentDashboard } from './components/StudentDashboard'
 import { StudentsView } from './components/StudentsView'
+import { LearnerModelTimeline } from './components/LearnerModelTimeline'
+import { EducatorLearnerModelTimeline } from './components/EducatorLearnerModelTimeline'
 import { TaskPage } from './components/TaskPage'
 import { AssessorSetup } from './features/assessment/AssessorSetup'
 import { AssessorReviewQueue } from './features/assessment/AssessorReviewQueue'
@@ -219,6 +221,7 @@ function AppRoutes() {
       <Route path="/" element={<Navigate to={homePath(user.role)} replace />} />
       <Route element={<AppShell user={user} hasAssessorAccess={assessorAccess} onLogout={logout} />}>
         <Route path="/student" element={guard(user.role === 'student', studentHome)} />
+        <Route path="/student/learner-model" element={guard(user.role === 'student', <LearnerModelTimeline />)} />
         <Route
           path="/student/tasks/:taskId"
           element={guard(user.role === 'student', <TaskPage onSubmitted={loadStudentDashboard} />)}
@@ -235,6 +238,7 @@ function AppRoutes() {
         />
         <Route path="/educator/courses" element={guard(user.role === 'educator', <CourseEditor />)} />
         <Route path="/educator/students" element={guard(user.role === 'educator', <StudentsView />)} />
+        <Route path="/educator/learner-model" element={guard(user.role === 'educator', <EducatorLearnerModelTimeline />)} />
         <Route path="/educator/analytics" element={guard(user.role === 'educator', <AnalyticsView />)} />
         <Route
           path="/assessor/setup"

@@ -38,6 +38,8 @@ export class ApiError extends Error {
 
 type JsonBody = object
 
+export type LearnerModelTimelineResponse = ApiSchemas['LearnerModelTimelineResponse']
+
 export function csrfToken(): string | null {
   if (typeof document === 'undefined') return null
   const entry = document.cookie
@@ -426,6 +428,12 @@ function normalizeSettings(raw: RawSettings): SystemSettings {
 }
 
 export const api = {
+  learnerModel: {
+    mine: (courseId: string, outcomeId: string, cursor?: string, signal?: AbortSignal) => request<LearnerModelTimelineResponse>(`/learner-model/me/timeline?course_id=${encodeURIComponent(courseId)}&outcome_id=${encodeURIComponent(outcomeId)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { signal }),
+    annotate: (payload: Record<string, unknown>) => request<unknown>('/learner-model/me/annotations', json('POST', payload)),
+    educatorTimeline: (courseId: string, learnerId: string, outcomeId: string, cursor?: string) => request<LearnerModelTimelineResponse>(`/learner-model/courses/${encodeURIComponent(courseId)}/learners/${encodeURIComponent(learnerId)}/timeline?outcome_id=${encodeURIComponent(outcomeId)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`),
+    review: (courseId: string, learnerId: string, annotationId: string, outcomeId: string, payload: Record<string, unknown>) => request<unknown>(`/learner-model/courses/${encodeURIComponent(courseId)}/learners/${encodeURIComponent(learnerId)}/annotations/${encodeURIComponent(annotationId)}/reviews?outcome_id=${encodeURIComponent(outcomeId)}`, json('POST', payload)),
+  },
   assessorAccess: {
     candidates: (courseId: string, offset = 0, signal?: AbortSignal) =>
       request<ApiSchemas['AssessorCandidateRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/assessor-candidates?limit=20&offset=${offset}`, { signal }),
