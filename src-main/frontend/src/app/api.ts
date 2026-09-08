@@ -428,6 +428,10 @@ function normalizeSettings(raw: RawSettings): SystemSettings {
 }
 
 export const api = {
+  preferences: {
+    read: (signal?: AbortSignal) => request<ApiSchemas['LearnerPreferencesRead']>('/students/me/preferences', { signal }),
+    save: (payload: ApiSchemas['LearnerPreferencesWrite']) => request<ApiSchemas['LearnerPreferencesRead']>('/students/me/preferences', json('PUT', payload)),
+  },
   learnerModel: {
     mine: (courseId: string, outcomeId: string, cursor?: string, signal?: AbortSignal) => request<LearnerModelTimelineResponse>(`/learner-model/me/timeline?course_id=${encodeURIComponent(courseId)}&outcome_id=${encodeURIComponent(outcomeId)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { signal }),
     annotate: (payload: Record<string, unknown>) => request<unknown>('/learner-model/me/annotations', json('POST', payload)),

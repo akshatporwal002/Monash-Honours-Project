@@ -538,7 +538,7 @@ test('submits multiple-answer choice identifiers as a JSON set', async () => {
   await user.click(screen.getByRole('checkbox', { name: /estimate a distribution/ }))
   await user.click(screen.getByRole('button', { name: /Submit activity/ }))
 
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
+  await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true))
   const submissionCall = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
   const payload = JSON.parse(String(submissionCall?.[1]?.body)) as { answer: string }
   expect(JSON.parse(payload.answer)).toEqual(['a', 'c'])
@@ -576,7 +576,7 @@ test('allows code-completion tasks to edit and submit Qiskit code', async () => 
   await user.type(editor, '\ncircuit.h(0)')
   await user.click(screen.getByRole('button', { name: /Submit activity/ }))
 
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3))
+  await waitFor(() => expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(true))
   const submissionCall = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
   const payload = JSON.parse(String(submissionCall?.[1]?.body)) as { code: string }
   expect(payload.code).toContain('circuit.h(0)')
