@@ -18,22 +18,76 @@ from app.services.learner_model.contracts import (
     LearnerModelBuildCommand,
     LearnerModelEvidenceSignal,
     LearnerModelSnapshotPayload,
+    LearnerModelUpdateCommand,
     LearnerOutcomeEstimatePayload,
 )
 from app.services.learner_model.repository import (
     LearnerEvidenceObservation,
+    LearnerModelSnapshotView,
     LearnerModelSnapshotWriteResult,
     SqlAlchemyLearnerModelRepository,
 )
 from app.services.learner_model.safety import (
+    LearnerModelConflictError,
     LearnerModelProviderError,
     LearnerModelReviewRequiredError,
     require_human_review_for_model_source,
+    require_trusted_adjudication,
 )
 
 _ESTIMATE_NAMESPACE = UUID("98a5d0b4-b902-43db-a232-ceafb7a60de1")
-_INDEPENDENCE_TYPES = frozenset(
-    {EvidenceType.RESPONSE, EvidenceType.REVISION, EvidenceType.REASONING, EvidenceType.TRANSFER}
+_SNAPSHOT_NAMESPACE = UUID("d8c8293e-2a9b-43a5-a8a6-64d3d7aa5ca0")
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceRule:
+    """Versioned, non-diagnostic meaning assigned to one evidence type."""
+
+    evidence_type: EvidenceType
+    dimension: LearnerModelDimension
+    minimum_supporting_signals: int = 1
+    required_context_types: frozenset[EvidenceType] = frozenset()
+
+
+# Evidence is an observation, not a teaching decision.  In particular, acknowledgement
+# and transfer events remain excluded until a trusted adjudication can establish the
+# required revision/response behaviour.  Access support is deliberately not a rule input.
+_RULE_TABLE = (
+    EvidenceRule(EvidenceType.PREDICTION, LearnerModelDimension.PRIOR_KNOWLEDGE),
+    EvidenceRule(EvidenceType.REASONING, LearnerModelDimension.REASONING_STRENGTH),
+    EvidenceRule(EvidenceType.CONFIDENCE, LearnerModelDimension.CONFIDENCE_CALIBRATION),
+    EvidenceRule(EvidenceType.HINT, LearnerModelDimension.SCAFFOLD_DEPENDENCE),
+    EvidenceRule(EvidenceType.SCAFFOLD, LearnerModelDimension.SCAFFOLD_DEPENDENCE),
+    EvidenceRule(
+        EvidenceType.FEEDBACK_INTERACTION,
+        LearnerModelDimension.FEEDBACK_USE,
+        required_context_types=frozenset({EvidenceType.REVISION}),
+    ),
+    EvidenceRule(
+        EvidenceType.TRANSFER,
+        LearnerModelDimension.TRANSFER,
+        required_context_types=frozenset({EvidenceType.REASONING}),
+    ),
+    EvidenceRule(
+        EvidenceType.MISCONCEPTION_CHECK,
+        LearnerModelDimension.POSSIBLE_MISCONCEPTION,
+        minimum_supporting_signals=2,
+    ),
+    EvidenceRule(
+        EvidenceType.RESPONSE,
+        LearnerModelDimension.INDEPENDENCE,
+        minimum_supporting_signals=2,
+    ),
+    EvidenceRule(
+        EvidenceType.REVISION,
+        LearnerModelDimension.INDEPENDENCE,
+        minimum_supporting_signals=2,
+    ),
+    EvidenceRule(
+        EvidenceType.REASONING,
+        LearnerModelDimension.INDEPENDENCE,
+        minimum_supporting_signals=2,
+    ),
 )
 
 
@@ -48,6 +102,7 @@ class LearnerModelBuildState(str, Enum):
 class LearnerModelBuildResult:
     state: LearnerModelBuildState
     snapshot: LearnerModelSnapshotWriteResult | None = None
+    view: LearnerModelSnapshotView | None = None
 
 
 class LearnerModelAdapter(Protocol):
@@ -111,7 +166,8 @@ class LearnerModelBuildService:
         self._repository = repository
         self._builder = builder
 
-    def build(self, command: LearnerModelBuildCommand) -> LearnerModelBuildResult:
+    def _build(self, command: LearnerModelBuildCommand) -> LearnerModelBuildResult:
+        """Internal payload seam retained for focused repository/provider tests only."""
         try:
             require_human_review_for_model_source(
                 command.model_source,
@@ -133,74 +189,237 @@ class LearnerModelBuildService:
             snapshot=self._repository.store(payload),
         )
 
+    def update(self, command: LearnerModelUpdateCommand) -> LearnerModelBuildResult:
+        """Append one deterministic cumulative state from newly adjudicated evidence."""
+
+        if not isinstance(command, LearnerModelUpdateCommand):
+            raise TypeError("learner-model updates require the scoped update command")
+        for attempt in range(2):
+            try:
+                return self._update_once(command)
+            except LearnerModelConflictError as error:
+                if attempt or not _is_retryable_head_conflict(error):
+                    raise
+        raise AssertionError("bounded learner-model retry must return or raise")
+
+    def _update_once(self, command: LearnerModelUpdateCommand) -> LearnerModelBuildResult:
+        require_trusted_adjudication(
+            command.model_source,
+            command.adjudicator_reference,
+            command.adjudication_rule_version,
+            command.rule_version,
+        )
+        try:
+            require_human_review_for_model_source(
+                command.model_source,
+                command.reviewed_by_reference,
+            )
+        except LearnerModelReviewRequiredError:
+            return LearnerModelBuildResult(LearnerModelBuildState.REVIEW_REQUIRED)
+        incoming = self._repository.observations(command)
+        head = self._repository.current(
+            course_id=command.course_id,
+            learner_id=command.learner_id,
+            outcome_id=command.outcome_id,
+        )
+        relations = _merge_relations(head, incoming)
+        if head is not None and relations == _view_relations(head):
+            return LearnerModelBuildResult(
+                LearnerModelBuildState.STORED,
+                snapshot=LearnerModelSnapshotWriteResult(
+                    snapshot_id=head.snapshot_id,
+                    created=False,
+                    occurred_at=head.occurred_at,
+                ),
+                view=head,
+            )
+        cumulative_signals = tuple(
+            LearnerModelEvidenceSignal(evidence_id=evidence_id, relation=relation)
+            for evidence_id, relation in relations
+        )
+        snapshot_id = _snapshot_identity(command, head, relations)
+        observations = self._repository.observations(
+            LearnerModelBuildCommand(
+                snapshot_id=snapshot_id,
+                course_id=command.course_id,
+                learner_id=command.learner_id,
+                outcome_id=command.outcome_id,
+                prior_snapshot_id=head.snapshot_id if head else None,
+                model_source=command.model_source,
+                model_version=command.model_version,
+                rule_version=command.rule_version,
+                record_version=(head.record_version + 1) if head else 1,
+                actor_reference=command.actor_reference,
+                agent_reference=command.agent_reference,
+                correlation_id=command.correlation_id,
+                idempotency_key=snapshot_id,
+                occurred_at=max(item.occurred_at for item in incoming),
+                evidence_signals=cumulative_signals,
+            )
+        )
+        cumulative_command = LearnerModelBuildCommand(
+            snapshot_id=snapshot_id,
+            course_id=command.course_id,
+            learner_id=command.learner_id,
+            outcome_id=command.outcome_id,
+            prior_snapshot_id=head.snapshot_id if head else None,
+            model_source=command.model_source,
+            model_version=command.model_version,
+            rule_version=command.rule_version,
+            record_version=(head.record_version + 1) if head else 1,
+            actor_reference=command.actor_reference,
+            agent_reference=command.agent_reference,
+            correlation_id=command.correlation_id,
+            idempotency_key=snapshot_id,
+            occurred_at=max(item.occurred_at for item in observations),
+            evidence_signals=cumulative_signals,
+        )
+        try:
+            payload = self._builder.build(cumulative_command, observations)
+        except Exception:
+            return LearnerModelBuildResult(LearnerModelBuildState.PROVIDER_UNAVAILABLE)
+        if payload is None:
+            return LearnerModelBuildResult(LearnerModelBuildState.NO_INFERENCE)
+        _require_dimension_continuity(head, payload)
+        stored = self._repository.store(payload)
+        return LearnerModelBuildResult(
+            LearnerModelBuildState.STORED,
+            snapshot=stored,
+            view=self._repository.current(
+                course_id=command.course_id,
+                learner_id=command.learner_id,
+                outcome_id=command.outcome_id,
+            ),
+        )
+
+
+def _view_relations(head) -> tuple[tuple[str, EvidenceLinkRelation], ...]:
+    relations: dict[str, EvidenceLinkRelation] = {}
+    for estimate in head.estimates:
+        for evidence_id, relation in estimate.evidence_links:
+            previous = relations.setdefault(evidence_id, relation)
+            if previous is not relation:
+                raise LearnerModelProviderError(
+                    "stored evidence has conflicting learner-model relations"
+                )
+    return tuple(sorted(relations.items()))
+
+
+def _merge_relations(
+    head,
+    incoming: tuple[LearnerEvidenceObservation, ...],
+) -> tuple[tuple[str, EvidenceLinkRelation], ...]:
+    relations = dict(_view_relations(head)) if head is not None else {}
+    for observation in incoming:
+        previous = relations.setdefault(observation.evidence_id, observation.relation)
+        if previous is not observation.relation:
+            raise LearnerModelProviderError(
+                "evidence cannot be reclassified in learner-model history"
+            )
+    return tuple(sorted(relations.items()))
+
+
+def _snapshot_identity(
+    command, head, relations: tuple[tuple[str, EvidenceLinkRelation], ...]
+) -> str:
+    predecessor = head.snapshot_id if head else "first"
+    logical_input = "|".join(
+        (
+            command.course_id,
+            command.learner_id,
+            command.outcome_id,
+            predecessor,
+            command.model_source.value,
+            command.model_version,
+            command.rule_version,
+            *(
+                f"{dimension.value}:{evidence_id}:{relation.value}"
+                for dimension, evidence_id, relation in _view_dimension_relations(head)
+            ),
+            *(f"{evidence_id}:{relation.value}" for evidence_id, relation in relations),
+        )
+    )
+    return str(uuid5(_SNAPSHOT_NAMESPACE, logical_input))
+
+
+def _view_dimension_relations(
+    head,
+) -> tuple[tuple[LearnerModelDimension, str, EvidenceLinkRelation], ...]:
+    if head is None:
+        return ()
+    return tuple(
+        sorted(
+            (
+                (estimate.dimension, evidence_id, relation)
+                for estimate in head.estimates
+                for evidence_id, relation in estimate.evidence_links
+            ),
+            key=lambda item: (item[0].value, item[1], item[2].value),
+        )
+    )
+
+
+def _require_dimension_continuity(head, payload: LearnerModelSnapshotPayload) -> None:
+    """Never silently rewrite an inherited evidence item's dimension meaning."""
+
+    if head is None:
+        return
+    historical: dict[str, set[LearnerModelDimension]] = {}
+    for dimension, evidence_id, _ in _view_dimension_relations(head):
+        historical.setdefault(evidence_id, set()).add(dimension)
+    candidate: dict[str, set[LearnerModelDimension]] = {}
+    for estimate in payload.estimates:
+        for signal in estimate.evidence_signals:
+            candidate.setdefault(signal.evidence_id, set()).add(estimate.dimension)
+    for evidence_id, previous_dimensions in historical.items():
+        next_dimensions = candidate.get(evidence_id, set())
+        if not previous_dimensions <= next_dimensions:
+            raise LearnerModelConflictError(
+                "learner-model evidence cannot be reassigned to an incompatible dimension"
+            )
+
+
+def _is_retryable_head_conflict(error: LearnerModelConflictError) -> bool:
+    """Only a concurrent head transition merits rebuilding the deterministic proposal."""
+
+    return str(error).startswith(
+        (
+            "learner-model predecessor is not the current head",
+            "learner-model record version does not follow current head",
+            "learner-model first snapshot must have no predecessor",
+        )
+    )
+
 
 def _estimates(
     command: LearnerModelBuildCommand,
     observations: tuple[LearnerEvidenceObservation, ...],
 ) -> list[LearnerOutcomeEstimatePayload]:
     estimates: list[LearnerOutcomeEstimatePayload] = []
-    by_type: dict[EvidenceType, list[LearnerEvidenceObservation]] = {}
-    for observation in observations:
-        by_type.setdefault(observation.evidence_type, []).append(observation)
-
-    _append_estimate(
-        estimates,
-        command,
-        LearnerModelDimension.PRIOR_KNOWLEDGE,
-        by_type.get(EvidenceType.PREDICTION, ()),
-    )
-    reasoning = by_type.get(EvidenceType.REASONING, ())
-    if reasoning:
-        dimension = (
-            LearnerModelDimension.REASONING_STRENGTH
-            if any(item.relation is EvidenceLinkRelation.SUPPORTS for item in reasoning)
-            else LearnerModelDimension.REASONING_GAP
+    for dimension in sorted({rule.dimension for rule in _RULE_TABLE}, key=lambda item: item.value):
+        rules = tuple(rule for rule in _RULE_TABLE if rule.dimension is dimension)
+        eligible_types = {rule.evidence_type for rule in rules}
+        observed_types = {observation.evidence_type for observation in observations}
+        context_types = frozenset().union(*(rule.required_context_types for rule in rules))
+        if context_types and not context_types <= observed_types:
+            continue
+        eligible = tuple(
+            observation
+            for observation in observations
+            if observation.evidence_type in eligible_types | context_types
+            and (
+                dimension is not LearnerModelDimension.INDEPENDENCE
+                or observation.instructional_support_level == 0
+            )
         )
-        _append_estimate(estimates, command, dimension, reasoning)
-    _append_estimate(
-        estimates,
-        command,
-        LearnerModelDimension.CONFIDENCE_CALIBRATION,
-        by_type.get(EvidenceType.CONFIDENCE, ()),
-    )
-    _append_estimate(
-        estimates,
-        command,
-        LearnerModelDimension.FEEDBACK_USE,
-        by_type.get(EvidenceType.FEEDBACK_INTERACTION, ()),
-    )
-    _append_estimate(
-        estimates,
-        command,
-        LearnerModelDimension.SCAFFOLD_DEPENDENCE,
-        tuple(by_type.get(EvidenceType.HINT, ())) + tuple(by_type.get(EvidenceType.SCAFFOLD, ())),
-    )
-    _append_estimate(
-        estimates,
-        command,
-        LearnerModelDimension.TRANSFER,
-        by_type.get(EvidenceType.TRANSFER, ()),
-    )
-    _append_estimate(
-        estimates,
-        command,
-        LearnerModelDimension.POSSIBLE_MISCONCEPTION,
-        by_type.get(EvidenceType.MISCONCEPTION_CHECK, ()),
-        require_two_supporting_signals=True,
-    )
-    independent = tuple(
-        observation
-        for evidence_type in _INDEPENDENCE_TYPES
-        for observation in by_type.get(evidence_type, ())
-        if observation.instructional_support_level == 0
-    )
-    _append_estimate(
-        estimates,
-        command,
-        LearnerModelDimension.INDEPENDENCE,
-        independent,
-        require_two_supporting_signals=True,
-    )
+        if eligible:
+            _append_estimate(
+                estimates,
+                command,
+                dimension,
+                eligible,
+                minimum_supporting_signals=max(rule.minimum_supporting_signals for rule in rules),
+            )
     return estimates
 
 
@@ -210,7 +429,7 @@ def _append_estimate(
     dimension: LearnerModelDimension,
     observations: tuple[LearnerEvidenceObservation, ...] | list[LearnerEvidenceObservation],
     *,
-    require_two_supporting_signals: bool = False,
+    minimum_supporting_signals: int = 1,
 ) -> None:
     if not observations:
         return
@@ -220,7 +439,7 @@ def _append_estimate(
     )
     supporting = sum(item.relation is EvidenceLinkRelation.SUPPORTS for item in observations)
     contradicting = sum(item.relation is EvidenceLinkRelation.CONTRADICTS for item in observations)
-    if require_two_supporting_signals and supporting < 2:
+    if supporting and supporting < minimum_supporting_signals:
         status, uncertainty = InferenceStatus.UNCERTAIN, 0.8
     elif supporting and not contradicting:
         status, uncertainty = InferenceStatus.SUPPORTED, (0.4 if supporting > 1 else 0.7)

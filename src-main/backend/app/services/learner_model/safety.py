@@ -71,6 +71,21 @@ def require_human_review_for_model_source(
         )
 
 
+def require_trusted_adjudication(
+    source: ModelSource,
+    adjudicator_reference: str,
+    adjudication_rule_version: str,
+    model_rule_version: str,
+) -> None:
+    """Allow rule relations only from the registered internal evaluator identity."""
+
+    if source is ModelSource.RULE_BASED and (
+        adjudicator_reference != "learner-model-rule-engine.v1"
+        or adjudication_rule_version != model_rule_version
+    ):
+        raise LearnerModelSafetyError("learner-model adjudication source is not authorized")
+
+
 __all__ = [
     "LearnerModelConflictError",
     "LearnerModelPersistenceError",
@@ -79,5 +94,6 @@ __all__ = [
     "LearnerModelSafetyError",
     "reject_banned_fields",
     "require_human_review_for_model_source",
+    "require_trusted_adjudication",
     "require_safe_claim_text",
 ]

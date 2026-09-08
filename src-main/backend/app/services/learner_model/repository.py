@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -53,21 +53,36 @@ class LearnerModelSnapshotWriteResult:
 
 @dataclass(frozen=True, slots=True)
 class LearnerOutcomeEstimateView:
+    estimate_id: str
     dimension: LearnerModelDimension
     inference_status: InferenceStatus
     uncertainty: float
-    evidence_ids: tuple[str, ...]
+    reason_code: str
+    evidence_observed_at: datetime
+    evidence_links: tuple[tuple[str, EvidenceLinkRelation], ...]
+
+    @property
+    def evidence_ids(self) -> tuple[str, ...]:
+        """Compatibility projection; teaching consumers use relation-bearing links."""
+
+        return tuple(evidence_id for evidence_id, _ in self.evidence_links)
 
 
 @dataclass(frozen=True, slots=True)
 class LearnerModelSnapshotView:
     snapshot_id: str
     prior_snapshot_id: str | None
+    course_id: str
+    learner_id: str
+    outcome_id: str
+    record_version: int
     model_source: ModelSource
     schema_version: str
     model_version: str
     rule_version: str
     occurred_at: datetime
+    validated: bool
+    validation_classification: str
     estimates: tuple[LearnerOutcomeEstimateView, ...]
 
 
@@ -121,6 +136,11 @@ class SqlAlchemyLearnerModelRepository:
 
         learner_id = _learner_id(snapshot.learner_id)
         try:
+            # SQLite has no row-level `FOR UPDATE`.  Acquire its single writer lock
+            # before reading the head so competing successors are serialized.
+            if self._session.bind and self._session.bind.dialect.name == "sqlite":
+                self._session.commit()
+                self._session.execute(text("BEGIN IMMEDIATE"))
             existing = self._session.scalar(
                 select(LearnerModelSnapshotModel).where(
                     LearnerModelSnapshotModel.course_id == snapshot.course_id,
@@ -131,6 +151,7 @@ class SqlAlchemyLearnerModelRepository:
             )
             if existing is not None:
                 if self._is_exact_replay(existing, snapshot, learner_id):
+                    self._session.rollback()
                     return LearnerModelSnapshotWriteResult(
                         snapshot_id=existing.id,
                         created=False,
@@ -194,9 +215,17 @@ class SqlAlchemyLearnerModelRepository:
                 occurred_at=_as_utc(model.occurred_at),
             )
         except LearnerModelSafetyError:
+            self._session.rollback()
             raise
         except IntegrityError:
             self._session.rollback()
+            winner = self._session.get(LearnerModelSnapshotModel, snapshot.snapshot_id)
+            if winner is not None and self._is_exact_replay(winner, snapshot, learner_id):
+                return LearnerModelSnapshotWriteResult(
+                    snapshot_id=winner.id,
+                    created=False,
+                    occurred_at=_as_utc(winner.occurred_at),
+                )
             raise LearnerModelConflictError(
                 "learner-model snapshot conflicts with immutable history"
             ) from None
@@ -258,9 +287,9 @@ class SqlAlchemyLearnerModelRepository:
                 LearnerModelEvidenceLinkModel.estimate_id.in_(estimate_ids)
             )
         ).all()
-        links_by_estimate: dict[str, set[tuple[str, EvidenceLinkRelation]]] = {}
+        links_by_estimate: dict[str, list[tuple[str, EvidenceLinkRelation]]] = {}
         for link in links:
-            links_by_estimate.setdefault(link.estimate_id, set()).add(
+            links_by_estimate.setdefault(link.estimate_id, []).append(
                 (link.evidence_id, link.relation)
             )
 
@@ -271,7 +300,7 @@ class SqlAlchemyLearnerModelRepository:
                 estimate.uncertainty,
                 estimate.reason_code,
                 _as_utc(estimate.evidence_observed_at),
-                frozenset(links_by_estimate.get(estimate.id, set())),
+                tuple(sorted(links_by_estimate.get(estimate.id, ()))),
             )
             for estimate in estimates
         }
@@ -282,8 +311,11 @@ class SqlAlchemyLearnerModelRepository:
                 estimate.uncertainty,
                 estimate.reason_code,
                 _as_utc(estimate.evidence_observed_at),
-                frozenset(
-                    (signal.evidence_id, signal.relation) for signal in estimate.evidence_signals
+                tuple(
+                    sorted(
+                        (signal.evidence_id, signal.relation)
+                        for signal in estimate.evidence_signals
+                    )
                 ),
             )
             for estimate in snapshot.estimates
@@ -313,65 +345,218 @@ class SqlAlchemyLearnerModelRepository:
                     LearnerModelSnapshotModel.id,
                 )
             ).all()
-            snapshot_ids = [snapshot.id for snapshot in snapshots]
+        except SQLAlchemyError:
+            self._session.rollback()
+            raise LearnerModelPersistenceError("learner-model history could not be read") from None
+        return self._hydrate(snapshots)
+
+    def current(
+        self,
+        *,
+        course_id: str,
+        learner_id: str,
+        outcome_id: str,
+    ) -> LearnerModelSnapshotView | None:
+        """Return the complete current teaching view for exactly one model scope."""
+
+        try:
+            snapshot = self._session.scalar(
+                select(LearnerModelSnapshotModel)
+                .where(
+                    LearnerModelSnapshotModel.course_id == course_id,
+                    LearnerModelSnapshotModel.learner_id == _learner_id(learner_id),
+                    LearnerModelSnapshotModel.outcome_id == outcome_id,
+                )
+                .order_by(
+                    LearnerModelSnapshotModel.record_version.desc(),
+                    LearnerModelSnapshotModel.occurred_at.desc(),
+                    LearnerModelSnapshotModel.created_at.desc(),
+                    LearnerModelSnapshotModel.id.desc(),
+                )
+            )
+        except SQLAlchemyError:
+            self._session.rollback()
+            raise LearnerModelPersistenceError(
+                "learner-model current state could not be read"
+            ) from None
+        if snapshot is None:
+            return None
+        return self._hydrate((snapshot,))[0]
+
+    def _hydrate(
+        self,
+        snapshots: tuple[LearnerModelSnapshotModel, ...] | list[LearnerModelSnapshotModel],
+    ) -> tuple[LearnerModelSnapshotView, ...]:
+        """Build complete immutable views and fail closed on malformed persisted state."""
+
+        if not snapshots:
+            return ()
+        snapshot_ids = [snapshot.id for snapshot in snapshots]
+        try:
+            scope = snapshots[0]
+            if any(
+                (item.course_id, item.learner_id, item.outcome_id)
+                != (scope.course_id, scope.learner_id, scope.outcome_id)
+                for item in snapshots
+            ):
+                raise LearnerModelSafetyError("learner-model hydration scope is inconsistent")
+            chain = self._session.scalars(
+                select(LearnerModelSnapshotModel)
+                .where(
+                    LearnerModelSnapshotModel.course_id == scope.course_id,
+                    LearnerModelSnapshotModel.learner_id == scope.learner_id,
+                    LearnerModelSnapshotModel.outcome_id == scope.outcome_id,
+                )
+                .order_by(LearnerModelSnapshotModel.record_version)
+            ).all()
             estimates = self._session.scalars(
                 select(LearnerOutcomeEstimateModel)
                 .where(LearnerOutcomeEstimateModel.snapshot_id.in_(snapshot_ids))
-                .order_by(LearnerOutcomeEstimateModel.dimension, LearnerOutcomeEstimateModel.id)
+                .order_by(
+                    LearnerOutcomeEstimateModel.snapshot_id,
+                    LearnerOutcomeEstimateModel.dimension,
+                    LearnerOutcomeEstimateModel.id,
+                )
             ).all()
             estimate_ids = [estimate.id for estimate in estimates]
             links = self._session.scalars(
                 select(LearnerModelEvidenceLinkModel)
                 .where(LearnerModelEvidenceLinkModel.estimate_id.in_(estimate_ids))
-                .order_by(LearnerModelEvidenceLinkModel.evidence_id)
+                .order_by(
+                    LearnerModelEvidenceLinkModel.estimate_id,
+                    LearnerModelEvidenceLinkModel.evidence_id,
+                )
+            ).all()
+            evidence = self._session.scalars(
+                select(LearningEvidence).where(
+                    LearningEvidence.id.in_([link.evidence_id for link in links])
+                )
             ).all()
         except SQLAlchemyError:
             self._session.rollback()
             raise LearnerModelPersistenceError("learner-model history could not be read") from None
-        links_by_estimate: dict[str, list[str]] = {}
+
+        for position, item in enumerate(chain, start=1):
+            predecessor = chain[position - 2].id if position > 1 else None
+            if item.record_version != position or item.prior_snapshot_id != predecessor:
+                raise LearnerModelSafetyError(
+                    "stored learner-model predecessor chain is inconsistent"
+                )
+
+        evidence_by_id = {item.id: item for item in evidence}
+        snapshots_by_id = {item.id: item for item in snapshots}
+        estimate_snapshots = {estimate.id: estimate.snapshot_id for estimate in estimates}
+
+        links_by_estimate: dict[str, list[tuple[str, EvidenceLinkRelation]]] = {}
         for link in links:
-            links_by_estimate.setdefault(link.estimate_id, []).append(link.evidence_id)
+            snapshot = snapshots_by_id[estimate_snapshots[link.estimate_id]]
+            linked_evidence = evidence_by_id.get(link.evidence_id)
+            if linked_evidence is None or (
+                linked_evidence.course_id,
+                linked_evidence.learner_id,
+                linked_evidence.outcome_id,
+            ) != (snapshot.course_id, snapshot.learner_id, snapshot.outcome_id):
+                raise LearnerModelSafetyError("stored learner-model evidence link is out of scope")
+            links_by_estimate.setdefault(link.estimate_id, []).append(
+                (link.evidence_id, link.relation)
+            )
         estimates_by_snapshot: dict[str, list[LearnerOutcomeEstimateView]] = {}
         for estimate in estimates:
+            estimate_links = tuple(links_by_estimate.get(estimate.id, ()))
+            if not estimate_links or not 0 <= estimate.uncertainty <= 1:
+                raise LearnerModelSafetyError("stored learner-model estimate is incomplete")
             estimates_by_snapshot.setdefault(estimate.snapshot_id, []).append(
                 LearnerOutcomeEstimateView(
+                    estimate_id=estimate.id,
                     dimension=estimate.dimension,
                     inference_status=estimate.inference_status,
                     uncertainty=estimate.uncertainty,
-                    evidence_ids=tuple(links_by_estimate.get(estimate.id, ())),
+                    reason_code=estimate.reason_code,
+                    evidence_observed_at=_as_utc(estimate.evidence_observed_at),
+                    evidence_links=estimate_links,
                 )
             )
-        return tuple(
-            LearnerModelSnapshotView(
-                snapshot_id=snapshot.id,
-                prior_snapshot_id=snapshot.prior_snapshot_id,
-                model_source=snapshot.model_source,
-                schema_version=snapshot.schema_version,
-                model_version=snapshot.model_version,
-                rule_version=snapshot.rule_version,
-                occurred_at=_as_utc(snapshot.occurred_at),
-                estimates=tuple(estimates_by_snapshot.get(snapshot.id, ())),
+
+        views: list[LearnerModelSnapshotView] = []
+        for snapshot in snapshots:
+            if not all(
+                (
+                    snapshot.course_id,
+                    snapshot.learner_id,
+                    snapshot.outcome_id,
+                    snapshot.schema_version,
+                    snapshot.model_version,
+                    snapshot.rule_version,
+                )
+            ):
+                raise LearnerModelSafetyError("stored learner-model snapshot is incomplete")
+            snapshot_estimates = tuple(estimates_by_snapshot.get(snapshot.id, ()))
+            if not snapshot_estimates or len(
+                {estimate.dimension for estimate in snapshot_estimates}
+            ) != len(snapshot_estimates):
+                raise LearnerModelSafetyError("stored learner-model snapshot has invalid estimates")
+            validated = False
+            classification = (
+                "UNVALIDATED_RULE_ESTIMATE"
+                if snapshot.model_source is ModelSource.RULE_BASED
+                else "UNVALIDATED_MODEL_ESTIMATE"
             )
-            for snapshot in snapshots
-        )
+            views.append(
+                LearnerModelSnapshotView(
+                    snapshot_id=snapshot.id,
+                    prior_snapshot_id=snapshot.prior_snapshot_id,
+                    course_id=snapshot.course_id,
+                    learner_id=str(snapshot.learner_id),
+                    outcome_id=snapshot.outcome_id,
+                    record_version=snapshot.record_version,
+                    model_source=snapshot.model_source,
+                    schema_version=snapshot.schema_version,
+                    model_version=snapshot.model_version,
+                    rule_version=snapshot.rule_version,
+                    occurred_at=_as_utc(snapshot.occurred_at),
+                    validated=validated,
+                    validation_classification=classification,
+                    estimates=tuple(
+                        sorted(snapshot_estimates, key=lambda estimate: estimate.dimension.value)
+                    ),
+                )
+            )
+        return tuple(views)
 
     def _validate_prior_snapshot(
         self,
         snapshot: LearnerModelSnapshotPayload,
         learner_id: int,
     ) -> None:
-        if snapshot.prior_snapshot_id is None:
-            return
-        prior = self._session.scalar(
-            select(LearnerModelSnapshotModel).where(
-                LearnerModelSnapshotModel.id == snapshot.prior_snapshot_id,
+        query = (
+            select(LearnerModelSnapshotModel)
+            .where(
                 LearnerModelSnapshotModel.course_id == snapshot.course_id,
                 LearnerModelSnapshotModel.learner_id == learner_id,
                 LearnerModelSnapshotModel.outcome_id == snapshot.outcome_id,
             )
+            .order_by(
+                LearnerModelSnapshotModel.record_version.desc(),
+                LearnerModelSnapshotModel.occurred_at.desc(),
+                LearnerModelSnapshotModel.created_at.desc(),
+                LearnerModelSnapshotModel.id.desc(),
+            )
         )
-        if prior is None:
-            raise LearnerModelSafetyError("prior snapshot is unavailable in the requested scope")
+        if self._session.bind and self._session.bind.dialect.name != "sqlite":
+            query = query.with_for_update()
+        current = self._session.scalar(query)
+        if current is None:
+            if snapshot.prior_snapshot_id is not None or snapshot.record_version != 1:
+                raise LearnerModelConflictError(
+                    "learner-model first snapshot must have no predecessor and record version 1"
+                )
+            return
+        if snapshot.prior_snapshot_id != current.id:
+            raise LearnerModelConflictError("learner-model predecessor is not the current head")
+        if snapshot.record_version != current.record_version + 1:
+            raise LearnerModelConflictError(
+                "learner-model record version does not follow current head"
+            )
 
     def _validate_estimates(self, snapshot: LearnerModelSnapshotPayload, learner_id: int) -> None:
         dimensions = [estimate.dimension for estimate in snapshot.estimates]
