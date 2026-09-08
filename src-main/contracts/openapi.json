@@ -4634,6 +4634,15 @@
         "title": "ExperimentalCondition",
         "type": "string"
       },
+      "ExplanationDetail": {
+        "enum": [
+          "BRIEF",
+          "STANDARD",
+          "DETAILED"
+        ],
+        "title": "ExplanationDetail",
+        "type": "string"
+      },
       "FeedbackAcknowledgement": {
         "additionalProperties": false,
         "properties": {
@@ -6419,6 +6428,118 @@
         "title": "LearnerModelTimelineSnapshot",
         "type": "object"
       },
+      "LearnerPreferencesRead": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation_detail": {
+            "$ref": "#/components/schemas/ExplanationDetail"
+          },
+          "format": {
+            "$ref": "#/components/schemas/PreferenceFormat"
+          },
+          "optional_breaks_enabled": {
+            "title": "Optional Breaks Enabled",
+            "type": "boolean"
+          },
+          "pace": {
+            "$ref": "#/components/schemas/PreferencePace"
+          },
+          "personalisation_enabled": {
+            "title": "Personalisation Enabled",
+            "type": "boolean"
+          },
+          "repeat_practice_enabled": {
+            "title": "Repeat Practice Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "saved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved At"
+          },
+          "schema_version": {
+            "default": "learnlens.learner-preferences.v1",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pace",
+          "format",
+          "explanation_detail",
+          "optional_breaks_enabled",
+          "repeat_practice_enabled",
+          "personalisation_enabled",
+          "revision",
+          "saved"
+        ],
+        "title": "LearnerPreferencesRead",
+        "type": "object"
+      },
+      "LearnerPreferencesWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "explanation_detail": {
+            "$ref": "#/components/schemas/ExplanationDetail"
+          },
+          "format": {
+            "$ref": "#/components/schemas/PreferenceFormat"
+          },
+          "idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "optional_breaks_enabled": {
+            "title": "Optional Breaks Enabled",
+            "type": "boolean"
+          },
+          "pace": {
+            "$ref": "#/components/schemas/PreferencePace"
+          },
+          "personalisation_enabled": {
+            "title": "Personalisation Enabled",
+            "type": "boolean"
+          },
+          "repeat_practice_enabled": {
+            "title": "Repeat Practice Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pace",
+          "format",
+          "explanation_detail",
+          "optional_breaks_enabled",
+          "repeat_practice_enabled",
+          "personalisation_enabled",
+          "expected_revision",
+          "idempotency_key"
+        ],
+        "title": "LearnerPreferencesWrite",
+        "type": "object"
+      },
       "LearningEventReceipt": {
         "additionalProperties": false,
         "properties": {
@@ -7558,6 +7679,27 @@
         ],
         "title": "PairedDifferences",
         "type": "object"
+      },
+      "PreferenceFormat": {
+        "enum": [
+          "NO_PREFERENCE",
+          "TEXT",
+          "VISUAL",
+          "WORKED_EXAMPLE",
+          "CIRCUIT",
+          "STEPWISE"
+        ],
+        "title": "PreferenceFormat",
+        "type": "string"
+      },
+      "PreferencePace": {
+        "enum": [
+          "DEFAULT",
+          "SLOWER",
+          "FASTER"
+        ],
+        "title": "PreferencePace",
+        "type": "string"
       },
       "QualityReviewDecision": {
         "enum": [
@@ -17446,6 +17588,185 @@
         "summary": "Student Dashboard",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/preferences": {
+      "get": {
+        "operationId": "read_preferences_api_v1_students_me_preferences_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerPreferencesRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Preferences",
+        "tags": [
+          "learner preferences"
+        ]
+      },
+      "put": {
+        "operationId": "save_preferences_api_v1_students_me_preferences_put",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnerPreferencesWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerPreferencesRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Preferences",
+        "tags": [
+          "learner preferences"
+        ]
+      }
+    },
+    "/api/v1/students/me/preferences/history": {
+      "get": {
+        "operationId": "preference_history_api_v1_students_me_preferences_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LearnerPreferencesRead"
+                  },
+                  "title": "Response Preference History Api V1 Students Me Preferences History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preference History",
+        "tags": [
+          "learner preferences"
         ]
       }
     },
