@@ -24,6 +24,7 @@ import {
 import type { DescriptionItem } from './ui'
 import type { BloomKnowledge, BloomProcess } from '../features/assessment/types'
 import styles from './TaskView.module.css'
+import { LearnerPreferencesSummary } from '../features/preferences/LearnerPreferencesSummary'
 
 const episodeTaskTypes = ['prediction', 'reasoning', 'explanation', 'revision', 'reflection', 'transfer']
 const emptyEpisode = (): EpisodePayload => ({ schema_version: 'learnlens.episode.v1', supported: {} })
@@ -487,6 +488,7 @@ export function TaskView({
               </ul>
             </Card>
           ) : null}
+          <LearnerPreferencesSummary />
           {task.source_references && task.source_references.length > 0 ? (
             <Card eyebrow="Grounded in">
               <ul className={styles.sources}>

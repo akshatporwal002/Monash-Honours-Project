@@ -659,6 +659,7 @@ export type ApiSchemas = {
   }
   "EvidenceType": "PREDICTION" | "EXPLANATION" | "REASONING" | "RESPONSE" | "REVISION" | "CONFIDENCE" | "HINT" | "SCAFFOLD" | "FEEDBACK_INTERACTION" | "REFLECTION" | "SIMULATION" | "MISCONCEPTION_CHECK" | "TRANSFER" | "DIAGNOSTIC" | "SYSTEM_FAULT"
   "ExperimentalCondition": "agentic_rag" | "single_step_baseline"
+  "ExplanationDetail": "BRIEF" | "STANDARD" | "DETAILED"
   "FeedbackAcknowledgement": {
     "feedback_id": string
   }
@@ -943,6 +944,28 @@ export type ApiSchemas = {
     "snapshot_id": string
     "validation_classification": string
   }
+  "LearnerPreferencesRead": {
+    "explanation_detail": ApiSchemas["ExplanationDetail"]
+    "format": ApiSchemas["PreferenceFormat"]
+    "optional_breaks_enabled": boolean
+    "pace": ApiSchemas["PreferencePace"]
+    "personalisation_enabled": boolean
+    "repeat_practice_enabled": boolean
+    "revision": number
+    "saved": boolean
+    "saved_at"?: (string) | (null)
+    "schema_version"?: string
+  }
+  "LearnerPreferencesWrite": {
+    "expected_revision": number
+    "explanation_detail": ApiSchemas["ExplanationDetail"]
+    "format": ApiSchemas["PreferenceFormat"]
+    "idempotency_key": string
+    "optional_breaks_enabled": boolean
+    "pace": ApiSchemas["PreferencePace"]
+    "personalisation_enabled": boolean
+    "repeat_practice_enabled": boolean
+  }
   "LearningEventReceipt": {
     "learning_event_id": string
     "occurred_at": string
@@ -1112,6 +1135,8 @@ export type ApiSchemas = {
     "relevance": ApiSchemas["MetricValue"]
     "total_tokens": ApiSchemas["MetricValue"]
   }
+  "PreferenceFormat": "NO_PREFERENCE" | "TEXT" | "VISUAL" | "WORKED_EXAMPLE" | "CIRCUIT" | "STEPWISE"
+  "PreferencePace": "DEFAULT" | "SLOWER" | "FASTER"
   "QualityReviewDecision": "APPROVED" | "REJECTED"
   "ReadinessResponse": {
     "checks": Partial<Record<string, "ready" | "not_ready">>

@@ -68,6 +68,7 @@ from app.models.learner_model import (
     LearnerModelSnapshot,
     LearnerOutcomeEstimate,
 )
+from app.models.learner_preferences import LearnerPreferenceRevision
 from app.models.lms import (
     AttemptStatus,
     Course,
@@ -161,6 +162,7 @@ __all__ = [
     "LearnerModelEvidenceLink",
     "LearnerModelSnapshot",
     "LearnerOutcomeEstimate",
+    "LearnerPreferenceRevision",
     "LearningMaterial",
     "LearningOutcome",
     "LearningTask",

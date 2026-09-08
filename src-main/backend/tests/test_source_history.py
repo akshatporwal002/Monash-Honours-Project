@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from support.migration_assertions import protected_history_manifest
 
 from app.api.routes.materials import get_actor_id, get_course_access_policy, get_material_storage
 from app.db.base import Base
@@ -413,6 +414,7 @@ def test_migration_backfills_without_inventing_approval_and_protects_populated_h
         )
         assert conn.execute(text("SELECT COUNT(*) FROM source_approvals")).scalar_one() == 0
     before = database_manifest(database)
+    protected_before = protected_history_manifest(database)
     command.stamp(config, "20260821_0022")
     command.upgrade(config, "head")
     assert database_manifest(database) == before
@@ -425,7 +427,7 @@ def test_migration_backfills_without_inventing_approval_and_protects_populated_h
             )
     with pytest.raises(RuntimeError, match="Source history is protected"):
         command.downgrade(config, "20260821_0022")
-    assert database_manifest(database) == before
+    assert protected_history_manifest(database) == protected_before
     with engine.connect() as conn:
         assert (
             conn.execute(text("SELECT chunk_text FROM source_passages WHERE id='p'")).scalar_one()

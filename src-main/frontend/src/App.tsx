@@ -21,6 +21,7 @@ import { EducatorLearnerModelTimeline } from './components/EducatorLearnerModelT
 import { TaskPage } from './components/TaskPage'
 import { AssessorSetup } from './features/assessment/AssessorSetup'
 import { AssessorReviewQueue } from './features/assessment/AssessorReviewQueue'
+import { LearnerPreferencesPage } from './features/preferences/LearnerPreferencesPage'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
 
@@ -222,6 +223,7 @@ function AppRoutes() {
       <Route element={<AppShell user={user} hasAssessorAccess={assessorAccess} onLogout={logout} />}>
         <Route path="/student" element={guard(user.role === 'student', studentHome)} />
         <Route path="/student/learner-model" element={guard(user.role === 'student', <LearnerModelTimeline />)} />
+        <Route path="/student/preferences" element={guard(user.role === 'student', <LearnerPreferencesPage />)} />
         <Route
           path="/student/tasks/:taskId"
           element={guard(user.role === 'student', <TaskPage onSubmitted={loadStudentDashboard} />)}

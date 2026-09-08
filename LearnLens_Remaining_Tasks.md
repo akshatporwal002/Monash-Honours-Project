@@ -253,11 +253,19 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 20. **Add learner preferences and control over non-essential support.**
 
+    Task 20 progress, 8 September 2026: implemented and locally verified. The
+    [learner-preferences handoff](src-main/docs/learnlens/task-20-learner-preferences.md)
+    records immutable learner-owned preference revisions, learner-self routes,
+    settings and TaskView controls, immediate personalisation changes,
+    formal-result isolation, and privacy-bounded audit events. The final local
+    backend suite passed 1,098 tests; the frontend suite passed 238 tests, lint,
+    and the production build.
+
     Dependencies: Tasks 14 and 17; Task 8, D-05, for assessed conditions. Suggested owner: learner experience.
 
     A preference enum exists, but there is no complete preference store, API, or screen. Add pace, format, explanation detail, optional breaks, repeat practice, and personalisation controls. Let learners correct saved choices. Keep access support separate from instructional help.
 
-    Done when preferences persist and learners can disable non-essential personalisation. Choices, help use, access support, and slower pace must not lower formal results. Do not infer a diagnosis or fixed learning style.
+    Completed: preferences persist and learners can disable non-essential personalisation. Choices, help use, access support, and slower pace do not lower formal results. The feature stores no diagnosis or fixed learning style.
 
     Evidence: [platform enums](src-main/backend/app/domain/platform_enums.py), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR35-FR37 and NFR31.
 

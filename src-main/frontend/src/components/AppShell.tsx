@@ -18,7 +18,7 @@ interface NavigationItem {
 const iconSize = 18
 
 const navigation: Record<UserRole, NavigationItem[]> = {
-  student: [{ to: '/student', end: true, label: 'My learning', icon: <LayoutDashboard size={iconSize} /> }],
+  student: [{ to: '/student', end: true, label: 'My learning', icon: <LayoutDashboard size={iconSize} /> }, { to: '/student/preferences', label: 'Learning preferences', icon: <Settings size={iconSize} /> }],
   educator: [
     { to: '/educator', end: true, label: 'Dashboard', icon: <LayoutDashboard size={iconSize} /> },
     { to: '/educator/courses', label: 'Course editor', icon: <BookOpen size={iconSize} /> },

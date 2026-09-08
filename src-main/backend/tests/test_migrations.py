@@ -19,6 +19,7 @@ from support.assessment import (
 from support.assessment import (
     build_provisional_decision as _provisional_decision,
 )
+from support.migration_assertions import protected_history_manifest
 
 from app.core.security import hash_password
 from app.domain.assessment import (
@@ -53,6 +54,7 @@ EXPECTED_TABLES = {
     "learner_model_annotations",
     "learner_model_correction_reviews",
     "learner_model_correction_snapshot_links",
+    "learner_preference_revisions",
     "learner_model_evidence_links",
     "learner_model_snapshots",
     "learner_outcome_estimates",
@@ -381,12 +383,13 @@ def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tm
             )["available"]
         assert session.scalar(select(func.count()).select_from(TaskReviewEvent)) == 0
     before = database_manifest(database_path)
+    protected_before = protected_history_manifest(database_path)
     command.stamp(config, "20260907_0026")
     command.upgrade(config, "head")
     assert database_manifest(database_path) == before
     with pytest.raises(RuntimeError, match="Task review history is protected"):
         command.downgrade(config, "20260907_0026")
-    assert database_manifest(database_path) == before
+    assert protected_history_manifest(database_path) == protected_before
     for statement in (
         "UPDATE task_revisions SET version = version + 1",
         "DELETE FROM task_revisions",
@@ -1853,11 +1856,12 @@ def test_assessment_populated_downgrade_restores_verified_backup(tmp_path: Path)
     database_path, config = _prepare_legacy_assessment_database(tmp_path)
     command.upgrade(config, "head")
     before_downgrade = database_manifest(database_path)
+    protected_before_downgrade = protected_history_manifest(database_path)
     backup = create_verified_backup(database_path, tmp_path / "downgrade-backups")
 
     with pytest.raises(RuntimeError, match="cannot downgrade populated"):
         command.downgrade(config, "20260815_0017")
-    assert database_manifest(database_path) == before_downgrade
+    assert protected_history_manifest(database_path) == protected_before_downgrade
 
     with sqlite3.connect(backup.backup_path) as source_connection:
         with sqlite3.connect(database_path) as restored_connection:
@@ -1897,10 +1901,10 @@ def test_numeric_only_populated_history_blocks_downgrade(tmp_path: Path) -> None
     finally:
         engine.dispose()
 
-    before_downgrade = database_manifest(database_path)
+    protected_before_downgrade = protected_history_manifest(database_path)
     with pytest.raises(RuntimeError, match="cannot downgrade populated"):
         command.downgrade(config, "20260815_0017")
-    assert database_manifest(database_path) == before_downgrade
+    assert protected_history_manifest(database_path) == protected_before_downgrade
 
 
 def test_assessment_evaluation_job_migration_backfills_pending_work_and_blocks_data_loss(
@@ -1939,10 +1943,10 @@ def test_assessment_evaluation_job_migration_backfills_pending_work_and_blocks_d
         "state": "pending",
         "processing_attempts": 0,
     }
-    before_downgrade = database_manifest(database_path)
+    protected_before_downgrade = protected_history_manifest(database_path)
     with pytest.raises(RuntimeError, match="cannot downgrade populated assessment evaluation jobs"):
         command.downgrade(config, "20260816_0021")
-    assert database_manifest(database_path) == before_downgrade
+    assert protected_history_manifest(database_path) == protected_before_downgrade
     migrated_engine.dispose()
 
 

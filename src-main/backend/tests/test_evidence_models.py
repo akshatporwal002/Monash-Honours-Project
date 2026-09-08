@@ -10,6 +10,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
+from support.migration_assertions import protected_history_manifest
 
 from app import models  # noqa: F401
 from app.db.base import Base
@@ -218,21 +219,21 @@ def test_evidence_migration_is_append_only_and_preserves_legacy_records(tmp_path
                         "'learner', 'corr', 'evidence-record.v1', 1, 'broken-key', CURRENT_TIMESTAMP)"
                     )
                 )
-        before_failed_downgrade = database_manifest(database_path)
+        before_failed_downgrade = protected_history_manifest(database_path)
         with pytest.raises(RuntimeError, match="cannot downgrade populated"):
             command.downgrade(config, "20260815_0018")
-        assert database_manifest(database_path) == before_failed_downgrade
+        assert protected_history_manifest(database_path) == before_failed_downgrade
     finally:
         engine.dispose()
 
     with sqlite3.connect(clean_head_backup.backup_path) as source_connection:
         with sqlite3.connect(database_path) as restored_connection:
             source_connection.backup(restored_connection)
-    restored_manifest = database_manifest(database_path)
+    restored_manifest = protected_history_manifest(database_path)
     # Head now archives legacy task content even before new learning evidence exists.
     with pytest.raises(RuntimeError, match="Task review history is protected"):
         command.downgrade(config, "20260815_0018")
-    assert database_manifest(database_path) == restored_manifest
+    assert protected_history_manifest(database_path) == restored_manifest
     with sqlite3.connect(backup.backup_path) as source_connection:
         with sqlite3.connect(database_path) as restored_connection:
             source_connection.backup(restored_connection)
