@@ -91,6 +91,27 @@ class LearnerModelDimension(StrEnum):
     EXPLICIT_PREFERENCE = "EXPLICIT_PREFERENCE"
 
 
+class PreferencePace(StrEnum):
+    DEFAULT = "DEFAULT"
+    SLOWER = "SLOWER"
+    FASTER = "FASTER"
+
+
+class PreferenceFormat(StrEnum):
+    NO_PREFERENCE = "NO_PREFERENCE"
+    TEXT = "TEXT"
+    VISUAL = "VISUAL"
+    WORKED_EXAMPLE = "WORKED_EXAMPLE"
+    CIRCUIT = "CIRCUIT"
+    STEPWISE = "STEPWISE"
+
+
+class ExplanationDetail(StrEnum):
+    BRIEF = "BRIEF"
+    STANDARD = "STANDARD"
+    DETAILED = "DETAILED"
+
+
 class EvidenceLinkRelation(StrEnum):
     SUPPORTS = "SUPPORTS"
     CONTRADICTS = "CONTRADICTS"
@@ -104,9 +125,12 @@ __all__ = [
     "EvidenceLinkRelation",
     "EvidenceProvenance",
     "EvidenceType",
+    "ExplanationDetail",
     "InferenceStatus",
     "InstructionalSupportLevel",
     "LearnerModelDimension",
     "ModelSource",
+    "PreferenceFormat",
+    "PreferencePace",
     "ObservationType",
 ]
