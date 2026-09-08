@@ -419,6 +419,12 @@ export type ApiSchemas = {
     "reason_code": string
     "status"?: "CONFLICT"
   }
+  "CorrectionTarget": {
+    "estimate_id"?: (string) | (null)
+    "evidence_id"?: (string) | (null)
+    "target_kind": ApiSchemas["CorrectionTargetKind"]
+  }
+  "CorrectionTargetKind": "EVIDENCE" | "ESTIMATE"
   "CourseCreate": {
     "code"?: (string) | (null)
     "description"?: string
@@ -490,6 +496,32 @@ export type ApiSchemas = {
     "circuit"?: (Record<string, unknown>) | (null)
     "code"?: (string) | (null)
     "episode"?: (ApiSchemas["EpisodePayloadV1"]) | (null)
+  }
+  "EducatorCorrectionReviewPayload": {
+    "action": "ACCEPTED" | "REJECTED" | "NEEDS_REVIEW"
+    "actor_reference": string
+    "annotation_id": string
+    "contract_version"?: "learnlens.educator-correction-review.v1"
+    "correlation_id": string
+    "course_id": string
+    "expected_latest_review_version": number
+    "idempotency_key": string
+    "learner_id": string
+    "occurred_at": string
+    "outcome_id": string
+    "prior_review_id"?: (string) | (null)
+    "reason": string
+    "review_id": string
+    "review_version": number
+    "target": ApiSchemas["CorrectionTarget"]
+  }
+  "EducatorCorrectionReviewRequest": {
+    "action": "ACCEPTED" | "REJECTED" | "NEEDS_REVIEW"
+    "annotation_id": string
+    "expected_latest_review_version": number
+    "idempotency_key": string
+    "occurred_at": string
+    "reason": string
   }
   "EducatorDashboardRead": {
     "at_risk_students": number
@@ -819,6 +851,7 @@ export type ApiSchemas = {
     "schema_version"?: string
     "total": number
   }
+  "InferenceStatus": "UNCERTAIN" | "SUPPORTED" | "CONTRADICTED" | "NEEDS_REVIEW"
   "InvalidEvidenceReference": {
     "reason_code": string
     "reference_id"?: (string) | (null)
@@ -843,6 +876,72 @@ export type ApiSchemas = {
     "display_name": string
     "points": number
     "student_id": string
+  }
+  "LearnerAnnotationPayload": {
+    "action"?: "ANNOTATED"
+    "actor_reference": string
+    "annotation_id": string
+    "contract_version"?: "learnlens.learner-annotation.v1"
+    "correlation_id": string
+    "course_id": string
+    "idempotency_key": string
+    "learner_id": string
+    "note": string
+    "occurred_at": string
+    "outcome_id": string
+    "record_version": number
+    "target": ApiSchemas["CorrectionTarget"]
+  }
+  "LearnerAnnotationRequest": {
+    "course_id": string
+    "idempotency_key": string
+    "note": string
+    "occurred_at": string
+    "outcome_id": string
+    "target": ApiSchemas["CorrectionTarget"]
+  }
+  "LearnerModelDimension": "PRIOR_KNOWLEDGE" | "REASONING_STRENGTH" | "REASONING_GAP" | "POSSIBLE_MISCONCEPTION" | "CONFIDENCE_CALIBRATION" | "FEEDBACK_USE" | "SCAFFOLD_DEPENDENCE" | "INDEPENDENCE" | "TRANSFER" | "EXPLICIT_PREFERENCE"
+  "LearnerModelTimelineCorrection": {
+    "annotation": ApiSchemas["LearnerAnnotationPayload"]
+    "reviews": Array<ApiSchemas["EducatorCorrectionReviewPayload"]>
+  }
+  "LearnerModelTimelineEntry": {
+    "entry_type": "OBSERVATION" | "INFERENCE" | "ANNOTATION" | "REVIEW"
+    "occurred_at": string
+    "reference_id": string
+  }
+  "LearnerModelTimelineEstimate": {
+    "dimension": ApiSchemas["LearnerModelDimension"]
+    "estimate_id": string
+    "evidence_links": Array<Array<string>>
+    "evidence_observed_at": string
+    "inference_status": ApiSchemas["InferenceStatus"]
+    "reason_code": string
+    "uncertainty": number
+  }
+  "LearnerModelTimelineEvidence": {
+    "id": string
+    "occurred_at": string
+    "provenance": string
+    "type": string
+  }
+  "LearnerModelTimelineResponse": {
+    "corrections": Array<ApiSchemas["LearnerModelTimelineCorrection"]>
+    "entries": Array<ApiSchemas["LearnerModelTimelineEntry"]>
+    "evidence": Array<ApiSchemas["LearnerModelTimelineEvidence"]>
+    "next_cursor"?: (string) | (null)
+    "snapshots": Array<ApiSchemas["LearnerModelTimelineSnapshot"]>
+  }
+  "LearnerModelTimelineSnapshot": {
+    "estimates": Array<ApiSchemas["LearnerModelTimelineEstimate"]>
+    "model_source": ApiSchemas["ModelSource"]
+    "model_version": string
+    "occurred_at": string
+    "prior_snapshot_id"?: (string) | (null)
+    "record_version": number
+    "rule_version": string
+    "snapshot_id": string
+    "validation_classification": string
   }
   "LearningEventReceipt": {
     "learning_event_id": string
@@ -959,6 +1058,7 @@ export type ApiSchemas = {
     "reason_code": string
     "status"?: "MISSING"
   }
+  "ModelSource": "RULE_BASED" | "ADVISORY_MODEL" | "EDUCATOR" | "LEARNER"
   "ModuleCreate": {
     "description"?: string
     "position": number

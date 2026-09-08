@@ -63,6 +63,7 @@ def get_request_security_guard() -> RequestSecurityGuard:
             "generation": RateLimit(120, 60),
             "reports": RateLimit(120, 60),
             "learning-events": RateLimit(300, 60),
+            "learner-model-corrections": RateLimit(60, 60),
             "analytics": RateLimit(300, 60),
             "exports": RateLimit(10, 60),
         }

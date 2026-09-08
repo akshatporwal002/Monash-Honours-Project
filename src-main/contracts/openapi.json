@@ -2966,6 +2966,56 @@
         "title": "ConflictingEvidenceReference",
         "type": "object"
       },
+      "CorrectionTarget": {
+        "additionalProperties": false,
+        "description": "Explicitly identify one immutable evidence record or estimate.",
+        "properties": {
+          "estimate_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimate Id"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "target_kind": {
+            "$ref": "#/components/schemas/CorrectionTargetKind"
+          }
+        },
+        "required": [
+          "target_kind"
+        ],
+        "title": "CorrectionTarget",
+        "type": "object"
+      },
+      "CorrectionTargetKind": {
+        "enum": [
+          "EVIDENCE",
+          "ESTIMATE"
+        ],
+        "title": "CorrectionTargetKind",
+        "type": "string"
+      },
       "CourseCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3433,6 +3483,196 @@
           }
         },
         "title": "DraftWrite",
+        "type": "object"
+      },
+      "EducatorCorrectionReviewPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "ACCEPTED",
+              "REJECTED",
+              "NEEDS_REVIEW"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_reference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Actor Reference",
+            "type": "string"
+          },
+          "annotation_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Annotation Id",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "learnlens.educator-correction-review.v1",
+            "default": "learnlens.educator-correction-review.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "correlation_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "course_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "expected_latest_review_version": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Expected Latest Review Version",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "learner_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Learner Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "prior_review_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Review Id"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "review_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Review Id",
+            "type": "string"
+          },
+          "review_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Review Version",
+            "type": "integer"
+          },
+          "target": {
+            "$ref": "#/components/schemas/CorrectionTarget"
+          }
+        },
+        "required": [
+          "course_id",
+          "learner_id",
+          "outcome_id",
+          "target",
+          "actor_reference",
+          "correlation_id",
+          "idempotency_key",
+          "occurred_at",
+          "review_id",
+          "annotation_id",
+          "review_version",
+          "expected_latest_review_version",
+          "action",
+          "reason"
+        ],
+        "title": "EducatorCorrectionReviewPayload",
+        "type": "object"
+      },
+      "EducatorCorrectionReviewRequest": {
+        "additionalProperties": false,
+        "description": "Public actor-free review request; the route supplies educator identity.",
+        "properties": {
+          "action": {
+            "enum": [
+              "ACCEPTED",
+              "REJECTED",
+              "NEEDS_REVIEW"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "annotation_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Annotation Id",
+            "type": "string"
+          },
+          "expected_latest_review_version": {
+            "maximum": 2147483647.0,
+            "minimum": 0.0,
+            "title": "Expected Latest Review Version",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "annotation_id",
+          "expected_latest_review_version",
+          "action",
+          "reason",
+          "idempotency_key",
+          "occurred_at"
+        ],
+        "title": "EducatorCorrectionReviewRequest",
         "type": "object"
       },
       "EducatorDashboardRead": {
@@ -5587,6 +5827,16 @@
         "title": "InactiveLearnerPage",
         "type": "object"
       },
+      "InferenceStatus": {
+        "enum": [
+          "UNCERTAIN",
+          "SUPPORTED",
+          "CONTRADICTED",
+          "NEEDS_REVIEW"
+        ],
+        "title": "InferenceStatus",
+        "type": "string"
+      },
       "InvalidEvidenceReference": {
         "additionalProperties": false,
         "properties": {
@@ -5731,6 +5981,442 @@
           "completed_tasks"
         ],
         "title": "LeaderboardEntryRead",
+        "type": "object"
+      },
+      "LearnerAnnotationPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": "ANNOTATED",
+            "default": "ANNOTATED",
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_reference": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Actor Reference",
+            "type": "string"
+          },
+          "annotation_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Annotation Id",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "learnlens.learner-annotation.v1",
+            "default": "learnlens.learner-annotation.v1",
+            "title": "Contract Version",
+            "type": "string"
+          },
+          "correlation_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "course_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "learner_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Learner Id",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "record_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Record Version",
+            "type": "integer"
+          },
+          "target": {
+            "$ref": "#/components/schemas/CorrectionTarget"
+          }
+        },
+        "required": [
+          "course_id",
+          "learner_id",
+          "outcome_id",
+          "target",
+          "actor_reference",
+          "correlation_id",
+          "idempotency_key",
+          "occurred_at",
+          "annotation_id",
+          "record_version",
+          "note"
+        ],
+        "title": "LearnerAnnotationPayload",
+        "type": "object"
+      },
+      "LearnerAnnotationRequest": {
+        "additionalProperties": false,
+        "description": "Public actor-free request; route code derives learner and actor identity.",
+        "properties": {
+          "course_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Course Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Note",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/CorrectionTarget"
+          }
+        },
+        "required": [
+          "course_id",
+          "outcome_id",
+          "target",
+          "note",
+          "idempotency_key",
+          "occurred_at"
+        ],
+        "title": "LearnerAnnotationRequest",
+        "type": "object"
+      },
+      "LearnerModelDimension": {
+        "description": "Observed learning dimensions, never fixed learner traits or results.",
+        "enum": [
+          "PRIOR_KNOWLEDGE",
+          "REASONING_STRENGTH",
+          "REASONING_GAP",
+          "POSSIBLE_MISCONCEPTION",
+          "CONFIDENCE_CALIBRATION",
+          "FEEDBACK_USE",
+          "SCAFFOLD_DEPENDENCE",
+          "INDEPENDENCE",
+          "TRANSFER",
+          "EXPLICIT_PREFERENCE"
+        ],
+        "title": "LearnerModelDimension",
+        "type": "string"
+      },
+      "LearnerModelTimelineCorrection": {
+        "additionalProperties": false,
+        "properties": {
+          "annotation": {
+            "$ref": "#/components/schemas/LearnerAnnotationPayload"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/EducatorCorrectionReviewPayload"
+            },
+            "title": "Reviews",
+            "type": "array"
+          }
+        },
+        "required": [
+          "annotation",
+          "reviews"
+        ],
+        "title": "LearnerModelTimelineCorrection",
+        "type": "object"
+      },
+      "LearnerModelTimelineEntry": {
+        "additionalProperties": false,
+        "description": "A cursor-addressable transition; details remain in the typed projections.",
+        "properties": {
+          "entry_type": {
+            "enum": [
+              "OBSERVATION",
+              "INFERENCE",
+              "ANNOTATION",
+              "REVIEW"
+            ],
+            "title": "Entry Type",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "reference_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Reference Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entry_type",
+          "reference_id",
+          "occurred_at"
+        ],
+        "title": "LearnerModelTimelineEntry",
+        "type": "object"
+      },
+      "LearnerModelTimelineEstimate": {
+        "additionalProperties": false,
+        "properties": {
+          "dimension": {
+            "$ref": "#/components/schemas/LearnerModelDimension"
+          },
+          "estimate_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Estimate Id",
+            "type": "string"
+          },
+          "evidence_links": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Evidence Links",
+            "type": "array"
+          },
+          "evidence_observed_at": {
+            "format": "date-time",
+            "title": "Evidence Observed At",
+            "type": "string"
+          },
+          "inference_status": {
+            "$ref": "#/components/schemas/InferenceStatus"
+          },
+          "reason_code": {
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "uncertainty": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Uncertainty",
+            "type": "number"
+          }
+        },
+        "required": [
+          "estimate_id",
+          "dimension",
+          "inference_status",
+          "uncertainty",
+          "reason_code",
+          "evidence_observed_at",
+          "evidence_links"
+        ],
+        "title": "LearnerModelTimelineEstimate",
+        "type": "object"
+      },
+      "LearnerModelTimelineEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "provenance": {
+            "title": "Provenance",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "provenance",
+          "occurred_at"
+        ],
+        "title": "LearnerModelTimelineEvidence",
+        "type": "object"
+      },
+      "LearnerModelTimelineResponse": {
+        "additionalProperties": false,
+        "description": "Role-safe metadata projection; it deliberately excludes evidence artefacts.",
+        "properties": {
+          "corrections": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerModelTimelineCorrection"
+            },
+            "title": "Corrections",
+            "type": "array"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerModelTimelineEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerModelTimelineEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerModelTimelineSnapshot"
+            },
+            "title": "Snapshots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "evidence",
+          "snapshots",
+          "corrections",
+          "entries"
+        ],
+        "title": "LearnerModelTimelineResponse",
+        "type": "object"
+      },
+      "LearnerModelTimelineSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "estimates": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerModelTimelineEstimate"
+            },
+            "title": "Estimates",
+            "type": "array"
+          },
+          "model_source": {
+            "$ref": "#/components/schemas/ModelSource"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "prior_snapshot_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Snapshot Id"
+          },
+          "record_version": {
+            "maximum": 2147483647.0,
+            "minimum": 1.0,
+            "title": "Record Version",
+            "type": "integer"
+          },
+          "rule_version": {
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "validation_classification": {
+            "title": "Validation Classification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "record_version",
+          "model_source",
+          "model_version",
+          "rule_version",
+          "occurred_at",
+          "validation_classification",
+          "estimates"
+        ],
+        "title": "LearnerModelTimelineSnapshot",
         "type": "object"
       },
       "LearningEventReceipt": {
@@ -6525,6 +7211,16 @@
         ],
         "title": "MissingEvidenceReference",
         "type": "object"
+      },
+      "ModelSource": {
+        "enum": [
+          "RULE_BASED",
+          "ADVISORY_MODEL",
+          "EDUCATOR",
+          "LEARNER"
+        ],
+        "title": "ModelSource",
+        "type": "string"
       },
       "ModuleCreate": {
         "additionalProperties": false,
@@ -15391,6 +16087,355 @@
         "summary": "Health Check",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/learner-model/courses/{course_id}/learners/{learner_id}/annotations/{annotation_id}/reviews": {
+      "post": {
+        "operationId": "review_api_v1_learner_model_courses__course_id__learners__learner_id__annotations__annotation_id__reviews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "learner_id",
+            "required": true,
+            "schema": {
+              "title": "Learner Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "annotation_id",
+            "required": true,
+            "schema": {
+              "title": "Annotation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EducatorCorrectionReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EducatorCorrectionReviewPayload"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review",
+        "tags": [
+          "learner model"
+        ]
+      }
+    },
+    "/api/v1/learner-model/courses/{course_id}/learners/{learner_id}/timeline": {
+      "get": {
+        "operationId": "educator_timeline_api_v1_learner_model_courses__course_id__learners__learner_id__timeline_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "learner_id",
+            "required": true,
+            "schema": {
+              "title": "Learner Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerModelTimelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Educator Timeline",
+        "tags": [
+          "learner model"
+        ]
+      }
+    },
+    "/api/v1/learner-model/me/annotations": {
+      "post": {
+        "operationId": "annotate_api_v1_learner_model_me_annotations_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnerAnnotationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerAnnotationPayload"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Annotate",
+        "tags": [
+          "learner model"
+        ]
+      }
+    },
+    "/api/v1/learner-model/me/timeline": {
+      "get": {
+        "operationId": "my_timeline_api_v1_learner_model_me_timeline_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerModelTimelineResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "My Timeline",
+        "tags": [
+          "learner model"
         ]
       }
     },
