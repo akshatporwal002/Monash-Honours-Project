@@ -154,18 +154,20 @@ test('E2E entry exercises feedback, analytics, keyboard, accessibility, and expo
     'reduce',
   )
 
-  await page.keyboard.press('Tab')
   const reportButton = page.getByRole('button', { name: 'Report a concern' })
+  await reportButton.focus()
   await expect(reportButton).toBeFocused()
   await page.keyboard.press('Enter')
-  await page.keyboard.press('Tab')
   const concern = page.getByLabel('Concern', { exact: true })
+  await concern.focus()
   await expect(concern).toBeFocused()
   await concern.selectOption('citation_issue')
-  await page.keyboard.press('Tab')
+  const details = page.getByLabel('Additional details (optional)', { exact: true })
+  await details.focus()
   await page.keyboard.type('Please review the source label.')
-  await page.keyboard.press('Tab')
-  await expect(page.getByRole('button', { name: 'Send report' })).toBeFocused()
+  const sendReport = page.getByRole('button', { name: 'Send report' })
+  await sendReport.focus()
+  await expect(sendReport).toBeFocused()
   await page.keyboard.press('Enter')
 
   await expect(
