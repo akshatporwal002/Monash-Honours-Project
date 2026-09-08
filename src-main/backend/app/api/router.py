@@ -7,6 +7,7 @@ from app.api.routes import (
     authentication,
     feedback,
     health,
+    learner_model,
     learning_events,
     lms,
     materials,
@@ -28,5 +29,6 @@ api_router.include_router(task_generation.router, tags=["task generation"])
 api_router.include_router(task_review.router, tags=["task review"])
 api_router.include_router(feedback.router, tags=["feedback"])
 api_router.include_router(learning_events.router, tags=["learning-events"])
+api_router.include_router(learner_model.router)
 api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(research_exports.router, tags=["research"])

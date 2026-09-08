@@ -21,6 +21,9 @@ from app.services.learner_model.contracts import (
     LearnerModelUpdateCommand,
     LearnerOutcomeEstimatePayload,
 )
+from app.services.learner_model.correction_repository import (
+    SqlAlchemyLearnerModelCorrectionRepository,
+)
 from app.services.learner_model.repository import (
     LearnerEvidenceObservation,
     LearnerModelSnapshotView,
@@ -162,9 +165,11 @@ class LearnerModelBuildService:
         self,
         repository: SqlAlchemyLearnerModelRepository,
         builder: LearnerModelAdapter,
+        corrections: SqlAlchemyLearnerModelCorrectionRepository | None = None,
     ) -> None:
         self._repository = repository
         self._builder = builder
+        self._corrections = corrections
 
     def _build(self, command: LearnerModelBuildCommand) -> LearnerModelBuildResult:
         """Internal payload seam retained for focused repository/provider tests only."""
@@ -223,7 +228,18 @@ class LearnerModelBuildService:
             outcome_id=command.outcome_id,
         )
         relations = _merge_relations(head, incoming)
-        if head is not None and relations == _view_relations(head):
+        accepted = (
+            ()
+            if self._corrections is None
+            else self._corrections.accepted_targets(
+                course_id=command.course_id,
+                learner_id=command.learner_id,
+                outcome_id=command.outcome_id,
+                evidence_ids=tuple(evidence_id for evidence_id, _ in relations),
+                snapshot_id=None if head is None else head.snapshot_id,
+            )
+        )
+        if head is not None and relations == _view_relations(head) and not accepted:
             return LearnerModelBuildResult(
                 LearnerModelBuildState.STORED,
                 snapshot=LearnerModelSnapshotWriteResult(
@@ -237,7 +253,12 @@ class LearnerModelBuildService:
             LearnerModelEvidenceSignal(evidence_id=evidence_id, relation=relation)
             for evidence_id, relation in relations
         )
-        snapshot_id = _snapshot_identity(command, head, relations)
+        snapshot_id = _snapshot_identity(
+            command,
+            head,
+            relations,
+            accepted_review_ids=tuple(item.review_id for item in accepted),
+        )
         observations = self._repository.observations(
             LearnerModelBuildCommand(
                 snapshot_id=snapshot_id,
@@ -280,8 +301,29 @@ class LearnerModelBuildService:
             return LearnerModelBuildResult(LearnerModelBuildState.PROVIDER_UNAVAILABLE)
         if payload is None:
             return LearnerModelBuildResult(LearnerModelBuildState.NO_INFERENCE)
+        if accepted:
+            affected = {item.dimension for item in accepted if item.dimension is not None}
+            payload = payload.model_copy(
+                update={
+                    "estimates": tuple(
+                        estimate.model_copy(
+                            update={"inference_status": InferenceStatus.NEEDS_REVIEW}
+                        )
+                        if estimate.dimension.value in affected
+                        else estimate
+                        for estimate in payload.estimates
+                    )
+                }
+            )
         _require_dimension_continuity(head, payload)
-        stored = self._repository.store(payload)
+        stored = (
+            self._repository.store(
+                payload,
+                accepted_review_ids=tuple(item.review_id for item in accepted),
+            )
+            if accepted
+            else self._repository.store(payload)
+        )
         return LearnerModelBuildResult(
             LearnerModelBuildState.STORED,
             snapshot=stored,
@@ -320,7 +362,11 @@ def _merge_relations(
 
 
 def _snapshot_identity(
-    command, head, relations: tuple[tuple[str, EvidenceLinkRelation], ...]
+    command,
+    head,
+    relations: tuple[tuple[str, EvidenceLinkRelation], ...],
+    *,
+    accepted_review_ids: tuple[str, ...] = (),
 ) -> str:
     predecessor = head.snapshot_id if head else "first"
     logical_input = "|".join(
@@ -337,6 +383,7 @@ def _snapshot_identity(
                 for dimension, evidence_id, relation in _view_dimension_relations(head)
             ),
             *(f"{evidence_id}:{relation.value}" for evidence_id, relation in relations),
+            *(f"accepted-review:{review_id}" for review_id in sorted(set(accepted_review_ids))),
         )
     )
     return str(uuid5(_SNAPSHOT_NAMESPACE, logical_input))

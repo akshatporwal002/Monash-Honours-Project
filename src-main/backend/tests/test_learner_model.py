@@ -663,6 +663,14 @@ def test_update_appends_a_complete_cumulative_snapshot_and_skips_an_unchanged_re
     assert timeline[0].estimates[0].evidence_links == (
         ("prediction-1", EvidenceLinkRelation.SUPPORTS),
     )
+    current = SqlAlchemyLearnerModelRepository(db_session).current(
+        course_id=scope["course_one"],
+        learner_id=scope["learner_id"],
+        outcome_id=scope["outcome_one"],
+    )
+    assert current is not None
+    assert current.snapshot_id == timeline[1].snapshot_id
+    assert current.record_version == 2
 
 
 def test_update_replays_equivalent_evidence_in_a_different_input_order(

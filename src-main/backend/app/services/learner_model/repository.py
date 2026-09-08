@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from uuid import UUID, uuid5
 
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -15,6 +16,10 @@ from app.domain.platform_enums import (
     InferenceStatus,
     LearnerModelDimension,
     ModelSource,
+)
+from app.models.learner_model import (
+    LearnerModelCorrectionReview,
+    LearnerModelCorrectionSnapshotLink,
 )
 from app.models.learner_model import (
     LearnerModelEvidenceLink as LearnerModelEvidenceLinkModel,
@@ -131,7 +136,12 @@ class SqlAlchemyLearnerModelRepository:
             for evidence_id in requested
         )
 
-    def store(self, snapshot: LearnerModelSnapshotPayload) -> LearnerModelSnapshotWriteResult:
+    def store(
+        self,
+        snapshot: LearnerModelSnapshotPayload,
+        *,
+        accepted_review_ids: tuple[str, ...] = (),
+    ) -> LearnerModelSnapshotWriteResult:
         """Store one complete snapshot atomically, or return its exact replay."""
 
         learner_id = _learner_id(snapshot.learner_id)
@@ -208,6 +218,8 @@ class SqlAlchemyLearnerModelRepository:
                 for estimate_id, payload in estimate_ids.items()
                 for signal in payload.evidence_signals
             )
+            self._session.flush()
+            self._store_correction_links(snapshot, model, accepted_review_ids)
             self._session.commit()
             return LearnerModelSnapshotWriteResult(
                 snapshot_id=model.id,
@@ -234,6 +246,61 @@ class SqlAlchemyLearnerModelRepository:
             raise LearnerModelPersistenceError(
                 "learner-model snapshot could not be stored"
             ) from None
+
+    def _store_correction_links(
+        self,
+        snapshot: LearnerModelSnapshotPayload,
+        model: LearnerModelSnapshotModel,
+        review_ids: tuple[str, ...],
+    ) -> None:
+        """Verify accepted reviews are still current and link them atomically."""
+        for review_id in sorted(set(review_ids)):
+            review = self._session.get(LearnerModelCorrectionReview, review_id)
+            if review is None or review.action.value != "ACCEPTED":
+                raise LearnerModelConflictError(
+                    "accepted correction changed during snapshot construction"
+                )
+            latest = self._session.scalar(
+                select(LearnerModelCorrectionReview)
+                .where(LearnerModelCorrectionReview.annotation_id == review.annotation_id)
+                .order_by(LearnerModelCorrectionReview.review_version.desc())
+                .limit(1)
+            )
+            if (
+                latest is None
+                or latest.id != review.id
+                or (
+                    review.course_id,
+                    review.learner_id,
+                    review.outcome_id,
+                )
+                != (snapshot.course_id, model.learner_id, snapshot.outcome_id)
+            ):
+                raise LearnerModelConflictError(
+                    "accepted correction changed during snapshot construction"
+                )
+            link_id = str(
+                uuid5(
+                    UUID("70c3b36a-7f3a-4915-a7eb-85be33c54ddb"),
+                    f"{snapshot.snapshot_id}:{review_id}",
+                )
+            )
+            self._session.add(
+                LearnerModelCorrectionSnapshotLink(
+                    id=link_id,
+                    review_id=review.id,
+                    snapshot_id=model.id,
+                    course_id=snapshot.course_id,
+                    learner_id=model.learner_id,
+                    outcome_id=snapshot.outcome_id,
+                    schema_version="learnlens.correction-snapshot-link.v1",
+                    record_version=1,
+                    actor_reference=snapshot.agent_reference or snapshot.actor_reference,
+                    correlation_id=snapshot.correlation_id,
+                    idempotency_key=f"correction-link:{link_id}",
+                    occurred_at=_as_utc(snapshot.occurred_at),
+                )
+            )
 
     def _is_exact_replay(
         self,
