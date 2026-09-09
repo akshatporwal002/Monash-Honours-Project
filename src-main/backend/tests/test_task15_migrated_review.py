@@ -174,7 +174,7 @@ def test_real_episode_review_is_lossless_read_only_and_confirmed(migrated):
         command.downgrade(config, "20260907_0030")
     assert (
         session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        == "20260908_0033"
+        == "20260909_0034"
     )
     assert session.execute(text("PRAGMA foreign_key_check")).all() == []
 

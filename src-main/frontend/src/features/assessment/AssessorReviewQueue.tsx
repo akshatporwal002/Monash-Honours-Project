@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { CurriculumPanel } from '../../components/CurriculumPanel'
 
 import type { ScopedRoleAssignment } from '../../app/types'
 import { ScreenState } from '../../components/ScreenPrimitives'
@@ -37,6 +38,7 @@ export function AssessorReviewQueue({
   onCheckAccess: (courseId: string) => Promise<boolean>
   onAccessRevoked: () => void
 }) {
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const queue = useAssessorReviewQueue({ assignments, onCheckAccess, onAccessRevoked })
   /* The AlertDialog opens without a Radix trigger, so focus returns to the
      opening action button manually when the dialog closes (NFR4, AT24).
@@ -73,6 +75,10 @@ export function AssessorReviewQueue({
           </Button>
         }
       />
+      {queue.filters.courseId && <>
+        <Button variant="secondary" onClick={() => setDiagnosticsOpen(value => !value)}>{diagnosticsOpen ? 'Close diagnostic reviews' : 'Review learning diagnostics'}</Button>
+        {diagnosticsOpen && <CurriculumPanel key={queue.filters.courseId} courseId={queue.filters.courseId} staff />}
+      </>}
       {queue.error && <p className={styles.alert} role="alert">{queue.error}</p>}
       {queue.status && <p className={styles.status} role="status">{queue.status}</p>}
       <ReviewFiltersPanel

@@ -5,6 +5,7 @@ from app.api.routes import (
     assessment,
     assessment_evaluation,
     authentication,
+    curriculum,
     feedback,
     health,
     learner_model,
@@ -34,3 +35,5 @@ api_router.include_router(learner_model.router)
 api_router.include_router(learner_preferences.router)
 api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(research_exports.router, tags=["research"])
+
+api_router.include_router(curriculum.router)

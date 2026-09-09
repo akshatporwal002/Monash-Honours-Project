@@ -48,3 +48,4 @@ class EffectivePreferences(PreferenceRead):
     transfer: bool
     repeat_allowed: bool
     limitations: list[str]
+    pathway_support_level: Literal["guided", "concept_cue", "independent"] | None = None

@@ -265,11 +265,15 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 12, 18, and 20. Suggested owner: learning pathway services.
 
-    Ordered outcomes and task prerequisites exist. They do not form the required concept, outcome, source, activity, task-form, and evidence-rule graph. Add those links with versioned exit rules. Support at least three ordered tasks, declared support levels, and fading help after suitable success. Add initial diagnostics and learner-requested prior-mastery checks, including independent conditions and the required assessor confirmation for bypass.
+    Implemented locally in `.tmp-coordinator/task21`, with the uncommitted Task 20 dependency preserved separately.
+    Versioned graphs link approved tasks, concepts, source approvals, task forms, assessment rules, and exit guidance.
+    Learners can save initial or prior-mastery diagnostics as protected learning evidence.
+    A current course assessor must confirm independent conditions and give a reason before practice prerequisites can be bypassed.
+    Optional guidance can fade after confirmed diagnostic success; opt-out preserves baseline guidance.
+    Diagnostics cannot unlock or replace formal assessment.
 
-    Done when diagnostics produce learning evidence and explain a permitted pathway change. They must not become formal grades by default. Reject invalid prerequisite links and preserve the assessed standard.
-
-    Evidence: [LearningOutcome](src-main/backend/app/models/lms.py), [LearningTask](src-main/backend/app/models/persistence.py), [current recommendation logic](src-main/backend/app/services/lms.py), and requirements FR10-FR11 and PD1-PD2.
+    Local validation is recorded in [the Task 21 handoff](docs/learnlens/task-21-curriculum-diagnostics.md).
+    Changes remain uncommitted. Task 22's automatic activity selection and continuation adapters remain separate.
 
 22. **Connect learner evidence to the next approved activity.**
 

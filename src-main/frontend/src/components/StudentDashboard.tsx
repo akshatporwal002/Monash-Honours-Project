@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { CurriculumPanel } from './CurriculumPanel'
 import { ArrowRight, Award, BellDot, BookOpen, Check, Lock, Trophy } from 'lucide-react'
 import { LearnerPreferences } from './LearnerPreferences'
 
@@ -35,6 +37,7 @@ export function StudentDashboard({
   onOpenTask: (task: LearningTask) => void
   onReadNotification: (notification: LearningNotification) => Promise<void>
 }) {
+  const [pathwaysOpen, setPathwaysOpen] = useState(false)
   const { progress, tasks, recommendations, notifications } = data
   const firstName = progress.display_name.split(' ')[0]
   const nextRecommendation = recommendations[0]
@@ -44,6 +47,8 @@ export function StudentDashboard({
 
   return (
     <div className={styles.screen}>
+      <Button variant="secondary" onClick={() => setPathwaysOpen(value => !value)}>{pathwaysOpen ? 'Close learning pathways' : 'Learning pathways and diagnostics'}</Button>
+      {pathwaysOpen && <CurriculumPanel />}
       <details><summary>Learning preferences</summary><LearnerPreferences /></details>
       <PageHeader
         eyebrow="My learning"

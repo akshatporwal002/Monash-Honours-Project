@@ -205,3 +205,10 @@ __all__ = [
     "WorkflowStage",
     "WorkerHeartbeat",
 ]
+
+from app.models.curriculum import (  # noqa: F401
+    DiagnosticConfirmation,
+    DiagnosticResponse,
+    DiagnosticSession,
+    PathwayVersion,
+)

@@ -304,3 +304,24 @@ The browser check preserved the earlier published rule version when publishing t
 Episode migration checks must use upgraded databases with existing protected history.
 Metadata-created databases alone miss changes to the persisted task-type CHECK constraint.
 Downgrade preflight must run before any table or column changes when protected history prevents rollback.
+
+
+## Task 21: approved practice paths and diagnostic evidence
+
+A pathway version belongs to one course outcome. It contains at least three ordered,
+approved tasks, with concept, source, task-form, assessment-rule, and exit-rule links.
+Publication freezes the linked task reviews. A changed task or source approval requires
+a new pathway version before its diagnostic can be used for a bypass.
+
+Diagnostics are learning evidence. They never create a formal result. A current course
+assessor verifies independent conditions and confirms or declines the requested practice
+bypass. The record preserves the learner response, affected target, reason, and exact
+pathway version. Earlier approvals remain historical; they do not apply to a replacement pathway.
+
+An accepted ordinary response satisfies a declared completion exit rule. It is not proof
+of mastery. Optional guidance fades only after a confirmed diagnostic bypass satisfies a
+step's prerequisite. Personalisation opt-out stops this optional change. Approved help
+and access support remain available. Formal task conditions stay authoritative.
+
+Task 22 will connect the graph to durable automatic activity selection. Task 21 does not
+change the existing continuation adapters or activate AI assessment suggestions.

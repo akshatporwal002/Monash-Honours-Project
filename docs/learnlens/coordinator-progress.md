@@ -1,11 +1,34 @@
 # LearnLens coordinator progress
 
-## Task 20 local completion
+## Task 21 local completion
+
+Task 21 is implemented in `.tmp-coordinator/task21` on `feat/task-21-curriculum-diagnostics`.
+The user authorised the next implementation step and prohibited sub-agents.
+No commits, pushes, merges, or deployments were performed.
+
+The worktree carries the 38-file uncommitted Task 20 dependency from its preserved worktree.
+The [dependency receipt](task-21-dependency-baseline.json) records that baseline.
+The [Task 21 handoff](task-21-curriculum-diagnostics.md) records interfaces, evidence, recovery,
+self-reviews, and the required delivery order.
+
+The backend full suite passed 1,121 tests with 86.94% service coverage.
+The final frontend suite passed 246 tests. All 84 existing browser checks passed.
+The new authenticated diagnostic journey passed in Chrome, Edge, Firefox, and WebKit.
+A final Chrome journey also proved educator UI publication and the approved practice link.
+Migration, contracts, lint, build, and dependency audit checks passed.
+The final targeted tests cover the added concurrency and migration recovery cases.
+
+Diagnostics capture learning evidence and require current assessor confirmation before
+practice bypass. Formal assessment remains unchanged. Task 22's automatic activity
+selection remains separate. Independent review and remote CI are not claimed.
+
+## Earlier Task 20 completion
+
 
 Task 20 is implemented in `.tmp-coordinator/task20` on `feat/task-20-learner-preferences`.
 The fetched base is `65a9457d27e849465e7f227471336552bb22b8b4`; the original untracked handoff is preserved.
-The current scope is Task 20 only, with no sub-agents, commits, pushes, or merges.
-Earlier entries below describe prior batches and do not expand this scope.
+That earlier run covered Task 20 only, with no sub-agents, commits, pushes, or merges.
+Entries below describe prior batches.
 
 The learner editor persists bounded global choices, correction/reset history, and personalisation opt-out.
 Task-effective reads enforce frozen stage and practice limits. Access support and required reflection remain available.

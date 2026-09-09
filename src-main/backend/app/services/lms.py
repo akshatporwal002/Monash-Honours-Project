@@ -756,11 +756,20 @@ class LmsService:
             and view.access_status != "locked"
             and criteria.get("allow_resubmission") is not False
         )
-        return effective_preferences(
+        result = effective_preferences(
             LearnerPreferenceService(self.session).read(student),
             transfer=transfer,
             repeat_allowed=repeat_allowed,
         )
+        from app.services.curriculum import pathway_progress
+
+        _, _, support = pathway_progress(self.session, student.id, task)
+        if support and result.values.personalisation_enabled and not transfer:
+            result.pathway_support_level = support
+            result.limitations.append(
+                "The approved pathway sets optional guidance. You can still request approved help."
+            )
+        return result
 
     def episode_checkpoint(
         self,
@@ -2015,7 +2024,10 @@ class LmsService:
                 .distinct()
             ).all()
         )
-        missing = set(task.prerequisite_task_ids or []) - completed
+        from app.services.curriculum import pathway_progress
+
+        bypassed, prerequisites, _ = pathway_progress(self.session, student.id, task)
+        missing = prerequisites - completed - bypassed
         if missing:
             raise LmsServiceError(
                 423,
@@ -2101,9 +2113,12 @@ class LmsService:
                     .distinct()
                 ).all()
             )
+            from app.services.curriculum import pathway_progress
+
+            bypassed, prerequisites, _ = pathway_progress(self.session, student.id, task)
             if task.id in completed_ids:
                 access_status = "completed"
-            elif set(task.prerequisite_task_ids or []) - completed_ids:
+            elif prerequisites - completed_ids - bypassed:
                 access_status = "locked"
             elif attempts or self.session.scalar(
                 select(SubmissionDraft.id).where(

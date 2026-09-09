@@ -416,7 +416,7 @@ def test_work_migration_replay_scope_and_protected_downgrade(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260908_0033"
+            == "20260909_0034"
         )
         assert inspect(connection).has_table("assessment_work_starts")
     engine.dispose()
