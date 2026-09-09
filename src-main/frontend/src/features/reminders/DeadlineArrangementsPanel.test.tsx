@@ -33,15 +33,12 @@ test('an uncertain save retries the same arrangement and stale history requires 
       screen.queryByText('Loading course participants and tasks…'),
     ).not.toBeInTheDocument(),
   )
-  await user.click(
-    screen.getByRole('combobox', { name: 'Learner', exact: true }),
-  )
+  await user.click(screen.getByRole('combobox', { name: 'Learner' }))
   await user.click(await screen.findByRole('option', { name: 'Test learner' }))
-  await user.click(screen.getByRole('combobox', { name: 'Task', exact: true }))
+  await user.click(screen.getByRole('combobox', { name: 'Task' }))
   await user.click(await screen.findByRole('option', { name: 'Quantum task' }))
   const save = await screen.findByRole('button', {
     name: 'Save arrangement',
-    exact: true,
   })
   await waitFor(() => expect(save).toBeEnabled())
   fireEvent.change(

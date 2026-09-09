@@ -9,7 +9,7 @@ import {
   Select,
   Textarea,
 } from '../../components/ui'
-import { formatDeadline } from './LearnerDeadline'
+import { formatDeadline } from './deadlineTime'
 import styles from './reminders.module.css'
 
 type Arrangement = ApiSchemas['DeadlineArrangementRead']
@@ -48,7 +48,11 @@ export function DeadlineArrangementsPanel({
     return () => controller.abort()
   }, [courseId, reload])
   return (
-    <Card heading="Individual deadlines" aria-label="Individual deadlines" eyebrow="Learner access">
+    <Card
+      heading="Individual deadlines"
+      aria-label="Individual deadlines"
+      eyebrow="Learner access"
+    >
       <p>
         Record an extension or access arrangement in {timeZone}. Assessment
         requirements and results stay the same.

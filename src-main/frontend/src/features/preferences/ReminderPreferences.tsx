@@ -7,6 +7,7 @@ import styles from '../reminders/reminders.module.css'
 function localInput(value: string | null | undefined): string {
   if (!value) return ''
   const date = new Date(value)
+  if (date.getTime() <= Date.now()) return ''
   const pad = (part: number) => String(part).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
@@ -82,7 +83,11 @@ export function ReminderPreferences() {
   }
 
   return (
-    <Card heading="Task reminders" aria-label="Task reminders" eyebrow="Notifications">
+    <Card
+      heading="Task reminders"
+      aria-label="Task reminders"
+      eyebrow="Notifications"
+    >
       <p>
         Choose whether to receive task reminders, or pause them during a break.
         You can still open every available task.

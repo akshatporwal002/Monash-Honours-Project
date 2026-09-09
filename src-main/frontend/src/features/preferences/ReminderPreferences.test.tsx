@@ -49,3 +49,34 @@ test('revision conflicts require reloading the saved preference', async () => {
   )
   await waitFor(() => expect(save).toBeEnabled())
 })
+
+test('an expired saved pause does not prevent switching reminders off', async () => {
+  let saved: unknown
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+    if (init?.method !== 'PUT')
+      return Response.json({
+        enabled: true,
+        revision: 1,
+        paused_until: '2000-01-01T00:00:00Z',
+      })
+    saved = JSON.parse(String(init.body))
+    return Response.json({ enabled: false, revision: 2, paused_until: null })
+  })
+  const user = userEvent.setup()
+  render(<ReminderPreferences />)
+  const toggle = screen.getByRole('checkbox', {
+    name: 'Receive task reminders',
+  })
+  await waitFor(() => expect(toggle).toBeEnabled())
+  expect(screen.getByLabelText('Pause reminders until')).toHaveValue('')
+  await user.click(toggle)
+  await user.click(
+    screen.getByRole('button', { name: 'Save reminder settings' }),
+  )
+  await screen.findByText('Reminder settings saved.')
+  expect(saved).toMatchObject({
+    enabled: false,
+    expected_revision: 1,
+    paused_until: null,
+  })
+})

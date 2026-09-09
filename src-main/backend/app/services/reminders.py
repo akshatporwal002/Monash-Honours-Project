@@ -252,6 +252,8 @@ class ReminderService:
         title: str | None = None,
         overdue_only: bool = False,
     ) -> Reminder | None:
+        from app.services.assessment.reassessment import ReassessmentService
+        from app.services.assessment.submissions import AssessmentSubmissionService
         from app.services.lms import LmsService, LmsServiceError
         from app.services.task_review import TaskReviewError
 
@@ -271,6 +273,9 @@ class ReminderService:
             return None
         try:
             read = LmsService(self.session).get_task_for_actor(learner, task_id)
+            task = self.session.get(LearningTask, task_id)
+            versions = AssessmentSubmissionService(self.session).frozen_versions_for_task(task)
+            ReassessmentService(self.session).require_start(student_id, task, versions)
         except (LmsServiceError, TaskReviewError):
             return None
         if read.access_status not in {"available", "in_progress"}:
@@ -282,7 +287,6 @@ class ReminderService:
             .limit(1)
         ):
             return None
-        task = self.session.get(LearningTask, task_id)
         deadline = self.deadline(student_id, task)
         if deadline.reminders_paused:
             return None

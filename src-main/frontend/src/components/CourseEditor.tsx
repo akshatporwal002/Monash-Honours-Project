@@ -522,6 +522,7 @@ export function CourseEditor() {
 
       <nav aria-label="Course creation progress">
         <Stepper
+          className={styles.progress}
           steps={steps.map((item) => ({
             label: item.label,
             disabled: item.number > step || (!course && item.number > 1),

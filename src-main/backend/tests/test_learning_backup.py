@@ -2,7 +2,9 @@
 
 import hashlib
 import json
+import os
 import sqlite3
+import subprocess
 from contextlib import closing
 
 import pytest
@@ -106,3 +108,28 @@ def test_capture_output_cannot_be_nested_in_uploads(source):
     database, uploads, _ = source
     with pytest.raises(ValueError, match="outside"):
         create_bundle(database, uploads, uploads / "backups")
+
+
+def test_linked_upload_root_cannot_redirect_restore_outside_bundle(source, tmp_path):
+    bundle = create_bundle(*source)
+    outside = tmp_path / "outside-uploads"
+    upload_root = bundle / "uploads"
+    upload_root.rename(outside)
+    if os.name == "nt":
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(upload_root), str(outside)],
+            check=True,
+            capture_output=True,
+        )
+    else:
+        upload_root.symlink_to(outside, target_is_directory=True)
+    try:
+        with pytest.raises(ValueError, match="roots cannot"):
+            restore_bundle(bundle, tmp_path / "restored")
+        assert not (tmp_path / "restored").exists()
+        assert (outside / "material/historical.txt").read_bytes() == b"original source"
+    finally:
+        if os.name == "nt":
+            os.rmdir(upload_root)
+        else:
+            upload_root.unlink()

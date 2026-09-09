@@ -24,6 +24,9 @@ def file_digest(path: Path) -> str:
 
 def safe_file(root: Path, key: str) -> Path:
     """Reject traversal and links, including Windows junctions, before opening a file."""
+    metadata = root.lstat()
+    if stat.S_ISLNK(metadata.st_mode) or getattr(metadata, "st_file_attributes", 0) & 0x400:
+        raise ValueError("Backup file roots cannot be symbolic links or reparse points")
     parts = PurePosixPath(key).parts
     if (
         not parts

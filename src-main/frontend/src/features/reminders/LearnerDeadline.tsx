@@ -2,14 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ApiSchemas } from '../../api/generated'
 import { api } from '../../app/api'
 import { Button, Card } from '../../components/ui'
-
-export function formatDeadline(value: string, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-AU', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone,
-  }).format(new Date(value))
-}
+import { formatDeadline } from './deadlineTime'
 
 export function LearnerDeadline({ taskId }: { taskId: string }) {
   const [value, setValue] = useState<ApiSchemas['LearnerDeadlineRead'] | null>(
