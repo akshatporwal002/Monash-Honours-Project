@@ -19,6 +19,8 @@ from support.assessment import (
 from support.assessment import (
     build_provisional_decision as _provisional_decision,
 )
+from support.assessment import save_course_fixture
+from support.migration_assertions import protected_history_manifest
 
 from app.core.security import hash_password
 from app.domain.assessment import (
@@ -45,6 +47,17 @@ EXPECTED_TABLES = {
     "curriculum_diagnostic_sessions",
     "curriculum_diagnostic_responses",
     "curriculum_diagnostic_confirmations",
+    "reminder_preferences",
+    "deadline_arrangements",
+    "outcome_result_policies",
+    "reassessment_authorisations",
+    "escalation_queue_revisions",
+    "escalation_cases",
+    "escalation_events",
+    "gamification_preferences",
+    "participation_recognitions",
+    "tutor_turns",
+    "appeal_resolutions",
     "human_assessment_actions",
     "human_criterion_decisions",
     "episode_checkpoints",
@@ -61,6 +74,7 @@ EXPECTED_TABLES = {
     "learner_model_annotations",
     "learner_model_correction_reviews",
     "learner_model_correction_snapshot_links",
+    "learner_preference_revisions",
     "learner_model_evidence_links",
     "learner_model_snapshots",
     "learner_outcome_estimates",
@@ -163,7 +177,7 @@ def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0035"
+            == "20260909_0042"
         )
         assert "task_revision_id" in {
             column["name"] for column in inspect(connection).get_columns("task_form_versions")
@@ -209,7 +223,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0035"
+            == "20260909_0042"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -249,8 +263,7 @@ def test_assessor_eligibility_migration_preserves_unapproved_legacy_grants(tmp_p
         session.add_all([lead, admin])
         session.flush()
         course = Course(educator_id=lead.id, code="MIG-ELIG", title="Eligibility migration")
-        session.add(course)
-        session.flush()
+        save_course_fixture(session, course)
         lead_id, admin_id, course_id = lead.id, admin.id, course.id
         session.execute(
             text("""INSERT INTO role_assignments
@@ -338,8 +351,7 @@ def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tm
         session.add(owner)
         session.flush()
         course = Course(educator_id=owner.id, code="TASK-LEGACY", title="Legacy task course")
-        session.add(course)
-        session.flush()
+        save_course_fixture(session, course)
         module = CourseModule(course_id=course.id, title="Gates", position=1)
         session.add(module)
         session.flush()
@@ -389,12 +401,13 @@ def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tm
             )["available"]
         assert session.scalar(select(func.count()).select_from(TaskReviewEvent)) == 0
     before = database_manifest(database_path)
+    protected_before = protected_history_manifest(database_path)
     command.stamp(config, "20260907_0026")
     command.upgrade(config, "head")
     assert database_manifest(database_path) == before
     with pytest.raises(RuntimeError, match="Task review history is protected"):
         command.downgrade(config, "20260907_0026")
-    assert database_manifest(database_path) == before
+    assert protected_history_manifest(database_path) == protected_before
     for statement in (
         "UPDATE task_revisions SET version = version + 1",
         "DELETE FROM task_revisions",
@@ -1861,11 +1874,12 @@ def test_assessment_populated_downgrade_restores_verified_backup(tmp_path: Path)
     database_path, config = _prepare_legacy_assessment_database(tmp_path)
     command.upgrade(config, "head")
     before_downgrade = database_manifest(database_path)
+    protected_before_downgrade = protected_history_manifest(database_path)
     backup = create_verified_backup(database_path, tmp_path / "downgrade-backups")
 
     with pytest.raises(RuntimeError, match="cannot downgrade populated"):
         command.downgrade(config, "20260815_0017")
-    assert database_manifest(database_path) == before_downgrade
+    assert protected_history_manifest(database_path) == protected_before_downgrade
 
     with sqlite3.connect(backup.backup_path) as source_connection:
         with sqlite3.connect(database_path) as restored_connection:
@@ -1905,10 +1919,10 @@ def test_numeric_only_populated_history_blocks_downgrade(tmp_path: Path) -> None
     finally:
         engine.dispose()
 
-    before_downgrade = database_manifest(database_path)
+    protected_before_downgrade = protected_history_manifest(database_path)
     with pytest.raises(RuntimeError, match="cannot downgrade populated"):
         command.downgrade(config, "20260815_0017")
-    assert database_manifest(database_path) == before_downgrade
+    assert protected_history_manifest(database_path) == protected_before_downgrade
 
 
 def test_assessment_evaluation_job_migration_backfills_pending_work_and_blocks_data_loss(
@@ -1947,10 +1961,10 @@ def test_assessment_evaluation_job_migration_backfills_pending_work_and_blocks_d
         "state": "pending",
         "processing_attempts": 0,
     }
-    before_downgrade = database_manifest(database_path)
+    protected_before_downgrade = protected_history_manifest(database_path)
     with pytest.raises(RuntimeError, match="cannot downgrade populated assessment evaluation jobs"):
         command.downgrade(config, "20260816_0021")
-    assert database_manifest(database_path) == before_downgrade
+    assert protected_history_manifest(database_path) == protected_before_downgrade
     migrated_engine.dispose()
 
 

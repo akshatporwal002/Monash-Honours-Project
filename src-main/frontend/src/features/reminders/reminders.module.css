@@ -1,0 +1,18 @@
+.fields {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  margin-block: 1rem;
+  padding: 0;
+  border: 0;
+}
+
+.fields legend {
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.history {
+  overflow-wrap: anywhere;
+  padding-inline-start: 1.5rem;
+}

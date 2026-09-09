@@ -1,6 +1,7 @@
 """Owned preference history and a small read interface for later consumers."""
 
 from datetime import UTC
+from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
@@ -85,7 +86,14 @@ class LearnerPreferenceService:
         return PreferenceRevision(
             version=row.version,
             values=PreferenceValues(
-                **{name: getattr(row, name) for name in PreferenceValues.model_fields}
+                **{
+                    name: getattr(row, name)
+                    for name in PreferenceValues.model_fields
+                    if name not in {"pace", "format", "explanation_detail"}
+                },
+                pace="stepwise" if row.pace == "SLOWER" else "self_paced",
+                format="stepwise" if row.format == "STEPWISE" else "text",
+                explanation_detail="detailed" if row.explanation_detail == "DETAILED" else "brief",
             ),
             action=row.action,
             created_at=row.created_at.replace(tzinfo=UTC)
@@ -155,7 +163,21 @@ class LearnerPreferenceService:
                 version=command.expected_version + 1,
                 request_key=command.request_key,
                 action=action,
-                **values.model_dump(),
+                **values.model_dump(exclude={"pace", "format", "explanation_detail"}),
+                pace="SLOWER" if values.pace == "stepwise" else "DEFAULT",
+                format="STEPWISE" if values.format == "stepwise" else "TEXT",
+                explanation_detail="DETAILED"
+                if values.explanation_detail == "detailed"
+                else "BRIEF",
+                schema_version="learnlens.learner-preferences.v1",
+                actor_reference=str(owner),
+                correlation_id=str(uuid4()),
+                prior_revision_id=self.session.scalar(
+                    select(LearnerPreferenceRevision.id)
+                    .where(LearnerPreferenceRevision.learner_id == owner)
+                    .order_by(LearnerPreferenceRevision.revision.desc())
+                    .limit(1)
+                ),
             )
             self.session.add(row)
             self.session.commit()

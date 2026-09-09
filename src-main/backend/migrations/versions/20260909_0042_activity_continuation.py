@@ -5,8 +5,8 @@ from importlib import import_module
 import sqlalchemy as sa
 from alembic import op
 
-revision = "20260909_0035"
-down_revision = "20260909_0034"
+revision = "20260909_0042"
+down_revision = "20260909_0041"
 branch_labels = None
 depends_on = None
 
@@ -51,6 +51,22 @@ def upgrade():
 
 
 def downgrade():
+    # Refuse before any DDL, including history added on the published main branch.
+    for table in (
+        "participation_recognitions",
+        "gamification_preferences",
+        "deadline_arrangements",
+        "reminder_preferences",
+        "escalation_events",
+        "escalation_cases",
+        "escalation_queue_revisions",
+        "reassessment_authorisations",
+        "outcome_result_policies",
+        "tutor_turns",
+        "appeal_resolutions",
+    ):
+        if op.get_bind().execute(sa.text(f"SELECT COUNT(*) FROM {table}")).scalar_one():
+            raise RuntimeError(f"cannot downgrade populated {table} history")
     import_module("migrations.versions.20260907_0030_learning_episodes")._preflight_downgrade()
     protected = TABLES + [
         "curriculum_pathway_versions",

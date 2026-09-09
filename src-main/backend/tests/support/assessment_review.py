@@ -11,6 +11,7 @@ from app.models.assessment import AssessmentAttempt, CriterionEvaluation, TaskFo
 from app.models.lms import CourseState, LearningOutcome, PlatformAuditEvent
 from app.models.persistence import LearningTask
 from app.models.user import User, UserRole
+from app.schemas.episode import EpisodePlanV1
 from app.schemas.lms import SubmissionCreate
 from app.services.assessment.definitions import (
     AssessmentDefinitionDraft,
@@ -26,7 +27,9 @@ from support.task_review import approve_sourced_fixture_task
 ANSWER = "The response links the observation to the claim."
 
 
-def seed_review_context(session: Session) -> dict[str, str]:
+def seed_review_context(
+    session: Session, *, episode: bool = False, reassessment: bool = False
+) -> dict[str, str]:
     context = seed_authoring_context(session)
     actor = session.scalar(select(User).where(User.email == context["educator_email"]))
     task = session.get(LearningTask, context["task_id"])
@@ -35,10 +38,45 @@ def seed_review_context(session: Session) -> dict[str, str]:
     task.description = "Explain how an interference observation supports a quantum claim."
     task.instructions = "Link the observation to the claim."
     task.expected_answer = ANSWER
+    if episode:
+        task.marking_criteria = {
+            "episode_plan": EpisodePlanV1(
+                supported_hints=("Connect the observed pattern to the claim.",),
+                accessibility_support=("Use the written task description with a screen reader.",),
+                transfer={
+                    "prompt": "Explain a new observation independently.",
+                    "solution": {"answer": "PRIVATE fresh solution"},
+                },
+            ).model_dump(mode="json")
+        }
     outcome.title = "Explain the evidence relationship"
     outcome.statement = "Explain how the observation supports the claim."
     session.commit()
     approve_sourced_fixture_task(session, task)
+    tasks = [task]
+    if reassessment:
+        fresh = LearningTask(
+            id=str(uuid4()),
+            title="Fresh interference explanation",
+            slug=f"fresh-interference-{uuid4().hex}",
+            module=task.module,
+            description="Explain a different interference observation.",
+            instructions="Connect the new observation to the claim.",
+            expected_answer=ANSWER,
+            task_type=task.task_type,
+            difficulty=task.difficulty,
+            points=task.points,
+            course_id=task.course_id,
+            module_id=task.module_id,
+            learning_outcome_id=task.learning_outcome_id,
+            source_references=list(task.source_references),
+            marking_criteria=dict(task.marking_criteria or {}),
+            position=task.position + 1,
+        )
+        session.add(fresh)
+        session.commit()
+        approve_sourced_fixture_task(session, fresh)
+        tasks.append(fresh)
     lms = LmsService(session)
     source = lms.create_assessment_outcome_version(actor, context["course_id"], outcome.id)
     definition_service = AssessmentDefinitionService(session)
@@ -58,7 +96,9 @@ def seed_review_context(session: Session) -> dict[str, str]:
             permitted_tools={"allowed": ["course notes"]},
             instructional_support={"allowed": ["approved conceptual hints"]},
             access_conditions={"modes": [{"mode": "screen_reader", "preserves_construct": True}]},
-            transfer_rule={
+            transfer_rule={"required": True, "independence": "unaided fresh application"}
+            if episode
+            else {
                 "required": False,
                 "reason": "This fixture isolates existing decision review.",
             },
@@ -86,7 +126,7 @@ def seed_review_context(session: Session) -> dict[str, str]:
             },
             task_forms=[
                 TaskFormDraft(
-                    learning_task_id=task.id,
+                    learning_task_id=form_task.id,
                     source_version="synthetic-review-fixture.v1",
                     source_digest="synthetic-review-fixture",
                     task_family="written_explanation",
@@ -96,6 +136,7 @@ def seed_review_context(session: Session) -> dict[str, str]:
                         "elicited_bloom_processes": ["UNDERSTAND"],
                     },
                 )
+                for form_task in tasks
             ],
         ),
     )
@@ -108,7 +149,8 @@ def seed_review_context(session: Session) -> dict[str, str]:
     )
     form = session.scalar(
         select(TaskFormVersion).where(
-            TaskFormVersion.assessment_definition_version_id == definition.id
+            TaskFormVersion.assessment_definition_version_id == definition.id,
+            TaskFormVersion.learning_task_id == task.id,
         )
     )
     student = User(
@@ -122,6 +164,12 @@ def seed_review_context(session: Session) -> dict[str, str]:
     lms.set_course_state(actor, context["course_id"], CourseState.PUBLISHED)
     lms.enroll_student(actor, context["course_id"], student.id)
     started = lms.start_assessment_work(student, task.id, form.id)
+    if episode:
+        return {
+            "student_email": student.email,
+            "student_password": "assessment-review-student-test-password",
+            "task_id": task.id,
+        }
     response = lms.submit(
         student,
         task.id,
@@ -161,10 +209,15 @@ def seed_review_context(session: Session) -> dict[str, str]:
     )
     session.commit()
     return {
+        "student_email": student.email,
+        "student_password": "assessment-review-student-test-password",
+        "task_id": task.id,
         "educator_email": context["educator_email"],
         "educator_password": context["educator_password"],
         "course_id": attempt.course_id,
         "attempt_id": attempt.id,
         "response_id": response.id,
         "decision_id": decision.id,
+        "fresh_task_id": tasks[-1].id,
+        "definition_id": definition.id,
     }

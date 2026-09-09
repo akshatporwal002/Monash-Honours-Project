@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-route
 import { ApiError, api } from './app/api'
 import type { AuthUser, LearningNotification, StudentDashboardData, UserRole } from './app/types'
 import { AdminWorkspace } from './components/AdminWorkspace'
+import { EscalationQueue } from './features/escalation/EscalationQueue'
 import { AnalyticsView } from './components/AnalyticsView'
 import { AppShell } from './components/AppShell'
 import { homePath } from './components/paths'
@@ -21,6 +22,7 @@ import { EducatorLearnerModelTimeline } from './components/EducatorLearnerModelT
 import { TaskPage } from './components/TaskPage'
 import { AssessorSetup } from './features/assessment/AssessorSetup'
 import { AssessorReviewQueue } from './features/assessment/AssessorReviewQueue'
+import { LearnerPreferencesPage } from './features/preferences/LearnerPreferencesPage'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
 
@@ -222,6 +224,7 @@ function AppRoutes() {
       <Route element={<AppShell user={user} hasAssessorAccess={assessorAccess} onLogout={logout} />}>
         <Route path="/student" element={guard(user.role === 'student', studentHome)} />
         <Route path="/student/learner-model" element={guard(user.role === 'student', <LearnerModelTimeline />)} />
+        <Route path="/student/preferences" element={guard(user.role === 'student', <LearnerPreferencesPage />)} />
         <Route
           path="/student/tasks/:taskId"
           element={guard(user.role === 'student', <TaskPage onSubmitted={loadStudentDashboard} />)}
@@ -263,6 +266,7 @@ function AppRoutes() {
           )}
         />
         <Route path="/admin" element={guard(user.role === 'admin', <AdminWorkspace section="overview" />)} />
+        <Route path="/escalations" element={guard(user.role !== 'student', <EscalationQueue />)} />
         <Route path="/admin/users" element={guard(user.role === 'admin', <AdminWorkspace section="users" />)} />
         <Route path="/admin/courses" element={guard(user.role === 'admin', <AdminWorkspace section="courses" />)} />
         <Route path="/admin/settings" element={guard(user.role === 'admin', <AdminWorkspace section="settings" />)} />

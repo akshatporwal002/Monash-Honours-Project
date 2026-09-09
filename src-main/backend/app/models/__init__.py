@@ -1,10 +1,17 @@
 from app.models import (  # noqa: F401
+    appeal_resolution,
     assessment_work,
     assessor_eligibility,
+    escalation,
+    gamification,
     learner_preferences,
+    learning_evidence,
+    reassessment,
+    reminders,
     simulation,
     source_history,
     task_review,
+    tutor,
 )
 from app.models.assessment import (
     AppealOrCorrection,
@@ -69,6 +76,7 @@ from app.models.learner_model import (
     LearnerModelSnapshot,
     LearnerOutcomeEstimate,
 )
+from app.models.learner_preferences import LearnerPreferenceRevision
 from app.models.lms import (
     AttemptStatus,
     Course,
@@ -162,6 +170,7 @@ __all__ = [
     "LearnerModelEvidenceLink",
     "LearnerModelSnapshot",
     "LearnerOutcomeEstimate",
+    "LearnerPreferenceRevision",
     "LearningMaterial",
     "LearningOutcome",
     "LearningTask",

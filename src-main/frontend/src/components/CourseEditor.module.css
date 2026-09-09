@@ -1,7 +1,17 @@
 .screen {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   max-width: 64rem;
+  min-width: 0;
+}
+
+.screen > * {
+  min-width: 0;
+}
+
+.progress {
+  flex-wrap: wrap;
 }
 
 .headerActions {

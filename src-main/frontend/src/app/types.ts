@@ -73,6 +73,7 @@ export interface Achievement {
 }
 
 export interface StudentProgress {
+  gamification_enabled?: boolean
   student_id: string
   display_name: string
   completed_tasks: number
@@ -176,6 +177,7 @@ export interface ActivityItem {
 }
 
 export interface CourseSummary {
+  time_zone?: string
   id: string
   code: string
   title: string

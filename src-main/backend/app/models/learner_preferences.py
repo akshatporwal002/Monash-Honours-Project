@@ -1,77 +1,98 @@
-"""Append-only global learner choices, never inferred model estimates."""
+"""Append-only, learner-owned choices for non-essential support."""
 
-from datetime import datetime
+from datetime import UTC, datetime
+from uuid import uuid4
 
 from sqlalchemy import (
     DDL,
     Boolean,
-    CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     UniqueConstraint,
     event,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, synonym
 
 from app.db.base import Base
-from app.models.persistence import utc_now
+from app.domain.platform_enums import ExplanationDetail, PreferenceFormat, PreferencePace
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
 
 
 class LearnerPreferenceRevision(Base):
     __tablename__ = "learner_preference_revisions"
     __table_args__ = (
-        UniqueConstraint("learner_id", "version", name="uq_preference_version"),
-        UniqueConstraint("learner_id", "request_key", name="uq_preference_request"),
-        CheckConstraint("version > 0", name="preference_version_positive"),
-        CheckConstraint("pace IN ('self_paced', 'stepwise')", name="preference_pace"),
-        CheckConstraint("format IN ('text', 'stepwise')", name="preference_format"),
-        CheckConstraint("explanation_detail IN ('brief', 'detailed')", name="preference_detail"),
-        CheckConstraint("support_amount IN ('standard', 'on_request')", name="preference_support"),
-        CheckConstraint("feedback_form IN ('inline', 'expandable')", name="preference_feedback"),
-        CheckConstraint("action IN ('save', 'reset')", name="preference_action"),
+        UniqueConstraint("learner_id", "revision", name="uq_preference_learner_revision"),
+        UniqueConstraint("learner_id", "idempotency_key", name="uq_preference_learner_idempotency"),
+        Index("ix_preference_current", "learner_id", "revision"),
+        Index("ix_preference_history", "learner_id", "occurred_at", "id"),
+        Index("ix_preference_correlation", "correlation_id"),
     )
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    learner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
-    version: Mapped[int] = mapped_column(Integer)
-    request_key: Mapped[str] = mapped_column(String(100))
-    action: Mapped[str] = mapped_column(String(10))
-    pace: Mapped[str] = mapped_column(String(20))
-    format: Mapped[str] = mapped_column(String(20))
-    explanation_detail: Mapped[str] = mapped_column(String(20))
-    breaks: Mapped[bool] = mapped_column(Boolean(create_constraint=True, name="preference_breaks"))
-    repeat_practice: Mapped[bool] = mapped_column(
-        Boolean(create_constraint=True, name="preference_repeat")
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    learner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
-    personalisation_enabled: Mapped[bool] = mapped_column(
-        Boolean(create_constraint=True, name="preference_enabled")
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    prior_revision_id: Mapped[str | None] = mapped_column(String(36))
+    pace: Mapped[PreferencePace] = mapped_column(String(20), nullable=False)
+    format: Mapped[PreferenceFormat] = mapped_column(String(30), nullable=False)
+    explanation_detail: Mapped[ExplanationDetail] = mapped_column(String(20), nullable=False)
+    optional_breaks_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    repeat_practice_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    personalisation_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(100), nullable=False)
+    actor_reference: Mapped[str] = mapped_column(String(255), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now
     )
-    support_amount: Mapped[str] = mapped_column(String(20))
-    feedback_form: Mapped[str] = mapped_column(String(20))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now
+    )
+
+    support_amount: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="standard", server_default="standard"
+    )
+    feedback_form: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="inline", server_default="inline"
+    )
+    action: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="save", server_default="save"
+    )
+    version = synonym("revision")
+    request_key = synonym("idempotency_key")
+    breaks = synonym("optional_breaks_enabled")
+    repeat_practice = synonym("repeat_practice_enabled")
 
 
 def history_triggers() -> list[str]:
     table = "learner_preference_revisions"
     statements = [
         f"CREATE TRIGGER IF NOT EXISTS {table}_no_{action.lower()} BEFORE {action} ON {table} "
-        "BEGIN SELECT RAISE(ABORT, 'Preference history is protected'); END"
+        "BEGIN SELECT RAISE(ABORT, 'Preference history is protected; learner preference revisions are append-only'); END"
         for action in ("UPDATE", "DELETE")
     ]
     statements.append(
         f"CREATE TRIGGER IF NOT EXISTS {table}_append BEFORE INSERT ON {table} "
-        f"WHEN NEW.version != COALESCE((SELECT MAX(version) FROM {table} "
+        f"WHEN NEW.revision != COALESCE((SELECT MAX(revision) FROM {table} "
         "WHERE learner_id=NEW.learner_id), 0) + 1 "
         f"OR EXISTS(SELECT 1 FROM {table} WHERE id=NEW.id OR "
-        "(learner_id=NEW.learner_id AND request_key=NEW.request_key)) "
-        "BEGIN SELECT RAISE(ABORT, 'Preference history is protected'); END"
+        "(learner_id=NEW.learner_id AND idempotency_key=NEW.idempotency_key)) "
+        "BEGIN SELECT RAISE(ABORT, 'Preference history is protected; learner preference revisions are append-only'); END"
     )
     return statements
 
 
 def _immutable(*_):
-    raise ValueError("Preference history is protected")
+    raise ValueError(
+        "Preference history is protected; learner preference revisions are append-only"
+    )
 
 
 event.listen(LearnerPreferenceRevision, "before_update", _immutable)

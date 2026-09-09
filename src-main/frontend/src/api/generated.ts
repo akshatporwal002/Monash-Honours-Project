@@ -100,6 +100,11 @@ export type ApiSchemas = {
     "start_at"?: (string) | (null)
     "task_types"?: Array<string>
   }
+  "AppealResolutionWrite": {
+    "expected_decision_revision": number
+    "learner_notice": string
+    "reason": string
+  }
   "AssessedFeedbackView": {
     "approved_hints": Array<string>
     "assessment": ApiSchemas["AssessmentVersionReference"]
@@ -466,6 +471,7 @@ export type ApiSchemas = {
     "code"?: (string) | (null)
     "description"?: string
     "enrollment_open"?: boolean
+    "time_zone"?: string
     "title": string
   }
   "CourseProgressRead": {
@@ -487,6 +493,7 @@ export type ApiSchemas = {
     "progress_percentage"?: number
     "state": ApiSchemas["CourseState"]
     "student_count"?: number
+    "time_zone"?: string
     "title": string
     "updated_at": string
   }
@@ -495,6 +502,7 @@ export type ApiSchemas = {
     "code"?: (string) | (null)
     "description"?: (string) | (null)
     "enrollment_open"?: (boolean) | (null)
+    "time_zone"?: (string) | (null)
     "title"?: (string) | (null)
   }
   "CriterionDecision": "MET" | "NOT_MET" | "NOT_EVALUABLE"
@@ -507,6 +515,30 @@ export type ApiSchemas = {
     "guidance": string
     "learner_description": string
     "simulation_references": Array<string>
+  }
+  "DeadlineArrangementRead": {
+    "active": boolean
+    "created_at": string
+    "due_at": (string) | (null)
+    "id": string
+    "kind": "EXTENSION" | "ACCESS_PLAN"
+    "learner_notice": string
+    "reason": string
+    "reminders_paused": boolean
+    "revision": number
+    "time_zone": string
+  }
+  "DeadlineArrangementWrite": {
+    "active"?: boolean
+    "expected_revision": number
+    "fold"?: (0 | 1) | (null)
+    "idempotency_key": string
+    "kind": "EXTENSION" | "ACCESS_PLAN"
+    "learner_notice": string
+    "local_due_at"?: (string) | (null)
+    "reason": string
+    "reminders_paused"?: boolean
+    "time_zone": string
   }
   "DiagnosticConfirm": {
     "decision": "retain" | "advance"
@@ -724,6 +756,84 @@ export type ApiSchemas = {
     "starter_circuit"?: (Partial<Record<string, ApiSchemas["JsonValue"]>>) | (null)
     "starter_code"?: (string) | (null)
   }
+  "EquivalentFormRead": {
+    "id": string
+    "task_id": string
+    "task_title": string
+  }
+  "EquivalentFormWrite": {
+    "reason": string
+    "revision_id": string
+    "task_id": string
+    "template_form_id": string
+  }
+  "EscalationActionWrite": {
+    "acknowledgement_due_at": string
+    "expected_revision": number
+    "idempotency_key": string
+    "learner_notice": string
+    "owner_user_id": number
+    "reason": string
+    "resolution_due_at": string
+    "severity": "NORMAL" | "HIGH" | "CRITICAL"
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+  }
+  "EscalationHistoryEntry": {
+    "actor_user_id": number
+    "at": string
+    "owner_user_id": number
+    "queue_revision_id": string
+    "reason": string
+    "revision": number
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+  }
+  "EscalationNotice": {
+    "created_at": string
+    "learner_notice": string
+    "revision": number
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+  }
+  "EscalationQueueRead": {
+    "configuration": (ApiSchemas["QueueRead"]) | (null)
+    "course_id": string
+    "course_title": string
+    "eligible_members": Array<ApiSchemas["QueueMember"]>
+    "kind": "ASSESSOR" | "TECHNICAL"
+  }
+  "EscalationRead": {
+    "acknowledgement_due_at": (string) | (null)
+    "created_at": string
+    "id": string
+    "notices": Array<ApiSchemas["EscalationNotice"]>
+    "queue_kind": "ASSESSOR" | "TECHNICAL"
+    "resolution_due_at": (string) | (null)
+    "revision": number
+    "severity": "NORMAL" | "HIGH" | "CRITICAL"
+    "source_id": string
+    "source_kind": "FEEDBACK" | "TUTOR" | "ASSESSMENT"
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+    "task_id": string
+  }
+  "EscalationStaffRead": {
+    "acknowledgement_due_at": (string) | (null)
+    "attention": "NEEDS_TRIAGE" | "ACKNOWLEDGEMENT_OVERDUE" | "RESOLUTION_OVERDUE" | "ON_TARGET" | "COMPLETE"
+    "backup_user_id": (number) | (null)
+    "created_at": string
+    "history": Array<ApiSchemas["EscalationHistoryEntry"]>
+    "id": string
+    "notices": Array<ApiSchemas["EscalationNotice"]>
+    "owner_user_id": (number) | (null)
+    "queue_kind": "ASSESSOR" | "TECHNICAL"
+    "reason": string
+    "resolution_due_at": (string) | (null)
+    "revision": number
+    "severity": "NORMAL" | "HIGH" | "CRITICAL"
+    "source_id": string
+    "source_kind": "FEEDBACK" | "TUTOR" | "ASSESSMENT"
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+    "task_id": string
+    "trigger": string
+  }
   "EvidenceReference": {
     "assessment": ApiSchemas["AssessmentVersionReference"]
     "content_digest": string
@@ -741,6 +851,7 @@ export type ApiSchemas = {
   }
   "EvidenceType": "PREDICTION" | "EXPLANATION" | "REASONING" | "RESPONSE" | "REVISION" | "CONFIDENCE" | "HINT" | "SCAFFOLD" | "FEEDBACK_INTERACTION" | "REFLECTION" | "SIMULATION" | "MISCONCEPTION_CHECK" | "TRANSFER" | "DIAGNOSTIC" | "SYSTEM_FAULT"
   "ExperimentalCondition": "agentic_rag" | "single_step_baseline"
+  "ExplanationDetail": "BRIEF" | "STANDARD" | "DETAILED"
   "FeedbackAcknowledgement": {
     "feedback_id": string
   }
@@ -800,6 +911,13 @@ export type ApiSchemas = {
     "result"?: (ApiSchemas["AssessmentResult"]) | (null)
     "result_state": ApiSchemas["ResultState"]
   }
+  "FreshTaskRead": {
+    "instructions": string
+    "prompt": string
+    "revision_id": string
+    "task_id": string
+    "title": string
+  }
   "FrozenAssessmentContextRead": {
     "bloom_process": string
     "knowledge_dimension": string
@@ -829,6 +947,15 @@ export type ApiSchemas = {
     "count": number
     "event_type": ApiSchemas["LearningEventType"]
     "previous_stage_rate": ApiSchemas["MetricValue"]
+  }
+  "GamificationPreferenceRead": {
+    "enabled": boolean
+    "revision": number
+  }
+  "GamificationPreferenceWrite": {
+    "enabled": boolean
+    "expected_revision": number
+    "idempotency_key": string
   }
   "GateOperation": {
     "gate": "h" | "x" | "cx"
@@ -982,6 +1109,43 @@ export type ApiSchemas = {
     "outcome_id": string
     "target": ApiSchemas["CorrectionTarget"]
   }
+  "LearnerAppealRead": {
+    "decision_id": string
+    "decision_revision": number
+    "id": string
+    "learner_notice"?: (string) | (null)
+    "reason": string
+    "request_kind": string
+    "requested_at": string
+    "resolved_at"?: (string) | (null)
+    "response_version_id": string
+    "state": string
+  }
+  "LearnerAppealWrite": {
+    "idempotency_key": string
+    "reason": string
+    "request_kind"?: "REVIEW" | "CORRECTION" | "APPEAL"
+  }
+  "LearnerCriterionRead": {
+    "decision"?: (ApiSchemas["CriterionDecision"]) | (null)
+    "description": string
+    "evidence_description": string
+    "id": string
+    "mandatory": boolean
+  }
+  "LearnerDeadlineRead": {
+    "arrangement_active"?: boolean
+    "effective_due_at": (string) | (null)
+    "learner_notice"?: (string) | (null)
+    "original_due_at": (string) | (null)
+    "reminders_paused": boolean
+    "task_id": string
+    "time_zone": string
+  }
+  "LearnerDecisionEventRead": {
+    "action": string
+    "at": string
+  }
   "LearnerModelDimension": "PRIOR_KNOWLEDGE" | "REASONING_STRENGTH" | "REASONING_GAP" | "POSSIBLE_MISCONCEPTION" | "CONFIDENCE_CALIBRATION" | "FEEDBACK_USE" | "SCAFFOLD_DEPENDENCE" | "INDEPENDENCE" | "TRANSFER" | "EXPLICIT_PREFERENCE"
   "LearnerModelTimelineCorrection": {
     "annotation": ApiSchemas["LearnerAnnotationPayload"]
@@ -1024,6 +1188,45 @@ export type ApiSchemas = {
     "rule_version": string
     "snapshot_id": string
     "validation_classification": string
+  }
+  "LearnerPreferencesRead": {
+    "explanation_detail": ApiSchemas["ExplanationDetail"]
+    "format": ApiSchemas["PreferenceFormat"]
+    "optional_breaks_enabled": boolean
+    "pace": ApiSchemas["PreferencePace"]
+    "personalisation_enabled": boolean
+    "repeat_practice_enabled": boolean
+    "revision": number
+    "saved": boolean
+    "saved_at"?: (string) | (null)
+    "schema_version"?: string
+  }
+  "LearnerPreferencesWrite": {
+    "expected_revision": number
+    "explanation_detail": ApiSchemas["ExplanationDetail"]
+    "format": ApiSchemas["PreferenceFormat"]
+    "idempotency_key": string
+    "optional_breaks_enabled": boolean
+    "pace": ApiSchemas["PreferencePace"]
+    "personalisation_enabled": boolean
+    "repeat_practice_enabled": boolean
+  }
+  "LearnerResultRead": {
+    "assessment_attempt_id": string
+    "bloom_process": ApiSchemas["BloomProcess"]
+    "can_request_review": boolean
+    "criteria": Array<ApiSchemas["LearnerCriterionRead"]>
+    "decision_id": (string) | (null)
+    "evidence_response_id": string
+    "history": Array<ApiSchemas["LearnerDecisionEventRead"]>
+    "next_action": string
+    "outcome": string
+    "reason": string
+    "requests": Array<ApiSchemas["LearnerAppealRead"]>
+    "response_version_id": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "review_revision": number
+    "status": string
   }
   "LearningEventReceipt": {
     "learning_event_id": string
@@ -1169,6 +1372,19 @@ export type ApiSchemas = {
     "week_number"?: (number) | (null)
   }
   "OutcomeKind": "weekly" | "topic"
+  "OutcomePolicyRead": {
+    "created_at": string
+    "definition_version_id": string
+    "id": string
+    "reason": string
+    "required_form_ids"?: Array<string>
+    "selection_rule": "LATEST_VALID" | "ANY_VALID_PASS" | "ALL_REQUIRED_FORMS"
+  }
+  "OutcomePolicyWrite": {
+    "reason": string
+    "required_form_ids"?: Array<string>
+    "selection_rule": "LATEST_VALID" | "ANY_VALID_PASS" | "ALL_REQUIRED_FORMS"
+  }
   "OutcomeRead": {
     "created_at": string
     "id": string
@@ -1180,12 +1396,29 @@ export type ApiSchemas = {
     "updated_at": string
     "week_number": (number) | (null)
   }
+  "OutcomeResultRead": {
+    "authorisations": Array<ApiSchemas["ReassessmentRead"]>
+    "definition_version_id": string
+    "evidence_response_ids": Array<string>
+    "explanation": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "selection_rule": ("LATEST_VALID" | "ANY_VALID_PASS" | "ALL_REQUIRED_FORMS") | (null)
+    "status": string
+  }
   "OutcomeUpdate": {
     "kind"?: (ApiSchemas["OutcomeKind"]) | (null)
     "position"?: (number) | (null)
     "statement"?: (string) | (null)
     "title"?: (string) | (null)
     "week_number"?: (number) | (null)
+  }
+  "OutputReportWrite": {
+    "idempotency_key": string
+    "queue_kind": "ASSESSOR" | "TECHNICAL"
+    "reason": string
+    "severity"?: "NORMAL" | "HIGH" | "CRITICAL"
+    "source_id": string
+    "source_kind": "FEEDBACK" | "TUTOR"
   }
   "PairedDifferences": {
     "cost": ApiSchemas["MetricValue"]
@@ -1234,10 +1467,12 @@ export type ApiSchemas = {
     "title": string
     "version": number
   }
+  "PreferenceFormat": "NO_PREFERENCE" | "TEXT" | "VISUAL" | "WORKED_EXAMPLE" | "CIRCUIT" | "STEPWISE"
   "PreferenceHistory": {
     "items": Array<ApiSchemas["PreferenceRevision"]>
     "next_offset": (number) | (null)
   }
+  "PreferencePace": "DEFAULT" | "SLOWER" | "FASTER"
   "PreferenceRead": {
     "values": ApiSchemas["PreferenceValues"]
     "version": number
@@ -1268,9 +1503,52 @@ export type ApiSchemas = {
     "support_amount"?: "standard" | "on_request"
   }
   "QualityReviewDecision": "APPROVED" | "REJECTED"
+  "QueueMember": {
+    "id": number
+    "name": string
+  }
+  "QueueRead": {
+    "acknowledgement_target": string
+    "backup_user_id": number
+    "id": string
+    "primary_user_id": number
+    "resolution_target": string
+    "revision": number
+  }
+  "QueueWrite": {
+    "acknowledgement_target": string
+    "backup_user_id": number
+    "expected_revision": number
+    "primary_user_id": number
+    "reason": string
+    "resolution_target": string
+  }
   "ReadinessResponse": {
     "checks": Partial<Record<string, "ready" | "not_ready">>
     "status": "ready" | "not_ready"
+  }
+  "ReassessmentRead": {
+    "available": boolean
+    "created_at": string
+    "id": string
+    "learner_notice": string
+    "replacement_response_id": (string) | (null)
+    "task_id": string
+    "task_title": string
+  }
+  "ReassessmentSetup": {
+    "authorisation": (ApiSchemas["ReassessmentRead"]) | (null)
+    "definition_version_id": string
+    "forms": Array<ApiSchemas["EquivalentFormRead"]>
+    "fresh_tasks": Array<ApiSchemas["FreshTaskRead"]>
+    "policy": (ApiSchemas["OutcomePolicyRead"]) | (null)
+    "policy_forms": Array<ApiSchemas["EquivalentFormRead"]>
+  }
+  "ReassessmentWrite": {
+    "expected_decision_revision": number
+    "learner_notice": string
+    "reason": string
+    "task_form_version_id": string
   }
   "RecentActivityRead": {
     "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
@@ -1285,6 +1563,17 @@ export type ApiSchemas = {
     "task_id": string
     "title": string
     "updated_at": string
+  }
+  "ReminderPreferenceRead": {
+    "enabled"?: boolean
+    "paused_until"?: (string) | (null)
+    "revision"?: number
+  }
+  "ReminderPreferenceWrite": {
+    "enabled": boolean
+    "expected_revision": number
+    "idempotency_key": string
+    "paused_until"?: (string) | (null)
   }
   "ReminderRead": {
     "created_at": string
@@ -1354,6 +1643,10 @@ export type ApiSchemas = {
     "simulation_references"?: Array<string>
     "sources"?: Array<ApiSchemas["FeedbackSourceView"]>
     "summary": string
+  }
+  "SamplingWrite": {
+    "feedback_id": string
+    "reason": string
   }
   "ScopedRole": "assessor" | "research"
   "ScopedRoleAssignmentCreate": {
@@ -1539,6 +1832,7 @@ export type ApiSchemas = {
   "StudentDashboardRead": {
     "achievements": Array<ApiSchemas["AchievementRead"]>
     "courses": Array<ApiSchemas["CourseProgressRead"]>
+    "gamification_enabled"?: boolean
     "recommendations": Array<ApiSchemas["RecommendationRead"]>
     "reminders": Array<ApiSchemas["ReminderRead"]>
     "student": ApiSchemas["StudentIdentityRead"]
@@ -1693,6 +1987,29 @@ export type ApiSchemas = {
     "part_id": string
     "process": ApiSchemas["EpisodeStageResponseV1"]
     "stage_start_id": string
+  }
+  "TutorConversationRead": {
+    "context_token": string
+    "instructional_help_available": boolean
+    "next_offset"?: (number) | (null)
+    "revision": number
+    "status": string
+    "turns": Array<ApiSchemas["TutorTurnRead"]>
+  }
+  "TutorTurnRead": {
+    "created_at": string
+    "id": string
+    "kind": string
+    "message": string
+    "reply": string
+    "revision": number
+    "source_references": Array<string>
+  }
+  "TutorTurnWrite": {
+    "context_token": string
+    "expected_revision": number
+    "idempotency_key": string
+    "message": string
   }
   "UnresolvedAssessmentRead": {
     "assessment_attempt_id": string

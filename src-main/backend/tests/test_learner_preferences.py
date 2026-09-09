@@ -325,11 +325,11 @@ def test_migration_preserves_preferences_and_refuses_destructive_downgrade(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT pace FROM learner_preference_revisions")).scalar_one()
-            == "stepwise"
+            == "SLOWER"
         )
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0035"
+            == "20260909_0042"
         )
         with pytest.raises(IntegrityError):
             connection.execute(text("DELETE FROM learner_preference_revisions"))

@@ -28,7 +28,13 @@ import {
 } from './ui'
 import type { DescriptionItem } from './ui'
 import type { BloomKnowledge, BloomProcess } from '../features/assessment/types'
+import { LearnerResultPanel } from '../features/assessment/LearnerResultPanel'
+import { OutcomeResultPanel } from '../features/assessment/OutcomeResultPanel'
+import { ReportNotices } from '../features/escalation/OutputReport'
+import { LearnerDeadline } from '../features/reminders/LearnerDeadline'
+import { TutorPanel } from '../features/tutor/TutorPanel'
 import styles from './TaskView.module.css'
+import { LearnerPreferencesSummary } from '../features/preferences/LearnerPreferencesSummary'
 
 const episodeTaskTypes = ['prediction', 'reasoning', 'explanation', 'revision', 'reflection', 'transfer']
 const emptyEpisode = (): EpisodePayload => ({ schema_version: 'learnlens.episode.v1', supported: {} })
@@ -533,6 +539,8 @@ export function TaskView({
               </ul>
             </Card>
           ) : null}
+          <LearnerPreferencesSummary />
+          <LearnerDeadline key={task.id} taskId={task.id} />
           {task.source_references && task.source_references.length > 0 ? (
             <Card eyebrow="Grounded in">
               <ul className={styles.sources}>
@@ -749,7 +757,7 @@ export function TaskView({
               </h2>
               <p className={styles.submissionText}>
                 {submission.formal_assessment
-                  ? 'Your response is saved for assessment and review. The formal result is not available.'
+                  ? 'Your response is saved. Open its assessment result and review details in your attempt history.'
                   : 'Your response is saved. Validated AI feedback is prepared separately below.'}
               </p>
             </Card>
@@ -757,6 +765,8 @@ export function TaskView({
           {latestFeedbackReference && (
             <><FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} explanationForm={presentation.feedback_form} /><ActivityContinuation key={latestFeedbackReference} submissionId={latestFeedbackReference} /></>
           )}
+          {!draftLoading && !workConflict && <TutorPanel key={`${task.id}-${episodeState?.transfer?.stage_start_id ?? 'supported'}`} taskId={task.id} />}
+          <ReportNotices key={task.id} taskId={task.id} />
           <Card id="task-records" tabIndex={-1} eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (
               <p className={styles.stateNote}>Loading previous attempts…</p>
@@ -771,7 +781,6 @@ export function TaskView({
                     <span className={styles.attemptNumber}>#{item.attempt_number ?? attempts.length - index}</span>
                     <div className={styles.attemptBody}>
                       <strong>{attemptLabel(item)}</strong>
-                      {item.formal_assessment && <small>Formal result unavailable.</small>}
                       <small className={styles.attemptStatus}>{item.status.replace('_', ' ')}</small>
                       <details><summary>Saved response</summary>
                         {item.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{item.answer}</pre>}
@@ -787,6 +796,7 @@ export function TaskView({
                         })}
                       </time>
                     ) : <time className={styles.attemptTime}>Just now</time>}
+                    {item.formal_assessment && item.id && <div className={styles.attemptResult}><LearnerResultPanel responseId={item.id} /><OutcomeResultPanel responseId={item.id} /></div>}
                   </li>
                 ))}
               </ol>

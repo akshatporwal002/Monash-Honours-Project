@@ -450,7 +450,7 @@ def test_prerequisites_attempt_history_events_and_points_once(
             .select_from(Recommendation)
             .where(Recommendation.is_active.is_(True))
         )
-        >= 1
+        == 0
     )
 
     locked = client.put(
@@ -575,13 +575,17 @@ def test_reminders_monitoring_and_admin_lifecycle(
     lms_context: tuple[TestClient, Session],
 ) -> None:
     client, session = lms_context
-    task = session.scalar(select(LearningTask).order_by(LearningTask.position.desc()))
+    from app.services.reminders import ReminderService
+
+    task = session.scalar(select(LearningTask).order_by(LearningTask.position))
     assert task is not None
     task.due_at = datetime.now(UTC) - timedelta(days=2)
     session.commit()
     approve_fixture_task(session, task)
 
     login(client, "student")
+    assert client.get("/api/v1/students/me/dashboard").json()["reminders"] == []
+    ReminderService(session).process_due()
     first = client.get("/api/v1/students/me/dashboard").json()
     second = client.get("/api/v1/students/me/dashboard").json()
     assert len(first["reminders"]) == 1

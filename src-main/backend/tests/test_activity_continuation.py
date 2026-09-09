@@ -503,7 +503,7 @@ def test_migration_replay_protects_populated_activity_history(tmp_path):
         assert run_worker(fixture[2]).state.value == "completed"
     with engine.begin() as connection:
         connection.execute(text("DROP TRIGGER activity_suggestions_no_delete"))
-    command.stamp(config, "20260909_0034")
+    command.stamp(config, "20260909_0041")
     command.upgrade(config, "head")
     with engine.begin() as connection:
         assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
@@ -515,11 +515,11 @@ def test_migration_replay_protects_populated_activity_history(tmp_path):
             with pytest.raises(Exception, match="history is protected"):
                 connection.execute(text(statement))
     with pytest.raises(RuntimeError):
-        command.downgrade(config, "20260909_0034")
+        command.downgrade(config, "20260909_0041")
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0035"
+            == "20260909_0042"
         )
         assert (
             connection.execute(text("SELECT COUNT(*) FROM activity_suggestions")).scalar_one() == 1

@@ -72,7 +72,7 @@ export function AnalyticsView() {
 
   const performance = data.task_type_performance ?? []
   const mastery = data.concept_mastery ?? []
-  const leaderboard = data.leaderboard ?? []
+
 
   const metrics = [
     { label: 'Enrolled learners', value: data.active_students, detail: 'Current cohort', icon: <Users size={18} /> },
@@ -146,40 +146,7 @@ export function AnalyticsView() {
           )}
         </Card>
 
-        {/* Leaderboard behaviour is retained pending FR25 roadmap work (plan 006,
-            Behaviour-preservation rule); presentation is a plain table with no
-            rank celebration styling. */}
-        <Card eyebrow="Gamification" heading="Leaderboard" className={styles.wide}>
-          {leaderboard.length === 0 ? (
-            <EmptyState
-              icon={<Trophy size={20} />}
-              title="The leaderboard starts after students earn their first points."
-            />
-          ) : (
-            <div className={styles.tableScroll}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th scope="col">Rank</th>
-                    <th scope="col">Student</th>
-                    <th scope="col">Activities completed</th>
-                    <th scope="col">Points</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.slice(0, 8).map((student, index) => (
-                    <tr key={student.student_id}>
-                      <td className={styles.rank}>{index + 1}</td>
-                      <th scope="row" className={styles.studentCell}>{student.display_name}</th>
-                      <td>{student.completed_tasks}</td>
-                      <td className={styles.points}>{student.points.toLocaleString()} XP</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+
       </div>
     </div>
   )

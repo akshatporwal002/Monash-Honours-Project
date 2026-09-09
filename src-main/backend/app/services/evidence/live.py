@@ -56,6 +56,26 @@ class LiveEvidenceCapture:
         self.session = session
         self.repository = SqlAlchemyEvidenceRepository(session)
 
+    def tutor(self, task, turn):
+        """Record the accepted dialogue without interpreting it as understanding."""
+        return self._write(
+            task=task,
+            learner_id=turn.student_id,
+            source=turn.id,
+            field="tutor_dialogue",
+            kind=EvidenceType.SCAFFOLD,
+            value={
+                "message": turn.learner_text,
+                "reply": turn.reply,
+                "kind": turn.kind,
+                "quality": turn.quality,
+                "context": turn.context,
+            },
+            occurred_at=turn.created_at,
+            work_id=turn.assessment_work_start_id,
+            support=InstructionalSupportLevel.CONCEPT_CUE,
+        )
+
     def _write(
         self,
         *,
@@ -191,6 +211,11 @@ class LiveEvidenceCapture:
             commit=False,
         )
         if result.created:
+            from app.services.gamification import GamificationService
+
+            GamificationService(self.session).recognise_evidence(
+                learner_id, task, kind.value, identity
+            )
             self.session.add(
                 PlatformAuditEvent(
                     id=evidence_id(source, field + ":audit"),

@@ -178,6 +178,14 @@ def test_expired_final_claim_moves_to_human_review(db_session: Session) -> None:
     assert job is not None
     assert job.state is AssessmentEvaluationJobState.REVIEW_REQUIRED
     assert job.failure_category is AssessmentEvaluationFailureCategory.PERSISTENCE_UNAVAILABLE
+    from app.models.escalation import EscalationCase
+
+    case = db_session.scalar(select(EscalationCase))
+    assert (case.trigger, case.source_id, case.queue_kind) == (
+        "EVALUATION_FAILED",
+        attempt.id,
+        "TECHNICAL",
+    )
 
 
 def test_configured_executor_creates_one_provisional_decision(db_session: Session) -> None:

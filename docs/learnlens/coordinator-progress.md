@@ -1,5 +1,13 @@
 # LearnLens coordinator progress
 
+## Task 22 integration with current main
+
+The user authorized merge and push on 9 September 2026. Local merge `24833c4` is reconciled with
+remote main `e3ce194`. Both histories and the original implementation worktrees are preserved.
+See the [integration record](task-22-main-integration.md) for shared preference storage, the sole migration
+head `20260909_0042`, exact verification history, and delivery limits. This supersedes the older local-only status below.
+
+
 ## Task 22 local completion
 
 Task 22 is implemented in the detached worktree `.tmp-coordinator/task22`.

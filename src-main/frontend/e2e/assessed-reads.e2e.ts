@@ -27,7 +27,7 @@ test('formal submission survives task reload, history, and both dashboards', asy
   expect(await submission.json()).toMatchObject({ score: null, formal_assessment: { result: null, visibility: 'withheld' } })
   await expect(page.getByRole('heading', { name: 'Assessment response saved' })).toBeVisible()
   await page.reload()
-  await expect(page.getByText('Formal result unavailable.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Assessment result and review' })).toContainText('Awaiting assessor review')
   await expect(page.getByText('Assessment response saved', { exact: true })).toBeVisible()
   await page.goto('/student')
   await expect(page.getByRole('heading', { name: 'Quantum foundations' })).toBeVisible()

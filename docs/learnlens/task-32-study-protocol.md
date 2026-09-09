@@ -350,3 +350,13 @@ Report deviations and missingness by condition in the final study report.
 
 Task 32 remains `PARTIAL` until the protocol and data plan receive their required decisions and preregistration.
 Document review can finish before those external records exist. Recruitment cannot.
+
+<!-- Manual completion requested by the user on 2026-09-09. Preserve DRAFT_FOR_REVIEW until the actual records below are supplied. -->
+<!-- TODO T32-RQ: Arv Surana and the named supervisor: confirm the exact research question, hypotheses, protocol version, date and approval reference. -->
+<!-- TODO T32-DESIGN: Name the methods reviewer; approve comparator, allocation, sample-size justification, analysis, exclusions, missingness and stopping rules. -->
+<!-- TODO T32-INSTRUMENTS: Name the course lead, assessor and accessibility reviewer; attach approved sources, rating anchors, fresh forms, conditions and session timings. -->
+<!-- TODO T32-ETHICS: Enter the responsible investigator, institutional decision identifier, approved scope/materials, conditions, validity and evidence location. Do not infer approval from a software merge. -->
+<!-- TODO T32-DATA: Link the signed task-32-data-plan.md version and completed fields, consent, retention, access, storage and disclosure records. -->
+<!-- TODO T32-PREREG: Enter registry, identifier/URL, timestamp, approved protocol/data-plan hashes and supervisor confirmation before recruitment. -->
+<!-- TODO T32-RELEASE: Record research/course/operations owners, approved host, Task 33 enforcement evidence and dated study activation decision. -->
+<!-- TODO D07-VALIDATION: Attach the separate expert validation and evaluator release record before enabling operational AI criterion suggestions. -->

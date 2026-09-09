@@ -46,7 +46,10 @@ async function fillRequiredTextFields(user: ReturnType<typeof userEvent.setup>) 
     'Instructional support': 'Read the approved source before starting.',
     'Access conditions': 'Screen reader compatible text circuit', 'Transfer rule': 'Apply the same reasoning in a new circuit.',
   }
-  for (const [field, value] of Object.entries(values)) await user.type(screen.getByLabelText(field), value)
+  for (const [field, value] of Object.entries(values)) {
+    await user.click(screen.getByLabelText(field))
+    await user.paste(value)
+  }
 }
 
 const bloomVerificationLabel = 'I verified that this task elicits the selected Bloom process.'

@@ -43,6 +43,7 @@ from app.services.feedback.application import (
 )
 from app.services.feedback.worker import FeedbackRecoveryWorker
 from app.services.rag.processing_recovery import MaterialProcessorFactory, MaterialRecoveryWorker
+from app.services.reminders import ReminderWorker
 from app.services.research import (
     BaselineContextProvider,
     BaselineFeedbackGenerator,
@@ -227,6 +228,7 @@ class DatabaseWorker:
         material_processing: WorkerPass | None = None,
         simulation_recovery: WorkerPass | None = None,
         terminal_reconciliation: WorkerPass | None = None,
+        reminders: WorkerPass | None = None,
         poll_interval_seconds: float = 1,
         heartbeat_interval_seconds: float = 30,
         logger: logging.Logger | None = None,
@@ -244,6 +246,8 @@ class DatabaseWorker:
             passes.append(("assessment_evaluation", assessment_evaluation))
         if terminal_reconciliation is not None:
             passes.append(("terminal_reconciliation", terminal_reconciliation))
+        if reminders is not None:
+            passes.append(("reminders", reminders))
         passes.extend(
             [
                 ("baseline", baseline),
@@ -412,6 +416,7 @@ def build_database_worker(
             processor_factory=adapters.material_processor_factory,
         ),
         terminal_reconciliation=terminal_reconciliation,
+        reminders=ReminderWorker(session_factory, now=now),
         poll_interval_seconds=configured_settings.worker_poll_seconds,
         heartbeat_interval_seconds=configured_settings.worker_heartbeat_seconds,
     )

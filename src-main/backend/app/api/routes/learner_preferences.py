@@ -1,107 +1,105 @@
-"""Authenticated self-only settings. Query parameters never select an owner."""
+"""Learner-self endpoints for non-essential support preferences."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from hashlib import sha256
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.roles import CurrentStudent
-from app.api.routes.lms import get_lms_service
 from app.api.security_dependencies import RequestSecurityGuard, get_request_security_guard
 from app.db.session import get_db
+from app.models.lms import PlatformAuditEvent
 from app.schemas.feedback_api import AuthenticatedActor
-from app.schemas.learner_preferences import (
-    EffectivePreferences,
-    PreferenceHistory,
-    PreferenceRead,
-    PreferenceReset,
-    PreferenceUpdate,
+from app.services.learner_preferences.contracts import (
+    LearnerPreferencesRead,
+    LearnerPreferencesWrite,
 )
-from app.services.learner_preferences import (
-    LearnerPreferenceService,
-    PreferenceConflict,
-    PreferenceUnavailable,
+from app.services.learner_preferences.repository import SqlAlchemyLearnerPreferencesRepository
+from app.services.learner_preferences.service import (
+    LearnerPreferencesConflictError,
+    LearnerPreferencesService,
 )
-from app.services.lms import LmsService
 
-router = APIRouter(prefix="/learner-preferences", tags=["learner preferences"])
-
-
-@router.get("/me/tasks/{task_id}/effective", response_model=EffectivePreferences)
-def effective(
-    task_id: str,
-    request: Request,
-    response: Response,
-    student: CurrentStudent,
-    service: LmsService = Depends(get_lms_service),
-):
-    _query(request, response)
-    return service.effective_preferences(student, task_id)
+router = APIRouter(prefix="/students/me/preferences", tags=["learner preferences"])
 
 
-def _query(request: Request, response: Response, allowed: tuple[str, ...] = ()):
+def _service(session: Session):
+    return LearnerPreferencesService(SqlAlchemyLearnerPreferencesRepository(session))
+
+
+def _no_store(response: Response):
     response.headers["Cache-Control"] = "no-store"
-    if any(key not in allowed for key in request.query_params):
-        raise HTTPException(422, "Unexpected preference query field")
 
 
-@router.get("/me", response_model=PreferenceRead)
-def read(
+def _audit_fingerprint(value: str) -> str:
+    return sha256(f"learner-preferences:{value}".encode()).hexdigest()
+
+
+@router.get("", response_model=LearnerPreferencesRead)
+def read_preferences(
+    response: Response, student: CurrentStudent, session: Session = Depends(get_db)
+):
+    _no_store(response)
+    return _service(session).read(student.id)
+
+
+@router.put("", response_model=LearnerPreferencesRead, status_code=201)
+async def save_preferences(
+    payload: LearnerPreferencesWrite,
     request: Request,
     response: Response,
     student: CurrentStudent,
     session: Session = Depends(get_db),
+    security: RequestSecurityGuard = Depends(get_request_security_guard),
 ):
-    _query(request, response)
-    return LearnerPreferenceService(session).read(student)
-
-
-@router.get("/me/history", response_model=PreferenceHistory)
-def history(
-    request: Request,
-    response: Response,
-    student: CurrentStudent,
-    offset: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    session: Session = Depends(get_db),
-):
-    _query(request, response, ("offset", "limit"))
-    return LearnerPreferenceService(session).history(student, offset=offset, limit=limit)
-
-
-async def _write(payload, request, response, student, session, security):
-    _query(request, response)
+    _no_store(response)
     await security.enforce(
         request,
         AuthenticatedActor(actor_reference=str(student.id), role=student.role.value),
         "learner-preferences",
         mutating=True,
     )
+    repository = SqlAlchemyLearnerPreferencesRepository(session)
+    replay = repository.by_key(student.id, payload.idempotency_key) is not None
     try:
-        return LearnerPreferenceService(session).save(student, payload)
-    except PreferenceConflict as error:
-        raise HTTPException(409, str(error)) from None
-    except PreferenceUnavailable as error:
-        raise HTTPException(503, str(error)) from None
+        result = LearnerPreferencesService(repository).save(student.id, payload)
+    except LearnerPreferencesConflictError as error:
+        raise HTTPException(
+            409, "The preference request conflicts with a newer revision."
+        ) from error
+    if replay:
+        response.status_code = 200
+    # The revision has already committed. Audit is deliberately best effort and
+    # contains only opaque references, never preference values or identity claims.
+    try:
+        session.add(
+            PlatformAuditEvent(
+                actor_id=student.id,
+                action="learner_preferences.saved",
+                resource_type="learner_preference_revision",
+                resource_id=_audit_fingerprint(str(result.revision)),
+                correlation_id=str(uuid4()),
+                outcome="success",
+                details={
+                    "outcome": "replayed" if replay else "created",
+                    "schema_version": result.schema_version,
+                },
+            )
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+    return result
 
 
-@router.put("/me", response_model=PreferenceRead)
-async def save(
-    payload: PreferenceUpdate,
-    request: Request,
+@router.get("/history", response_model=list[LearnerPreferencesRead])
+def preference_history(
     response: Response,
     student: CurrentStudent,
     session: Session = Depends(get_db),
-    security: RequestSecurityGuard = Depends(get_request_security_guard),
+    limit: int = 20,
+    offset: int = 0,
 ):
-    return await _write(payload, request, response, student, session, security)
-
-
-@router.post("/me/reset", response_model=PreferenceRead)
-async def reset(
-    payload: PreferenceReset,
-    request: Request,
-    response: Response,
-    student: CurrentStudent,
-    session: Session = Depends(get_db),
-    security: RequestSecurityGuard = Depends(get_request_security_guard),
-):
-    return await _write(payload, request, response, student, session, security)
+    _no_store(response)
+    return _service(session).history(student.id, min(max(limit, 1), 100), max(offset, 0))

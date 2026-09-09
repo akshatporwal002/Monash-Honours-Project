@@ -1,6 +1,9 @@
 import { expect, test as base } from '@playwright/test'
 
 type AssessmentReviewFixture = {
+  student_email: string
+  student_password: string
+  task_id: string
   educator_email: string
   educator_password: string
   course_id: string

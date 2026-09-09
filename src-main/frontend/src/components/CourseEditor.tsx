@@ -36,6 +36,7 @@ import styles from './CourseEditor.module.css'
 import { TaskReviewPanel } from './TaskReviewPanel'
 import { SourceReviewPanel } from './SourceReviewPanel'
 import { AssessorAccessPanel } from './AssessorAccessPanel'
+import { DeadlineArrangementsPanel } from '../features/reminders/DeadlineArrangementsPanel'
 
 const steps = [
   { number: 1, label: 'Course details' },
@@ -67,6 +68,7 @@ export function CourseEditor() {
     title: '',
     description: '',
     enrollment_open: true,
+    time_zone: 'UTC',
   })
   const [materialUrl, setMaterialUrl] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -91,6 +93,7 @@ export function CourseEditor() {
   const [sourceReviewId, setSourceReviewId] = useState('')
   const [accessOpen, setAccessOpen] = useState(false)
   const [pathwaysOpen, setPathwaysOpen] = useState(false)
+  const [deadlinesOpen, setDeadlinesOpen] = useState(false)
   const indexedMaterialCount = materials.filter(
     (material) => material.status === 'indexed',
   ).length
@@ -370,6 +373,7 @@ export function CourseEditor() {
         title: '',
         description: '',
         enrollment_open: true,
+        time_zone: 'UTC',
       })
       setMaterials([])
       return
@@ -382,6 +386,7 @@ export function CourseEditor() {
       title: selected.title,
       description: selected.description ?? '',
       enrollment_open: selected.enrollment_open,
+      time_zone: selected.time_zone ?? 'UTC',
     })
     setBusy(true)
     try {
@@ -511,6 +516,8 @@ export function CourseEditor() {
       {course && <>
         <Button variant="secondary" onClick={() => setPathwaysOpen(value => !value)}>Manage learning pathways</Button>
         {pathwaysOpen && <><PathwayEditor key={`editor-${course.id}`} courseId={course.id} /><CurriculumPanel key={`review-${course.id}`} courseId={course.id} staff /><CourseActivityContinuations key={`activity-${course.id}`} courseId={course.id} /></>}
+        <Button variant="secondary" onClick={() => setDeadlinesOpen(value => !value)}>{deadlinesOpen ? 'Close individual deadlines' : 'Manage individual deadlines'}</Button>
+        {deadlinesOpen && <DeadlineArrangementsPanel key={`${course.id}-${course.time_zone}`} courseId={course.id} timeZone={course.time_zone ?? 'UTC'} />}
         <Button variant="secondary" onClick={() => setAccessOpen((value) => !value)}>{accessOpen ? 'Close assessor eligibility' : 'Manage assessor eligibility'}</Button>
         {accessOpen && <AssessorAccessPanel key={course.id} courseId={course.id} />}
         <Button variant="quiet" onClick={() => setReviewOpen((open) => !open)}>
@@ -521,6 +528,7 @@ export function CourseEditor() {
 
       <nav aria-label="Course creation progress">
         <Stepper
+          className={styles.progress}
           steps={steps.map((item) => ({
             label: item.label,
             disabled: item.number > step || (!course && item.number > 1),
@@ -582,6 +590,9 @@ export function CourseEditor() {
                   enrollment_open: event.target.checked,
                 })}
               />
+              <Field label="Course time zone" help="Use an IANA time zone, such as Australia/Sydney. Individual deadlines use this local time.">
+                <Input value={details.time_zone} required onChange={event => setDetails({ ...details, time_zone: event.target.value })} />
+              </Field>
             </div>
             <div className={styles.actions}>
               <Button type="submit" variant="primary" loading={busy}>

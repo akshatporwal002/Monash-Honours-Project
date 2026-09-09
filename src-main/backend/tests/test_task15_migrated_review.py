@@ -3,12 +3,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from threading import Barrier
 
 import pytest
 from alembic import command
 from sqlalchemy import create_engine, event, select, text
 from sqlalchemy.orm import Session
+from support.migration_assertions import protected_history_manifest
 from test_migrations import migration_config
 from test_task14_lifecycle import complete, setup_episode
 
@@ -170,11 +172,14 @@ def test_real_episode_review_is_lossless_read_only_and_confirmed(migrated):
         with pytest.raises(Exception, match="append-only|Invalid human assessment action scope"):
             session.execute(text(statement))
         session.rollback()
-    with pytest.raises(RuntimeError, match="protected"):
+    database_path = Path(session.get_bind().url.database)
+    before_downgrade = protected_history_manifest(database_path)
+    with pytest.raises(RuntimeError, match="cannot downgrade populated participation_recognitions"):
         command.downgrade(config, "20260907_0030")
+    assert protected_history_manifest(database_path) == before_downgrade
     assert (
         session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        == "20260909_0035"
+        == "20260909_0042"
     )
     assert session.execute(text("PRAGMA foreign_key_check")).all() == []
 

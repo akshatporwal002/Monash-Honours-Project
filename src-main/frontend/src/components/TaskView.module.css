@@ -442,7 +442,8 @@
 }
 
 .attempt {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) 0;
@@ -461,6 +462,7 @@
 }
 
 .attemptBody {
+  min-width: 0;
   flex: 1;
   display: grid;
 }
@@ -475,8 +477,15 @@
 }
 
 .attemptTime {
+  grid-column: 2;
   font-size: var(--text-caption);
   color: var(--ink-muted);
+}
+
+.attemptResult {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .status {

@@ -64,6 +64,7 @@ export function useReviewQueueData({
   const [selected, setSelected] = useState<AssessmentReviewDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [accessActive, setAccessActive] = useState(true)
+  const [verifiedCourseId, setVerifiedCourseId] = useState('')
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
 
@@ -83,6 +84,7 @@ export function useReviewQueueData({
       return false
     }
     setAccessActive(active)
+    if (active) setVerifiedCourseId(filters.courseId)
     if (!active) clearForRevokedAccess()
     return active
   }, [clearForRevokedAccess, filters.courseId, onCheckAccess])
@@ -128,6 +130,7 @@ export function useReviewQueueData({
         return
       }
       setAccessActive(active)
+      if (active) setVerifiedCourseId(filters.courseId)
       if (!active) {
         clearForRevokedAccess()
         return
@@ -176,6 +179,7 @@ export function useReviewQueueData({
     selected,
     loading,
     accessActive,
+    accessReady: accessActive && verifiedCourseId === filters.courseId,
     error,
     status,
     summaries,
