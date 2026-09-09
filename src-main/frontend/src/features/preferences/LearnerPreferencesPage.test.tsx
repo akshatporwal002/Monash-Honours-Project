@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react'
 import { api } from '../../app/api'
 import { LearnerPreferencesPage } from './LearnerPreferencesPage'
 
+afterEach(() => vi.restoreAllMocks())
+
 it('announces a failed preference load instead of an endless loading message', async () => {
   vi.spyOn(api.preferences, 'read').mockRejectedValue(new Error('offline'))
   render(<LearnerPreferencesPage />)

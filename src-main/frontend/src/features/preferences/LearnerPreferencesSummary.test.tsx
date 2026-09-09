@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 
 import { LearnerPreferencesSummary } from './LearnerPreferencesSummary'
 
+afterEach(() => vi.restoreAllMocks())
+
 const preferences = {
   pace: 'SLOWER',
   format: 'TEXT',
