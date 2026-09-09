@@ -34,7 +34,7 @@ quantum = [
     "qiskit-aer>=0.16,<1.0",
 ]
 dev = [
-    "httpx2>=2.0,<3.0",
+    "httpx2>=2.12,<3.0",
     "pytest>=9.0.3,<10.0",
     "pytest-cov>=6.0,<8.0",
     "ruff==0.16.0",
