@@ -414,9 +414,8 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
     from sqlalchemy import create_engine, inspect, text
     from sqlalchemy.exc import IntegrityError
     from sqlalchemy.orm import Session
+    from support.migration_assertions import protected_history_manifest
     from test_migrations import migration_config
-
-    from scripts.verify_sqlite_backup import database_manifest
 
     path = tmp_path / "episodes.db"
     config = migration_config(f"sqlite:///{path.as_posix()}")
@@ -465,10 +464,10 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
         with pytest.raises(IntegrityError, match="protected"):
             with engine.begin() as connection:
                 connection.execute(text(statement))
-    before_downgrade = database_manifest(path)
+    before_downgrade = protected_history_manifest(path)
     with pytest.raises(RuntimeError, match="cannot downgrade populated participation_recognitions"):
         command.downgrade(config, "20260907_0029")
-    assert database_manifest(path) == before_downgrade
+    assert protected_history_manifest(path) == before_downgrade
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
@@ -533,7 +532,11 @@ def test_migration_accepts_every_new_type_and_preserves_reviewed_history(tmp_pat
     from alembic import command
     from sqlalchemy import create_engine, text
     from sqlalchemy.orm import Session
+    from support.assessment import build_assessment_blueprint
     from test_migrations import migration_config
+
+    from app.models.task_review import TaskReviewEvent, TaskRevision
+    from app.services.task_review import snapshot_digest, task_snapshot
 
     path = tmp_path / "preexisting.db"
     url = f"sqlite:///{path.as_posix()}"
@@ -541,8 +544,34 @@ def test_migration_accepts_every_new_type_and_preserves_reviewed_history(tmp_pat
     command.upgrade(config, "20260907_0029")
     engine = create_engine(url)
     with Session(engine) as session:
-        course_id, outcome_id, owner_id, _ = _setup(session)
-        task = session.scalar(select(LearningTask).where(LearningTask.course_id == course_id))
+        _, _, _, _, form, owner = build_assessment_blueprint(session)
+        task = session.get(LearningTask, form.learning_task_id)
+        course_id, outcome_id, owner_id = task.course_id, task.learning_outcome_id, owner.id
+        snapshot = task_snapshot(session, task)
+        revision = TaskRevision(
+            task_id=task.id,
+            course_id=course_id,
+            version=1,
+            snapshot=snapshot,
+            content_digest=snapshot_digest(snapshot),
+            provenance="AUTHORED",
+            actor_user_id=owner_id,
+        )
+        session.add(revision)
+        session.flush()
+        for version, state in enumerate(("SUBMITTED", "APPROVED"), start=1):
+            session.add(
+                TaskReviewEvent(
+                    task_revision_id=revision.id,
+                    course_id=course_id,
+                    version=version,
+                    state=state,
+                    actor_user_id=owner_id,
+                    reason="Historical migration fixture review",
+                )
+            )
+            session.flush()
+        session.commit()
         task_id = task.id
         before = dict(
             session.execute(text("SELECT * FROM learning_tasks WHERE id=:id"), {"id": task_id})

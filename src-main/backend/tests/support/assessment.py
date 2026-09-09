@@ -54,6 +54,31 @@ NOW = datetime(2026, 8, 16, 9, 0, tzinfo=UTC)
 DIGEST = "sha256:" + "a" * 64
 
 
+def save_course_fixture(session: Session, course: Course) -> None:
+    columns = {column["name"] for column in inspect(session.connection()).get_columns("courses")}
+    if "time_zone" in columns:
+        session.add(course)
+        session.flush()
+        return
+    # Older migration targets predate course time zones. Seed their actual schema without
+    # adding today's column or changing the historical upgrade this fixture exercises.
+    course.id = course.id or str(uuid4())
+    table = Table("courses", MetaData(), autoload_with=session.connection())
+    session.execute(
+        table.insert().values(
+            id=course.id,
+            educator_id=course.educator_id,
+            code=course.code,
+            title=course.title,
+            description=course.description or "",
+            state=(course.state or CourseState.DRAFT).value,
+            enrollment_open=course.enrollment_open if course.enrollment_open is not None else True,
+            created_at=course.created_at or NOW,
+            updated_at=course.updated_at or NOW,
+        )
+    )
+
+
 def _lms_scope(
     session: Session, suffix: str = ""
 ) -> tuple[User, Course, LearningOutcome, LearningTask]:
@@ -71,8 +96,7 @@ def _lms_scope(
         title="Assessment model course",
         state=CourseState.DRAFT,
     )
-    session.add(course)
-    session.flush()
+    save_course_fixture(session, course)
     module = CourseModule(course_id=course.id, title="Quantum evidence", position=1)
     session.add(module)
     session.flush()

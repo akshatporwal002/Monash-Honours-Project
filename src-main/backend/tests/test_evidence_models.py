@@ -143,6 +143,11 @@ def test_evidence_migration_is_append_only_and_preserves_legacy_records(tmp_path
         engine.dispose()
 
     before_manifest = database_manifest(database_path)
+    with sqlite3.connect(database_path) as connection:
+        connection.row_factory = sqlite3.Row
+        original_courses = [
+            dict(row) for row in connection.execute("SELECT * FROM courses ORDER BY id")
+        ]
     legacy_manifest = {
         name: verification
         for name, verification in before_manifest.items()
@@ -158,9 +163,18 @@ def test_evidence_migration_is_append_only_and_preserves_legacy_records(tmp_path
     try:
         inspector = inspect(engine)
         assert NEW_TABLES.issubset(inspector.get_table_names())
-        assert {
-            name: database_manifest(database_path)[name] for name in legacy_manifest
-        } == legacy_manifest
+        upgraded_manifest = database_manifest(database_path)
+        assert {name: upgraded_manifest[name] for name in legacy_manifest if name != "courses"} == {
+            name: value for name, value in legacy_manifest.items() if name != "courses"
+        }
+        with engine.connect() as connection:
+            upgraded_courses = [
+                dict(row)
+                for row in connection.execute(text("SELECT * FROM courses ORDER BY id")).mappings()
+            ]
+        for course in upgraded_courses:
+            assert course.pop("time_zone") == "UTC"
+        assert upgraded_courses == original_courses
         _insert_evidence_rows(engine)
         with engine.connect() as connection:
             trigger_names = set(

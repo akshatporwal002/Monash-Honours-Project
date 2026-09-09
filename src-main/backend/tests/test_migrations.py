@@ -19,6 +19,7 @@ from support.assessment import (
 from support.assessment import (
     build_provisional_decision as _provisional_decision,
 )
+from support.assessment import save_course_fixture
 from support.migration_assertions import protected_history_manifest
 
 from app.core.security import hash_password
@@ -254,8 +255,7 @@ def test_assessor_eligibility_migration_preserves_unapproved_legacy_grants(tmp_p
         session.add_all([lead, admin])
         session.flush()
         course = Course(educator_id=lead.id, code="MIG-ELIG", title="Eligibility migration")
-        session.add(course)
-        session.flush()
+        save_course_fixture(session, course)
         lead_id, admin_id, course_id = lead.id, admin.id, course.id
         session.execute(
             text("""INSERT INTO role_assignments
@@ -343,8 +343,7 @@ def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tm
         session.add(owner)
         session.flush()
         course = Course(educator_id=owner.id, code="TASK-LEGACY", title="Legacy task course")
-        session.add(course)
-        session.flush()
+        save_course_fixture(session, course)
         module = CourseModule(course_id=course.id, title="Gates", position=1)
         session.add(module)
         session.flush()
