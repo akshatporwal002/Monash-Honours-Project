@@ -3,15 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import sqlite3
+import subprocess
+import sys
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
-from sqlalchemy import select
+from alembic import command
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_attempt
+from support.person4 import migration_config
 from support.task_review import bind_reviewed_fixture_form
 
+from app.db.session import create_db_engine, create_session_factory
 from app.domain.assessment import AssessmentAttemptState, BloomProcess, CriterionDecision
 from app.models.assessment import (
     AssessmentApprovalState,
@@ -36,10 +44,12 @@ from app.services.assessment.evaluators import EvaluatorOutcome
 from app.services.assessment.jobs import (
     AssessmentEvaluationApplication,
     AssessmentEvaluationExecutor,
+    AssessmentEvaluationJobError,
     AssessmentEvaluationRecoveryWorker,
     SqlAlchemyAssessmentEvaluationJobRepository,
 )
 from app.services.assessment.runtime import SqlAlchemyRuleCriterionEvaluationPort
+from scripts.learning_backup import create_bundle, restore_bundle
 
 NOW = datetime(2026, 8, 21, 12, 0, tzinfo=UTC)
 
@@ -351,3 +361,239 @@ def test_unsafe_or_human_rules_leave_attempt_for_review_without_result(
     assert captured.value.failure_category == "provider_unavailable"
     assert attempt.state is AssessmentAttemptState.PENDING
     assert db_session.scalar(select(AssessmentDecision)) is None
+
+
+@pytest.mark.parametrize("fault", ["timeout", "malformed"])
+def test_provider_fault_retries_preserve_response_and_create_one_decision(db_session, fault):
+    attempt, response, _ = _ready_attempt(db_session)
+    factory = create_session_factory(db_session.bind)
+    original = (response.id, response.answer, response.content_digest)
+    repository = SqlAlchemyAssessmentEvaluationJobRepository(db_session)
+    repository.ensure_pending(attempt)
+
+    class FaultPort(StaticCriterionPort):
+        def evaluate(self, **kwargs):
+            if fault == "timeout":
+                raise TimeoutError("private provider response must not be stored")
+            return replace(super().evaluate(**kwargs), evidence=())
+
+    claim = AssessmentEvaluationApplication(repository, now=lambda: NOW).start(response.id)
+    assert claim is not None
+    asyncio.run(
+        AssessmentEvaluationExecutor(
+            factory, _service_factory(FaultPort()), now=lambda: NOW
+        ).execute(claim)
+    )
+    db_session.expire_all()
+    job = repository.get(attempt.id)
+    assert job.state is AssessmentEvaluationJobState.RETRY_SCHEDULED
+    assert job.failure_category is AssessmentEvaluationFailureCategory.PROVIDER_FAULT
+    assert db_session.scalar(select(AssessmentDecision)) is None
+    assert db_session.scalar(select(CriterionEvaluation)) is None
+    assert (response.id, response.answer, response.content_digest) == original
+    assert AssessmentEvaluationApplication(repository, now=lambda: NOW).start(response.id) is None
+
+    def clock():
+        return NOW + timedelta(seconds=6)
+
+    worker = AssessmentEvaluationRecoveryWorker(
+        factory,
+        AssessmentEvaluationExecutor(factory, _service_factory(StaticCriterionPort()), now=clock),
+        now=clock,
+    )
+    assert asyncio.run(worker.run_once()) is True
+    assert asyncio.run(worker.run_once()) is False
+    assert len(db_session.scalars(select(AssessmentDecision)).all()) == 1
+    assert len(db_session.scalars(select(CriterionEvaluation)).all()) == 1
+    db_session.expire_all()
+    assert repository.get(attempt.id).state is AssessmentEvaluationJobState.COMPLETED
+    db_session.refresh(response)
+    assert (response.id, response.answer, response.content_digest) == original
+
+
+def test_writer_contention_preserves_pending_job_then_recovers(db_session):
+    attempt, response, _ = _ready_attempt(db_session)
+    repository = SqlAlchemyAssessmentEvaluationJobRepository(db_session)
+    repository.ensure_pending(attempt)
+    original = (response.answer, response.content_digest)
+    # Hold a real SQLite writer lock; fail immediately rather than waiting 30 seconds.
+    db_session.execute(text("PRAGMA busy_timeout=0"))
+    with sqlite3.connect(db_session.bind.url.database, timeout=0) as blocker:
+        blocker.execute("BEGIN IMMEDIATE")
+        with pytest.raises(AssessmentEvaluationJobError, match="could not be claimed"):
+            AssessmentEvaluationApplication(repository, now=lambda: NOW).start(response.id)
+        blocker.rollback()
+    db_session.expire_all()
+    job = repository.get(attempt.id)
+    assert job.state is AssessmentEvaluationJobState.PENDING
+    assert job.processing_attempts == 0
+    assert (response.answer, response.content_digest) == original
+    worker = AssessmentEvaluationRecoveryWorker(
+        lambda: db_session,
+        AssessmentEvaluationExecutor(
+            lambda: db_session, _service_factory(StaticCriterionPort()), now=lambda: NOW
+        ),
+        now=lambda: NOW,
+    )
+    assert asyncio.run(worker.run_once()) is True
+    assert asyncio.run(worker.run_once()) is False
+    assert len(db_session.scalars(select(AssessmentDecision)).all()) == 1
+
+
+def test_killed_assessment_claim_recovers_and_restores_immutable_history(tmp_path):
+    database = tmp_path / "accepted.db"
+    url = f"sqlite:///{database.as_posix()}"
+    command.upgrade(migration_config(url), "head")
+    engine = create_db_engine(url)
+    factory = create_session_factory(engine)
+    with factory() as session:
+        attempt, response, _ = _ready_attempt(session)
+        SqlAlchemyAssessmentEvaluationJobRepository(session).ensure_pending(attempt)
+        attempt_id, response_id = attempt.id, response.id
+        original = (response.answer, response.content_digest)
+    backend = Path(__file__).resolve().parents[1]
+    env = dict(os.environ, DATABASE_URL=url, PYTHONPATH=str(backend))
+    child = subprocess.Popen(
+        [
+            sys.executable,
+            "-u",
+            "-c",
+            """
+import threading
+from datetime import datetime, timedelta
+from app.db.session import SessionLocal
+from app.services.assessment.jobs import AssessmentEvaluationApplication, SqlAlchemyAssessmentEvaluationJobRepository
+with SessionLocal() as session:
+    claim = AssessmentEvaluationApplication(SqlAlchemyAssessmentEvaluationJobRepository(session),
+        now=lambda: datetime.fromisoformat(__import__('sys').argv[2]), lease_duration=timedelta(seconds=1)
+    ).start(__import__('sys').argv[1])
+    assert claim is not None
+    print(claim.execution_token, flush=True)
+threading.Event().wait()
+""",
+            response_id,
+            NOW.isoformat(),
+        ],
+        cwd=backend,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+    )
+    try:
+        # A bounded reader confirms the claim committed before the process is killed.
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor() as pool:
+            future = pool.submit(child.stdout.readline)
+            try:
+                token = future.result(timeout=20).strip()
+                assert token
+            finally:
+                child.kill()
+                child.wait(timeout=10)
+        with factory() as session:
+            job = session.get(AssessmentEvaluationJob, attempt_id)
+            assert job.execution_token == token
+            assert job.state is AssessmentEvaluationJobState.RUNNING
+
+        def clock():
+            return NOW + timedelta(seconds=2)
+
+        executor = AssessmentEvaluationExecutor(
+            factory, _service_factory(StaticCriterionPort()), now=clock
+        )
+        worker = AssessmentEvaluationRecoveryWorker(factory, executor, now=clock)
+        assert asyncio.run(worker.run_once()) is True
+        assert asyncio.run(worker.run_once()) is False
+        with factory() as session:
+            job = session.get(AssessmentEvaluationJob, attempt_id)
+            assert job.state is AssessmentEvaluationJobState.COMPLETED
+            assert job.processing_attempts == 2
+            decisions = session.scalars(select(AssessmentDecision)).all()
+            assert len(decisions) == 1
+            decision_id = decisions[0].id
+        uploads = tmp_path / "uploads"
+        uploads.mkdir()
+        bundle = create_bundle(database, uploads, tmp_path / "backups")
+        restored = restore_bundle(bundle, tmp_path / "restored")
+        restored_engine = create_db_engine(
+            f"sqlite:///{(restored / 'database.sqlite3').as_posix()}"
+        )
+        try:
+            with create_session_factory(restored_engine)() as session:
+                job = session.get(AssessmentEvaluationJob, attempt_id)
+                assert job.state is AssessmentEvaluationJobState.COMPLETED
+                assert session.scalar(select(AssessmentDecision)).id == decision_id
+                from app.models.lms import SubmissionAttempt
+
+                saved = session.get(SubmissionAttempt, response_id)
+                assert (saved.answer, saved.content_digest) == original
+                assert session.execute(text("PRAGMA foreign_key_check")).all() == []
+                from sqlalchemy.exc import DatabaseError
+
+                with pytest.raises(DatabaseError):
+                    session.execute(
+                        text("DELETE FROM assessment_decisions WHERE id=:id"), {"id": decision_id}
+                    )
+                    session.commit()
+                session.rollback()
+        finally:
+            restored_engine.dispose()
+    finally:
+        if child.poll() is None:
+            child.kill()
+        child.wait(timeout=10)
+        child.stdout.close()
+        child.stderr.close()
+        engine.dispose()
+
+
+def test_contention_after_decision_commit_recovers_without_duplicate_history(
+    db_session, monkeypatch
+):
+    attempt, response, _ = _ready_attempt(db_session)
+    factory = create_session_factory(db_session.bind)
+    repository = SqlAlchemyAssessmentEvaluationJobRepository(db_session)
+    repository.ensure_pending(attempt)
+    claim = AssessmentEvaluationApplication(
+        repository, now=lambda: NOW, lease_duration=timedelta(seconds=1)
+    ).start(response.id)
+    complete = SqlAlchemyAssessmentEvaluationJobRepository.complete
+
+    def blocked_complete(repository, claim, *, completed_at):
+        repository._session.execute(text("PRAGMA busy_timeout=0"))
+        with sqlite3.connect(db_session.bind.url.database, timeout=0) as blocker:
+            blocker.execute("BEGIN IMMEDIATE")
+            try:
+                return complete(repository, claim, completed_at=completed_at)
+            finally:
+                blocker.rollback()
+
+    with monkeypatch.context() as patch:
+        patch.setattr(SqlAlchemyAssessmentEvaluationJobRepository, "complete", blocked_complete)
+        asyncio.run(
+            AssessmentEvaluationExecutor(
+                factory, _service_factory(StaticCriterionPort()), now=lambda: NOW
+            ).execute(claim)
+        )
+    db_session.expire_all()
+    assert repository.get(attempt.id).state is AssessmentEvaluationJobState.RUNNING
+    decision = db_session.scalar(select(AssessmentDecision))
+    assert decision is not None
+    decision_id = decision.id
+    criterion_id = db_session.scalar(select(CriterionEvaluation)).id
+    worker = AssessmentEvaluationRecoveryWorker(
+        factory,
+        AssessmentEvaluationExecutor(
+            factory, _service_factory(StaticCriterionPort()), now=lambda: NOW + timedelta(seconds=2)
+        ),
+        now=lambda: NOW + timedelta(seconds=2),
+    )
+    assert asyncio.run(worker.run_once()) is True
+    assert asyncio.run(worker.run_once()) is False
+    db_session.expire_all()
+    assert repository.get(attempt.id).state is AssessmentEvaluationJobState.COMPLETED
+    assert [row.id for row in db_session.scalars(select(AssessmentDecision))] == [decision_id]
+    assert [row.id for row in db_session.scalars(select(CriterionEvaluation))] == [criterion_id]
