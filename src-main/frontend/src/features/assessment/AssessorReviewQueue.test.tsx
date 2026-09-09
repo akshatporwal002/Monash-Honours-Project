@@ -96,13 +96,13 @@ test('criterion decisions render as labelled chips, never colour alone', async (
   expect(document.body.textContent).not.toMatch(/fail/i)
 })
 
-test('override void withhold and return require a reason before confirm is enabled', async () => {
-  installQueueFetch()
-  const user = userEvent.setup()
-  renderQueue()
-  await screen.findByRole('button', { name: 'Override result' })
+test.each(['Confirm result', 'Override result', 'Void result', 'Withhold result', 'Return for review'])(
+  '%s requires a reason before confirm is enabled', async (label) => {
+    installQueueFetch()
+    const user = userEvent.setup()
+    renderQueue()
+    await screen.findByRole('button', { name: label })
 
-  for (const label of ['Confirm result', 'Override result', 'Void result', 'Withhold result', 'Return for review']) {
     await user.click(screen.getByRole('button', { name: label }))
     const dialog = await screen.findByRole('alertdialog')
     const confirm = within(dialog).getByRole('button', { name: label })
@@ -113,8 +113,8 @@ test('override void withhold and return require a reason before confirm is enabl
     expect(confirm).toBeDisabled()
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
-  }
-})
+  },
+)
 
 test('stale review keeps typed reason and reloads current state', async () => {
   const current = { ...review, review_revision: 3, history: [...review.history, {
