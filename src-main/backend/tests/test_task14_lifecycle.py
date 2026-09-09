@@ -416,6 +416,8 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
     from sqlalchemy.orm import Session
     from test_migrations import migration_config
 
+    from scripts.verify_sqlite_backup import database_manifest
+
     path = tmp_path / "episodes.db"
     config = migration_config(f"sqlite:///{path.as_posix()}")
     command.upgrade(config, "head")
@@ -463,12 +465,14 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
         with pytest.raises(IntegrityError, match="protected"):
             with engine.begin() as connection:
                 connection.execute(text(statement))
-    with pytest.raises(RuntimeError, match="protected"):
+    before_downgrade = database_manifest(path)
+    with pytest.raises(RuntimeError, match="cannot downgrade populated participation_recognitions"):
         command.downgrade(config, "20260907_0029")
+    assert database_manifest(path) == before_downgrade
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260908_0032"
+            == "20260909_0038"
         )
         assert inspect(connection).has_table("episode_checkpoints")
         assert (
