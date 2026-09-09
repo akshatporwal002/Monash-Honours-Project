@@ -359,7 +359,8 @@ def test_canonical_mvp_learning_loop(
                 Recommendation.is_active.is_(True),
             )
         )
-        assert persisted is not None
+        # Dashboard reads project recommendations without creating stored records.
+        assert persisted is None
 
     locked_draft = client.put(
         f"/api/v1/students/me/tasks/{second_task['id']}/draft",
