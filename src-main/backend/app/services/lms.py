@@ -737,6 +737,40 @@ class LmsService:
         )
         return EpisodeService(self.session).state(draft) if draft else None
 
+    def effective_preferences(self, student: User, task_id: str):
+        from app.services.learner_preferences import (
+            LearnerPreferenceService,
+            effective_preferences,
+        )
+
+        task = self._require_student_task(student, task_id)
+        view = self._task_read(task, student)
+        state = self.episode_state(student, task_id)
+        transfer = bool(state and state.get("transfer"))
+        criteria = task.marking_criteria if isinstance(task.marking_criteria, dict) else {}
+        repeat_allowed = (
+            view.assessment is None
+            and view.episode_plan is None
+            and task.task_type.value
+            not in {"prediction", "reasoning", "explanation", "revision", "reflection", "transfer"}
+            and view.access_status != "locked"
+            and criteria.get("allow_resubmission") is not False
+        )
+        result = effective_preferences(
+            LearnerPreferenceService(self.session).read(student),
+            transfer=transfer,
+            repeat_allowed=repeat_allowed,
+        )
+        from app.services.curriculum import pathway_progress
+
+        _, _, support = pathway_progress(self.session, student.id, task)
+        if support and result.values.personalisation_enabled and not transfer:
+            result.pathway_support_level = support
+            result.limitations.append(
+                "The approved pathway sets optional guidance. You can still request approved help."
+            )
+        return result
+
     def episode_checkpoint(
         self,
         student: User,
@@ -1176,20 +1210,65 @@ class LmsService:
         tasks: list[LearningTask],
         task_reads: list[TaskRead],
     ) -> list[RecommendationRead]:
+        from fastapi import HTTPException
+
+        from app.models.activity_continuation import ActivityProgress
+        from app.services.continuation.activity import ActivityService
+        from app.services.learner_preferences import LearnerPreferenceService
+
+        if not LearnerPreferenceService(self.session).read(student).values.personalisation_enabled:
+            return []
         reads_by_id = {task.id: task for task in task_reads}
         recommendations: list[RecommendationRead] = []
         recommended_ids: set[str] = set()
+        controlled_outcomes: set[str | None] = set()
+        course_ids = {task.course_id for task in tasks}
+        receipts = self.session.scalars(
+            select(ActivityProgress)
+            .where(
+                ActivityProgress.learner_id == student.id,
+                ActivityProgress.course_id.in_(course_ids),
+            )
+            .order_by(ActivityProgress.created_at.desc(), ActivityProgress.workflow_id.desc())
+        )
+        for receipt in receipts:
+            if receipt.outcome_id in controlled_outcomes:
+                continue
+            controlled_outcomes.add(receipt.outcome_id)
+            try:
+                decision = ActivityService(self.session).read(student, receipt.workflow_id)
+            except HTTPException:
+                continue
+            selected = reads_by_id.get(decision.next_task_id)
+            if selected is None or selected.access_status not in {"available", "in_progress"}:
+                continue
+            recommendations.append(
+                RecommendationRead(
+                    task_id=selected.id,
+                    title=selected.title,
+                    reason=decision.reason,
+                    priority=("high", "medium", "low")[min(len(recommendations), 2)],
+                    updated_at=datetime.now(UTC),
+                )
+            )
+            recommended_ids.add(selected.id)
+        recommendations = recommendations[:3]
+        task_reads = [
+            task for task in task_reads if task.learning_outcome_id not in controlled_outcomes
+        ]
+        reads_by_id = {task.id: task for task in task_reads}
 
         first_locked = next(
             (task for task in task_reads if task.access_status == "locked"),
             None,
         )
-        if first_locked is not None:
+        if first_locked is not None and len(recommendations) < 3:
             missing = next(
                 (
                     reads_by_id[task_id]
                     for task_id in first_locked.prerequisite_task_ids
-                    if task_id in reads_by_id and reads_by_id[task_id].access_status != "completed"
+                    if task_id in reads_by_id
+                    and reads_by_id[task_id].access_status in {"available", "in_progress"}
                 ),
                 None,
             )
@@ -1204,50 +1283,6 @@ class LmsService:
                     )
                 )
                 recommended_ids.add(missing.id)
-
-        latest = self._latest_attempts(student.id, [task.id for task in tasks])
-        outcome_scores: dict[str, list[int]] = defaultdict(list)
-        for task in tasks:
-            attempt = latest.get(task.id)
-            if (
-                attempt is not None
-                and attempt.score is not None
-                and attempt.task_form_version_id is None
-                and task.learning_outcome_id
-            ):
-                outcome_scores[task.learning_outcome_id].append(attempt.score)
-        if outcome_scores:
-            lowest_outcome_id, scores = min(
-                outcome_scores.items(),
-                key=lambda item: sum(item[1]) / len(item[1]),
-            )
-            outcome = self.session.get(LearningOutcome, lowest_outcome_id)
-            candidate = next(
-                (
-                    read
-                    for read in task_reads
-                    if read.learning_outcome_id == lowest_outcome_id
-                    and read.access_status in {"available", "in_progress"}
-                    and read.id not in recommended_ids
-                ),
-                None,
-            )
-            if candidate is not None:
-                average = round(sum(scores) / len(scores))
-                recommendations.append(
-                    RecommendationRead(
-                        task_id=candidate.id,
-                        title=candidate.title,
-                        reason=(
-                            f"Your {average}% average for "
-                            f"“{outcome.title if outcome else 'this outcome'}” "
-                            "is your lowest-performing learning outcome."
-                        ),
-                        priority="high" if not recommendations else "medium",
-                        updated_at=datetime.now(UTC),
-                    )
-                )
-                recommended_ids.add(candidate.id)
 
         for task in task_reads:
             if (
@@ -1990,7 +2025,11 @@ class LmsService:
                 .distinct()
             ).all()
         )
-        missing = set(task.prerequisite_task_ids or []) - completed
+        from app.services.curriculum import pathway_completions, pathway_progress
+
+        completed |= pathway_completions(self.session, student.id, task)
+        bypassed, prerequisites, _ = pathway_progress(self.session, student.id, task)
+        missing = prerequisites - completed - bypassed
         if missing:
             raise LmsServiceError(
                 423,
@@ -2076,9 +2115,13 @@ class LmsService:
                     .distinct()
                 ).all()
             )
+            from app.services.curriculum import pathway_completions, pathway_progress
+
+            completed_ids |= pathway_completions(self.session, student.id, task)
+            bypassed, prerequisites, _ = pathway_progress(self.session, student.id, task)
             if task.id in completed_ids:
                 access_status = "completed"
-            elif set(task.prerequisite_task_ids or []) - completed_ids:
+            elif prerequisites - completed_ids - bypassed:
                 access_status = "locked"
             elif attempts or self.session.scalar(
                 select(SubmissionDraft.id).where(

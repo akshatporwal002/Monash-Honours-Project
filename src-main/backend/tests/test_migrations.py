@@ -37,6 +37,14 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "activity_progress_receipts",
+    "activity_suggestions",
+    "activity_choices",
+    "learner_preference_revisions",
+    "curriculum_pathway_versions",
+    "curriculum_diagnostic_sessions",
+    "curriculum_diagnostic_responses",
+    "curriculum_diagnostic_confirmations",
     "human_assessment_actions",
     "human_criterion_decisions",
     "episode_checkpoints",
@@ -155,7 +163,7 @@ def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260908_0032"
+            == "20260909_0035"
         )
         assert "task_revision_id" in {
             column["name"] for column in inspect(connection).get_columns("task_form_versions")
@@ -201,7 +209,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260908_0032"
+            == "20260909_0035"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:

@@ -24,6 +24,43 @@ export type ApiSchemas = {
     "valid_until": (string) | (null)
     "version": number
   }
+  "ActivityAction": {
+    "action": "accept" | "defer" | "replace" | "educator_override"
+    "expected_version": number
+    "reason"?: string
+    "request_key": string
+    "task_id"?: (string) | (null)
+  }
+  "ActivityHistory": {
+    "action": string
+    "created_at": string
+    "educator": boolean
+    "reason": string
+    "task_id": (string) | (null)
+    "version": number
+  }
+  "ActivityOption": {
+    "support_level": (string) | (null)
+    "task_id": string
+    "title": string
+  }
+  "ActivityRead": {
+    "can_override"?: boolean
+    "evidence_ids"?: Array<string>
+    "history"?: Array<ApiSchemas["ActivityHistory"]>
+    "learner_label"?: string
+    "next_task_id"?: (string) | (null)
+    "options"?: Array<ApiSchemas["ActivityOption"]>
+    "pathway_id"?: (string) | (null)
+    "preference_version"?: (number) | (null)
+    "reason": string
+    "rule_version"?: string
+    "snapshot_id"?: (string) | (null)
+    "state": string
+    "uncertainty"?: (number) | (null)
+    "version"?: number
+    "workflow_id": string
+  }
   "AdminUserCreate": {
     "email": string
     "full_name": string
@@ -471,6 +508,42 @@ export type ApiSchemas = {
     "learner_description": string
     "simulation_references": Array<string>
   }
+  "DiagnosticConfirm": {
+    "decision": "retain" | "advance"
+    "independent_verified": boolean
+    "reason": string
+    "request_key": string
+  }
+  "DiagnosticRead": {
+    "evidence_id": (string) | (null)
+    "id": string
+    "independent_conditions": string
+    "learner_id": number
+    "learner_name": string
+    "pathway_id": string
+    "prompt": string
+    "purpose": string
+    "reason": (string) | (null)
+    "response": (ApiSchemas["DiagnosticSubmit"]) | (null)
+    "state": "started" | "needs_review" | "retain" | "advance"
+    "target_task_id": string
+    "target_title": string
+  }
+  "DiagnosticStart": {
+    "pathway_id": string
+    "purpose": "initial" | "prior_mastery"
+    "request_key": string
+    "target_task_id": string
+  }
+  "DiagnosticSubmit": {
+    "concept_uncertainty": "none_reported" | "needs_checking" | "unsure"
+    "confidence": "unsure" | "somewhat_sure" | "sure"
+    "independent_conditions_met": boolean
+    "prior_knowledge": string
+    "reasoning": string
+    "request_key": string
+    "requested_support": "none" | "concept_cue" | "guided"
+  }
   "DraftRead": {
     "answer": string
     "assessment_work_start_id"?: (string) | (null)
@@ -548,6 +621,15 @@ export type ApiSchemas = {
     "student_id": string
     "total_tasks": number
     "user_id": number
+  }
+  "EffectivePreferences": {
+    "limitations": Array<string>
+    "pathway_support_level"?: ("guided" | "concept_cue" | "independent") | (null)
+    "repeat_allowed": boolean
+    "requested": ApiSchemas["PreferenceValues"]
+    "transfer": boolean
+    "values": ApiSchemas["PreferenceValues"]
+    "version": number
   }
   "EnrollmentCreate": {
     "student_id": number
@@ -1111,6 +1193,79 @@ export type ApiSchemas = {
     "pass_rate": ApiSchemas["MetricValue"]
     "relevance": ApiSchemas["MetricValue"]
     "total_tokens": ApiSchemas["MetricValue"]
+  }
+  "PathBinding": {
+    "assessment": (Partial<Record<string, string>>) | (null)
+    "difficulty": string
+    "review_event_id": string
+    "source_approvals": Partial<Record<string, string>>
+    "task_form": string
+    "task_revision_id": string
+    "title": string
+  }
+  "PathStep": {
+    "concept": string
+    "evidence_rule": string
+    "exit_rule"?: "accepted_response"
+    "faded_support_level": "guided" | "concept_cue" | "independent"
+    "prerequisites": Array<string>
+    "support_level": "guided" | "concept_cue" | "independent"
+    "task_id": string
+  }
+  "PathwayPublish": {
+    "diagnostic_prompt": string
+    "diagnostic_task_id": string
+    "expected_version": number
+    "independent_conditions": string
+    "reason": string
+    "request_key": string
+    "steps": Array<ApiSchemas["PathStep"]>
+    "title": string
+  }
+  "PathwayRead": {
+    "bindings": Partial<Record<string, ApiSchemas["PathBinding"]>>
+    "course_id": string
+    "diagnostic_prompt": string
+    "diagnostic_task_id": string
+    "id": string
+    "independent_conditions": string
+    "outcome_id": string
+    "steps": Array<ApiSchemas["PathStep"]>
+    "title": string
+    "version": number
+  }
+  "PreferenceHistory": {
+    "items": Array<ApiSchemas["PreferenceRevision"]>
+    "next_offset": (number) | (null)
+  }
+  "PreferenceRead": {
+    "values": ApiSchemas["PreferenceValues"]
+    "version": number
+  }
+  "PreferenceReset": {
+    "expected_version": number
+    "request_key": string
+  }
+  "PreferenceRevision": {
+    "action": "save" | "reset"
+    "created_at": string
+    "values": ApiSchemas["PreferenceValues"]
+    "version": number
+  }
+  "PreferenceUpdate": {
+    "expected_version": number
+    "request_key": string
+    "values": ApiSchemas["PreferenceValues"]
+  }
+  "PreferenceValues": {
+    "breaks"?: boolean
+    "explanation_detail"?: "brief" | "detailed"
+    "feedback_form"?: "inline" | "expandable"
+    "format"?: "text" | "stepwise"
+    "pace"?: "self_paced" | "stepwise"
+    "personalisation_enabled"?: boolean
+    "repeat_practice"?: boolean
+    "support_amount"?: "standard" | "on_request"
   }
   "QualityReviewDecision": "APPROVED" | "REJECTED"
   "ReadinessResponse": {

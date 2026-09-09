@@ -1,6 +1,11 @@
+import { ActivityContinuation } from './ActivityContinuation'
 import { EpisodeSnapshot, EpisodeCircuitText } from "./EpisodeSnapshot"
 import { EpisodeFields } from "./EpisodeFields"
 import { EpisodeSupport } from './EpisodeSupport'
+import { LearnerPreferences } from './LearnerPreferences'
+import { baselinePreferences } from '../app/preferences'
+import { PreferenceWorkspace } from './PreferenceWorkspace'
+import type { ApiSchemas } from '../api/generated'
 import type { EpisodePayload, EpisodeState, EpisodeCheckpointSnapshot } from "../app/types"
 import { ArrowLeft, Play } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -150,6 +155,20 @@ export function TaskView({
   const mode = taskMode(task)
   const [episode, setEpisode] = useState<EpisodePayload>(emptyEpisode)
   const [episodeState, setEpisodeState] = useState<EpisodeState | null>(task.episode_plan ?? null)
+  const [preferenceVersion, setPreferenceVersion] = useState(0)
+  const [effective, setEffective] = useState<ApiSchemas['EffectivePreferences'] | null>(null)
+  const [preferenceError, setPreferenceError] = useState('')
+  const [preferenceReload, setPreferenceReload] = useState(0)
+  const transferActive = Boolean(episodeState?.transfer)
+  useEffect(() => {
+    const controller = new AbortController()
+    Promise.resolve().then(() => api.student.effectivePreferences(task.id, controller.signal)).then(value => {
+      if (typeof value?.version !== 'number' || !value.values || !Array.isArray(value.limitations)) throw new Error('Invalid effective preference response')
+      if (!controller.signal.aborted) { setEffective(value); setPreferenceError('') }
+    }).catch(() => { if (!controller.signal.aborted) { setEffective(null); setPreferenceError('Workspace preferences could not be applied. Baseline controls remain available.') } })
+    return () => controller.abort()
+  }, [task.id, preferenceVersion, transferActive, preferenceReload])
+  const presentation = effective?.values ?? baselinePreferences
   const hasEpisode = Boolean(task.episode_plan) || episodeTaskTypes.includes(task.task_type)
   const [qubits, setQubits] = useState(task.episode_plan ? 1 : 2)
   const [circuitExtras, setCircuitExtras] = useState<Record<string, unknown>>({})
@@ -389,6 +408,29 @@ export function TaskView({
     }
   }
 
+  const saveBreak = async () => {
+    setBusy(true)
+    try {
+      await api.student.saveDraft(task.id, payload)
+      setDirty(false)
+      setStatusMessage('Draft saved. You can take a break and return to your saved work. Deadlines are unchanged.')
+    } catch (error) { if (blocksAssessmentWork(error)) setWorkConflict(true); setStatusMessage(messageFor(error)) }
+    finally { setBusy(false) }
+  }
+  const repeatPractice = async () => {
+    if (dirty || task.assessment || hasEpisode) return
+    setBusy(true)
+    try {
+      const current = await api.student.effectivePreferences(task.id)
+      setEffective(current)
+      if (!current.repeat_allowed || !current.values.repeat_practice) { setStatusMessage('Repeat practice is not available for this task. Your work is unchanged.'); return }
+      setAnswer(''); setCode(task.starter_code ?? ''); setSelectedOption(''); setSelectedOptions([])
+      setOperations([]); setSimulation(null); touch()
+      setStatusMessage('New practice draft started. Earlier responses and feedback remain in your records.')
+    } catch { setStatusMessage('Practice permission could not be checked. Your work is unchanged. Try again.') }
+    finally { setBusy(false) }
+  }
+
   const recordPrediction = async (transfer = false) => {
     setBusy(true)
     try {
@@ -462,7 +504,11 @@ export function TaskView({
         </div>
       </header>
 
-      <div className={styles.layout}>
+      <details><summary>Change learning preferences</summary><LearnerPreferences onSaved={value => { setPreferenceVersion(value.version); setEffective(null); setPreferenceReload(current => current + 1) }} /></details>
+      {preferenceError && <p role="status">{preferenceError} <Button onClick={() => setPreferenceReload(value => value + 1)}>Retry workspace preferences</Button></p>}
+      {effective && <PreferenceWorkspace effective={transferActive ? { ...effective, transfer: true, repeat_allowed: false } : effective} disabled={busy || draftLoading || workConflict || Boolean(task.assessment && !workStartId)} onBreak={() => void saveBreak()} onRepeat={() => { if (dirty) setStatusMessage('Save your current draft before starting another practice draft.'); else void repeatPractice() }} />}
+
+      <div id="task-response" tabIndex={-1} className={styles.layout}>
         <aside className={styles.brief}>
           <Card eyebrow="Your mission">
             <h2 className={styles.briefTitle}>{task.description}</h2>
@@ -498,7 +544,7 @@ export function TaskView({
           ) : null}
         </aside>
 
-        <section className={styles.interaction} aria-label="Activity">
+        <section id="task-response" tabIndex={-1} className={styles.interaction} aria-label="Activity">
           {draftLoading ? (
             <p className={styles.stateNote} role="status">Restoring your saved work…</p>
           ) : (
@@ -677,7 +723,7 @@ export function TaskView({
           )}
 
           {mode === 'unsupported' && <p role="alert">This task type is not supported yet. Ask your educator for a supported task.</p>}
-          {hasEpisode && <EpisodeFields value={episode} state={episodeState} attempts={attempts ?? []} disabled={busy || draftLoading || workConflict} onChange={value => { setEpisode(value); touch() }} onCheckpoint={() => void recordPrediction()} onTransfer={() => void enterTransfer()} onTransferCheckpoint={() => void recordPrediction(true)} onTransferSimulation={() => void runTransferSimulation()} support={episodeState && <EpisodeSupport taskId={task.id} workId={workStartId} state={episodeState} disabled={busy || draftLoading || workConflict} />} />}
+          {hasEpisode && <EpisodeFields value={episode} state={episodeState} attempts={attempts ?? []} disabled={busy || draftLoading || workConflict} onChange={value => { setEpisode(value); touch() }} onCheckpoint={() => void recordPrediction()} onTransfer={() => void enterTransfer()} onTransferCheckpoint={() => void recordPrediction(true)} onTransferSimulation={() => void runTransferSimulation()} support={episodeState && <EpisodeSupport onRequest={presentation.support_amount === 'on_request'} taskId={task.id} workId={workStartId} state={episodeState} disabled={busy || draftLoading || workConflict} />} />}
           {checkpointHistory.length > 0 && <Card heading="Earlier predictions"><details><summary>View saved predictions and inputs</summary>{checkpointHistory.map((checkpoint, index) => <section key={`${checkpoint.created_at}-${index}`}><h3>{checkpoint.part_id === episodeState?.transfer_part_id ? 'Fresh application' : 'Supported'} prediction, {new Date(checkpoint.created_at).toLocaleString()}</h3><EpisodeSnapshot episode={{ schema_version: 'learnlens.episode.v1', supported: { prediction: checkpoint.prediction } }} />{checkpoint.input_content.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{checkpoint.input_content.answer}</pre>}{checkpoint.input_content.code && <pre>{checkpoint.input_content.code}</pre>}{checkpoint.input_content.circuit && <EpisodeCircuitText circuit={checkpoint.input_content.circuit} />}</section>)}{checkpointOffset !== null && <Button variant="secondary" disabled={historyLoading} onClick={() => { setHistoryLoading(true); api.student.checkpointHistory(task.id, undefined, checkpointOffset).then(page => { setCheckpointHistory(current => [...current, ...page.items]); setCheckpointOffset(page.next_offset) }).catch(() => setStatusMessage('Earlier predictions could not be loaded. Try again.')).finally(() => setHistoryLoading(false)) }}>{historyLoading ? 'Loading earlier predictions...' : 'Load earlier predictions'}</Button>}</details></Card>}
           {draftError && (
             <div className={styles.alert} role="alert">
@@ -709,9 +755,9 @@ export function TaskView({
             </Card>
           )}
           {latestFeedbackReference && (
-            <FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} />
+            <><FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} explanationForm={presentation.feedback_form} /><ActivityContinuation key={latestFeedbackReference} submissionId={latestFeedbackReference} /></>
           )}
-          <Card eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
+          <Card id="task-records" tabIndex={-1} eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (
               <p className={styles.stateNote}>Loading previous attempts…</p>
             ) : attempts.length === 0 ? (

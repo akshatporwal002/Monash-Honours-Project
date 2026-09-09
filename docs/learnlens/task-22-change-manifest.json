@@ -1,0 +1,266 @@
+[
+  {
+    "path": "LearnLens_Remaining_Tasks.md",
+    "kind": "changed",
+    "task21_sha256": "427f3314def49aca860229fafdc8781083610b74017b85a4ed8257f3e9ce38d0",
+    "task22_sha256": "fa0a693722fd8754ffb066ac7993e62db206084fc282b1129c17c13c8035fda5"
+  },
+  {
+    "path": "docs/learnlens/coordinator-progress.md",
+    "kind": "changed",
+    "task21_sha256": "54e72ead0448635ec9cf22f9e8842ac421e2117c429fccdb924fc538dd2a6dee",
+    "task22_sha256": "ad42e46b624c455e9ccf3895bafc04a8836da55e0322bd83fe2e5226f4e0e8a5"
+  },
+  {
+    "path": "docs/learnlens/implementation-decisions.md",
+    "kind": "changed",
+    "task21_sha256": "c55d6e9a282f2166f17edaaf3db90642d7ed2cbd10b5b263c170a9f059421ef8",
+    "task22_sha256": "f06e145bc06ad09e517fc2fe8fc9205a75189ed36161ad85836bcf3980f9f00a"
+  },
+  {
+    "path": "docs/learnlens/implementation-gap-matrix.md",
+    "kind": "changed",
+    "task21_sha256": "4ea4b72bfcadfd27417369ffbd3c386ee7842495b7068ed00ae01e9a60af205a",
+    "task22_sha256": "816114a551bf3cf78dcb2bebe0e4f192ad018f2c08ccd80aa62c91a586083fb7"
+  },
+  {
+    "path": "docs/learnlens/task-22-approved-activity-continuation.md",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "40e835da85d4bbecea42efc1cc8dccc8d40e64ba2770954d05de0c8bfffe06de"
+  },
+  {
+    "path": "docs/learnlens/task-22-dependency-baseline.json",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "c2ca399db2de1c88256144754e31681750ab34a8e05011b8aa6b79d179f02c07"
+  },
+  {
+    "path": "docs/plans/015-task-22-approved-activity-continuation.md",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "96dec2e2c0b561080c15c704dab9829ed7bc09944b8c8eac755cd4abc767f88c"
+  },
+  {
+    "path": "src-main/backend/app/api/router.py",
+    "kind": "changed",
+    "task21_sha256": "efb777fe07302a56181a041be6f6f414ec42f744150a46e9269368534c10a29b",
+    "task22_sha256": "b72e81327fc5b05505d689a2fc3458f67cff86adf36a0c714dc77df8ebe693f7"
+  },
+  {
+    "path": "src-main/backend/app/api/routes/activity_continuation.py",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "9f741288f6dd8066d0373260a3d004c9a87031f74266aded56ab90030cf076ad"
+  },
+  {
+    "path": "src-main/backend/app/api/security_dependencies.py",
+    "kind": "changed",
+    "task21_sha256": "56c7cc305ea4965fbf02460dde43e17f7cd6dd20f38d83d207b2073594e0da80",
+    "task22_sha256": "72302b111951ae052570058aee2cd625d4cf3d49ea0790a2922900e1058f4dcb"
+  },
+  {
+    "path": "src-main/backend/app/core/readiness.py",
+    "kind": "changed",
+    "task21_sha256": "82055e7aae240244575e1d381eb3dfd3fe50624e9c9c0023694125900f300231",
+    "task22_sha256": "037a08d89cafd9cffbba9cc2968cf854e6a6170b6a25d06ba4c00fac5c288bc6"
+  },
+  {
+    "path": "src-main/backend/app/models/__init__.py",
+    "kind": "changed",
+    "task21_sha256": "75a426e60bd48c20757876b2e5ac52018397121639a59e184b9b2c4816f7db7b",
+    "task22_sha256": "bd22fcbd0831aaf0b5c182f589736c3ee729d798e2b052cacc9475e369d97125"
+  },
+  {
+    "path": "src-main/backend/app/models/activity_continuation.py",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "a7b5a4c593c290f3244e1374e991dd7a1353a69af70342cf4d1e3f81d5d88351"
+  },
+  {
+    "path": "src-main/backend/app/models/continuation.py",
+    "kind": "changed",
+    "task21_sha256": "9e6c82e310ceb9df21f0b1d6d60ba1497c27430ae7131148729b9a9cf2acdfec",
+    "task22_sha256": "5681719a09fe1bc846f2f8ffd451c7147c5e9b2a2ee2f895614cab208f271c1f"
+  },
+  {
+    "path": "src-main/backend/app/schemas/activity_continuation.py",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "5d20681a78291b389e140a400cbba9a2e97ad5e258f2214b69012e56330ce4fb"
+  },
+  {
+    "path": "src-main/backend/app/services/continuation/activity.py",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "d991150f300e9f45cbc14539d8c835136047f89699e754768687d4558290d3d8"
+  },
+  {
+    "path": "src-main/backend/app/services/continuation/contracts.py",
+    "kind": "changed",
+    "task21_sha256": "7d237e039419fce393ff1656455a30e14d74cc7353a26fa81bc1cfeeb5114ba4",
+    "task22_sha256": "e8f41e282f15867bef8b0c8d81d80ab2942f46ae4b1f840596348fc155a308e9"
+  },
+  {
+    "path": "src-main/backend/app/services/continuation/repository.py",
+    "kind": "changed",
+    "task21_sha256": "8c689e796d88d9152aa6fb6191413ba069911ffd3e4eba4b5c0e8adb327c6b7c",
+    "task22_sha256": "1ef4d54aa3651d301acc62963e3353a2bd26e9933616b60dba64c0f3ad41883f"
+  },
+  {
+    "path": "src-main/backend/app/services/continuation/service.py",
+    "kind": "changed",
+    "task21_sha256": "c98ab26c9e68038c9814f4bfe4b0da09b43cd63964c44e7150a515a240c37c8f",
+    "task22_sha256": "e8a0dbf7325a641c371052618fee18effee3abe4dae6332b8bd0ff573ff36a70"
+  },
+  {
+    "path": "src-main/backend/app/services/curriculum.py",
+    "kind": "changed",
+    "task21_sha256": "a33aaa75e3714bb390ca05a4820eeecdb1a9a8c0c8901d8510a3c7d6fe35e965",
+    "task22_sha256": "5d1cd05d9faffdcb08872dce05b7166503fdfc3a8533806c8b968c84f6c1a56f"
+  },
+  {
+    "path": "src-main/backend/app/services/learner_model/repository.py",
+    "kind": "changed",
+    "task21_sha256": "4dcf1d74dcc5c5c9ba070e3d7dc618a5032d15b7432b251d615970d719df9885",
+    "task22_sha256": "e6cc00f16038a713f89eeb9afcc6e13303f58e7415941dcc500dffd93b3a6e95"
+  },
+  {
+    "path": "src-main/backend/app/services/lms.py",
+    "kind": "changed",
+    "task21_sha256": "54831e7f964d62863d8a1813f5c71b0c6542fbbc602bf96757de147e680fc70a",
+    "task22_sha256": "c3f2ac9cd0ba2f5bc6779bc19c79e29d8485837ef41b539d8682f0d7d0ea2af2"
+  },
+  {
+    "path": "src-main/backend/app/worker.py",
+    "kind": "changed",
+    "task21_sha256": "298041d5653c2a7d7043c6fc5f1d3aa06bcde742eceed0b526590578cb235b13",
+    "task22_sha256": "2f05f9c9e253ce425b9358467c5025f704b1c149015466ce1faa5a71f436edf5"
+  },
+  {
+    "path": "src-main/backend/migrations/versions/20260909_0035_activity_continuation.py",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "05232cdb9150f245c27dc761200435222fd34da75ae39c2b93b73017a3156fbe"
+  },
+  {
+    "path": "src-main/backend/tests/task22_browser_server.py",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "45050a0af3309236c7a19af2d00d42e95fbba9677ed609284dc3422368311051"
+  },
+  {
+    "path": "src-main/backend/tests/test_activity_continuation.py",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "5ced2bb4121404ecd3b4faa52c27782a533cf530c68d84ba0425f7765a6b8599"
+  },
+  {
+    "path": "src-main/backend/tests/test_assessment_work_starts.py",
+    "kind": "changed",
+    "task21_sha256": "95a8ead3321613d75a50d2dd519860c92c58802dc91a9ac4df4d18941035c126",
+    "task22_sha256": "18a9574d528d4dc27c1ba95ffac5347a225d12b1478757230c157b2cabe2f451"
+  },
+  {
+    "path": "src-main/backend/tests/test_continuation.py",
+    "kind": "changed",
+    "task21_sha256": "6a120c90159b4eeb3f6be1ac98ef0211eb84ff085b5652229aa54468b945f02e",
+    "task22_sha256": "066c2a3aa4e7a5fe4c33deff888c7a44f7dcabd6929ce972f223e07535fd202d"
+  },
+  {
+    "path": "src-main/backend/tests/test_curriculum.py",
+    "kind": "changed",
+    "task21_sha256": "1a361587e114f5b20a6420271945b055aed50bc2d786bea807a2785d014d1168",
+    "task22_sha256": "74f361357e28a3bd84738a3c28fea35492b6643014a441b26993f05d69a63286"
+  },
+  {
+    "path": "src-main/backend/tests/test_learner_preferences.py",
+    "kind": "changed",
+    "task21_sha256": "68f5eacb9644ae1ba990e73689c953016ab580b5a1e3636d7fbcbea651ef50f7",
+    "task22_sha256": "6bb42a2c553ec90085f5afd6947ed0309e8dfaeea7d4c3cc81b6692f4b3f4ab7"
+  },
+  {
+    "path": "src-main/backend/tests/test_migrations.py",
+    "kind": "changed",
+    "task21_sha256": "0202c9caa0b450b8856431a177190a2eb507fb7565c9b10ddce032374442638d",
+    "task22_sha256": "3d92b2b459d6a27f7e73767a446f64af9705e37ed4eb6307a3075f590312684b"
+  },
+  {
+    "path": "src-main/backend/tests/test_task14_lifecycle.py",
+    "kind": "changed",
+    "task21_sha256": "3228d271b44ffe9f80ea3a43c19db2287a98da01b8d8f6ddd4b8f9b2a9802632",
+    "task22_sha256": "bb52fca0bce4c552e226e0ea5d62d41683f8e4b59a165fb605e127a24932a755"
+  },
+  {
+    "path": "src-main/backend/tests/test_task15_migrated_review.py",
+    "kind": "changed",
+    "task21_sha256": "3d01b28dbf1f70a8951541258267c76e3036b3c3ff74dd609279aeaf5a477777",
+    "task22_sha256": "32d44ae61affa0ca8965ef5a84f5cb8bb05f278822359f7ac8fa19ac90ec5e9f"
+  },
+  {
+    "path": "src-main/backend/uv.lock",
+    "kind": "changed",
+    "task21_sha256": "eb37d84a780be47a0b227ba6353511037820231041a0c9797b6461c76af52710",
+    "task22_sha256": "5a598035271d4cad8aaeae7414ad673b262d260c64df9cec34f0099da23bda12"
+  },
+  {
+    "path": "src-main/contracts/openapi.json",
+    "kind": "changed",
+    "task21_sha256": "2128d8cf7faf71d493a3fae71daf62c0b87935e8814a8c95ead36b93ff72a1f0",
+    "task22_sha256": "a6855beb67207db5c27335340bbe256e96cc42e94d4dee7c03c52d761267c417"
+  },
+  {
+    "path": "src-main/frontend/e2e/task22-activity.local.mjs",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "6b0d9e6deb26926e2ea101da17b2522d48437f63708f30c51dafd4575b664351"
+  },
+  {
+    "path": "src-main/frontend/e2e/task22-vite.config.ts",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "1eb90f3836d775733ded00a107ad84aea2d9f5fa5430719737c62b26cd2b4dac"
+  },
+  {
+    "path": "src-main/frontend/src/api/generated.ts",
+    "kind": "changed",
+    "task21_sha256": "16c289cca76477832ec801b58ce509655c76f610a26ee108573b26d6b88889d1",
+    "task22_sha256": "ef5ca669159974c36b4f2c7ca59461b40b9faa09b2c47176a49fde7280f5d3a4"
+  },
+  {
+    "path": "src-main/frontend/src/app/activityContinuation.ts",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "4043f60c60af419588b23fea5e3ca4533e2fb3e4708426203c278da0c77492b1"
+  },
+  {
+    "path": "src-main/frontend/src/components/ActivityContinuation.module.css",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "e993efd4f13ca227f7c829a000e9528a8d2c44bf4154f933ce434a9ac53541db"
+  },
+  {
+    "path": "src-main/frontend/src/components/ActivityContinuation.tsx",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "9e4c0ed2d38226ec16b056c17806f9523f2ddc785fea31fa79d59ee510c23475"
+  },
+  {
+    "path": "src-main/frontend/src/components/CourseEditor.tsx",
+    "kind": "changed",
+    "task21_sha256": "72b68446ba21d81b871a117c0097961c8e0188e4f81a5931fa1b9931aef69982",
+    "task22_sha256": "a5d24e4e4f1a44c4cf78b1c9212bc93ef407db9377f55a6da298ffdb780b7c81"
+  },
+  {
+    "path": "src-main/frontend/src/components/TaskView.tsx",
+    "kind": "changed",
+    "task21_sha256": "7f7993192962d0b651f1bacd99de5bd7434d9e3903a3f460f9d475c9231952fc",
+    "task22_sha256": "c045b68669de4ff1b3cea1946de4fc05709489263a884f3343d07171f736f1ca"
+  },
+  {
+    "path": "src-main/frontend/src/test/ActivityContinuation.test.tsx",
+    "kind": "added",
+    "task21_sha256": null,
+    "task22_sha256": "03d6f7d540d53e92119c0c2381773b953ad1b87b1c5e77f23a58db0873a66829"
+  }
+]

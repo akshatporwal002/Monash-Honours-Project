@@ -255,31 +255,43 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 14 and 17; Task 8, D-05, for assessed conditions. Suggested owner: learner experience.
 
-    A preference enum exists, but there is no complete preference store, API, or screen. Add pace, format, explanation detail, optional breaks, repeat practice, and personalisation controls. Let learners correct saved choices. Keep access support separate from instructional help.
+    Implemented and locally verified in the Task 20 worktree: server-owned preference revisions, a mounted learner editor, effective workspace controls, correction/reset history, and personalisation opt-out. All local gates passed; changes remain uncommitted. Access support stays separate from instructional help.
 
     Done when preferences persist and learners can disable non-essential personalisation. Choices, help use, access support, and slower pace must not lower formal results. Do not infer a diagnosis or fixed learning style.
 
-    Evidence: [platform enums](src-main/backend/app/domain/platform_enums.py), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR35-FR37 and NFR31.
+    Evidence: [Task 20 implementation and verification](docs/learnlens/task-20-learner-preferences.md), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR35-FR37 and NFR31.
 
 21. **Build the curriculum links and approved diagnostic paths.**
 
     Dependencies: Tasks 12, 18, and 20. Suggested owner: learning pathway services.
 
-    Ordered outcomes and task prerequisites exist. They do not form the required concept, outcome, source, activity, task-form, and evidence-rule graph. Add those links with versioned exit rules. Support at least three ordered tasks, declared support levels, and fading help after suitable success. Add initial diagnostics and learner-requested prior-mastery checks, including independent conditions and the required assessor confirmation for bypass.
+    Implemented locally in `.tmp-coordinator/task21`, with the uncommitted Task 20 dependency preserved separately.
+    Versioned graphs link approved tasks, concepts, source approvals, task forms, assessment rules, and exit guidance.
+    Learners can save initial or prior-mastery diagnostics as protected learning evidence.
+    A current course assessor must confirm independent conditions and give a reason before practice prerequisites can be bypassed.
+    Optional guidance can fade after confirmed diagnostic success; opt-out preserves baseline guidance.
+    Diagnostics cannot unlock or replace formal assessment.
 
-    Done when diagnostics produce learning evidence and explain a permitted pathway change. They must not become formal grades by default. Reject invalid prerequisite links and preserve the assessed standard.
-
-    Evidence: [LearningOutcome](src-main/backend/app/models/lms.py), [LearningTask](src-main/backend/app/models/persistence.py), [current recommendation logic](src-main/backend/app/services/lms.py), and requirements FR10-FR11 and PD1-PD2.
+    Local validation is recorded in [the Task 21 handoff](docs/learnlens/task-21-curriculum-diagnostics.md).
+    Changes remain uncommitted. Task 22's automatic activity selection and continuation adapters remain separate.
 
 22. **Connect learner evidence to the next approved activity.**
 
-    Dependencies: Tasks 7, 18, 20, and 21. Suggested owner: pathway and worker teams.
+    Implemented and locally verified in `.tmp-coordinator/task22`, including the uncommitted Task 20 and Task 21 dependencies.
 
-    Durable continuation exists. Its shipped progress adapter does nothing, and its recommender returns the completed task reference. Replace these placeholders with model and pathway adapters. Select approved activities from prerequisites and evidence. Save the reason, uncertainty, model snapshot, rule version, learner choice, and educator override.
+    The shipped worker now records one durable model update after eligible checked feedback and selects approved activities.
+    Protected decisions retain evidence, uncertainty, model/rule/pathway versions, learner choices, and educator override reasons.
+    Mounted controls support inspect, accept, defer, replace, refresh, and scoped overrides. Dashboard suggestions honor saved choices and opt-out.
+    Retries, restarts, expired claims, concurrent writes, failed saves, changed approvals, and no-activity states have persistence tests.
+    Formal assessment conditions and Task 21 diagnostic authority remain unchanged. Task 23 has not started.
 
-    Done when checked feedback leads to one model update and a suitable next activity. Restart and retry must not duplicate updates. Learners can defer or replace allowed suggestions without changing the assessment standard.
+    Verification covers 1,141 backend tests through the full run and corrective rerun, with 87.23% service coverage.
+    Frontend tests passed 249 checks, existing browser tests passed 84, and authenticated Task 22 journeys passed in all four browsers.
+    Migration, contracts, lint, build, secret scan, and required dependency audit gates pass. Exact run history and limits are in the handoff.
 
-    Evidence: [worker.py](src-main/backend/app/worker.py), `_OfflineProgressAdapter` and `_OfflineNextTaskRecommender`; [continuation service](src-main/backend/app/services/continuation/service.py).
+    Evidence: [Task 22 implementation and verification](docs/learnlens/task-22-approved-activity-continuation.md),
+    [dependency hashes](docs/learnlens/task-22-dependency-baseline.json), and [Task 22 delta](docs/learnlens/task-22-change-manifest.json).
+    Changes remain uncommitted. Do not merge to main without explicit authorization.
 
 23. **Add tutor dialogue and a controlled sequence of hints.**
 

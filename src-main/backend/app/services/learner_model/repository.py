@@ -94,8 +94,9 @@ class LearnerModelSnapshotView:
 class SqlAlchemyLearnerModelRepository:
     """Persist snapshots without importing assessment results or LMS services."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, caller_transaction: bool = False) -> None:
         self._session = session
+        self._caller_transaction = caller_transaction
 
     def observations(
         self,
@@ -148,7 +149,11 @@ class SqlAlchemyLearnerModelRepository:
         try:
             # SQLite has no row-level `FOR UPDATE`.  Acquire its single writer lock
             # before reading the head so competing successors are serialized.
-            if self._session.bind and self._session.bind.dialect.name == "sqlite":
+            if (
+                not self._caller_transaction
+                and self._session.bind
+                and self._session.bind.dialect.name == "sqlite"
+            ):
                 self._session.commit()
                 self._session.execute(text("BEGIN IMMEDIATE"))
             existing = self._session.scalar(
@@ -161,7 +166,8 @@ class SqlAlchemyLearnerModelRepository:
             )
             if existing is not None:
                 if self._is_exact_replay(existing, snapshot, learner_id):
-                    self._session.rollback()
+                    if not self._caller_transaction:
+                        self._session.rollback()
                     return LearnerModelSnapshotWriteResult(
                         snapshot_id=existing.id,
                         created=False,
@@ -220,7 +226,10 @@ class SqlAlchemyLearnerModelRepository:
             )
             self._session.flush()
             self._store_correction_links(snapshot, model, accepted_review_ids)
-            self._session.commit()
+            if self._caller_transaction:
+                self._session.flush()
+            else:
+                self._session.commit()
             return LearnerModelSnapshotWriteResult(
                 snapshot_id=model.id,
                 created=True,
@@ -231,6 +240,10 @@ class SqlAlchemyLearnerModelRepository:
             raise
         except IntegrityError:
             self._session.rollback()
+            if self._caller_transaction:
+                raise LearnerModelPersistenceError(
+                    "The caller-owned model transaction was rolled back"
+                ) from None
             winner = self._session.get(LearnerModelSnapshotModel, snapshot.snapshot_id)
             if winner is not None and self._is_exact_replay(winner, snapshot, learner_id):
                 return LearnerModelSnapshotWriteResult(

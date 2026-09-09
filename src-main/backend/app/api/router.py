@@ -1,13 +1,16 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    activity_continuation,
     analytics,
     assessment,
     assessment_evaluation,
     authentication,
+    curriculum,
     feedback,
     health,
     learner_model,
+    learner_preferences,
     learning_events,
     lms,
     materials,
@@ -30,5 +33,10 @@ api_router.include_router(task_review.router, tags=["task review"])
 api_router.include_router(feedback.router, tags=["feedback"])
 api_router.include_router(learning_events.router, tags=["learning-events"])
 api_router.include_router(learner_model.router)
+api_router.include_router(learner_preferences.router)
 api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(research_exports.router, tags=["research"])
+
+api_router.include_router(curriculum.router)
+
+api_router.include_router(activity_continuation.router)

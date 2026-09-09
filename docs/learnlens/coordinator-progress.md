@@ -1,5 +1,75 @@
 # LearnLens coordinator progress
 
+## Task 22 local completion
+
+Task 22 is implemented in the detached worktree `.tmp-coordinator/task22`.
+Its base is `65a9457d27e849465e7f227471336552bb22b8b4`, plus 60 verified Task 21 dependency files.
+Final checks confirm all 60 source Task 21 hashes and 38 source Task 20 hashes remain unchanged.
+No files were staged, committed, pushed, merged, or deployed. Main and its unrelated handoff remain untouched.
+The user explicitly prohibited a merge to main and all sub-agent work.
+
+The shipped worker now connects checked feedback to the shared learner model and approved activity selection.
+Lease-fenced transactions protect model receipts and suggestions. Learner choices and educator overrides retain history.
+The learner workspace and course editor mount these controls. Dashboard recommendations respect saved choices and opt-out.
+Published practice response exits now unlock practice without relying on numeric grades. Formal assessment rules remain unchanged.
+
+The full backend run covered 1,141 tests: 1,139 passed, with two documentation/test-assertion failures.
+Both were fixed. The two affected files then passed all 20 tests; combined service coverage is 87.23%.
+The frontend suite passed 249 tests, and all 84 existing browser tests passed.
+The final authenticated Task 22 journey passed in Chrome, Edge, Firefox, and WebKit.
+Migration, contracts, Ruff, frontend lint/build, Gitleaks, and required dependency audit gates pass.
+The npm development tree retains two moderate advisories below the required high-severity threshold; production has none.
+The two vulnerable Python development HTTP packages were patched in the lockfile and now pass audit.
+
+See the [Task 22 handoff](task-22-approved-activity-continuation.md) for exact evidence, separate self-reviews,
+interfaces, failure states, recovery, and delivery order. The [delta manifest](task-22-change-manifest.json)
+separates Task 22 from the preserved dependency source. Independent review and remote CI are not claimed.
+Task 23 has not started. Task 35 operational AI assessment remains disabled.
+
+
+## Earlier Task 21 local completion
+
+Task 21 is implemented in `.tmp-coordinator/task21` on `feat/task-21-curriculum-diagnostics`.
+The user authorised the next implementation step and prohibited sub-agents.
+No commits, pushes, merges, or deployments were performed.
+
+The worktree carries the 38-file uncommitted Task 20 dependency from its preserved worktree.
+The [dependency receipt](task-21-dependency-baseline.json) records that baseline.
+The [Task 21 handoff](task-21-curriculum-diagnostics.md) records interfaces, evidence, recovery,
+self-reviews, and the required delivery order.
+
+The backend full suite passed 1,121 tests with 86.94% service coverage.
+The final frontend suite passed 246 tests. All 84 existing browser checks passed.
+The new authenticated diagnostic journey passed in Chrome, Edge, Firefox, and WebKit.
+A final Chrome journey also proved educator UI publication and the approved practice link.
+Migration, contracts, lint, build, and dependency audit checks passed.
+The final targeted tests cover the added concurrency and migration recovery cases.
+
+Diagnostics capture learning evidence and require current assessor confirmation before
+practice bypass. Formal assessment remains unchanged. Task 22's automatic activity
+selection remains separate. Independent review and remote CI are not claimed.
+
+## Earlier Task 20 completion
+
+
+Task 20 is implemented in `.tmp-coordinator/task20` on `feat/task-20-learner-preferences`.
+The fetched base is `65a9457d27e849465e7f227471336552bb22b8b4`; the original untracked handoff is preserved.
+That earlier run covered Task 20 only, with no sub-agents, commits, pushes, or merges.
+Entries below describe prior batches.
+
+The learner editor persists bounded global choices, correction/reset history, and personalisation opt-out.
+Task-effective reads enforce frozen stage and practice limits. Access support and required reflection remain available.
+Migration 0033 is additive. Generated contracts and readiness use that sole head.
+
+All local gates passed: 1,106 backend tests with 86.99% service coverage, 242 frontend tests, and 84 browser checks.
+The authenticated failure/recovery journey, migration checks, lint, contracts, build, and dependency audits also passed.
+A disk-space interruption was resolved by removing completed task-owned scratch data before the successful full rerun.
+The [Task 20 handoff](task-20-learner-preferences.md) records exact evidence, recovery, and remaining limits.
+Separate Standards, Spec, and Test Judge self-reviews passed, replacing agent delegation under the current instruction.
+No independent agent review or release approval is claimed.
+
+## Earlier batch history
+
 Started: 7 September 2026. Status: implementation in progress.
 
 The original request authorised Tasks 13 onward, including reviewed commits, pushes, and batch merges.

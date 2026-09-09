@@ -126,6 +126,253 @@
         "title": "ActiveScopedRoleAssignmentResponse",
         "type": "object"
       },
+      "ActivityAction": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "accept",
+              "defer",
+              "replace",
+              "educator_override"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "required": [
+          "expected_version",
+          "request_key",
+          "action"
+        ],
+        "title": "ActivityAction",
+        "type": "object"
+      },
+      "ActivityHistory": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "educator": {
+            "title": "Educator",
+            "type": "boolean"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "action",
+          "task_id",
+          "reason",
+          "educator",
+          "created_at"
+        ],
+        "title": "ActivityHistory",
+        "type": "object"
+      },
+      "ActivityOption": {
+        "properties": {
+          "support_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Level"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "title",
+          "support_level"
+        ],
+        "title": "ActivityOption",
+        "type": "object"
+      },
+      "ActivityRead": {
+        "properties": {
+          "can_override": {
+            "default": false,
+            "title": "Can Override",
+            "type": "boolean"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityHistory"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "learner_label": {
+            "default": "Learner",
+            "title": "Learner Label",
+            "type": "string"
+          },
+          "next_task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Task Id"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "pathway_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pathway Id"
+          },
+          "preference_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preference Version"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "rule_version": {
+            "default": "approved-activity.v1",
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "uncertainty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uncertainty"
+          },
+          "version": {
+            "default": 0,
+            "title": "Version",
+            "type": "integer"
+          },
+          "workflow_id": {
+            "title": "Workflow Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflow_id",
+          "state",
+          "reason"
+        ],
+        "title": "ActivityRead",
+        "type": "object"
+      },
       "AdminUserCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3300,6 +3547,251 @@
         "title": "CriterionFeedback",
         "type": "object"
       },
+      "DiagnosticConfirm": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "retain",
+              "advance"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "independent_verified": {
+            "title": "Independent Verified",
+            "type": "boolean"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "decision",
+          "independent_verified",
+          "reason"
+        ],
+        "title": "DiagnosticConfirm",
+        "type": "object"
+      },
+      "DiagnosticRead": {
+        "properties": {
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "independent_conditions": {
+            "title": "Independent Conditions",
+            "type": "string"
+          },
+          "learner_id": {
+            "title": "Learner Id",
+            "type": "integer"
+          },
+          "learner_name": {
+            "title": "Learner Name",
+            "type": "string"
+          },
+          "pathway_id": {
+            "title": "Pathway Id",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "response": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiagnosticSubmit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "started",
+              "needs_review",
+              "retain",
+              "advance"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "target_task_id": {
+            "title": "Target Task Id",
+            "type": "string"
+          },
+          "target_title": {
+            "title": "Target Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "learner_id",
+          "learner_name",
+          "target_title",
+          "pathway_id",
+          "purpose",
+          "target_task_id",
+          "state",
+          "prompt",
+          "independent_conditions",
+          "evidence_id",
+          "response",
+          "reason"
+        ],
+        "title": "DiagnosticRead",
+        "type": "object"
+      },
+      "DiagnosticStart": {
+        "additionalProperties": false,
+        "properties": {
+          "pathway_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Pathway Id",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "initial",
+              "prior_mastery"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Key",
+            "type": "string"
+          },
+          "target_task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Target Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "pathway_id",
+          "purpose",
+          "target_task_id"
+        ],
+        "title": "DiagnosticStart",
+        "type": "object"
+      },
+      "DiagnosticSubmit": {
+        "additionalProperties": false,
+        "properties": {
+          "concept_uncertainty": {
+            "enum": [
+              "none_reported",
+              "needs_checking",
+              "unsure"
+            ],
+            "title": "Concept Uncertainty",
+            "type": "string"
+          },
+          "confidence": {
+            "enum": [
+              "unsure",
+              "somewhat_sure",
+              "sure"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "independent_conditions_met": {
+            "title": "Independent Conditions Met",
+            "type": "boolean"
+          },
+          "prior_knowledge": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Prior Knowledge",
+            "type": "string"
+          },
+          "reasoning": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reasoning",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Key",
+            "type": "string"
+          },
+          "requested_support": {
+            "enum": [
+              "none",
+              "concept_cue",
+              "guided"
+            ],
+            "title": "Requested Support",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "prior_knowledge",
+          "reasoning",
+          "confidence",
+          "concept_uncertainty",
+          "requested_support",
+          "independent_conditions_met"
+        ],
+        "title": "DiagnosticSubmit",
+        "type": "object"
+      },
       "DraftRead": {
         "additionalProperties": false,
         "properties": {
@@ -3835,6 +4327,61 @@
           "overdue_tasks"
         ],
         "title": "EducatorStudentRead",
+        "type": "object"
+      },
+      "EffectivePreferences": {
+        "properties": {
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "pathway_support_level": {
+            "anyOf": [
+              {
+                "enum": [
+                  "guided",
+                  "concept_cue",
+                  "independent"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pathway Support Level"
+          },
+          "repeat_allowed": {
+            "title": "Repeat Allowed",
+            "type": "boolean"
+          },
+          "requested": {
+            "$ref": "#/components/schemas/PreferenceValues"
+          },
+          "transfer": {
+            "title": "Transfer",
+            "type": "boolean"
+          },
+          "values": {
+            "$ref": "#/components/schemas/PreferenceValues"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "values",
+          "requested",
+          "transfer",
+          "repeat_allowed",
+          "limitations"
+        ],
+        "title": "EffectivePreferences",
         "type": "object"
       },
       "EnrollmentCreate": {
@@ -7559,6 +8106,458 @@
         "title": "PairedDifferences",
         "type": "object"
       },
+      "PathBinding": {
+        "properties": {
+          "assessment": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessment"
+          },
+          "difficulty": {
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "review_event_id": {
+            "title": "Review Event Id",
+            "type": "string"
+          },
+          "source_approvals": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Source Approvals",
+            "type": "object"
+          },
+          "task_form": {
+            "title": "Task Form",
+            "type": "string"
+          },
+          "task_revision_id": {
+            "title": "Task Revision Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "task_revision_id",
+          "review_event_id",
+          "source_approvals",
+          "difficulty",
+          "task_form",
+          "assessment"
+        ],
+        "title": "PathBinding",
+        "type": "object"
+      },
+      "PathStep": {
+        "additionalProperties": false,
+        "properties": {
+          "concept": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Concept",
+            "type": "string"
+          },
+          "evidence_rule": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Evidence Rule",
+            "type": "string"
+          },
+          "exit_rule": {
+            "const": "accepted_response",
+            "default": "accepted_response",
+            "title": "Exit Rule",
+            "type": "string"
+          },
+          "faded_support_level": {
+            "enum": [
+              "guided",
+              "concept_cue",
+              "independent"
+            ],
+            "title": "Faded Support Level",
+            "type": "string"
+          },
+          "prerequisites": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Prerequisites",
+            "type": "array"
+          },
+          "support_level": {
+            "enum": [
+              "guided",
+              "concept_cue",
+              "independent"
+            ],
+            "title": "Support Level",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "concept",
+          "prerequisites",
+          "support_level",
+          "faded_support_level",
+          "evidence_rule"
+        ],
+        "title": "PathStep",
+        "type": "object"
+      },
+      "PathwayPublish": {
+        "additionalProperties": false,
+        "properties": {
+          "diagnostic_prompt": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Diagnostic Prompt",
+            "type": "string"
+          },
+          "diagnostic_task_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Diagnostic Task Id",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "independent_conditions": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Independent Conditions",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Key",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PathStep"
+            },
+            "maxItems": 30,
+            "minItems": 3,
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "request_key",
+          "title",
+          "steps",
+          "diagnostic_prompt",
+          "diagnostic_task_id",
+          "independent_conditions",
+          "reason"
+        ],
+        "title": "PathwayPublish",
+        "type": "object"
+      },
+      "PathwayRead": {
+        "properties": {
+          "bindings": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PathBinding"
+            },
+            "title": "Bindings",
+            "type": "object"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "diagnostic_prompt": {
+            "title": "Diagnostic Prompt",
+            "type": "string"
+          },
+          "diagnostic_task_id": {
+            "title": "Diagnostic Task Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "independent_conditions": {
+            "title": "Independent Conditions",
+            "type": "string"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PathStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "outcome_id",
+          "course_id",
+          "version",
+          "title",
+          "steps",
+          "diagnostic_prompt",
+          "diagnostic_task_id",
+          "independent_conditions",
+          "bindings"
+        ],
+        "title": "PathwayRead",
+        "type": "object"
+      },
+      "PreferenceHistory": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PreferenceRevision"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "PreferenceHistory",
+        "type": "object"
+      },
+      "PreferenceRead": {
+        "properties": {
+          "values": {
+            "$ref": "#/components/schemas/PreferenceValues"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "values"
+        ],
+        "title": "PreferenceRead",
+        "type": "object"
+      },
+      "PreferenceReset": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "request_key"
+        ],
+        "title": "PreferenceReset",
+        "type": "object"
+      },
+      "PreferenceRevision": {
+        "properties": {
+          "action": {
+            "enum": [
+              "save",
+              "reset"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "values": {
+            "$ref": "#/components/schemas/PreferenceValues"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "values",
+          "action",
+          "created_at"
+        ],
+        "title": "PreferenceRevision",
+        "type": "object"
+      },
+      "PreferenceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Key",
+            "type": "string"
+          },
+          "values": {
+            "$ref": "#/components/schemas/PreferenceValues"
+          }
+        },
+        "required": [
+          "expected_version",
+          "request_key",
+          "values"
+        ],
+        "title": "PreferenceUpdate",
+        "type": "object"
+      },
+      "PreferenceValues": {
+        "additionalProperties": false,
+        "properties": {
+          "breaks": {
+            "default": false,
+            "title": "Breaks",
+            "type": "boolean"
+          },
+          "explanation_detail": {
+            "default": "brief",
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "title": "Explanation Detail",
+            "type": "string"
+          },
+          "feedback_form": {
+            "default": "inline",
+            "enum": [
+              "inline",
+              "expandable"
+            ],
+            "title": "Feedback Form",
+            "type": "string"
+          },
+          "format": {
+            "default": "text",
+            "enum": [
+              "text",
+              "stepwise"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "pace": {
+            "default": "self_paced",
+            "enum": [
+              "self_paced",
+              "stepwise"
+            ],
+            "title": "Pace",
+            "type": "string"
+          },
+          "personalisation_enabled": {
+            "default": true,
+            "title": "Personalisation Enabled",
+            "type": "boolean"
+          },
+          "repeat_practice": {
+            "default": false,
+            "title": "Repeat Practice",
+            "type": "boolean"
+          },
+          "support_amount": {
+            "default": "standard",
+            "enum": [
+              "standard",
+              "on_request"
+            ],
+            "title": "Support Amount",
+            "type": "string"
+          }
+        },
+        "title": "PreferenceValues",
+        "type": "object"
+      },
       "QualityReviewDecision": {
         "enum": [
           "APPROVED",
@@ -10921,6 +11920,283 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/activity-continuation/courses/{course_id}": {
+      "get": {
+        "operationId": "course_api_v1_activity_continuation_courses__course_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ActivityRead"
+                  },
+                  "title": "Response Course Api V1 Activity Continuation Courses  Course Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Course",
+        "tags": [
+          "activity-continuation"
+        ]
+      }
+    },
+    "/api/v1/activity-continuation/submissions/{submission_id}": {
+      "get": {
+        "operationId": "submission_api_v1_activity_continuation_submissions__submission_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ActivityRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Submission Api V1 Activity Continuation Submissions  Submission Id  Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submission",
+        "tags": [
+          "activity-continuation"
+        ]
+      }
+    },
+    "/api/v1/activity-continuation/{workflow_id}": {
+      "get": {
+        "operationId": "read_api_v1_activity_continuation__workflow_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "activity-continuation"
+        ]
+      }
+    },
+    "/api/v1/activity-continuation/{workflow_id}/actions": {
+      "post": {
+        "operationId": "action_api_v1_activity_continuation__workflow_id__actions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivityAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Action",
+        "tags": [
+          "activity-continuation"
+        ]
+      }
+    },
     "/api/v1/admin/bootstrap-demo": {
       "post": {
         "operationId": "bootstrap_demo_environment_api_v1_admin_bootstrap_demo_post",
@@ -15747,6 +17023,474 @@
         ]
       }
     },
+    "/api/v1/curriculum/courses/{course_id}/diagnostics": {
+      "get": {
+        "operationId": "diagnostics_api_v1_curriculum_courses__course_id__diagnostics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DiagnosticRead"
+                  },
+                  "title": "Response Diagnostics Api V1 Curriculum Courses  Course Id  Diagnostics Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Diagnostics",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/curriculum/courses/{course_id}/pathways": {
+      "get": {
+        "operationId": "pathways_api_v1_curriculum_courses__course_id__pathways_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PathwayRead"
+                  },
+                  "title": "Response Pathways Api V1 Curriculum Courses  Course Id  Pathways Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pathways",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/curriculum/diagnostics": {
+      "post": {
+        "operationId": "start_api_v1_curriculum_diagnostics_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagnosticStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/curriculum/diagnostics/{identity}": {
+      "get": {
+        "operationId": "read_api_v1_curriculum_diagnostics__identity__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/curriculum/diagnostics/{identity}/confirmation": {
+      "post": {
+        "operationId": "confirm_api_v1_curriculum_diagnostics__identity__confirmation_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagnosticConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirm",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/curriculum/diagnostics/{identity}/response": {
+      "post": {
+        "operationId": "submit_api_v1_curriculum_diagnostics__identity__response_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiagnosticSubmit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/curriculum/outcomes/{outcome_id}/pathways": {
+      "post": {
+        "operationId": "publish_api_v1_curriculum_outcomes__outcome_id__pathways_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PathwayPublish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PathwayRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
     "/api/v1/educator/dashboard": {
       "get": {
         "operationId": "educator_dashboard_api_v1_educator_dashboard_get",
@@ -16436,6 +18180,301 @@
         "summary": "My Timeline",
         "tags": [
           "learner model"
+        ]
+      }
+    },
+    "/api/v1/learner-preferences/me": {
+      "get": {
+        "operationId": "read_api_v1_learner_preferences_me_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "learner preferences"
+        ]
+      },
+      "put": {
+        "operationId": "save_api_v1_learner_preferences_me_put",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save",
+        "tags": [
+          "learner preferences"
+        ]
+      }
+    },
+    "/api/v1/learner-preferences/me/history": {
+      "get": {
+        "operationId": "history_api_v1_learner_preferences_me_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceHistory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "learner preferences"
+        ]
+      }
+    },
+    "/api/v1/learner-preferences/me/reset": {
+      "post": {
+        "operationId": "reset_api_v1_learner_preferences_me_reset_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenceReset"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset",
+        "tags": [
+          "learner preferences"
+        ]
+      }
+    },
+    "/api/v1/learner-preferences/me/tasks/{task_id}/effective": {
+      "get": {
+        "operationId": "effective_api_v1_learner_preferences_me_tasks__task_id__effective_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EffectivePreferences"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Effective",
+        "tags": [
+          "learner preferences"
         ]
       }
     },

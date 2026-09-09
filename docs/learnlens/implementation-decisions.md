@@ -4,6 +4,25 @@ This log records key implementation choices for later user review.
 It complements the [approved policy selections](task-08-approved-selections.md) and the [remaining task list](../../LearnLens_Remaining_Tasks.md).
 It does not claim that missing institutional approvals or release measurements exist.
 
+## Task 20: explicit global preferences with task-specific limits
+
+Store presentation choices per learner because the current consumers span courses.
+Keep every save and reset as a new revision; defaults do not create a record during reads.
+Use authenticated identity, expected versions, and request keys for ownership, conflicts, and retries.
+Preference choices belong in their own archive, not in inferred learner-model snapshots.
+They do not supply evidence of learning or change a formal result.
+
+Resolve effective settings through the existing scoped task and frozen episode readers.
+Opt-out retains requested values and returns baseline settings with personalisation explicitly disabled.
+Fresh application suppresses optional instructional presentation and repeat practice.
+Approved access support, required feedback, and reflection remain available.
+Repeat practice starts only a local draft for permitted ordinary practice; existing submission rules still apply.
+
+Only text and stepwise support presentation are offered. No alternate response form or generated explanation is promised.
+The detailed interface, defaults, recovery rules, and tests are recorded in the [Task 20 handoff](task-20-learner-preferences.md).
+The current instruction permits implementation without sub-agents. Reviews are separate coordinator self-reviews, not independent agent verdicts.
+No remote delivery or work beyond Task 20 is included.
+
 ## 2026-09-07: continue engineering under the selected policies
 
 The user selected D-05 B, D-07 C, and the recommended A options elsewhere.
@@ -285,3 +304,42 @@ The browser check preserved the earlier published rule version when publishing t
 Episode migration checks must use upgraded databases with existing protected history.
 Metadata-created databases alone miss changes to the persisted task-type CHECK constraint.
 Downgrade preflight must run before any table or column changes when protected history prevents rollback.
+
+
+## Task 21: approved practice paths and diagnostic evidence
+
+A pathway version belongs to one course outcome. It contains at least three ordered,
+approved tasks, with concept, source, task-form, assessment-rule, and exit-rule links.
+Publication freezes the linked task reviews. A changed task or source approval requires
+a new pathway version before its diagnostic can be used for a bypass.
+
+Diagnostics are learning evidence. They never create a formal result. A current course
+assessor verifies independent conditions and confirms or declines the requested practice
+bypass. The record preserves the learner response, affected target, reason, and exact
+pathway version. Earlier approvals remain historical; they do not apply to a replacement pathway.
+
+An accepted ordinary response satisfies a declared completion exit rule. It is not proof
+of mastery. Optional guidance fades only after a confirmed diagnostic bypass satisfies a
+step's prerequisite. Personalisation opt-out stops this optional change. Approved help
+and access support remain available. Formal task conditions stay authoritative.
+
+Task 22 will connect the graph to durable automatic activity selection. Task 21 does not
+change the existing continuation adapters or activate AI assessment suggestions.
+
+
+## Task 22: checked feedback and approved activity continuation
+
+Checked feedback quality does not prove learner mastery. The continuation worker records response observations
+through the shared learner model, with uncertainty retained and prior Task 19 corrections preserved.
+Only accepted first-pass or second-pass feedback with a valid passing judge record can trigger this update.
+Safe fallback and unchecked output do not trigger learning inference.
+
+Approved practice steps use their published `accepted_response` exit rule. This navigation rule does not grant
+formal assessment credit or new diagnostic bypass authority. Suggestions exclude the completed activity.
+The dashboard projects durable choices, honors deferral and opt-out, and no longer ranks numeric averages.
+Before a continuation decision exists, ordinary unlocked course navigation remains available.
+
+Workflow-keyed progress and suggestion receipts provide replay safety. Both transactions fence worker leases.
+Choice commands use request keys and expected versions. SQLite write locks serialize consequential writes.
+The nullable next-task reference represents an explicit no-activity decision; it is never a fake completed-task link.
+See [Task 22 handoff](task-22-approved-activity-continuation.md) for verification and recovery.
