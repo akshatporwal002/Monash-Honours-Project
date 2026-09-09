@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 
 import { CourseEditor } from '../components/CourseEditor'
 
+afterEach(() => vi.restoreAllMocks())
+
 function response(body: unknown, status = 200): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
     status,
@@ -130,7 +132,7 @@ test('reloads and edits persisted modules, weekly outcomes, and enrollment statu
   await user.click(await screen.findByRole('option', { name: 'Topic-based' }))
   const editor = screen.getByLabelText(/Edit learning outcome/)
   await user.clear(editor)
-  await user.type(editor, 'Explain how measurement changes a qubit state.')
+  await user.paste('Explain how measurement changes a qubit state.')
   await user.click(screen.getByRole('button', { name: /Update outcome/ }))
 
   await user.click(await screen.findByRole('button', { name: 'Back' }))
