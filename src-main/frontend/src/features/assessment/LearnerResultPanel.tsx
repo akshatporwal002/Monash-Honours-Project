@@ -60,7 +60,13 @@ export function LearnerResultPanel({ responseId }: { responseId: string }) {
     <Card heading="Assessment result and review" aria-label="Assessment result and review">
       {error && <p role="alert">{error}</p>}
       {status && <p role="status">{status}</p>}
-      <Button variant="secondary" onClick={() => setRefresh((value) => value + 1)}>
+      <Button
+        variant="secondary"
+        onClick={() => {
+          setStatus('')
+          setRefresh((value) => value + 1)
+        }}
+      >
         Refresh result
       </Button>
       {!result && !error && <p role="status">Loading assessment result…</p>}

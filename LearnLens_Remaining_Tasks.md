@@ -10,6 +10,14 @@ Post-merge CI passed 873 backend tests with 86.19% coverage, 31 migration checks
 Local main was clean and matched origin/main before Tasks 14 and 15 began in isolated worktrees.
 Task 32 has a reviewed protocol and data-plan draft naming Arv Surana as lead. Study approval remains outstanding.
 
+Local delivery, 9 September 2026: Tasks 23 and 24 are implemented on
+`codex/tutor-results-governance`, based on main `16db109`. The
+[delivery record](docs/learnlens/task-23-24-tutor-and-results.md) describes the
+behaviour, validation and remaining integration work. Push approval is pending;
+this update does not mark the changes as merged into main. Tasks 8 and 32 now have
+manual-fill comments for the team's missing decisions and supporting records.
+Their outstanding human approvals remain open.
+
 This is the recommended work order for completing the proposed LearnLens architecture and the wider repository requirements. Each numbered task states its dependencies, current gap, and completion check. Tasks with no shared dependency can run in parallel. A dependency means the earlier task must supply the needed working contract or behaviour before integration.
 
 The review used [LearnLens_Architecture_and_Sources.md](LearnLens_Architecture_and_Sources.md), the [implementation requirements](docs/01-implementation-requirements.md), the [assessment specification](docs/02-pass-incomplete-bloom-assessment-spec.md), and the [work order](docs/03-codex-implementation-work-order.md). It also inspected backend services, mounted routes, frontend screens, migrations, tests, CI, launch scripts, and existing plans.

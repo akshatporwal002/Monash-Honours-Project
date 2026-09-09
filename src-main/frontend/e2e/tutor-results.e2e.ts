@@ -78,6 +78,8 @@ test('learner conversation and review survive reload and reach a scoped assessor
     await expect(result.getByText('PASS', { exact: true })).toBeVisible()
     await expect(result).toContainText('Evidence shown')
     await expect(result).toContainText('Your explanation meets the criterion.')
+    await expect(result.getByRole('heading', { name: 'Review resolved' })).toBeVisible()
+    await expect(result).not.toContainText('Your review request is saved.')
     await expect(result).not.toContainText('PRIVATE')
     await page.setViewportSize({ width: 320, height: 900 })
     await expect
