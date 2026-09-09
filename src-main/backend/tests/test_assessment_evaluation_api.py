@@ -187,6 +187,14 @@ def test_stale_rule_or_response_version_returns_conflict(db_session: Session) ->
 
     assert db_session.scalar(select(AssessmentDecision)) is None
     assert attempt.state is AssessmentAttemptState.PENDING
+    from app.models.escalation import EscalationCase
+
+    case = db_session.scalar(select(EscalationCase))
+    assert (case.trigger, case.source_id, case.queue_kind) == (
+        "CONFLICTING_EVIDENCE",
+        attempt.id,
+        "ASSESSOR",
+    )
 
 
 @pytest.mark.parametrize("criterion_fault,quality_fault", [(True, False), (False, True)])

@@ -1,11 +1,14 @@
 """Course-scoped human triage without authority to change assessment results."""
 
-from datetime import UTC
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import case as sql_case
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 
+from app.domain.assessment import ResultState
+from app.models.assessment import AssessmentAttempt, AssessmentDecision
 from app.models.enums import FeedbackStatus
 from app.models.escalation import EscalationCase, EscalationEvent, EscalationQueueRevision
 from app.models.lms import Course, PlatformAuditEvent, SubmissionAttempt
@@ -187,6 +190,27 @@ class EscalationService:
 
     def queue(self, actor, course_id, kind, offset=0):
         self.require_access(actor, course_id, kind)
+        latest = (
+            select(EscalationEvent)
+            .where(EscalationEvent.case_id == EscalationCase.id)
+            .order_by(EscalationEvent.revision.desc())
+            .limit(1)
+            .correlate(EscalationCase)
+        )
+        status = func.coalesce(
+            latest.with_only_columns(EscalationEvent.status).scalar_subquery(), "OPEN"
+        )
+        acknowledgement = latest.with_only_columns(
+            EscalationEvent.acknowledgement_due_at
+        ).scalar_subquery()
+        resolution = latest.with_only_columns(EscalationEvent.resolution_due_at).scalar_subquery()
+        severity = func.coalesce(
+            latest.with_only_columns(EscalationEvent.severity).scalar_subquery(),
+            EscalationCase.severity,
+        )
+        now = datetime.now(UTC)
+        complete = status.in_(("RESOLVED", "CLOSED"))
+        overdue = or_((status == "OPEN") & (acknowledgement < now), ~complete & (resolution < now))
         return [
             self.read_case(case, staff=True)
             for case in self.session.scalars(
@@ -195,7 +219,13 @@ class EscalationService:
                     EscalationCase.course_id == course_id,
                     EscalationCase.queue_kind == kind,
                 )
-                .order_by(EscalationCase.created_at.desc(), EscalationCase.id)
+                .order_by(
+                    complete,
+                    func.coalesce(overdue, False).desc(),
+                    sql_case((severity == "CRITICAL", 0), (severity == "HIGH", 1), else_=2),
+                    EscalationCase.created_at,
+                    EscalationCase.id,
+                )
                 .limit(50)
                 .offset(offset)
             )
@@ -227,6 +257,8 @@ class EscalationService:
             (event for event in events if event.request_key == command.idempotency_key), None
         )
         values = command.model_dump(exclude={"expected_revision", "idempotency_key"})
+        for name in ("acknowledgement_due_at", "resolution_due_at"):
+            values[name] = values[name].astimezone(UTC)
         if prior:
             exact = (
                 prior.actor_user_id == actor.id and prior.revision == command.expected_revision + 1
@@ -337,6 +369,16 @@ class EscalationService:
     def read_case(self, case, *, staff=False):
         events = self._events(case.id)
         latest = events[-1] if events else None
+        notices = [EscalationNotice.model_validate(event) for event in events]
+        if not staff and self._result_unreleased(case):
+            notices = [
+                notice.model_copy(
+                    update={
+                        "learner_notice": f"Your report is {notice.status.lower()}. A detailed response will be available when the assessment result is released."
+                    }
+                )
+                for notice in notices
+            ]
         values = dict(
             id=case.id,
             task_id=case.task_id,
@@ -349,7 +391,7 @@ class EscalationService:
             created_at=case.created_at,
             acknowledgement_due_at=latest.acknowledgement_due_at if latest else None,
             resolution_due_at=latest.resolution_due_at if latest else None,
-            notices=[EscalationNotice.model_validate(event) for event in events],
+            notices=notices,
         )
         if not staff:
             return EscalationRead(**values)
@@ -363,6 +405,7 @@ class EscalationService:
         )
         return EscalationStaffRead(
             **values,
+            attention=self._attention(latest),
             trigger=case.trigger,
             reason=case.reason,
             owner_user_id=owner,
@@ -380,6 +423,44 @@ class EscalationService:
                 for event in events
             ],
         )
+
+    @staticmethod
+    def _attention(latest):
+        if latest is None:
+            return "NEEDS_TRIAGE"
+        if latest.status in {"RESOLVED", "CLOSED"}:
+            return "COMPLETE"
+        now = datetime.now(UTC)
+        if latest.status == "OPEN" and latest.acknowledgement_due_at.replace(tzinfo=UTC) < now:
+            return "ACKNOWLEDGEMENT_OVERDUE"
+        if latest.resolution_due_at.replace(tzinfo=UTC) < now:
+            return "RESOLUTION_OVERDUE"
+        return "ON_TARGET"
+
+    def _result_unreleased(self, case):
+        attempts = select(AssessmentAttempt).where(
+            AssessmentAttempt.student_id == case.student_id,
+            AssessmentAttempt.task_id == case.task_id,
+        )
+        if case.source_kind == "ASSESSMENT":
+            attempts = attempts.where(AssessmentAttempt.id == case.source_id)
+        elif case.source_kind == "FEEDBACK":
+            feedback = self.session.get(FeedbackRecord, case.source_id)
+            attempts = attempts.where(
+                AssessmentAttempt.response_version_id == feedback.submission_id
+            )
+        attempt = self.session.scalar(
+            attempts.order_by(AssessmentAttempt.created_at.desc(), AssessmentAttempt.id).limit(1)
+        )
+        if attempt is None:
+            return False
+        decision = self.session.scalar(
+            select(AssessmentDecision).where(AssessmentDecision.assessment_attempt_id == attempt.id)
+        )
+        return decision is None or decision.result_state not in {
+            ResultState.CONFIRMED,
+            ResultState.OVERRIDDEN,
+        }
 
     def _lock(self, actor_id):
         self.session.execute(

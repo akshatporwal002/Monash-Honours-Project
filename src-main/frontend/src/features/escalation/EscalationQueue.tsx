@@ -129,7 +129,7 @@ function QueueWorkspace({ selected }: { selected: Queue }) {
           {!items.length && <p>No reports on this page.</p>}
           {items.map((item) => (
             <EscalationCase
-              key={`${item.id}-${item.revision}`}
+              key={`${item.id}-${item.revision}-${setup.configuration?.revision ?? 0}`}
               item={item}
               setup={setup}
               onSaved={reload}

@@ -330,7 +330,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 12, 13, 15, and 24; Task 8, D-06. Suggested owner: assessment.
 
-    The `ReassessmentLink` model exists without an active workflow. General resubmission still relies on `allow_resubmission`. Add eligibility, an approved equivalent form, a fresh attempt, prior-decision links, and the current-result rule. Implement approved evidence-sufficiency rules across attempts for outcome results. Add course binary results only where required and defined.
+    Implemented 9 September 2026: scoped assessor authorisation, fresh equivalent forms under the unchanged standard, linked attempts, preserved decision history, and published whole-attempt outcome selection. Stale authorisations can be superseded without removing their history. Pending work cannot replace confirmed evidence. Course binary aggregation remains conditional on an explicitly approved course rule.
 
     Done when every earlier decision remains readable, the same standard applies, and attempts are never averaged. Review, return, withholding, reassessment, and result replacement must have distinct effects.
 
@@ -350,7 +350,9 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 15, 16, 19, 23, and 27; Task 8, D-09. Suggested owner: educator experience and operations.
 
-    Assessment review and audit flags do not cover the required escalation process. Extend existing feedback reporting into managed escalation and cover other AI outputs. Route repeated rejection, failed evaluation, conflicting evidence, and unresolved misconceptions to an owned queue. Store severity, evidence links, status, target time, response, resolution reason, and learner notice.
+    Implemented 9 September 2026: feedback and tutor reporting, separate assessor and technical queues, primary and backup ownership, triage and overdue indicators, immutable human responses, learner notices, and accepted-feedback sampling. Existing repeated-rejection, failed-evaluation and conflicting-evidence producers route to these queues. Owners enter targets using the approved staffing and severity rules; operational names and schedules still require D-09 activation details.
+
+    Remaining integration: connect unresolved-misconception signals when Task 27 delivers that recovery cycle. This queue delivery does not complete Task 27 or its Task 22 dependency.
 
     Done when a report moves through acknowledgement, action, resolution, and closure with an audit trail. Accepted AI feedback must also be available for human sampling.
 
@@ -380,7 +382,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 20 and 29. Suggested owner: learner experience and LMS.
 
-    The points card is always shown, a perfect-score award remains, and educator data includes a leaderboard. Add a real opt-out. Recognise allowed participation, reflection, revision, and feedback use without ranking learners or tying rewards to a formal mark.
+    Implemented 9 September 2026: persisted opt-out hides rewards and stops new awards; participation, reflection, revision and feedback use receive replay-safe recognition. New perfect-score awards and learner rankings are removed while protected legacy records remain. Assessment, task access and pathway standards do not use reward preferences. The wider numeric-view retirement remains Task 29.
 
     Done when points never alter assessment, pathway standards, or essential access. Replays, retries, slower pace, breaks, and approved support must not create penalties or duplicate rewards.
 

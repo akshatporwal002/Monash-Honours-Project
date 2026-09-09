@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 QueueKind = Literal["ASSESSOR", "TECHNICAL"]
 Severity = Literal["NORMAL", "HIGH", "CRITICAL"]
@@ -11,6 +11,15 @@ SourceKind = Literal["FEEDBACK", "TUTOR", "ASSESSMENT"]
 
 class EscalationContract(BaseModel):
     model_config = ConfigDict(extra="forbid", from_attributes=True, str_strip_whitespace=True)
+
+    @field_validator(
+        "created_at", "at", "acknowledgement_due_at", "resolution_due_at", check_fields=False
+    )
+    @classmethod
+    def utc_timestamp(cls, value):
+        if value is None:
+            return None
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 class QueueWrite(EscalationContract):
@@ -93,12 +102,25 @@ class EscalationRead(EscalationContract):
     notices: list[EscalationNotice]
 
 
+class EscalationHistoryEntry(EscalationContract):
+    revision: int
+    status: CaseStatus
+    reason: str
+    actor_user_id: int
+    owner_user_id: int
+    queue_revision_id: str
+    at: datetime
+
+
 class EscalationStaffRead(EscalationRead):
+    attention: Literal[
+        "NEEDS_TRIAGE", "ACKNOWLEDGEMENT_OVERDUE", "RESOLUTION_OVERDUE", "ON_TARGET", "COMPLETE"
+    ]
     trigger: str
     reason: str
     owner_user_id: int | None
     backup_user_id: int | None
-    history: list[dict]
+    history: list[EscalationHistoryEntry]
 
 
 class SamplingWrite(EscalationContract):

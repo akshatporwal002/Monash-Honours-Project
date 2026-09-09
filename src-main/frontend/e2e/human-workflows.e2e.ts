@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
+test.use({ actionTimeout: 10_000 })
+
 async function signIn(
   page: Page,
   role: 'Student' | 'Educator',
@@ -16,12 +18,9 @@ async function signIn(
 }
 
 async function openHistory(page: Page) {
-  const history = page.getByText('Attempt history', { exact: true })
-  await history.click()
-  await page
-    .locator('summary')
-    .filter({ hasText: /Attempt 1/ })
-    .click()
+  await expect(
+    page.getByRole('heading', { name: 'Attempt history', exact: true }),
+  ).toBeVisible()
 }
 
 async function checkSmallScreen(page: Page) {
@@ -109,10 +108,23 @@ test('assessor authorises a fresh equivalent form and learner starts separate wo
     await expect(
       learner.getByRole('button', { name: 'Submit activity' }),
     ).toBeVisible()
+    await learner
+      .getByLabel('Your response', { exact: true })
+      .fill(
+        'The new observation supports the claim because the predicted relationship is present.',
+      )
+    const submitted = learner.waitForResponse(
+      (response) =>
+        response.url().endsWith('/submissions') &&
+        response.request().method() === 'POST',
+    )
+    await learner.getByRole('button', { name: 'Submit activity' }).click()
+    const response = await submitted
+    expect(response.status()).toBe(201)
+    expect((await response.json()).id).not.toBe(fixture.response_id)
+    await expect(outcome.getByText('INCOMPLETE', { exact: true })).toBeVisible()
     await learner.reload()
-    await expect(
-      learner.getByRole('button', { name: 'Submit activity' }),
-    ).toBeVisible()
+    await expect(outcome.getByText('INCOMPLETE', { exact: true })).toBeVisible()
     await checkSmallScreen(learner)
   } finally {
     await context.close()
@@ -163,15 +175,11 @@ test('learner reports output and assigned humans retain each response and sample
       .getByRole('combobox', { name: 'Course and review queue' })
       .click()
     await staff.getByRole('option').first().click()
-    await staff
-      .getByRole('combobox', { name: 'Primary owner', exact: true })
-      .click()
+    await staff.getByRole('combobox', { name: 'Primary owner' }).click()
     await staff
       .getByRole('option', { name: fixture.owner_name, exact: true })
       .click()
-    await staff
-      .getByRole('combobox', { name: 'Backup owner', exact: true })
-      .click()
+    await staff.getByRole('combobox', { name: 'Backup owner' }).click()
     await staff
       .getByRole('option', { name: fixture.backup_name, exact: true })
       .click()
@@ -190,6 +198,28 @@ test('learner reports output and assigned humans retain each response and sample
     await expect(staff.getByText('Update queue configuration')).toBeVisible()
     await staff.getByRole('button', { name: 'Inspect retained output' }).click()
     await expect(staff.locator('pre')).toContainText('What do you expect')
+    await expect(
+      staff.getByText(
+        'Needs triage: set response targets under the approved schedule.',
+      ),
+    ).toBeVisible()
+    const triage = staff.getByRole('form', { name: 'Respond to report' })
+    await triage
+      .getByLabel('Acknowledgement target (local time)')
+      .fill('2020-01-01T12:00')
+    await triage
+      .getByLabel('Resolution target (local time)')
+      .fill('2027-01-02T12:00')
+    await triage
+      .getByLabel('Private action or resolution reason')
+      .fill('PRIVATE: established the staffed response targets.')
+    await triage
+      .getByLabel('Notice to learner')
+      .fill('Your report has been triaged for a human response.')
+    await triage.getByRole('button', { name: 'Record human response' }).click()
+    await expect(
+      staff.getByRole('alert').filter({ hasText: 'Acknowledgement overdue.' }),
+    ).toBeVisible()
     for (const status of ['acknowledged', 'actioned', 'resolved', 'closed']) {
       const form = staff.getByRole('form', { name: 'Respond to report' })
       await form

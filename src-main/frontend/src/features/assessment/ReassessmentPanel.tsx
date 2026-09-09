@@ -153,9 +153,9 @@ export function ReassessmentPanel({
                 />
               </Field>
               <p>
-                A valid PASS remains until an assessor changes or voids it.
-                Partial criteria across attempts are never combined. Publishing
-                fixes this rule for the standard version.
+                Only released decisions count; pending work preserves the
+                current result. Partial criteria across attempts are never
+                combined. Publishing fixes this rule for the standard version.
               </p>
               {rule === 'ALL_REQUIRED_FORMS' && (
                 <fieldset disabled={busy}>

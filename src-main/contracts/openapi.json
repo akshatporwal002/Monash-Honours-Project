@@ -4650,6 +4650,58 @@
         "title": "EscalationActionWrite",
         "type": "object"
       },
+      "EscalationHistoryEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_user_id": {
+            "title": "Actor User Id",
+            "type": "integer"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "owner_user_id": {
+            "title": "Owner User Id",
+            "type": "integer"
+          },
+          "queue_revision_id": {
+            "title": "Queue Revision Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "ACKNOWLEDGED",
+              "ACTIONED",
+              "RESOLVED",
+              "CLOSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "status",
+          "reason",
+          "actor_user_id",
+          "owner_user_id",
+          "queue_revision_id",
+          "at"
+        ],
+        "title": "EscalationHistoryEntry",
+        "type": "object"
+      },
       "EscalationNotice": {
         "additionalProperties": false,
         "properties": {
@@ -4859,6 +4911,17 @@
             ],
             "title": "Acknowledgement Due At"
           },
+          "attention": {
+            "enum": [
+              "NEEDS_TRIAGE",
+              "ACKNOWLEDGEMENT_OVERDUE",
+              "RESOLUTION_OVERDUE",
+              "ON_TARGET",
+              "COMPLETE"
+            ],
+            "title": "Attention",
+            "type": "string"
+          },
           "backup_user_id": {
             "anyOf": [
               {
@@ -4877,8 +4940,7 @@
           },
           "history": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/EscalationHistoryEntry"
             },
             "title": "History",
             "type": "array"
@@ -4988,6 +5050,7 @@
           "acknowledgement_due_at",
           "resolution_due_at",
           "notices",
+          "attention",
           "trigger",
           "reason",
           "owner_user_id",

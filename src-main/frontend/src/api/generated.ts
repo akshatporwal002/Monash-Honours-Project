@@ -669,6 +669,15 @@ export type ApiSchemas = {
     "severity": "NORMAL" | "HIGH" | "CRITICAL"
     "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
   }
+  "EscalationHistoryEntry": {
+    "actor_user_id": number
+    "at": string
+    "owner_user_id": number
+    "queue_revision_id": string
+    "reason": string
+    "revision": number
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+  }
   "EscalationNotice": {
     "created_at": string
     "learner_notice": string
@@ -698,9 +707,10 @@ export type ApiSchemas = {
   }
   "EscalationStaffRead": {
     "acknowledgement_due_at": (string) | (null)
+    "attention": "NEEDS_TRIAGE" | "ACKNOWLEDGEMENT_OVERDUE" | "RESOLUTION_OVERDUE" | "ON_TARGET" | "COMPLETE"
     "backup_user_id": (number) | (null)
     "created_at": string
-    "history": Array<Record<string, unknown>>
+    "history": Array<ApiSchemas["EscalationHistoryEntry"]>
     "id": string
     "notices": Array<ApiSchemas["EscalationNotice"]>
     "owner_user_id": (number) | (null)

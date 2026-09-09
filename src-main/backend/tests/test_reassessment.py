@@ -163,6 +163,59 @@ def test_policy_requires_assessor_and_is_immutable(db_session):
     assert error.value.status_code == 404
 
 
+@pytest.mark.parametrize(
+    "rule,expected",
+    [("LATEST_VALID", AssessmentResult.INCOMPLETE), ("ANY_VALID_PASS", AssessmentResult.PASS)],
+)
+def test_published_rule_distinguishes_latest_evidence_from_any_valid_pass(
+    db_session, rule, expected
+):
+    fixture = seed_review_context(db_session, reassessment=True)
+    owner = db_session.scalar(select(User).where(User.email == fixture["educator_email"]))
+    student = db_session.scalar(select(User).where(User.email == fixture["student_email"]))
+    service = ReassessmentService(db_session)
+    form = service.setup(owner, fixture["decision_id"]).forms[0]
+    service.publish_policy(
+        owner,
+        fixture["definition_id"],
+        OutcomePolicyWrite(
+            selection_rule=rule, reason="Approved selection across the two initial published forms."
+        ),
+    )
+    reviews = AssessmentReviewService(db_session, assignments=RoleAssignmentService(db_session))
+    reviews.act(
+        owner, decision_id=fixture["decision_id"], request=_request(AssessorReviewAction.CONFIRM)
+    )
+    lms = LmsService(db_session)
+    work = lms.start_assessment_work(student, form.task_id, form.id)
+    response = lms.submit(
+        student,
+        form.task_id,
+        SubmissionCreate(
+            answer=ANSWER,
+            assessment_work_start_id=work.assessment_work_start_id,
+            idempotency_key="fresh",
+        ),
+    )
+    replacement = db_session.scalar(
+        select(AssessmentAttempt).where(AssessmentAttempt.response_version_id == response.id)
+    )
+    projection = OutcomeResultService(db_session)
+    assert projection.read(student, response.id).result is AssessmentResult.PASS
+    decision = build_provisional_decision(db_session, replacement, suffix="latest-rule")
+    db_session.commit()
+    reviews.act(
+        owner,
+        decision_id=decision.id,
+        request=_request(AssessorReviewAction.OVERRIDE, new_result=AssessmentResult.INCOMPLETE),
+    )
+    current = projection.read(student, response.id)
+    assert current.result is expected
+    assert current.evidence_response_ids == (
+        [response.id] if rule == "LATEST_VALID" else [fixture["response_id"]]
+    )
+
+
 def test_assessor_can_add_equivalent_forms_without_revising_the_standard(db_session):
     from support.task_review import approve_sourced_fixture_task
 
@@ -208,6 +261,9 @@ def test_assessor_can_add_equivalent_forms_without_revising_the_standard(db_sess
     definition = db_session.get(AssessmentDefinitionVersion, fixture["definition_id"])
     assert form.assessment_definition_version_id == definition.id
     assert definition.version == 1
+    with pytest.raises(LmsServiceError, match="authorise this fresh reassessment"):
+        LmsService(db_session).start_assessment_work(student, fresh.id, added.id)
+    db_session.rollback()
     assert added.id in {item.id for item in service.setup(owner, fixture["decision_id"]).forms}
     earlier = service.authorise(owner, fixture["decision_id"], original_command)
     reviews.act(

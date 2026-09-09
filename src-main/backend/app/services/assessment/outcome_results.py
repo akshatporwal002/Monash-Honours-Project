@@ -50,7 +50,7 @@ class OutcomeResultService:
         )
         if policy is None:
             return result
-        selected = self._released_chains(attempts, grants)
+        selected = self._released_chains(attempts, grants, policy.selection_rule)
         result.status = "Awaiting confirmed evidence"
         result.explanation = "Only released assessor decisions count. Pending, returned, withheld and void work cannot replace confirmed evidence. Attempts are never averaged."
         if not selected:
@@ -66,20 +66,23 @@ class OutcomeResultService:
             result.explanation = "Each required form needs a whole confirmed PASS, including any authorised equivalent replacement. Partial criteria from different attempts are not combined."
         else:
             candidates = list(selected.values())
-            # A valid PASS persists until its assessor explicitly changes or voids it.
-            passes = [item for item in candidates if item[1] is AssessmentResult.PASS]
+            passes = (
+                [item for item in candidates if item[1] is AssessmentResult.PASS]
+                if policy.selection_rule == "ANY_VALID_PASS"
+                else []
+            )
             chosen = max(passes or candidates, key=lambda item: (item[0].created_at, item[0].id))
             result.result = chosen[1]
             result.evidence_response_ids = [chosen[0].response_version_id]
             result.explanation += (
                 " Any valid PASS satisfies this outcome."
                 if policy.selection_rule == "ANY_VALID_PASS"
-                else " The latest valid authorised evidence is selected; an existing valid PASS is retained until an assessor changes or voids it."
+                else " The latest released evidence controls the current result. Earlier decisions remain in history."
             )
         result.status = "Current outcome result"
         return result
 
-    def _released_chains(self, attempts, grants):
+    def _released_chains(self, attempts, grants, selection_rule):
         by_id = {item.id: item for item in attempts}
         authorised = {item.prior_attempt_id: item for item in grants}
         replacements = {}
@@ -124,7 +127,7 @@ class OutcomeResultService:
             }:
                 continue
             prior = selected.get(root)
-            if prior and prior[1] is AssessmentResult.PASS:
+            if selection_rule == "ANY_VALID_PASS" and prior and prior[1] is AssessmentResult.PASS:
                 continue
             selected[root] = (attempt, decision.result)
         return selected

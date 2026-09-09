@@ -157,7 +157,7 @@ export function ReportNotices({ taskId }: { taskId: string }) {
       {error && <p role="alert">{error}</p>}
       {!reports.length && !error && <p>No reports for this task.</p>}
       {reports.map((report) => (
-        <section key={report.id} aria-label="Reported concern">
+        <section key={report.id}>
           <h3>
             {report.queue_kind === 'ASSESSOR' ? 'Assessor' : 'Technical'} review
             · {report.status.toLowerCase()}

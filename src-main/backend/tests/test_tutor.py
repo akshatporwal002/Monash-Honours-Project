@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from test_task14_lifecycle import setup_episode, supported
 
 from app.models.episode import EpisodeHelpUse
+from app.models.escalation import EscalationCase
 from app.models.learning_evidence import LearningEvidence
 from app.models.tutor import TutorTurn
 from app.schemas.lms import DraftWrite
@@ -111,6 +112,14 @@ def test_rejected_output_retries_once_then_preserves_safe_fallback(db_session):
     row = db_session.get(TutorTurn, receipt.id)
     assert [item["decision"] for item in row.quality] == ["REJECTED", "REJECTED"]
     assert "NEVER REVEAL" not in tutor.read(student, task.id).model_dump_json()
+    case = db_session.scalar(select(EscalationCase))
+    assert (case.trigger, case.source_id, case.queue_kind) == (
+        "REPEATED_REJECTION",
+        receipt.id,
+        "ASSESSOR",
+    )
+    send(tutor, student, task, "unsafe")
+    assert len(list(db_session.scalars(select(EscalationCase)))) == 1
 
 
 def test_answer_seeking_redirects_without_integrity_finding(db_session):

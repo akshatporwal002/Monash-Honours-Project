@@ -70,7 +70,7 @@ export function OutcomeResultPanel({ responseId }: { responseId: string }) {
             </p>
           )}
           {result.authorisations.map((grant) => (
-            <section key={grant.id} aria-label="Reassessment notice">
+            <section key={grant.id}>
               <h3>{grant.task_title}</h3>
               <p>{grant.learner_notice}</p>
               {grant.available || grant.replacement_response_id ? (

@@ -12,6 +12,14 @@ import {
 
 type Case = ApiSchemas['EscalationStaffRead']
 const states = ['OPEN', 'ACKNOWLEDGED', 'ACTIONED', 'RESOLVED', 'CLOSED']
+const attentionLabels = {
+  NEEDS_TRIAGE:
+    'Needs triage: set response targets under the approved schedule.',
+  ACKNOWLEDGEMENT_OVERDUE: 'Acknowledgement overdue.',
+  RESOLUTION_OVERDUE: 'Resolution overdue.',
+  ON_TARGET: 'Within the recorded response targets.',
+  COMPLETE: 'Human response completed.',
+}
 function localDate(value?: string | null) {
   if (!value) return ''
   const date = new Date(value)
@@ -29,7 +37,9 @@ export function EscalationCase({
   onSaved: () => void
 }) {
   const [status, setStatus] = useState(
-    states[Math.min(states.indexOf(item.status) + 1, 4)],
+    item.attention === 'NEEDS_TRIAGE'
+      ? 'OPEN'
+      : states[Math.min(states.indexOf(item.status) + 1, 4)],
   )
   const [severity, setSeverity] = useState<string>(item.severity)
   const [owner, setOwner] = useState(
@@ -131,6 +141,9 @@ export function EscalationCase({
       heading={`${item.trigger.replaceAll('_', ' ').toLowerCase()} · ${item.status.toLowerCase()}`}
     >
       <p>{item.reason}</p>
+      <p role={item.attention.endsWith('OVERDUE') ? 'alert' : undefined}>
+        {attentionLabels[item.attention]}
+      </p>
       <p>
         {item.severity.toLowerCase()} priority ·{' '}
         {new Date(item.created_at).toLocaleString()}
@@ -158,7 +171,8 @@ export function EscalationCase({
       <ol>
         {item.history.map((event, index) => (
           <li key={index}>
-            {String(event.status)} · {String(event.reason)}
+            {event.status} · {event.reason} ·{' '}
+            {new Date(event.at).toLocaleString()}
           </li>
         ))}
       </ol>

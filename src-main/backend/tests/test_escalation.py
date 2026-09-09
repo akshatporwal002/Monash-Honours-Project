@@ -20,6 +20,7 @@ from app.schemas.escalation import (
     QueueWrite,
     SamplingWrite,
 )
+from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
 from app.services.escalation import EscalationService
 from app.services.feedback.contracts import FeedbackReportWrite
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
@@ -130,7 +131,7 @@ def test_replay_scope_stale_actions_and_out_of_order_closure(db_session):
     with pytest.raises(LmsServiceError):
         service.report(actor, report)
     db_session.rollback()
-    with pytest.raises(Exception, match="permission|access"):
+    with pytest.raises(ScopedRoleAccessDeniedError):
         service.queue(student, fixture["course_id"], "ASSESSOR")
     now = datetime.now(UTC)
     command = EscalationActionWrite(
@@ -181,3 +182,59 @@ def test_existing_feedback_report_routes_and_accepted_output_can_be_sampled(db_s
     )
     assert service.evidence(actor, sample.id)["feedback"] == feedback.feedback_content
     assert len(list(db_session.scalars(select(EscalationCase)))) == 2
+
+
+def test_overdue_triage_and_unreleased_notices_preserve_private_history(db_session):
+    from test_assessor_review_api import _request
+
+    from app.domain.assessment import AssessorReviewAction, ResultState
+    from app.services.assessment.review import AssessmentReviewService
+    from app.services.escalation_sources import record_signal
+
+    fixture, service, actor, _, student, _, _ = setup(db_session)
+    case = record_signal(
+        db_session,
+        source_kind="ASSESSMENT",
+        source_id=fixture["attempt_id"],
+        trigger="CONFLICTING_EVIDENCE",
+        reason="Human review required.",
+    )
+    db_session.commit()
+    assert service.queue(actor, fixture["course_id"], "ASSESSOR")[0].attention == "NEEDS_TRIAGE"
+    command = EscalationActionWrite(
+        expected_revision=0,
+        idempotency_key="triage",
+        status="OPEN",
+        severity="CRITICAL",
+        owner_user_id=actor.id,
+        acknowledgement_due_at=datetime(2020, 1, 1, tzinfo=UTC),
+        resolution_due_at=datetime(2020, 1, 2, tzinfo=UTC),
+        reason="PRIVATE checked evidence",
+        learner_notice="Your result is PASS.",
+    )
+    assert service.act(actor, case.id, command).attention == "ACKNOWLEDGEMENT_OVERDUE"
+    command = command.model_copy(
+        update={"expected_revision": 1, "idempotency_key": "ack", "status": "ACKNOWLEDGED"}
+    )
+    assert service.act(actor, case.id, command).attention == "RESOLUTION_OVERDUE"
+    assert "PASS" not in service.learner_cases(student, fixture["task_id"])[0].model_dump_json()
+    assert db_session.scalar(select(EscalationEvent.learner_notice)) == "Your result is PASS."
+    reviews = AssessmentReviewService(db_session, assignments=RoleAssignmentService(db_session))
+    reviews.act(
+        actor, decision_id=fixture["decision_id"], request=_request(AssessorReviewAction.CONFIRM)
+    )
+    assert (
+        service.learner_cases(student, fixture["task_id"])[0].notices[0].learner_notice
+        == "Your result is PASS."
+    )
+    reviews.act(
+        actor,
+        decision_id=fixture["decision_id"],
+        request=_request(
+            AssessorReviewAction.VOID, expected_state=ResultState.CONFIRMED, expected_revision=1
+        ),
+    )
+    assert "PASS" not in service.learner_cases(student, fixture["task_id"])[0].model_dump_json()
+    retained = service.queue(actor, fixture["course_id"], "ASSESSOR")[0]
+    assert retained.notices[0].learner_notice == "Your result is PASS."
+    assert retained.attention == "RESOLUTION_OVERDUE"

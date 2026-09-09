@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from app.domain.assessment import AssessmentResult, AssessorReviewAction, ResultState
 from app.models.enums import FeedbackStatus
-from app.models.persistence import FeedbackRecord, WorkflowRun
+from app.models.persistence import FeedbackRecord, StudentProfile, WorkflowRun
 from app.models.user import User
 from app.services.assessment.access import RoleAssignmentService
 from app.services.assessment.review import AssessmentReviewActionRequest, AssessmentReviewService
@@ -17,6 +17,8 @@ from support.assessment_review import seed_review_context
 def seed_human_workflows(session):
     fixture = seed_review_context(session, reassessment=True)
     owner = session.scalar(select(User).where(User.email == fixture["educator_email"]))
+    student = session.scalar(select(User).where(User.email == fixture["student_email"]))
+    session.add(StudentProfile(user_id=student.id, display_name=student.full_name))
     backup = User(
         email=f"backup-{uuid4().hex}@example.edu",
         full_name="Backup reviewer",

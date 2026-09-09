@@ -204,6 +204,15 @@ class ReassessmentService:
     def require_start(self, student_id, task, versions):
         grant = self.for_task(student_id, task.id)
         if grant is None:
+            form = (
+                self.session.get(TaskFormVersion, versions.task_form_version_id)
+                if versions
+                else None
+            )
+            if form and form.context.get("equivalent_to_form_id"):
+                raise LmsServiceError(
+                    409, "Ask an assessor to authorise this fresh reassessment before starting"
+                )
             return
         self._active_grant(grant)
         if versions is None or versions.task_form_version_id != grant.task_form_version_id:
