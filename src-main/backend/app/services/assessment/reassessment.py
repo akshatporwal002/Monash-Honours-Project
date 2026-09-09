@@ -209,7 +209,13 @@ class ReassessmentService:
                 if versions
                 else None
             )
-            if form and form.context.get("equivalent_to_form_id"):
+            policy = self.policy(form.assessment_definition_version_id) if form else None
+            required = (
+                policy
+                and policy.selection_rule == "ALL_REQUIRED_FORMS"
+                and form.id in policy.required_form_ids
+            )
+            if form and form.context.get("equivalent_to_form_id") and not required:
                 raise LmsServiceError(
                     409, "Ask an assessor to authorise this fresh reassessment before starting"
                 )
@@ -319,6 +325,16 @@ class ReassessmentService:
                 422, "Choose a fresh equivalent form under the same approved standard"
             )
         task = self._current_form(form)
+        policy = self.policy(attempt.assessment_definition_version_id)
+        if (
+            policy
+            and policy.selection_rule == "ALL_REQUIRED_FORMS"
+            and form.id in policy.required_form_ids
+        ):
+            raise LmsServiceError(
+                422,
+                "Required forms must be attempted independently; choose an additional equivalent form for reassessment",
+            )
         if (
             self.session.scalar(
                 select(AssessmentWorkStart.id).where(

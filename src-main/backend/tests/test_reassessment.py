@@ -49,7 +49,11 @@ def context(session, *, rule="LATEST_VALID"):
         ),
     )
     command = ReassessmentWrite(
-        task_form_version_id=setup.forms[0].id,
+        task_form_version_id=(
+            publish_equivalent(session, fixture, owner, service).id
+            if rule == "ALL_REQUIRED_FORMS"
+            else setup.forms[0].id
+        ),
         expected_decision_revision=1,
         reason="PRIVATE: fresh equivalent form reviewed.",
         learner_notice="Use the fresh form to explain the relationship again.",
@@ -63,6 +67,19 @@ def test_authorised_fresh_attempt_and_outcome_selection(db_session, rule):
     projection = OutcomeResultService(db_session)
     before = projection.read(student, fixture["response_id"])
     assert before.result is AssessmentResult.INCOMPLETE
+    if rule == "ALL_REQUIRED_FORMS":
+        required = next(
+            form
+            for form in service.setup(owner, fixture["decision_id"]).policy_forms
+            if form.task_id == fixture["fresh_task_id"]
+        )
+        with pytest.raises(LmsServiceError, match="Required forms must be attempted independently"):
+            service.authorise(
+                owner,
+                fixture["decision_id"],
+                command.model_copy(update={"task_form_version_id": required.id}),
+            )
+        db_session.rollback()
     grant = service.authorise(owner, fixture["decision_id"], command)
     assert service.authorise(owner, fixture["decision_id"], command).id == grant.id
     assert "PRIVATE" not in projection.read(student, fixture["response_id"]).model_dump_json()
@@ -93,6 +110,29 @@ def test_authorised_fresh_attempt_and_outcome_selection(db_session, rule):
     )
     assert response.id in current.evidence_response_ids
     assert not current.authorisations[0].available
+    if rule == "ALL_REQUIRED_FORMS":
+        required_work = lms.start_assessment_work(student, required.task_id, required.id)
+        independent = lms.submit(
+            student,
+            required.task_id,
+            SubmissionCreate(
+                answer=ANSWER,
+                assessment_work_start_id=required_work.assessment_work_start_id,
+                idempotency_key="independent-required-form",
+            ),
+        )
+        independent_attempt = db_session.scalar(
+            select(AssessmentAttempt).where(AssessmentAttempt.response_version_id == independent.id)
+        )
+        required_decision = build_provisional_decision(
+            db_session, independent_attempt, suffix="required"
+        )
+        reviews.act(
+            owner, decision_id=required_decision.id, request=_request(AssessorReviewAction.CONFIRM)
+        )
+        completed = projection.read(student, independent.id)
+        assert completed.result is AssessmentResult.PASS
+        assert set(completed.evidence_response_ids) == {response.id, independent.id}
     assert (
         db_session.get(AssessmentDecision, fixture["decision_id"]).result
         is AssessmentResult.INCOMPLETE
@@ -216,15 +256,13 @@ def test_published_rule_distinguishes_latest_evidence_from_any_valid_pass(
     )
 
 
-def test_assessor_can_add_equivalent_forms_without_revising_the_standard(db_session):
+def publish_equivalent(db_session, fixture, owner, service):
     from support.task_review import approve_sourced_fixture_task
 
-    from app.models.assessment import AssessmentDefinitionVersion, TaskFormVersion
     from app.models.persistence import LearningTask
     from app.schemas.reassessment import EquivalentFormWrite
     from app.services.assessment.equivalent_forms import EquivalentFormService
 
-    fixture, owner, student, reviews, service, original_command = context(db_session)
     original = db_session.get(LearningTask, fixture["task_id"])
     fresh = LearningTask(
         slug=f"another-form-{uuid4().hex}",
@@ -251,12 +289,22 @@ def test_assessor_can_add_equivalent_forms_without_revising_the_standard(db_sess
     command = EquivalentFormWrite(
         task_id=fresh.id,
         revision_id=candidate.revision_id,
-        template_form_id=setup.forms[0].id,
+        template_form_id=setup.policy_forms[0].id,
         reason="The assessor reviewed the fresh scenario against the same criteria and conditions.",
     )
     forms = EquivalentFormService(db_session)
     added = forms.publish(owner, fixture["definition_id"], command)
     assert forms.publish(owner, fixture["definition_id"], command).id == added.id
+    return added
+
+
+def test_assessor_can_add_equivalent_forms_without_revising_the_standard(db_session):
+    from app.models.assessment import AssessmentDefinitionVersion, TaskFormVersion
+    from app.models.persistence import LearningTask
+
+    fixture, owner, student, reviews, service, original_command = context(db_session)
+    added = publish_equivalent(db_session, fixture, owner, service)
+    fresh = db_session.get(LearningTask, added.task_id)
     form = db_session.get(TaskFormVersion, added.id)
     definition = db_session.get(AssessmentDefinitionVersion, fixture["definition_id"])
     assert form.assessment_definition_version_id == definition.id
@@ -289,3 +337,45 @@ def test_assessor_can_add_equivalent_forms_without_revising_the_standard(db_sess
     assert len(grants) == 2
     assert not next(item for item in grants if item.id == earlier.id).available
     assert next(item for item in grants if item.id == renewed.id).available
+
+
+def test_additional_required_form_can_be_completed_after_an_initial_pass(db_session):
+    fixture = seed_review_context(db_session)
+    owner = db_session.scalar(select(User).where(User.email == fixture["educator_email"]))
+    student = db_session.scalar(select(User).where(User.email == fixture["student_email"]))
+    service = ReassessmentService(db_session)
+    extra = publish_equivalent(db_session, fixture, owner, service)
+    required = service.setup(owner, fixture["decision_id"]).policy_forms
+    service.publish_policy(
+        owner,
+        fixture["definition_id"],
+        OutcomePolicyWrite(
+            selection_rule="ALL_REQUIRED_FORMS",
+            required_form_ids=[form.id for form in required],
+            reason="Both published forms are independent required evidence.",
+        ),
+    )
+    reviews = AssessmentReviewService(db_session, assignments=RoleAssignmentService(db_session))
+    reviews.act(
+        owner, decision_id=fixture["decision_id"], request=_request(AssessorReviewAction.CONFIRM)
+    )
+    lms = LmsService(db_session)
+    work = lms.start_assessment_work(student, extra.task_id, extra.id)
+    response = lms.submit(
+        student,
+        extra.task_id,
+        SubmissionCreate(
+            answer=ANSWER,
+            assessment_work_start_id=work.assessment_work_start_id,
+            idempotency_key="additional-required",
+        ),
+    )
+    attempt = db_session.scalar(
+        select(AssessmentAttempt).where(AssessmentAttempt.response_version_id == response.id)
+    )
+    decision = build_provisional_decision(db_session, attempt, suffix="additional-required")
+    reviews.act(owner, decision_id=decision.id, request=_request(AssessorReviewAction.CONFIRM))
+    result = OutcomeResultService(db_session).read(student, response.id)
+    assert result.result is AssessmentResult.PASS
+    assert set(result.evidence_response_ids) == {fixture["response_id"], response.id}
+    assert result.authorisations == []
