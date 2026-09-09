@@ -372,6 +372,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 20, 22, and 24. Suggested owner: LMS and worker.
 
+    Implemented 9 September 2026: dashboard reads no longer create reminders or persist recommendations. The database worker delivers reminders with a rolling 24-hour guard, current access/submission checks, learner notification preferences, course time zones and owner-recorded individual deadline/access arrangements. Task 22's adaptation remains separate; the existing recommendation projection is retained. Operation and restoration guidance: [reminders and backups](src-main/docs/reminders-and-backups.md).
+
     `student_dashboard` creates reminders, stores recommendations, and commits during a GET. Move these changes to explicit commands or scheduled jobs. Add course time zones, extensions, access plans, notification preferences, and current completion checks. Enforce at most one reminder per task in 24 hours with a concurrency-safe rule.
 
     Done when repeated dashboard reads make no state changes. Test simultaneous processing, time-zone boundaries, extensions, completed work, and disabled notifications.
@@ -443,6 +445,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 37. **Prove security, migration safety, restart recovery, and restore completeness.**
 
     Dependencies: Tasks 9, 10, 19, 25, 26, 28, 33, and 36. Suggested owner: platform and security reviewers.
+
+    Partial progress, 9 September 2026: a verified bundle now captures a consistent SQLite snapshot and every referenced uploaded source, including historical revisions, and restores only into a new isolated directory. Checks cover table contents, schema/history guards, migration head, foreign keys and source-file hashes. Reminder concurrency/restart and migration rollback guards have focused tests. Complete-system termination, provider-fault, research/export and release drills remain outstanding.
 
     Existing migration and worker tests cover useful parts. Exercise the complete system with concurrent submissions, process termination, provider timeout, malformed output, simulation failure, and database contention. Check cross-user/course access, costly-route limits, upload handling, secret protection, and safe logs. Restore the database and uploaded files into an isolated environment.
 
