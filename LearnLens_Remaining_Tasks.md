@@ -1,21 +1,25 @@
 # LearnLens remaining tasks
 
-Status updated on 9 September 2026 against `main` at `bb5aea6`.
+Status updated on 9 September 2026 for sequential integration of Task 40 (`b3164a8`) and Tasks 36/37/39 (`f1b01eb`) onto fetched `origin/main` at `1f39448`.
 
 | Status | Tasks |
 | --- | --- |
-| Completed and merged | 1–7, 9–20, 23, 24, 26, 30, 31 |
+| Completed and merged | 1–7, 9–24, 26, 30, 31 |
 | Partial: approvals or integration remain | 8, 28, 32, 40 |
-| In progress elsewhere; not delivered on this main | 21, 22 |
 | Partial: automated checks or recovery tooling delivered; final evidence remains | 36, 37, 39 |
 | Remaining | 25, 27, 29, 33–35, 38, 41 |
 
 “Completed” records the delivered implementation scope, not approval to activate a
-live study or release. Tasks 21 and 22 retain the team's reported in-progress
-status; their completion is not verified in this checkout. Task 28's reporting
+live study or release. Tasks 21 and 22 are verified in fetched remote main:
+implementation commits `5a25ae4` and `8602fb3` are ancestors of `1f39448`.
+Their combined migration head is `20260909_0042`. Task 28's reporting
 and human queues are delivered, but Task 27's misconception integration remains.
 
-Latest delivery: Tasks 26, 28 and 31 reached main at `742c28c`; Task 30 and the
+Current integration: Task 40 and the Tasks 36/37/39 validation batch are combined
+with Tasks 21–22. See [integration evidence](docs/learnlens/task-40-validation-integration.md)
+for review, test reuse, affected checks and outstanding acceptance.
+
+Earlier delivery: Tasks 26, 28 and 31 reached main at `742c28c`; Task 30 and the
 backup/restore portion of Task 37 reached main at `bb5aea6`. Validation covered
 1,168 backend cases with 87% service coverage, frontend tests and build, and
 108 browser journeys across Chrome, Edge, Firefox and WebKit. All 12 initial
@@ -305,7 +309,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 12, 18, and 20. Suggested owner: learning pathway services.
 
-    Implemented locally in `.tmp-coordinator/task21`, with the uncommitted Task 20 dependency preserved separately.
+    Implemented in `.tmp-coordinator/task21`; Task 20 and Task 21 are now committed and merged into remote main through `1f39448`.
     Versioned graphs link approved tasks, concepts, source approvals, task forms, assessment rules, and exit guidance.
     Learners can save initial or prior-mastery diagnostics as protected learning evidence.
     A current course assessor must confirm independent conditions and give a reason before practice prerequisites can be bypassed.
@@ -317,7 +321,7 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 22. **[Completed] Connect learner evidence to the next approved activity.**
 
-    Implemented and locally verified in `.tmp-coordinator/task22`, including the uncommitted Task 20 and Task 21 dependencies.
+    Implemented and locally verified in `.tmp-coordinator/task22`; Tasks 20–22 are now committed and merged into remote main through `1f39448`.
 
     The shipped worker now records one durable model update after eligible checked feedback and selects approved activities.
     Protected decisions retain evidence, uncertainty, model/rule/pathway versions, learner choices, and educator override reasons.
@@ -475,6 +479,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 36. **[Partial] Refresh traceability and run the complete automated checks.**
 
+    Independent validation batch, 9 September 2026: refreshed the verified recovery/accessibility rows and expanded-requirement crosswalk in [requirements traceability](src-main/docs/requirements-traceability.md). [Batch evidence](docs/learnlens/task-36-37-39-validation.md) records exact checks and limits. Full row-by-row traceability and final combined validation remain outstanding.
+
     Partial progress, 9 September 2026: the current delivery passed local backend, frontend, browser, formatting, lint, contract and secret checks, with 87% backend service coverage. Python and production npm audits found no known vulnerabilities; two moderate development npm advisories remain. Full requirements traceability and final combined validation after the outstanding features remain open.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
@@ -486,6 +492,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
     Evidence: [quality.yml](.github/workflows/quality.yml), [implementation-gap-matrix.md](docs/learnlens/implementation-gap-matrix.md), and [work order](docs/03-codex-implementation-work-order.md).
 
 37. **[Partial] Prove security, migration safety, restart recovery, and restore completeness.**
+
+    Independent validation batch, 9 September 2026: added formal-assessment process-kill recovery, deterministic timeout/malformed-evidence retries, real SQLite contention before claim and after decision commit, and migrated assessment backup/restore checks. Tests assert one decision and preserved frozen response/history. This extends delivered workflows only; full adaptation/research, live-provider and release drills remain outstanding. See [batch evidence](docs/learnlens/task-36-37-39-validation.md).
 
     Dependencies: Tasks 9, 10, 19, 25, 26, 28, 33, and 36. Suggested owner: platform and security reviewers.
 
@@ -508,6 +516,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
     Evidence: [configuration](src-main/backend/app/core/config.py), [LLM service](src-main/backend/app/services/llm.py), [deployment configuration](src-main/deploy), and requirements NFR7-NFR8 and NFR22.
 
 39. **[Partial] Complete browser, accessibility, and first-time usability checks.**
+
+    Independent validation batch, 9 September 2026: added login keyboard validation/error and enlarged-text reflow, and preference error/retry/focus/save coverage. Fixed hidden preference-load errors, rejected save payloads and login overflow. [Batch evidence](docs/learnlens/task-36-37-39-validation.md) separates automated browser results from outstanding native Safari, manual screen-reader/zoom and first-time usability trials.
 
     Partial progress, 9 September 2026: 108 automated browser journeys have passing results across Chrome, Edge, Firefox and Playwright WebKit, including reminder/deadline flows, keyboard and automated accessibility checks. Native Safari, manual screen-reader/zoom checks and the specified first-time usability trials remain open.
 

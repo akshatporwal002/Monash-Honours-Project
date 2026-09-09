@@ -13,6 +13,8 @@ const playwrightEntry = fileURLToPath(
   new URL('../node_modules/@playwright/test/cli.js', import.meta.url),
 )
 const services = []
+const apiPort = process.env.QUANTUMLEARN_E2E_API_PORT ?? '4180'
+const webPort = process.env.QUANTUMLEARN_E2E_WEB_PORT ?? '4173'
 
 function start(command, arguments_, cwd = root) {
   const child = spawn(command, arguments_, {
@@ -111,8 +113,8 @@ async function run() {
     'vite.e2e.config.ts',
   ])
   await waitUntilReady([
-    'http://127.0.0.1:4180/api/v1/health',
-    'http://127.0.0.1:4173/e2e.html',
+    `http://127.0.0.1:${apiPort}/api/v1/health`,
+    `http://127.0.0.1:${webPort}/e2e.html`,
   ])
 
   const runner = spawn(

@@ -1,9 +1,10 @@
+import { apiUrl } from './urls'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 for (const method of ['rules', 'human'] as const) {
   test(`assessor authors and publishes ${method} criteria through the real API`, async ({ page, request }) => {
-    const fixture = await request.post('http://127.0.0.1:4180/e2e/assessment-authoring-fixture')
+    const fixture = await request.post(`${apiUrl}/e2e/assessment-authoring-fixture`)
     expect(fixture.ok()).toBeTruthy()
     const ids = await fixture.json() as {
       course_id: string; outcome_id: string; task_id: string

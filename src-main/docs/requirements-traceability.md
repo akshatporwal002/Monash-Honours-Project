@@ -1,9 +1,10 @@
 # QuantumLearn MVP requirements traceability
 
-This matrix audits the live implementation against the authoritative root
-`Software Requirements Specification.txt`. It maps each FR1–FR28 and NFR1–NFR25 to concrete
-application surfaces and verification evidence. It does not treat the existence of code as proof
-that a measured target has been achieved.
+This historical MVP matrix maps FR1–FR28 and NFR1–NFR25 from the root
+`Software Requirements Specification.txt` to application surfaces and verification evidence.
+The dated LearnLens batch crosswalk below identifies the rows refreshed against delivered code
+and the wider requirements still awaiting reconciliation. Code existence does not prove a
+measured target has been achieved.
 
 ## Evidence labels
 
@@ -64,8 +65,8 @@ the other external measurements identified below are not implied by these local 
 | NFR1 | **Externally measurable** | Minimal role-specific UI, empty/error/loading states, and a four-step educator wizard. | No educator/student review dataset currently proves an average usability score ≥7/10. |
 | NFR2 | **Externally measurable** | `CourseEditor` joins details, material, outcome, generation, review, and publish actions. | Five first-time educator timed trials are still required to prove ≤20 minutes. |
 | NFR3 | **Externally measurable** | Login, dashboard, task dialog, submit, and feedback polling are connected in the role app. | A first-time student study is required to prove ≥80% complete the workflow unaided within 15 minutes. |
-| NFR4 | **Implemented — manual** | Semantic controls, focus styles, skip link, keyboard alternatives to drag/drop, reduced-motion CSS, and accessible feedback/analytics components. | Axe tests cover login plus feedback/analytics, and component tests exercise keyboard-operable controls. A manual complete-workflow assistive-technology pass is still appropriate before claiming no critical barriers across every role. |
-| NFR5 | **Implemented — manual** | Transactions, uniqueness/idempotency, immutable attempts/audits, leased workflow recovery, migrations, and durable worker heartbeat. | Recovery/concurrency tests cover feedback/workers, but a forced full-application restart script proving zero lost/duplicate accepted LMS records is not committed. |
+| NFR4 | **Implemented — manual** | Semantic controls, focus styles, keyboard alternatives and accessible feedback/analytics; login reflows at 320 CSS pixels with 200% text enlargement; preference-load failures announce an error and support keyboard retry with restored focus. | `e2e/accessibility-interactions.e2e.ts` covers login validation, accessible names, real preference save, error/retry, focus and reflow. Existing `a11y-routes.e2e.ts` covers delivered role routes. Automated checks do not establish complete WCAG 2.2 AA conformance; manual screen-reader and native zoom evidence remain open. |
+| NFR5 | **Implemented — manual** | Durable acceptance, fenced claims, idempotent decisions, immutable response history and database worker recovery. | Existing `test_task7_worker_recovery.py` kills a feedback worker after an API-accepted submission; `test_material_processing_recovery.py` covers material interruption. Added `test_assessment_evaluation_jobs.py` kills a process after a persisted formal-assessment claim, then recovers exactly one decision. This formal fixture is service-level acceptance, not a full API/worker/adaptation termination drill. Complete-system validation remains open. |
 | NFR6 | **Externally measurable** | Health/readiness endpoints support monitoring. | No hosted monthly telemetry proves 99.5% availability. |
 | NFR7 | **Externally measurable** | Provider timeouts, indexed queries, pagination/limits, and bounded circuit execution exist. | No 50-user load result proves the three p95 thresholds and <1% error rate. |
 | NFR8 | **Externally measurable** | Stateless API services plus SQLite’s documented single-worker boundary. | No 5→100-user comparative load test proves the required scaling curve; SQLite may be the limiting architecture. |
@@ -77,13 +78,13 @@ the other external measurements identified below are not implied by these local 
 | NFR14 | **Externally measurable** | Judge thresholds and deliberately flawed unit/scenario cases are automated. | The approved validation dataset is required to establish ≥80% flawed rejection and ≤20% false rejection. |
 | NFR15 | **Externally measurable** | Argon2id passwords, signed/expiring cookies, role guards, CSRF/rate-limit policies, secure-cookie production guard, CORS, security headers, dependency audits, and secret scan. | Authorization/hashing controls are automated. Hosted TLS and a release-time report with zero unresolved critical/high findings remain external evidence. |
 | NFR16 | **Automated** | Route-template logging and recursive redaction; HMAC-separated pseudonyms; allow-listed event/export schemas; no answer text in learning events. | Privacy/security, learning-event, audit, analytics, and export sentinel tests. |
-| NFR17 | **Automated** | Foreign keys/checks/unique constraints, immutable attempts, one released feedback record, fenced worker claims, serialized attempt allocation, and verified SQLite backup restoration. Migration `20260726_0014` adds database insert/update triggers that reject missing or cross-course task/module/outcome/material relationships even outside service code. | Migration tests execute invalid direct SQL and prove all four scope triggers reject it. Concurrency tests prove the stored attempt sequence is exactly `1..8`; the backup verifier restores a separate candidate, runs integrity/FK checks, and matches every table by row count and content digest. |
-| NFR18 | **Implemented — manual** | Playwright defines Chrome Stable, Edge Stable, Firefox, and WebKit projects over five critical cross-role scenarios; CI installs and runs all four projects. | Local Edge Stable and WebKit runs passed 5/5 each. Native latest Safari still requires macOS release evidence; local Chrome installation lacked machine installer privileges, and the local Firefox binary hit a Windows headless compositor failure. Those environment limitations are not recorded as application passes. |
+| NFR17 | **Automated** | Foreign keys, scope guards, immutable attempts/decisions, idempotent jobs and verified SQLite database/upload bundles. | `test_data_integrity.py` covers concurrent attempt sequences; migrations exercise scope and history guards. Added assessment tests hold real SQLite writer locks before claim and after decision commit, then recover one decision and criterion history. A migrated assessment database is bundled/restored with preserved response digest, decision ID, foreign keys and a working immutable-decision guard. `test_learning_backup.py` separately restores current and historical source bytes. |
+| NFR18 | **Implemented — manual** | Current delivered role routes run through Playwright Chrome, Edge, Firefox and WebKit projects. Test fixtures, proxy and runner share configurable API/web ports for isolated worktrees. | See the dated batch delivery record below for exact local results. Playwright WebKit is not native Safari; native Safari and hosted browser evidence remain open. |
 | NFR19 | **Implemented — manual** | A Compose package runs nginx/React, FastAPI, and a recovery worker with one persistent data volume; a hosted overlay changes environment configuration only. It includes hardened containers, readiness, migration startup, first-admin provisioning, and a smoke script. | Local and hosted Compose configurations validate and deployment-runtime tests pass. An actual Docker-engine local run plus a hosted DNS/TLS deployment running the same suite remain release-environment evidence. |
 | NFR20 | **Automated** | Append-only `AuditEvent` covers feedback/research; correlated `PlatformAuditEvent` covers successful/failed login, logout, course/module/outcome/task/submission/progress/admin actions. Unknown login subjects are hashed rather than stored directly. | Authentication, LMS, feedback audit mapping, append-only, privacy, and research-export audit tests. |
 | NFR21 | **Automated** | Feedback UI displays the AI notice, source labels, simulation references, and an accessible reporting control; safe fallback is fixed content. | Feedback UI/API/pipeline, report, safety-policy, and accessibility tests. |
 | NFR22 | **Externally measurable** | Token/cost metadata, configurable per-token rates, and administrator-managed provider/model values are resolved by both live feedback and task-generation factories without source edits. | Runtime-selection and metadata tests exist. A measured AUD-denominated completed-loop average is still required to prove ≤AUD 0.10. |
-| NFR23 | **Automated** | Typed/sanitized failures, timeouts, rollback, retries, fallback, bounded input, readiness against Alembic head `20260726_0014`, and built-in offline worker recovery. | Invalid input, missing retrieval, provider timeout/error, malformed response, simulation failure, storage failure, migration readiness, and stale-worker tests. |
+| NFR23 | **Automated** | Typed failures, bounded retries, safe fallback, rollback, readiness against the current Alembic head and durable worker recovery. | Added assessment timeout and malformed-evidence cases assert scheduled retry, no partial decision, unchanged frozen response, then one completed decision after recovery. Existing feedback, simulation and material tests cover their fault paths. Head for this batch baseline: `20260909_0039`; complete-system/live-provider drills remain open. |
 | NFR24 | **Externally measurable** | Course/module/outcome/task domain and most RAG/feedback services are subject-neutral at their boundaries. | No documented second-subject demonstration and elapsed implementation evidence proves the “within a few days” target. |
 | NFR25 | **Automated** | Versioned CSV/JSON research export includes case/condition/input references/sources/outputs/judge results/latency/tokens/cost. The live feedback factory wires `DurableTerminalIntegrationPlanner`, HMAC pseudonymisation, configured eligibility, and provider/model metadata into the durable outbox. | Terminal-outbox eligibility/integration tests cover the handoff; research repository/export golden-file and privacy tests cover the exact export schema. The canonical learning-loop test also exercises this live feedback factory rather than a test-only pipeline. |
 
@@ -107,10 +108,27 @@ used, inspected, copied, or treated as a design source.**
 ## Release interpretation
 
 “Automated” means a directly relevant test exists; it does not waive a stricter external
-measurement stated by another NFR. The repository has no known functional **Gap** row, but a
-complete release claim still requires:
+measurement stated by another NFR. This historical MVP matrix is not a complete audit of the expanded LearnLens requirements.
+Tasks 36, 37 and 39 remain partial; a complete release claim still requires:
 
 1. a green locked backend/frontend/contract/audit CI gate;
 2. completing the usability, timing, availability, load, review-dataset, hosted-security,
    native-browser, deployment, restart-recovery, and reusability measurements labelled
    **Externally measurable** or identified as remaining manual evidence.
+
+## Independent validation batch - 9 September 2026
+
+Scope and exact run evidence: [Tasks 36/37/39 delivery](../../docs/learnlens/task-36-37-39-validation.md).
+This update applies to delivered `origin/main` at `e3ce194`; it excludes Tasks 21, 22 and 40.
+The expanded [implementation requirements](../../docs/01-implementation-requirements.md) and
+[assessment specification](../../docs/02-pass-incomplete-bloom-assessment-spec.md) remain authoritative.
+Older untouched MVP rows and the written-frontend-brief snapshot are historical, not new validation claims.
+
+| Requirement | Evidence added or rechecked in this batch | Outstanding acceptance |
+| --- | --- | --- |
+| FR12, FR19, FR26; BP8; AT22 | Assessment interruption, provider-fault and real-contention tests preserve the frozen response and one immutable decision; migrated restore preserves those records and guards. | Full learning-loop, adaptation and governed-research integration; operational restore drill with the final release dataset. |
+| NFR4; AC17 | Login keyboard validation/error, 320px reflow and 200% CSS text enlargement; preferences error announcement, keyboard retry, focus and successful real API write; strict WCAG-tagged axe scans of these states. | Complete key-path WCAG 2.2 AA assessment, native browser zoom and manual assistive technology review. |
+| NFR5, NFR17, NFR23 | Existing feedback/material recovery plus new assessment recovery and contention coverage; exact tests and results in the delivery record. | Combined process-termination and live-provider drills after outstanding features merge. |
+| NFR15, NFR16; AT17 | Existing authentication, scoped assessment/source/research access, privacy, upload and audit coverage is retained in regression. | Hosted TLS, live permission/approval drills and release-time security sign-off. No new research authorisation is granted. |
+| AT24 | Existing result/review keyboard and automated accessibility tests remain relevant. The new preference/login tests do not verify result screen-reader use. | Manual learner result, criteria, next-action and review-control screen-reader evidence. |
+| PD1-PD12; BP1-BP7, BP9-BP15 | No new complete-system, construct-equivalence, adaptation, research or human-approval evidence is claimed by this batch. | Row-by-row expanded traceability and final combined validation remain Task 36 work. |

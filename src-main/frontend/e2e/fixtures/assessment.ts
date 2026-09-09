@@ -1,3 +1,4 @@
+import { apiUrl } from '../urls'
 import { expect, test as base } from '@playwright/test'
 
 type AssessmentReviewFixture = {
@@ -18,7 +19,7 @@ export { expect }
 // The server creates new records on every call, with no shared decision to reset.
 export const test = base.extend<{ assessmentReview: AssessmentReviewFixture }>({
   assessmentReview: async ({ request }, provideFixture, testInfo) => {
-    const response = await request.post('http://127.0.0.1:4180/e2e/assessment-review-fixture')
+    const response = await request.post(`${apiUrl}/e2e/assessment-review-fixture`)
     expect(response.ok()).toBeTruthy()
     const fixture: AssessmentReviewFixture = await response.json()
     await testInfo.attach('assessment-records', {

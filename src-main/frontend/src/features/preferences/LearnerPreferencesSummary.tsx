@@ -26,7 +26,7 @@ export function LearnerPreferencesSummary() {
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
   useEffect(() => { void api.preferences.read().then((loaded) => { const normalised = normalise(loaded); setValue(normalised); setDraft(normalised) }).catch(() => setStatus('Preferences could not be loaded. Task work remains available.')) }, [])
-  if (!value || !draft) return <Card eyebrow="Optional support" heading="Learning preferences"><p role="status">Loading independent preferences…</p></Card>
+  if (!value || !draft) return <Card eyebrow="Optional support" heading="Learning preferences"><p role={status ? "alert" : "status"}>{status || 'Loading independent preferences…'}</p></Card>
   const change = <K extends keyof Preferences>(field: K, next: Preferences[K]) => setDraft({ ...draft, [field]: next })
   const save = async () => { setSaving(true); setStatus(''); try { const saved = await api.preferences.save({ ...draft, expected_revision: value.revision, idempotency_key: key() }); setValue(saved); setDraft(saved); setOpen(false); setStatus('Learning preferences saved.') } catch (error) { setStatus(error instanceof ApiError && error.status === 409 ? 'A newer preference revision exists. Reload before saving.' : 'Preferences could not be saved. Your choices are still here.') } finally { setSaving(false) } }
   const savePersonalisation = async (personalisation_enabled: boolean) => {

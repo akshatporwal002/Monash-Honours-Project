@@ -1,3 +1,4 @@
+import { webUrl } from './e2e/urls'
 import { defineConfig, devices } from '@playwright/test'
 
 const inCi = Boolean(process.env.CI)
@@ -15,7 +16,7 @@ export default defineConfig({
   workers: 1,
   reporter: inCi ? [['github'], ['list']] : 'list',
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: webUrl,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

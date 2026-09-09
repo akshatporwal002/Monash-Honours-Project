@@ -1,3 +1,4 @@
+import { apiUrl } from './urls'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
@@ -20,7 +21,7 @@ test('reminder opt-out survives reload and leaves task access available', async 
   request,
 }) => {
   const response = await request.post(
-    'http://127.0.0.1:4180/e2e/human-workflows-fixture',
+    `${apiUrl}/e2e/human-workflows-fixture`,
   )
   expect(response.ok()).toBeTruthy()
   const fixture = await response.json()
@@ -53,7 +54,7 @@ test('educator extension persists and learner sees only the public notice in cou
 }) => {
   test.setTimeout(90_000)
   const response = await request.post(
-    'http://127.0.0.1:4180/e2e/human-workflows-fixture',
+    `${apiUrl}/e2e/human-workflows-fixture`,
   )
   expect(response.ok()).toBeTruthy()
   const fixture = await response.json()

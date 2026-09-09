@@ -1,3 +1,4 @@
+import { apiUrl } from './urls'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
 
@@ -46,7 +47,7 @@ test('assessor authorises a fresh equivalent form and learner starts separate wo
 }) => {
   test.setTimeout(90_000)
   const seeded = await request.post(
-    'http://127.0.0.1:4180/e2e/human-workflows-fixture',
+    `${apiUrl}/e2e/human-workflows-fixture`,
   )
   expect(seeded.ok()).toBeTruthy()
   const fixture = await seeded.json()
@@ -138,7 +139,7 @@ test('learner reports output and assigned humans retain each response and sample
 }) => {
   test.setTimeout(120_000)
   const seeded = await request.post(
-    'http://127.0.0.1:4180/e2e/human-workflows-fixture',
+    `${apiUrl}/e2e/human-workflows-fixture`,
   )
   expect(seeded.ok()).toBeTruthy()
   const fixture = await seeded.json()
@@ -278,7 +279,7 @@ test('gamification opt-out persists while learning remains accessible', async ({
   request,
 }) => {
   const seeded = await request.post(
-    'http://127.0.0.1:4180/e2e/human-workflows-fixture',
+    `${apiUrl}/e2e/human-workflows-fixture`,
   )
   expect(seeded.ok()).toBeTruthy()
   const fixture = await seeded.json()
