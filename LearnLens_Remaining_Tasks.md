@@ -5,10 +5,10 @@ Status updated on 9 September 2026 against `main` at `bb5aea6`.
 | Status | Tasks |
 | --- | --- |
 | Completed and merged | 1–7, 9–20, 23, 24, 26, 30, 31 |
-| Partial: approvals or integration remain | 8, 28, 32 |
+| Partial: approvals or integration remain | 8, 28, 32, 40 |
 | In progress elsewhere; not delivered on this main | 21, 22 |
 | Partial: automated checks or recovery tooling delivered; final evidence remains | 36, 37, 39 |
-| Remaining | 25, 27, 29, 33–35, 38, 40, 41 |
+| Remaining | 25, 27, 29, 33–35, 38, 41 |
 
 “Completed” records the delivered implementation scope, not approval to activate a
 live study or release. Tasks 21 and 22 retain the team's reported in-progress
@@ -507,9 +507,28 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Evidence: [browser tests](src-main/frontend/e2e), [frontend components](src-main/frontend/src/components), and requirements NFR1-NFR4 and NFR18.
 
-40. **[Remaining] Demonstrate the approved reuse target.**
+40. **[Partial] Demonstrate the approved reuse target.**
 
     Dependencies: Tasks 25 and 36; Task 8, D-11. Suggested owner: a developer outside the main feature implementation.
+
+    Independent implementation, 9 September 2026: [conditional-programming delivery](docs/learnlens/task-40-conditional-programming.md)
+    supplies a separate draft course/module/outcome, two conditional tracing/correction
+    choice activities, and a prediction/explanation/reflection episode with corrected code,
+    revision links and a fresh delivery-fee example. Existing authoring, task handlers,
+    frozen evidence, human criterion evaluation and pass-rule capabilities are exercised
+    by automated checks. No existing core runtime changes were required. Tasks 21 and 22
+    were neither modified nor required by this implementation. Actual work and limits
+    are recorded; no approved sources, hours or independent validation are claimed.
+    Validation includes 13 focused cases, backend regression with 85% service coverage,
+    frontend/browser regression and the configured quality checks; the delivery record
+    distinguishes initial environment failures from successful unchanged targeted reruns.
+
+    Remaining: approved sources and exact scope, named independent verifier, measured
+    effort against the 16 developer-hour target, practical verification evidence, and
+    Tasks 25/36 completion including full model/adaptation reuse. Task 40 remains partial.
+    <!-- MANUAL FILL Task 40: Attach approved source versions and approval records;
+    name the independent verifier; link per-contributor effort accounting and actual
+    verification evidence for the final commit and complete integrated journey. -->
 
     D-11 approves a simple conditional-programming module and the 16 developer-hour target. Exact sources, a named verifier, and practical evidence remain due. Configure that module using the existing extension points. Record setup, coding, debugging, tests, documentation, and any core changes. Keep this exercise separate from claims that learning results generalise to that subject.
 

@@ -69,3 +69,17 @@ duplicate identifier is rejected instead of silently replacing production behavi
 Aliases can be registered with `register(..., aliases=(...))`. The MVP uses aliases only to read
 the early `quiz`, `code`, and `circuit` identifiers; new work should use stable, descriptive
 identifiers.
+
+## Second-subject content using existing types
+
+The [Task 40 conditional-programming module](../../docs/learnlens/task-40-conditional-programming.md)
+demonstrates composition without adding a task identifier. The draft factories in
+`backend/app/services/conditional_programming.py` configure existing multiple-choice
+handlers and an `explanation` episode for tracing, correction and fresh transfer.
+They use the ordinary LMS authoring contracts, episode evidence and proposed human
+assessment criteria. No handler, engine, migration or renderer change is required.
+
+`tests/test_conditional_programming.py` checks isolated course creation, marking,
+publication controls, frozen episode/revision evidence and assessment reuse.
+These synthetic checks do not approve the module's sources or verify the D-11
+effort target. Full model/adaptation integration and independent verification remain open.
