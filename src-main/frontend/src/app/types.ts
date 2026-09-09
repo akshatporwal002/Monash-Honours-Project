@@ -177,6 +177,7 @@ export interface ActivityItem {
 }
 
 export interface CourseSummary {
+  time_zone?: string
   id: string
   code: string
   title: string

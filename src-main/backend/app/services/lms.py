@@ -227,6 +227,7 @@ class LmsService:
             title=payload.title,
             description=payload.description,
             enrollment_open=payload.enrollment_open,
+            time_zone=payload.time_zone,
         )
         self.session.add(course)
         self.session.flush()
@@ -1103,7 +1104,6 @@ class LmsService:
 
     def student_dashboard(self, student: User) -> StudentDashboardRead:
         profile = self._require_profile(student)
-        self._create_overdue_reminders(student)
         tasks = self._student_tasks(student)
         task_reads = [self._task_read(task, student) for task in tasks]
         completed = [task for task in task_reads if task.access_status == "completed"]
@@ -1126,14 +1126,11 @@ class LmsService:
                 )
             )
         points_per_level = int(self._setting_value("points_per_level"))
-        calculated_recommendations = self._calculate_recommendations(
+        recommendations = self._calculate_recommendations(
             student,
             tasks,
             task_reads,
         )
-        self._persist_recommendations(student.id, calculated_recommendations)
-        self._commit()
-        recommendations = self._stored_recommendations(student.id)
         reminders = list(
             self.session.scalars(
                 select(Reminder)
@@ -1311,27 +1308,6 @@ class LmsService:
                 record.is_active = False
                 record.updated_at = datetime.now(UTC)
 
-    def _stored_recommendations(self, student_id: int) -> list[RecommendationRead]:
-        rows = self.session.execute(
-            select(Recommendation, LearningTask)
-            .join(LearningTask, LearningTask.id == Recommendation.task_id)
-            .where(
-                Recommendation.student_id == student_id,
-                Recommendation.is_active.is_(True),
-            )
-            .order_by(Recommendation.rank)
-        ).all()
-        return [
-            RecommendationRead(
-                task_id=recommendation.task_id,
-                title=task.title,
-                reason=recommendation.reason,
-                priority=recommendation.priority,
-                updated_at=recommendation.updated_at,
-            )
-            for recommendation, task in rows
-        ]
-
     def mark_reminder_read(self, student: User, reminder_id: str) -> ReminderRead:
         reminder = self.session.get(Reminder, reminder_id)
         if reminder is None or reminder.student_id != student.id:
@@ -1377,10 +1353,13 @@ class LmsService:
                     for attempt in attempts.values()
                     if attempt.score is not None and attempt.task_form_version_id is None
                 ]
+                from app.services.reminders import ReminderService
+
+                deadlines = ReminderService(self.session)
                 overdue = sum(
                     task.id not in completed_ids
-                    and task.due_at is not None
-                    and _aware(task.due_at) < now
+                    and (due := deadlines.deadline(student.id, task).effective_due_at) is not None
+                    and _aware(due) < now
                     for task in tasks
                 )
                 average = round(sum(scores) / len(scores)) if scores else None
@@ -2083,6 +2062,11 @@ class LmsService:
             # Staff must still see saved edits when they invalidate publication.
             assessment = None
         episode_plan = validate_reviewed_episode_plan(criteria)
+        due_at = task.due_at
+        if student is not None:
+            from app.services.reminders import ReminderService
+
+            due_at = ReminderService(self.session).deadline(student.id, task).effective_due_at
         return TaskRead(
             episode_plan={**learner_episode_plan(episode_plan), "supported_hints": []}
             if episode_plan
@@ -2096,7 +2080,7 @@ class LmsService:
             points=task.points,
             position=task.position,
             starter_code=task.starter_code,
-            due_at=task.due_at,
+            due_at=due_at,
             course_id=task.course_id,
             module_id=task.module_id,
             module_title=task.module,
@@ -2251,38 +2235,6 @@ class LmsService:
             result.setdefault(attempt.task_id, attempt)
         return result
 
-    def _create_overdue_reminders(self, student: User) -> None:
-        if not bool(self._setting_value("reminders_enabled")):
-            return
-        now = datetime.now(UTC)
-        completed_ids = set(
-            self.session.scalars(
-                select(SubmissionAttempt.task_id)
-                .where(
-                    SubmissionAttempt.student_id == student.id,
-                    SubmissionAttempt.status == AttemptStatus.COMPLETED,
-                )
-                .distinct()
-            ).all()
-        )
-        created = False
-        for task in self._student_tasks(student):
-            if (
-                task.id in completed_ids
-                or task.due_at is None
-                or _aware(task.due_at) > now - timedelta(hours=24)
-            ):
-                continue
-            reminder = self._create_reminder(
-                student.id,
-                task,
-                f"{task.title} is overdue. Resume it when you are ready.",
-                title=f"Overdue: {task.title}",
-            )
-            created = created or reminder is not None
-        if created:
-            self._commit()
-
     def _create_reminder(
         self,
         student_id: int,
@@ -2291,28 +2243,9 @@ class LmsService:
         *,
         title: str,
     ) -> Reminder | None:
-        if not bool(self._setting_value("reminders_enabled")):
-            return None
-        now = datetime.now(UTC)
-        existing = self.session.scalar(
-            select(Reminder).where(
-                Reminder.student_id == student_id,
-                Reminder.task_id == task.id,
-                Reminder.created_at >= now - timedelta(hours=24),
-            )
-        )
-        if existing:
-            return None
-        reminder = Reminder(
-            student_id=student_id,
-            task_id=task.id,
-            title=title,
-            message=message,
-            dedupe_window=str(int(now.timestamp() // (24 * 60 * 60))),
-            created_at=now,
-        )
-        self.session.add(reminder)
-        return reminder
+        from app.services.reminders import ReminderService
+
+        return ReminderService(self.session).send(student_id, task.id, message, title=title)
 
     def _next_incomplete_task(
         self,
@@ -2509,6 +2442,7 @@ class LmsService:
             description=course.description,
             state=course.state,
             enrollment_open=course.enrollment_open,
+            time_zone=course.time_zone,
             created_at=course.created_at,
             updated_at=course.updated_at,
             module_count=module_count,

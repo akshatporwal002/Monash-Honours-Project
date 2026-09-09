@@ -16,6 +16,7 @@ from app.api.routes import (
     lms,
     materials,
     reassessment,
+    reminders,
     research_exports,
     retrieval,
     task_generation,
@@ -41,6 +42,7 @@ api_router.include_router(learner_results.router)
 api_router.include_router(reassessment.router)
 api_router.include_router(escalation.router)
 api_router.include_router(gamification.router)
+api_router.include_router(reminders.router)
 api_router.include_router(tutor.router)
 api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(research_exports.router, tags=["research"])

@@ -6,6 +6,7 @@ from app.models import (  # noqa: F401
     gamification,
     learning_evidence,
     reassessment,
+    reminders,
     simulation,
     source_history,
     task_review,

@@ -434,6 +434,7 @@ export type ApiSchemas = {
     "code"?: (string) | (null)
     "description"?: string
     "enrollment_open"?: boolean
+    "time_zone"?: string
     "title": string
   }
   "CourseProgressRead": {
@@ -455,6 +456,7 @@ export type ApiSchemas = {
     "progress_percentage"?: number
     "state": ApiSchemas["CourseState"]
     "student_count"?: number
+    "time_zone"?: string
     "title": string
     "updated_at": string
   }
@@ -463,6 +465,7 @@ export type ApiSchemas = {
     "code"?: (string) | (null)
     "description"?: (string) | (null)
     "enrollment_open"?: (boolean) | (null)
+    "time_zone"?: (string) | (null)
     "title"?: (string) | (null)
   }
   "CriterionDecision": "MET" | "NOT_MET" | "NOT_EVALUABLE"
@@ -475,6 +478,30 @@ export type ApiSchemas = {
     "guidance": string
     "learner_description": string
     "simulation_references": Array<string>
+  }
+  "DeadlineArrangementRead": {
+    "active": boolean
+    "created_at": string
+    "due_at": (string) | (null)
+    "id": string
+    "kind": "EXTENSION" | "ACCESS_PLAN"
+    "learner_notice": string
+    "reason": string
+    "reminders_paused": boolean
+    "revision": number
+    "time_zone": string
+  }
+  "DeadlineArrangementWrite": {
+    "active"?: boolean
+    "expected_revision": number
+    "fold"?: (0 | 1) | (null)
+    "idempotency_key": string
+    "kind": "EXTENSION" | "ACCESS_PLAN"
+    "learner_notice": string
+    "local_due_at"?: (string) | (null)
+    "reason": string
+    "reminders_paused"?: boolean
+    "time_zone": string
   }
   "DraftRead": {
     "answer": string
@@ -1024,6 +1051,15 @@ export type ApiSchemas = {
     "id": string
     "mandatory": boolean
   }
+  "LearnerDeadlineRead": {
+    "arrangement_active"?: boolean
+    "effective_due_at": (string) | (null)
+    "learner_notice"?: (string) | (null)
+    "original_due_at": (string) | (null)
+    "reminders_paused": boolean
+    "task_id": string
+    "time_zone": string
+  }
   "LearnerDecisionEventRead": {
     "action": string
     "at": string
@@ -1372,6 +1408,17 @@ export type ApiSchemas = {
     "task_id": string
     "title": string
     "updated_at": string
+  }
+  "ReminderPreferenceRead": {
+    "enabled"?: boolean
+    "paused_until"?: (string) | (null)
+    "revision"?: number
+  }
+  "ReminderPreferenceWrite": {
+    "enabled": boolean
+    "expected_revision": number
+    "idempotency_key": string
+    "paused_until"?: (string) | (null)
   }
   "ReminderRead": {
     "created_at": string

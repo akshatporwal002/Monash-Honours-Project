@@ -20,6 +20,8 @@ def protected_history_manifest(database_path: Path) -> dict[str, TableVerificati
         "escalation_events",
         "gamification_preferences",
         "participation_recognitions",
+        "reminder_preferences",
+        "deadline_arrangements",
     ):
         if name in manifest and manifest[name].row_count == 0:
             manifest.pop(name)

@@ -93,6 +93,9 @@ class Course(Base):
         default=CourseState.DRAFT,
     )
     enrollment_open: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    time_zone: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="UTC", server_default="UTC"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -400,6 +403,7 @@ class Reminder(Base):
             name="uq_reminders_student_task_window",
         ),
         Index("ix_reminders_student_time", "student_id", "created_at"),
+        Index("ix_reminders_student_task_time", "student_id", "task_id", "created_at"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)

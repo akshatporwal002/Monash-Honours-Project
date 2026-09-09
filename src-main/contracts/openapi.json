@@ -3073,6 +3073,13 @@
             "title": "Enrollment Open",
             "type": "boolean"
           },
+          "time_zone": {
+            "default": "UTC",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Time Zone",
+            "type": "string"
+          },
           "title": {
             "maxLength": 200,
             "minLength": 1,
@@ -3170,6 +3177,11 @@
             "title": "Student Count",
             "type": "integer"
           },
+          "time_zone": {
+            "default": "UTC",
+            "title": "Time Zone",
+            "type": "string"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -3242,6 +3254,19 @@
               }
             ],
             "title": "Enrollment Open"
+          },
+          "time_zone": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Zone"
           },
           "title": {
             "anyOf": [
@@ -3327,6 +3352,167 @@
           "simulation_references"
         ],
         "title": "CriterionFeedback",
+        "type": "object"
+      },
+      "DeadlineArrangementRead": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "EXTENSION",
+              "ACCESS_PLAN"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "learner_notice": {
+            "title": "Learner Notice",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reminders_paused": {
+            "title": "Reminders Paused",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "time_zone": {
+            "title": "Time Zone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "kind",
+          "active",
+          "due_at",
+          "reminders_paused",
+          "time_zone",
+          "reason",
+          "learner_notice",
+          "created_at"
+        ],
+        "title": "DeadlineArrangementRead",
+        "type": "object"
+      },
+      "DeadlineArrangementWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "default": true,
+            "title": "Active",
+            "type": "boolean"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "fold": {
+            "anyOf": [
+              {
+                "enum": [
+                  0,
+                  1
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fold"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "EXTENSION",
+              "ACCESS_PLAN"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "learner_notice": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Learner Notice",
+            "type": "string"
+          },
+          "local_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Local Due At"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "reminders_paused": {
+            "default": false,
+            "title": "Reminders Paused",
+            "type": "boolean"
+          },
+          "time_zone": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Time Zone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "idempotency_key",
+          "kind",
+          "time_zone",
+          "reason",
+          "learner_notice"
+        ],
+        "title": "DeadlineArrangementWrite",
         "type": "object"
       },
       "DraftRead": {
@@ -6945,6 +7131,72 @@
         "title": "LearnerCriterionRead",
         "type": "object"
       },
+      "LearnerDeadlineRead": {
+        "additionalProperties": false,
+        "properties": {
+          "arrangement_active": {
+            "default": false,
+            "title": "Arrangement Active",
+            "type": "boolean"
+          },
+          "effective_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Due At"
+          },
+          "learner_notice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Learner Notice"
+          },
+          "original_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Due At"
+          },
+          "reminders_paused": {
+            "title": "Reminders Paused",
+            "type": "boolean"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "time_zone": {
+            "title": "Time Zone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "time_zone",
+          "original_due_at",
+          "effective_due_at",
+          "reminders_paused"
+        ],
+        "title": "LearnerDeadlineRead",
+        "type": "object"
+      },
       "LearnerDecisionEventRead": {
         "additionalProperties": false,
         "properties": {
@@ -9214,6 +9466,74 @@
           "updated_at"
         ],
         "title": "RecommendationRead",
+        "type": "object"
+      },
+      "ReminderPreferenceRead": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "paused_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused Until"
+          },
+          "revision": {
+            "default": 0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "title": "ReminderPreferenceRead",
+        "type": "object"
+      },
+      "ReminderPreferenceWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "paused_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused Until"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "idempotency_key",
+          "enabled"
+        ],
+        "title": "ReminderPreferenceWrite",
         "type": "object"
       },
       "ReminderRead": {
@@ -20442,6 +20762,112 @@
         ]
       }
     },
+    "/api/v1/students/me/reminder-preferences": {
+      "get": {
+        "operationId": "preferences_api_v1_students_me_reminder_preferences_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preferences",
+        "tags": [
+          "reminders"
+        ]
+      },
+      "put": {
+        "operationId": "save_preferences_api_v1_students_me_reminder_preferences_put",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderPreferenceWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Preferences",
+        "tags": [
+          "reminders"
+        ]
+      }
+    },
     "/api/v1/students/me/reminders/{reminder_id}/read": {
       "patch": {
         "operationId": "mark_student_reminder_read_api_v1_students_me_reminders__reminder_id__read_patch",
@@ -20798,6 +21224,64 @@
         "summary": "Student Task",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/deadline": {
+      "get": {
+        "operationId": "learner_deadline_api_v1_students_me_tasks__task_id__deadline_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerDeadlineRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Learner Deadline",
+        "tags": [
+          "reminders"
         ]
       }
     },
@@ -22250,6 +22734,175 @@
         "summary": "Update Task",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/tasks/{task_id}/deadline-arrangements/{student_id}": {
+      "get": {
+        "operationId": "history_api_v1_tasks__task_id__deadline_arrangements__student_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeadlineArrangementRead"
+                  },
+                  "title": "Response History Api V1 Tasks  Task Id  Deadline Arrangements  Student Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "reminders"
+        ]
+      },
+      "put": {
+        "operationId": "save_arrangement_api_v1_tasks__task_id__deadline_arrangements__student_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "title": "Student Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeadlineArrangementWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeadlineArrangementRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Arrangement",
+        "tags": [
+          "reminders"
         ]
       }
     },

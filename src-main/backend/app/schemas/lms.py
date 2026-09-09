@@ -26,6 +26,7 @@ from app.models.lms import (
 from app.models.user import ScopedRole, UserRole
 from app.schemas.assessment import OpaqueId
 from app.schemas.episode import EpisodeContract, EpisodePayloadV1
+from app.schemas.reminders import TimeZone
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -72,6 +73,7 @@ class AssessorCandidateRead(LmsSchema):
 
 
 class CourseCreate(LmsSchema):
+    time_zone: TimeZone = "UTC"
     code: (
         Annotated[
             str,
@@ -91,6 +93,7 @@ class CourseCreate(LmsSchema):
 
 
 class CourseUpdate(LmsSchema):
+    time_zone: TimeZone | None = None
     code: (
         Annotated[
             str,
@@ -110,6 +113,7 @@ class CourseUpdate(LmsSchema):
 
 
 class CourseRead(LmsSchema):
+    time_zone: str = "UTC"
     id: str
     educator_id: int
     code: str

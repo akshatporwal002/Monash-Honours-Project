@@ -155,6 +155,7 @@ interface RawStudentDashboard {
 }
 
 interface RawCourse {
+  time_zone?: string
   id: string
   code?: string
   title: string
@@ -359,6 +360,7 @@ function courseCode(course: Pick<RawCourse, 'title' | 'id' | 'code'>): string {
 
 function normalizeCourse(course: RawCourse): CourseSummary {
   return {
+    time_zone: course.time_zone ?? 'UTC',
     id: course.id,
     code: courseCode(course),
     title: course.title,
@@ -433,6 +435,14 @@ export const api = {
   preferences: {
     read: (signal?: AbortSignal) => request<ApiSchemas['LearnerPreferencesRead']>('/students/me/preferences', { signal }),
     save: (payload: ApiSchemas['LearnerPreferencesWrite']) => request<ApiSchemas['LearnerPreferencesRead']>('/students/me/preferences', json('PUT', payload)),
+  },
+  reminders: {
+    preferences: (signal?: AbortSignal) => request<ApiSchemas['ReminderPreferenceRead']>('/students/me/reminder-preferences', { signal }),
+    savePreferences: (payload: ApiSchemas['ReminderPreferenceWrite']) => request<ApiSchemas['ReminderPreferenceRead']>('/students/me/reminder-preferences', json('PUT', payload)),
+    deadline: (taskId: string, signal?: AbortSignal) => request<ApiSchemas['LearnerDeadlineRead']>(`/students/me/tasks/${encodeURIComponent(taskId)}/deadline`, { signal }),
+    participants: (courseId: string, signal?: AbortSignal) => request<ApiSchemas['EnrollmentRead'][]>(`/courses/${encodeURIComponent(courseId)}/enrollments`, { signal }),
+    history: (taskId: string, studentId: number, offset = 0, signal?: AbortSignal) => request<ApiSchemas['DeadlineArrangementRead'][]>(`/tasks/${encodeURIComponent(taskId)}/deadline-arrangements/${studentId}?limit=20&offset=${offset}`, { signal }),
+    saveArrangement: (taskId: string, studentId: number, payload: ApiSchemas['DeadlineArrangementWrite']) => request<ApiSchemas['DeadlineArrangementRead']>(`/tasks/${encodeURIComponent(taskId)}/deadline-arrangements/${studentId}`, json('PUT', payload)),
   },
   learnerModel: {
     mine: (courseId: string, outcomeId: string, cursor?: string, signal?: AbortSignal) => request<LearnerModelTimelineResponse>(`/learner-model/me/timeline?course_id=${encodeURIComponent(courseId)}&outcome_id=${encodeURIComponent(outcomeId)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { signal }),
@@ -654,23 +664,26 @@ export const api = {
       title: string
       description: string
       enrollment_open: boolean
+      time_zone?: string
     }) =>
       normalizeCourse(await request<RawCourse>('/courses', json('POST', {
         code: payload.code,
         title: payload.title,
         description: payload.description,
         enrollment_open: payload.enrollment_open,
+        time_zone: payload.time_zone,
       }))),
     update: async (
       courseId: string,
       payload: Partial<
-        Pick<CourseSummary, 'code' | 'title' | 'description' | 'status' | 'enrollment_open'>
+        Pick<CourseSummary, 'code' | 'title' | 'description' | 'status' | 'enrollment_open' | 'time_zone'>
       >,
     ) => normalizeCourse(await request<RawCourse>(`/courses/${encodeURIComponent(courseId)}`, json('PATCH', {
       code: payload.code,
       title: payload.title,
       description: payload.description,
       enrollment_open: payload.enrollment_open,
+      time_zone: payload.time_zone,
     }))),
     publish: async (courseId: string) =>
       normalizeCourse(await request<RawCourse>(`/courses/${encodeURIComponent(courseId)}/publish`, { method: 'POST' })),

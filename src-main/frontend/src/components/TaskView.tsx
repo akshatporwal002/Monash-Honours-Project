@@ -26,6 +26,7 @@ import type { BloomKnowledge, BloomProcess } from '../features/assessment/types'
 import { LearnerResultPanel } from '../features/assessment/LearnerResultPanel'
 import { OutcomeResultPanel } from '../features/assessment/OutcomeResultPanel'
 import { ReportNotices } from '../features/escalation/OutputReport'
+import { LearnerDeadline } from '../features/reminders/LearnerDeadline'
 import { TutorPanel } from '../features/tutor/TutorPanel'
 import styles from './TaskView.module.css'
 import { LearnerPreferencesSummary } from '../features/preferences/LearnerPreferencesSummary'
@@ -493,6 +494,7 @@ export function TaskView({
             </Card>
           ) : null}
           <LearnerPreferencesSummary />
+          <LearnerDeadline key={task.id} taskId={task.id} />
           {task.source_references && task.source_references.length > 0 ? (
             <Card eyebrow="Grounded in">
               <ul className={styles.sources}>

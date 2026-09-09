@@ -3,6 +3,7 @@ import { ApiError, api } from '../../app/api'
 import type { ApiSchemas } from '../../api/generated'
 import { Button, Card, Field } from '../../components/ui'
 import { GamificationPreferences } from './GamificationPreferences'
+import { ReminderPreferences } from './ReminderPreferences'
 
 type Preferences = ApiSchemas['LearnerPreferencesRead']
 const key = () => globalThis.crypto?.randomUUID?.() ?? `preferences-${Date.now()}`
@@ -31,5 +32,6 @@ export function LearnerPreferencesPage() {
       <Button onClick={() => void save()}>Save preferences</Button><p role="status">{status}</p>
     </Card>
     <GamificationPreferences />
+    <ReminderPreferences />
   </section>
 }
