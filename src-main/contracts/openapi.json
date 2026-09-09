@@ -4513,6 +4513,490 @@
         "title": "EpisodeTransferRead",
         "type": "object"
       },
+      "EquivalentFormRead": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_title": {
+            "title": "Task Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "task_title"
+        ],
+        "title": "EquivalentFormRead",
+        "type": "object"
+      },
+      "EquivalentFormWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "revision_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "task_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Task Id",
+            "type": "string"
+          },
+          "template_form_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Template Form Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "revision_id",
+          "template_form_id",
+          "reason"
+        ],
+        "title": "EquivalentFormWrite",
+        "type": "object"
+      },
+      "EscalationActionWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledgement_due_at": {
+            "format": "date-time",
+            "title": "Acknowledgement Due At",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "learner_notice": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Learner Notice",
+            "type": "string"
+          },
+          "owner_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Owner User Id",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "resolution_due_at": {
+            "format": "date-time",
+            "title": "Resolution Due At",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "NORMAL",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "ACKNOWLEDGED",
+              "ACTIONED",
+              "RESOLVED",
+              "CLOSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "idempotency_key",
+          "status",
+          "severity",
+          "owner_user_id",
+          "acknowledgement_due_at",
+          "resolution_due_at",
+          "reason",
+          "learner_notice"
+        ],
+        "title": "EscalationActionWrite",
+        "type": "object"
+      },
+      "EscalationNotice": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "learner_notice": {
+            "title": "Learner Notice",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "ACKNOWLEDGED",
+              "ACTIONED",
+              "RESOLVED",
+              "CLOSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "status",
+          "learner_notice",
+          "created_at"
+        ],
+        "title": "EscalationNotice",
+        "type": "object"
+      },
+      "EscalationQueueRead": {
+        "additionalProperties": false,
+        "properties": {
+          "configuration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QueueRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_title": {
+            "title": "Course Title",
+            "type": "string"
+          },
+          "eligible_members": {
+            "items": {
+              "$ref": "#/components/schemas/QueueMember"
+            },
+            "title": "Eligible Members",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "ASSESSOR",
+              "TECHNICAL"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_title",
+          "kind",
+          "configuration",
+          "eligible_members"
+        ],
+        "title": "EscalationQueueRead",
+        "type": "object"
+      },
+      "EscalationRead": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledgement_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledgement Due At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/EscalationNotice"
+            },
+            "title": "Notices",
+            "type": "array"
+          },
+          "queue_kind": {
+            "enum": [
+              "ASSESSOR",
+              "TECHNICAL"
+            ],
+            "title": "Queue Kind",
+            "type": "string"
+          },
+          "resolution_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Due At"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "severity": {
+            "enum": [
+              "NORMAL",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "FEEDBACK",
+              "TUTOR",
+              "ASSESSMENT"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "ACKNOWLEDGED",
+              "ACTIONED",
+              "RESOLVED",
+              "CLOSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "source_kind",
+          "source_id",
+          "queue_kind",
+          "status",
+          "revision",
+          "severity",
+          "created_at",
+          "acknowledgement_due_at",
+          "resolution_due_at",
+          "notices"
+        ],
+        "title": "EscalationRead",
+        "type": "object"
+      },
+      "EscalationStaffRead": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledgement_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledgement Due At"
+          },
+          "backup_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backup User Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "notices": {
+            "items": {
+              "$ref": "#/components/schemas/EscalationNotice"
+            },
+            "title": "Notices",
+            "type": "array"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "queue_kind": {
+            "enum": [
+              "ASSESSOR",
+              "TECHNICAL"
+            ],
+            "title": "Queue Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "resolution_due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Due At"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "severity": {
+            "enum": [
+              "NORMAL",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "FEEDBACK",
+              "TUTOR",
+              "ASSESSMENT"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "OPEN",
+              "ACKNOWLEDGED",
+              "ACTIONED",
+              "RESOLVED",
+              "CLOSED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "source_kind",
+          "source_id",
+          "queue_kind",
+          "status",
+          "revision",
+          "severity",
+          "created_at",
+          "acknowledgement_due_at",
+          "resolution_due_at",
+          "notices",
+          "trigger",
+          "reason",
+          "owner_user_id",
+          "backup_user_id",
+          "history"
+        ],
+        "title": "EscalationStaffRead",
+        "type": "object"
+      },
       "EvidenceReference": {
         "additionalProperties": false,
         "properties": {
@@ -5063,6 +5547,40 @@
         "title": "FormalResultSummary",
         "type": "object"
       },
+      "FreshTaskRead": {
+        "additionalProperties": false,
+        "properties": {
+          "instructions": {
+            "title": "Instructions",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "revision_id": {
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "title",
+          "prompt",
+          "instructions",
+          "revision_id"
+        ],
+        "title": "FreshTaskRead",
+        "type": "object"
+      },
       "FrozenAssessmentContextRead": {
         "properties": {
           "bloom_process": {
@@ -5278,6 +5796,52 @@
           "previous_stage_rate"
         ],
         "title": "FunnelStage",
+        "type": "object"
+      },
+      "GamificationPreferenceRead": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "revision"
+        ],
+        "title": "GamificationPreferenceRead",
+        "type": "object"
+      },
+      "GamificationPreferenceWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "expected_revision",
+          "idempotency_key"
+        ],
+        "title": "GamificationPreferenceWrite",
         "type": "object"
       },
       "GateOperation": {
@@ -7822,6 +8386,90 @@
         "title": "OutcomeKind",
         "type": "string"
       },
+      "OutcomePolicyRead": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "definition_version_id": {
+            "title": "Definition Version Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "required_form_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Required Form Ids",
+            "type": "array"
+          },
+          "selection_rule": {
+            "enum": [
+              "LATEST_VALID",
+              "ANY_VALID_PASS",
+              "ALL_REQUIRED_FORMS"
+            ],
+            "title": "Selection Rule",
+            "type": "string"
+          }
+        },
+        "required": [
+          "selection_rule",
+          "reason",
+          "id",
+          "definition_version_id",
+          "created_at"
+        ],
+        "title": "OutcomePolicyRead",
+        "type": "object"
+      },
+      "OutcomePolicyWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "required_form_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Required Form Ids",
+            "type": "array"
+          },
+          "selection_rule": {
+            "enum": [
+              "LATEST_VALID",
+              "ANY_VALID_PASS",
+              "ALL_REQUIRED_FORMS"
+            ],
+            "title": "Selection Rule",
+            "type": "string"
+          }
+        },
+        "required": [
+          "selection_rule",
+          "reason"
+        ],
+        "title": "OutcomePolicyWrite",
+        "type": "object"
+      },
       "OutcomeRead": {
         "additionalProperties": false,
         "properties": {
@@ -7882,6 +8530,74 @@
           "updated_at"
         ],
         "title": "OutcomeRead",
+        "type": "object"
+      },
+      "OutcomeResultRead": {
+        "additionalProperties": false,
+        "properties": {
+          "authorisations": {
+            "items": {
+              "$ref": "#/components/schemas/ReassessmentRead"
+            },
+            "title": "Authorisations",
+            "type": "array"
+          },
+          "definition_version_id": {
+            "title": "Definition Version Id",
+            "type": "string"
+          },
+          "evidence_response_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Response Ids",
+            "type": "array"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selection_rule": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LATEST_VALID",
+                  "ANY_VALID_PASS",
+                  "ALL_REQUIRED_FORMS"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection Rule"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "definition_version_id",
+          "result",
+          "status",
+          "selection_rule",
+          "evidence_response_ids",
+          "explanation",
+          "authorisations"
+        ],
+        "title": "OutcomeResultRead",
         "type": "object"
       },
       "OutcomeUpdate": {
@@ -7950,6 +8666,64 @@
         "title": "OutcomeUpdate",
         "type": "object"
       },
+      "OutputReportWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "queue_kind": {
+            "enum": [
+              "ASSESSOR",
+              "TECHNICAL"
+            ],
+            "title": "Queue Kind",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "severity": {
+            "default": "NORMAL",
+            "enum": [
+              "NORMAL",
+              "HIGH",
+              "CRITICAL"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "FEEDBACK",
+              "TUTOR"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_id",
+          "queue_kind",
+          "reason",
+          "idempotency_key"
+        ],
+        "title": "OutputReportWrite",
+        "type": "object"
+      },
       "PairedDifferences": {
         "additionalProperties": false,
         "properties": {
@@ -8008,6 +8782,112 @@
         "title": "QualityReviewDecision",
         "type": "string"
       },
+      "QueueMember": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "QueueMember",
+        "type": "object"
+      },
+      "QueueRead": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledgement_target": {
+            "title": "Acknowledgement Target",
+            "type": "string"
+          },
+          "backup_user_id": {
+            "title": "Backup User Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "primary_user_id": {
+            "title": "Primary User Id",
+            "type": "integer"
+          },
+          "resolution_target": {
+            "title": "Resolution Target",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "primary_user_id",
+          "backup_user_id",
+          "acknowledgement_target",
+          "resolution_target"
+        ],
+        "title": "QueueRead",
+        "type": "object"
+      },
+      "QueueWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledgement_target": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Acknowledgement Target",
+            "type": "string"
+          },
+          "backup_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Backup User Id",
+            "type": "integer"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "primary_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Primary User Id",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "resolution_target": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Resolution Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "primary_user_id",
+          "backup_user_id",
+          "acknowledgement_target",
+          "resolution_target",
+          "reason"
+        ],
+        "title": "QueueWrite",
+        "type": "object"
+      },
       "ReadinessResponse": {
         "additionalProperties": false,
         "properties": {
@@ -8036,6 +8916,154 @@
           "checks"
         ],
         "title": "ReadinessResponse",
+        "type": "object"
+      },
+      "ReassessmentRead": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "learner_notice": {
+            "title": "Learner Notice",
+            "type": "string"
+          },
+          "replacement_response_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacement Response Id"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_title": {
+            "title": "Task Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "task_title",
+          "learner_notice",
+          "created_at",
+          "replacement_response_id",
+          "available"
+        ],
+        "title": "ReassessmentRead",
+        "type": "object"
+      },
+      "ReassessmentSetup": {
+        "additionalProperties": false,
+        "properties": {
+          "authorisation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReassessmentRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "definition_version_id": {
+            "title": "Definition Version Id",
+            "type": "string"
+          },
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/EquivalentFormRead"
+            },
+            "title": "Forms",
+            "type": "array"
+          },
+          "fresh_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/FreshTaskRead"
+            },
+            "title": "Fresh Tasks",
+            "type": "array"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OutcomePolicyRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy_forms": {
+            "items": {
+              "$ref": "#/components/schemas/EquivalentFormRead"
+            },
+            "title": "Policy Forms",
+            "type": "array"
+          }
+        },
+        "required": [
+          "definition_version_id",
+          "policy",
+          "forms",
+          "policy_forms",
+          "authorisation",
+          "fresh_tasks"
+        ],
+        "title": "ReassessmentSetup",
+        "type": "object"
+      },
+      "ReassessmentWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_decision_revision": {
+            "minimum": 0.0,
+            "title": "Expected Decision Revision",
+            "type": "integer"
+          },
+          "learner_notice": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Learner Notice",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "task_form_version_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Task Form Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_form_version_id",
+          "expected_decision_revision",
+          "reason",
+          "learner_notice"
+        ],
+        "title": "ReassessmentWrite",
         "type": "object"
       },
       "RecentActivityRead": {
@@ -8532,6 +9560,29 @@
           "recommended_next_step"
         ],
         "title": "SafeFallbackView",
+        "type": "object"
+      },
+      "SamplingWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "feedback_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Feedback Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feedback_id",
+          "reason"
+        ],
+        "title": "SamplingWrite",
         "type": "object"
       },
       "ScopedRole": {
@@ -9790,6 +10841,11 @@
             },
             "title": "Courses",
             "type": "array"
+          },
+          "gamification_enabled": {
+            "default": true,
+            "title": "Gamification Enabled",
+            "type": "boolean"
           },
           "recommendations": {
             "items": {
@@ -13963,6 +15019,130 @@
         ]
       }
     },
+    "/api/v1/assessment/decisions/{decision_id}/reassessment": {
+      "get": {
+        "operationId": "setup_api_v1_assessment_decisions__decision_id__reassessment_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReassessmentSetup"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Setup",
+        "tags": [
+          "reassessment"
+        ]
+      },
+      "post": {
+        "operationId": "authorise_api_v1_assessment_decisions__decision_id__reassessment_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "decision_id",
+            "required": true,
+            "schema": {
+              "title": "Decision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReassessmentWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReassessmentRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Authorise",
+        "tags": [
+          "reassessment"
+        ]
+      }
+    },
     "/api/v1/assessment/decisions/{decision_id}/review": {
       "get": {
         "operationId": "assessment_review_detail_api_v1_assessment_decisions__decision_id__review_get",
@@ -14084,6 +15264,142 @@
         "summary": "Record Assessment Review Action",
         "tags": [
           "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/definitions/{definition_id}/equivalent-forms": {
+      "post": {
+        "operationId": "equivalent_form_api_v1_assessment_definitions__definition_id__equivalent_forms_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "definition_id",
+            "required": true,
+            "schema": {
+              "title": "Definition Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquivalentFormWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EquivalentFormRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Equivalent Form",
+        "tags": [
+          "reassessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/definitions/{definition_id}/outcome-policy": {
+      "post": {
+        "operationId": "publish_policy_api_v1_assessment_definitions__definition_id__outcome_policy_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "definition_id",
+            "required": true,
+            "schema": {
+              "title": "Definition Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutcomePolicyWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutcomePolicyRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Publish Policy",
+        "tags": [
+          "reassessment"
         ]
       }
     },
@@ -16642,6 +17958,621 @@
         ]
       }
     },
+    "/api/v1/escalations/courses/{course_id}/samples": {
+      "get": {
+        "operationId": "samples_api_v1_escalations_courses__course_id__samples_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Samples Api V1 Escalations Courses  Course Id  Samples Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Samples",
+        "tags": [
+          "escalation"
+        ]
+      },
+      "post": {
+        "operationId": "sample_api_v1_escalations_courses__course_id__samples_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SamplingWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EscalationStaffRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sample",
+        "tags": [
+          "escalation"
+        ]
+      }
+    },
+    "/api/v1/escalations/courses/{course_id}/{kind}/cases": {
+      "get": {
+        "operationId": "queue_api_v1_escalations_courses__course_id___kind__cases_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "ASSESSOR",
+                "TECHNICAL"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EscalationStaffRead"
+                  },
+                  "title": "Response Queue Api V1 Escalations Courses  Course Id   Kind  Cases Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Queue",
+        "tags": [
+          "escalation"
+        ]
+      }
+    },
+    "/api/v1/escalations/courses/{course_id}/{kind}/configuration": {
+      "get": {
+        "operationId": "setup_api_v1_escalations_courses__course_id___kind__configuration_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "ASSESSOR",
+                "TECHNICAL"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EscalationQueueRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Setup",
+        "tags": [
+          "escalation"
+        ]
+      },
+      "post": {
+        "operationId": "configure_api_v1_escalations_courses__course_id___kind__configuration_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "ASSESSOR",
+                "TECHNICAL"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueueWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Configure",
+        "tags": [
+          "escalation"
+        ]
+      }
+    },
+    "/api/v1/escalations/queues": {
+      "get": {
+        "operationId": "queues_api_v1_escalations_queues_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EscalationQueueRead"
+                  },
+                  "title": "Response Queues Api V1 Escalations Queues Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Queues",
+        "tags": [
+          "escalation"
+        ]
+      }
+    },
+    "/api/v1/escalations/reports": {
+      "post": {
+        "operationId": "report_api_v1_escalations_reports_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputReportWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EscalationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report",
+        "tags": [
+          "escalation"
+        ]
+      }
+    },
+    "/api/v1/escalations/{case_id}/actions": {
+      "post": {
+        "operationId": "act_api_v1_escalations__case_id__actions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EscalationActionWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EscalationStaffRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Act",
+        "tags": [
+          "escalation"
+        ]
+      }
+    },
+    "/api/v1/escalations/{case_id}/evidence": {
+      "get": {
+        "operationId": "evidence_api_v1_escalations__case_id__evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "title": "Case Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Evidence Api V1 Escalations  Case Id  Evidence Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evidence",
+        "tags": [
+          "escalation"
+        ]
+      }
+    },
     "/api/v1/feedback/{feedback_id}/report": {
       "post": {
         "operationId": "report_feedback_api_v1_feedback__feedback_id__report_post",
@@ -18163,6 +20094,112 @@
         ]
       }
     },
+    "/api/v1/students/me/gamification": {
+      "get": {
+        "operationId": "read_api_v1_students_me_gamification_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GamificationPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "gamification"
+        ]
+      },
+      "put": {
+        "operationId": "save_api_v1_students_me_gamification_put",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GamificationPreferenceWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GamificationPreferenceRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save",
+        "tags": [
+          "gamification"
+        ]
+      }
+    },
     "/api/v1/students/me/preferences": {
       "get": {
         "operationId": "read_preferences_api_v1_students_me_preferences_get",
@@ -18397,6 +20434,64 @@
         "summary": "Mark Student Reminder Read",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/responses/{response_id}/outcome-result": {
+      "get": {
+        "operationId": "outcome_result_api_v1_students_me_responses__response_id__outcome_result_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "title": "Response Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutcomeResultRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Outcome Result",
+        "tags": [
+          "reassessment"
         ]
       }
     },
@@ -19200,6 +21295,68 @@
         "summary": "Enter Episode Transfer",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/reports": {
+      "get": {
+        "operationId": "notices_api_v1_students_me_tasks__task_id__reports_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EscalationRead"
+                  },
+                  "title": "Response Notices Api V1 Students Me Tasks  Task Id  Reports Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Notices",
+        "tags": [
+          "escalation"
         ]
       }
     },

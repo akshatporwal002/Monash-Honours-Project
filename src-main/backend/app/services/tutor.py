@@ -331,6 +331,16 @@ class TutorService:
                 )
                 LiveEvidenceCapture(self.session).support(receipt)
             LiveEvidenceCapture(self.session).tutor(task, row)
+            if row.kind == "fallback":
+                from app.services.escalation_sources import record_signal
+
+                record_signal(
+                    self.session,
+                    source_kind="TUTOR",
+                    source_id=row.id,
+                    trigger="REPEATED_REJECTION",
+                    reason="Both tutor reply attempts failed their release checks.",
+                )
             self.session.commit()
             return self._read_turn(row)
         except (IntegrityError, OperationalError) as error:

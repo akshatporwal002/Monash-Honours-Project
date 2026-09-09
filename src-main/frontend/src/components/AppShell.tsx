@@ -24,12 +24,14 @@ const navigation: Record<UserRole, NavigationItem[]> = {
     { to: '/educator/courses', label: 'Course editor', icon: <BookOpen size={iconSize} /> },
     { to: '/educator/students', label: 'Students', icon: <Users size={iconSize} /> },
     { to: '/educator/analytics', label: 'Analytics', icon: <BarChart3 size={iconSize} /> },
+    { to: '/escalations', label: 'Output reports', icon: <ClipboardCheck size={iconSize} /> },
   ],
   admin: [
     { to: '/admin', end: true, label: 'Overview', icon: <LayoutDashboard size={iconSize} /> },
     { to: '/admin/users', label: 'Accounts', icon: <Users size={iconSize} /> },
     { to: '/admin/courses', label: 'Courses', icon: <BookOpen size={iconSize} /> },
     { to: '/admin/settings', label: 'Settings', icon: <Settings size={iconSize} /> },
+    { to: '/escalations', label: 'Output reports', icon: <ClipboardCheck size={iconSize} /> },
   ],
 }
 

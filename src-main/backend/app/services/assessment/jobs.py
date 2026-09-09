@@ -192,6 +192,17 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
                     updated_at=observed,
                 )
             )
+            if result.rowcount == 1:
+                from app.services.escalation_sources import record_signal
+
+                record_signal(
+                    self._session,
+                    source_kind="ASSESSMENT",
+                    source_id=candidate.assessment_attempt_id,
+                    trigger="EVALUATION_FAILED",
+                    queue_kind="TECHNICAL",
+                    reason="Assessment evaluation exhausted its worker leases and needs human attention.",
+                )
             self._session.commit()
         except SQLAlchemyError:
             self._session.rollback()
@@ -374,6 +385,20 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
                 )
                 .values(**values)
             )
+            if (
+                result.rowcount == 1
+                and values.get("state") is AssessmentEvaluationJobState.REVIEW_REQUIRED
+            ):
+                from app.services.escalation_sources import record_signal
+
+                record_signal(
+                    self._session,
+                    source_kind="ASSESSMENT",
+                    source_id=claim.assessment_attempt_id,
+                    trigger="EVALUATION_FAILED",
+                    queue_kind="TECHNICAL",
+                    reason="Assessment evaluation requires human attention after its permitted retries.",
+                )
             self._session.commit()
         except SQLAlchemyError:
             self._session.rollback()

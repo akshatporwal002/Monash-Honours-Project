@@ -27,7 +27,9 @@ from support.task_review import approve_sourced_fixture_task
 ANSWER = "The response links the observation to the claim."
 
 
-def seed_review_context(session: Session, *, episode: bool = False) -> dict[str, str]:
+def seed_review_context(
+    session: Session, *, episode: bool = False, reassessment: bool = False
+) -> dict[str, str]:
     context = seed_authoring_context(session)
     actor = session.scalar(select(User).where(User.email == context["educator_email"]))
     task = session.get(LearningTask, context["task_id"])
@@ -51,6 +53,30 @@ def seed_review_context(session: Session, *, episode: bool = False) -> dict[str,
     outcome.statement = "Explain how the observation supports the claim."
     session.commit()
     approve_sourced_fixture_task(session, task)
+    tasks = [task]
+    if reassessment:
+        fresh = LearningTask(
+            id=str(uuid4()),
+            title="Fresh interference explanation",
+            slug=f"fresh-interference-{uuid4().hex}",
+            module=task.module,
+            description="Explain a different interference observation.",
+            instructions="Connect the new observation to the claim.",
+            expected_answer=ANSWER,
+            task_type=task.task_type,
+            difficulty=task.difficulty,
+            points=task.points,
+            course_id=task.course_id,
+            module_id=task.module_id,
+            learning_outcome_id=task.learning_outcome_id,
+            source_references=list(task.source_references),
+            marking_criteria=dict(task.marking_criteria or {}),
+            position=task.position + 1,
+        )
+        session.add(fresh)
+        session.commit()
+        approve_sourced_fixture_task(session, fresh)
+        tasks.append(fresh)
     lms = LmsService(session)
     source = lms.create_assessment_outcome_version(actor, context["course_id"], outcome.id)
     definition_service = AssessmentDefinitionService(session)
@@ -100,7 +126,7 @@ def seed_review_context(session: Session, *, episode: bool = False) -> dict[str,
             },
             task_forms=[
                 TaskFormDraft(
-                    learning_task_id=task.id,
+                    learning_task_id=form_task.id,
                     source_version="synthetic-review-fixture.v1",
                     source_digest="synthetic-review-fixture",
                     task_family="written_explanation",
@@ -110,6 +136,7 @@ def seed_review_context(session: Session, *, episode: bool = False) -> dict[str,
                         "elicited_bloom_processes": ["UNDERSTAND"],
                     },
                 )
+                for form_task in tasks
             ],
         ),
     )
@@ -122,7 +149,8 @@ def seed_review_context(session: Session, *, episode: bool = False) -> dict[str,
     )
     form = session.scalar(
         select(TaskFormVersion).where(
-            TaskFormVersion.assessment_definition_version_id == definition.id
+            TaskFormVersion.assessment_definition_version_id == definition.id,
+            TaskFormVersion.learning_task_id == task.id,
         )
     )
     student = User(
@@ -190,4 +218,6 @@ def seed_review_context(session: Session, *, episode: bool = False) -> dict[str,
         "attempt_id": attempt.id,
         "response_id": response.id,
         "decision_id": decision.id,
+        "fresh_task_id": tasks[-1].id,
+        "definition_id": definition.id,
     }

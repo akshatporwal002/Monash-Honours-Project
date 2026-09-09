@@ -57,7 +57,8 @@ def test_gamification_awards_each_task_once_and_recalculates_level(db_session) -
     assert first.points_awarded == task.points
     assert repeated.points_awarded == 0
     assert profile.points == task.points
-    assert {"first-step", "perfect-score"} <= set(first.achievement_codes)
+    assert "first-step" in first.achievement_codes
+    assert "perfect-score" not in first.achievement_codes
     assert gamification.level(0, 500) == 1
     assert gamification.level(500, 500) == 2
 
@@ -158,11 +159,12 @@ def test_production_achievement_defaults_award_and_display_for_non_demo_student(
     assert set(session.scalars(select(Achievement.code)).all()) == {
         "first-step",
         "circuit-maker",
-        "perfect-score",
+        "reflection",
+        "revision",
+        "feedback-use",
     }
     assert attempt.points_awarded == 125
     assert dashboard.summary.points == 125
     assert {achievement.code for achievement in dashboard.achievements} == {
         "first-step",
-        "perfect-score",
     }

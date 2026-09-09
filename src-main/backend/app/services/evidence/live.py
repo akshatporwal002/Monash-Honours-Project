@@ -211,6 +211,11 @@ class LiveEvidenceCapture:
             commit=False,
         )
         if result.created:
+            from app.services.gamification import GamificationService
+
+            GamificationService(self.session).recognise_evidence(
+                learner_id, task, kind.value, identity
+            )
             self.session.add(
                 PlatformAuditEvent(
                     id=evidence_id(source, field + ":audit"),

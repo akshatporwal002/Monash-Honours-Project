@@ -35,6 +35,7 @@ export function StudentDashboard({
   onReadNotification: (notification: LearningNotification) => Promise<void>
 }) {
   const { progress, tasks, recommendations, notifications } = data
+  const gamificationEnabled = progress.gamification_enabled !== false
   const firstName = progress.display_name.split(' ')[0]
   const nextRecommendation = recommendations[0]
   const nextTask = tasks.find((task) => task.id === nextRecommendation?.task_id)
@@ -71,14 +72,14 @@ export function StudentDashboard({
             <>
               <h2 className={styles.continueTitle}>Your pathway is complete</h2>
               <p className={styles.continueReason}>
-                You have completed every available activity. Review earlier work or explore your achievements.
+                You have completed every available activity. You can review your earlier work.
               </p>
             </>
           )}
         </Card>
         <Card eyebrow="Course momentum" className={styles.momentumCard}>
           <Meter value={progress.completed_tasks} max={progress.total_tasks} label="Activities completed" />
-          <p className={styles.momentumNote}>{earned.length} achievements earned</p>
+          {gamificationEnabled && <p className={styles.momentumNote}>{earned.length} achievements earned</p>}
         </Card>
       </div>
 
@@ -141,12 +142,12 @@ export function StudentDashboard({
           )}
         </Card>
 
-        <Card eyebrow="Milestones" heading="Achievements">
+        {gamificationEnabled && <Card eyebrow="Milestones" heading="Achievements">
           {progress.achievements.length === 0 ? (
             <EmptyState
               icon={<Award size={20} />}
               title="Your first achievement is one activity away"
-              description="Finish an activity to earn it."
+              description="Take part in an activity to earn it."
             />
           ) : (
             <ul className={styles.achievements}>
@@ -163,7 +164,7 @@ export function StudentDashboard({
               ))}
             </ul>
           )}
-        </Card>
+        </Card>}
 
         <Card eyebrow="Stay on track" heading="Updates" actions={unread ? <Tag tone="accent">{unread} new</Tag> : undefined}>
           {notifications.length === 0 ? (
@@ -192,15 +193,13 @@ export function StudentDashboard({
         </Card>
       </div>
 
-      {/* Gamification data retained pending the FR25 opt-in decision (plan 006 §8); deliberately quiet. */}
-      <Card eyebrow="Optional points" className={styles.points}>
+      {gamificationEnabled && <Card eyebrow="Optional points" className={styles.points}>
         <p className={styles.pointsText}>
           Level {progress.level} · {progress.points} points
           {progress.points_to_next_level ? ` · ${progress.points_to_next_level} to the next level` : ''}
-          {progress.average_score !== null ? ` · ${progress.average_score}% practice average` : ''}
         </p>
         <p className={styles.pointsNote}>Points come from practice activity only. They never affect a formal result.</p>
-      </Card>
+      </Card>}
     </div>
   )
 }

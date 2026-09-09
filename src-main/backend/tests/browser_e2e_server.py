@@ -400,6 +400,13 @@ def _build_app(database_url: str):
         with session_factory() as session:
             return seed_review_context(session)
 
+    @app.post("/e2e/human-workflows-fixture")
+    def human_workflows_fixture():
+        from support.human_workflows import seed_human_workflows
+
+        with session_factory() as session:
+            return seed_human_workflows(session)
+
     @app.post("/e2e/assessment-authoring-fixture")
     def authoring_fixture():
         with session_factory() as session:

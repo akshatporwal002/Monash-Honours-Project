@@ -167,6 +167,11 @@ class AssessmentSubmissionService:
             .values(id=Course.id, updated_at=Course.updated_at)
         )
         declaration = self.declaration_for_task(task)
+        from app.services.assessment.reassessment import ReassessmentService
+
+        ReassessmentService(self.session).require_start(
+            student_id, task, declaration.versions if declaration else None
+        )
         existing = self.session.scalar(
             select(AssessmentWorkStart).where(
                 AssessmentWorkStart.student_id == student_id,
@@ -281,6 +286,9 @@ class AssessmentSubmissionService:
                 state=AssessmentEvaluationJobState.PENDING,
             )
         )
+        from app.services.assessment.reassessment import ReassessmentService
+
+        ReassessmentService(self.session).link_attempt(attempt)
         return attempt
 
     def mark_fault_for_response(self, response_version_id: str, reason: str) -> bool:

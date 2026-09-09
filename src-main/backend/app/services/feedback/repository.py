@@ -655,7 +655,12 @@ class SqlAlchemyFeedbackWorkflowRepository:
             self._session.rollback()
             raise PipelinePersistenceError(report.feedback_id) from error
         if existing is not None:
-            return self._existing_report_result(existing, report)
+            result = self._existing_report_result(existing, report)
+            from app.services.escalation_sources import route_feedback_report
+
+            route_feedback_report(self._session, existing)
+            self._session.commit()
+            return result
 
         record = FeedbackReport(
             feedback_id=report.feedback_id,
@@ -665,6 +670,10 @@ class SqlAlchemyFeedbackWorkflowRepository:
         )
         self._session.add(record)
         try:
+            from app.services.escalation_sources import route_feedback_report
+
+            self._session.flush()
+            route_feedback_report(self._session, record)
             self._session.commit()
         except IntegrityError as error:
             self._session.rollback()
@@ -811,6 +820,22 @@ class SqlAlchemyFeedbackWorkflowRepository:
 
         self._session.add_all(records)
         try:
+            from app.services.escalation_sources import record_signal
+
+            self._session.flush()
+            rejected = [
+                row
+                for row in records
+                if isinstance(row, FeedbackRecord) and row.status is FeedbackStatus.REJECTED
+            ]
+            if len(rejected) >= 2:
+                record_signal(
+                    self._session,
+                    source_kind="FEEDBACK",
+                    source_id=rejected[-1].id,
+                    trigger="REPEATED_REJECTION",
+                    reason="Feedback was rejected twice. Review the retained outputs before further use.",
+                )
             self._session.commit()
         except IntegrityError as error:
             self._session.rollback()

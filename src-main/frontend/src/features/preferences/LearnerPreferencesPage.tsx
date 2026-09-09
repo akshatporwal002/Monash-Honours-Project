@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api } from '../../app/api'
 import type { ApiSchemas } from '../../api/generated'
 import { Button, Card, Field } from '../../components/ui'
+import { GamificationPreferences } from './GamificationPreferences'
 
 type Preferences = ApiSchemas['LearnerPreferencesRead']
 const key = () => globalThis.crypto?.randomUUID?.() ?? `preferences-${Date.now()}`
@@ -29,5 +30,6 @@ export function LearnerPreferencesPage() {
       <p>Turning this off keeps saved choices but prevents automatic use. Approved manual hints and accessibility support remain separate.</p>
       <Button onClick={() => void save()}>Save preferences</Button><p role="status">{status}</p>
     </Card>
+    <GamificationPreferences />
   </section>
 }

@@ -24,6 +24,8 @@ import {
 import type { DescriptionItem } from './ui'
 import type { BloomKnowledge, BloomProcess } from '../features/assessment/types'
 import { LearnerResultPanel } from '../features/assessment/LearnerResultPanel'
+import { OutcomeResultPanel } from '../features/assessment/OutcomeResultPanel'
+import { ReportNotices } from '../features/escalation/OutputReport'
 import { TutorPanel } from '../features/tutor/TutorPanel'
 import styles from './TaskView.module.css'
 import { LearnerPreferencesSummary } from '../features/preferences/LearnerPreferencesSummary'
@@ -716,6 +718,7 @@ export function TaskView({
             <FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} />
           )}
           {!draftLoading && !workConflict && <TutorPanel key={`${task.id}-${episodeState?.transfer?.stage_start_id ?? 'supported'}`} taskId={task.id} />}
+          <ReportNotices key={task.id} taskId={task.id} />
           <Card eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (
               <p className={styles.stateNote}>Loading previous attempts…</p>
@@ -745,7 +748,7 @@ export function TaskView({
                         })}
                       </time>
                     ) : <time className={styles.attemptTime}>Just now</time>}
-                    {item.formal_assessment && item.id && <div className={styles.attemptResult}><LearnerResultPanel responseId={item.id} /></div>}
+                    {item.formal_assessment && item.id && <div className={styles.attemptResult}><LearnerResultPanel responseId={item.id} /><OutcomeResultPanel responseId={item.id} /></div>}
                   </li>
                 ))}
               </ol>

@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-route
 import { ApiError, api } from './app/api'
 import type { AuthUser, LearningNotification, StudentDashboardData, UserRole } from './app/types'
 import { AdminWorkspace } from './components/AdminWorkspace'
+import { EscalationQueue } from './features/escalation/EscalationQueue'
 import { AnalyticsView } from './components/AnalyticsView'
 import { AppShell } from './components/AppShell'
 import { homePath } from './components/paths'
@@ -265,6 +266,7 @@ function AppRoutes() {
           )}
         />
         <Route path="/admin" element={guard(user.role === 'admin', <AdminWorkspace section="overview" />)} />
+        <Route path="/escalations" element={guard(user.role !== 'student', <EscalationQueue />)} />
         <Route path="/admin/users" element={guard(user.role === 'admin', <AdminWorkspace section="users" />)} />
         <Route path="/admin/courses" element={guard(user.role === 'admin', <AdminWorkspace section="courses" />)} />
         <Route path="/admin/settings" element={guard(user.role === 'admin', <AdminWorkspace section="settings" />)} />

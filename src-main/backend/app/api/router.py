@@ -5,7 +5,9 @@ from app.api.routes import (
     assessment,
     assessment_evaluation,
     authentication,
+    escalation,
     feedback,
+    gamification,
     health,
     learner_model,
     learner_preferences,
@@ -13,6 +15,7 @@ from app.api.routes import (
     learning_events,
     lms,
     materials,
+    reassessment,
     research_exports,
     retrieval,
     task_generation,
@@ -35,6 +38,9 @@ api_router.include_router(learning_events.router, tags=["learning-events"])
 api_router.include_router(learner_model.router)
 api_router.include_router(learner_preferences.router)
 api_router.include_router(learner_results.router)
+api_router.include_router(reassessment.router)
+api_router.include_router(escalation.router)
+api_router.include_router(gamification.router)
 api_router.include_router(tutor.router)
 api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(research_exports.router, tags=["research"])

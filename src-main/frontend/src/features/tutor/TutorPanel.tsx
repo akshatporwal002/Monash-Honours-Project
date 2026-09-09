@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import type { ApiSchemas } from '../../api/generated'
 import { ApiError, request } from '../../app/api'
 import { Button, Card, Textarea } from '../../components/ui'
+import { OutputReport } from '../escalation/OutputReport'
 
 type Conversation = ApiSchemas['TutorConversationRead']
 type Turn = ApiSchemas['TutorTurnRead']
@@ -120,6 +121,7 @@ export function TutorPanel({ taskId }: { taskId: string }) {
                       ? 'Checked help unavailable'
                       : 'Reasoning prompt'}
                 </small>
+                <OutputReport sourceId={turn.id} />
               </li>
             ))}
           </ol>

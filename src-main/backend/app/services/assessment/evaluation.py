@@ -529,6 +529,16 @@ class AssessmentEvaluationService:
         *,
         outcome: str = "success",
     ) -> None:
+        if action == "assessment_evaluation.conflict":
+            from app.services.escalation_sources import record_signal
+
+            record_signal(
+                self.session,
+                source_kind="ASSESSMENT",
+                source_id=attempt.id,
+                trigger="CONFLICTING_EVIDENCE",
+                reason="The assessment response or approved versions conflict with the evaluation request.",
+            )
         self.session.add(
             PlatformAuditEvent(
                 actor_id=None,

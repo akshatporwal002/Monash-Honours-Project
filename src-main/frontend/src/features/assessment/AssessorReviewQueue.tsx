@@ -13,6 +13,7 @@ import { lifecycleLabels, resultLabels } from './assessmentReviewPresentation'
 import { useAssessorReviewQueue } from './useAssessorReviewQueue'
 import { AssessorReviewUnresolved } from './AssessorReviewUnresolved'
 import { AssessorAppeals } from './AssessorAppeals'
+import { ReassessmentPanel } from './ReassessmentPanel'
 import styles from './assessment.module.css'
 
 function activeFilterSummary(filters: ReviewFilters): string {
@@ -122,6 +123,7 @@ export function AssessorReviewQueue({
         onClose={() => queue.setPendingAction(null)}
         onSubmit={(reason) => void queue.submitAction(reason)}
       />}
+      {queue.accessReady && queue.selected && <ReassessmentPanel key={`${queue.selected.decision_id}-${queue.selected.review_revision}`} decisionId={queue.selected.decision_id} revision={queue.selected.review_revision} />}
     </div>
   )
 }

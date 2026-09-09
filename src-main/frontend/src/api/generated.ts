@@ -647,6 +647,74 @@ export type ApiSchemas = {
     "starter_circuit"?: (Partial<Record<string, ApiSchemas["JsonValue"]>>) | (null)
     "starter_code"?: (string) | (null)
   }
+  "EquivalentFormRead": {
+    "id": string
+    "task_id": string
+    "task_title": string
+  }
+  "EquivalentFormWrite": {
+    "reason": string
+    "revision_id": string
+    "task_id": string
+    "template_form_id": string
+  }
+  "EscalationActionWrite": {
+    "acknowledgement_due_at": string
+    "expected_revision": number
+    "idempotency_key": string
+    "learner_notice": string
+    "owner_user_id": number
+    "reason": string
+    "resolution_due_at": string
+    "severity": "NORMAL" | "HIGH" | "CRITICAL"
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+  }
+  "EscalationNotice": {
+    "created_at": string
+    "learner_notice": string
+    "revision": number
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+  }
+  "EscalationQueueRead": {
+    "configuration": (ApiSchemas["QueueRead"]) | (null)
+    "course_id": string
+    "course_title": string
+    "eligible_members": Array<ApiSchemas["QueueMember"]>
+    "kind": "ASSESSOR" | "TECHNICAL"
+  }
+  "EscalationRead": {
+    "acknowledgement_due_at": (string) | (null)
+    "created_at": string
+    "id": string
+    "notices": Array<ApiSchemas["EscalationNotice"]>
+    "queue_kind": "ASSESSOR" | "TECHNICAL"
+    "resolution_due_at": (string) | (null)
+    "revision": number
+    "severity": "NORMAL" | "HIGH" | "CRITICAL"
+    "source_id": string
+    "source_kind": "FEEDBACK" | "TUTOR" | "ASSESSMENT"
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+    "task_id": string
+  }
+  "EscalationStaffRead": {
+    "acknowledgement_due_at": (string) | (null)
+    "backup_user_id": (number) | (null)
+    "created_at": string
+    "history": Array<Record<string, unknown>>
+    "id": string
+    "notices": Array<ApiSchemas["EscalationNotice"]>
+    "owner_user_id": (number) | (null)
+    "queue_kind": "ASSESSOR" | "TECHNICAL"
+    "reason": string
+    "resolution_due_at": (string) | (null)
+    "revision": number
+    "severity": "NORMAL" | "HIGH" | "CRITICAL"
+    "source_id": string
+    "source_kind": "FEEDBACK" | "TUTOR" | "ASSESSMENT"
+    "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
+    "task_id": string
+    "trigger": string
+  }
   "EvidenceReference": {
     "assessment": ApiSchemas["AssessmentVersionReference"]
     "content_digest": string
@@ -724,6 +792,13 @@ export type ApiSchemas = {
     "result"?: (ApiSchemas["AssessmentResult"]) | (null)
     "result_state": ApiSchemas["ResultState"]
   }
+  "FreshTaskRead": {
+    "instructions": string
+    "prompt": string
+    "revision_id": string
+    "task_id": string
+    "title": string
+  }
   "FrozenAssessmentContextRead": {
     "bloom_process": string
     "knowledge_dimension": string
@@ -753,6 +828,15 @@ export type ApiSchemas = {
     "count": number
     "event_type": ApiSchemas["LearningEventType"]
     "previous_stage_rate": ApiSchemas["MetricValue"]
+  }
+  "GamificationPreferenceRead": {
+    "enabled": boolean
+    "revision": number
+  }
+  "GamificationPreferenceWrite": {
+    "enabled": boolean
+    "expected_revision": number
+    "idempotency_key": string
   }
   "GateOperation": {
     "gate": "h" | "x" | "cx"
@@ -1160,6 +1244,19 @@ export type ApiSchemas = {
     "week_number"?: (number) | (null)
   }
   "OutcomeKind": "weekly" | "topic"
+  "OutcomePolicyRead": {
+    "created_at": string
+    "definition_version_id": string
+    "id": string
+    "reason": string
+    "required_form_ids"?: Array<string>
+    "selection_rule": "LATEST_VALID" | "ANY_VALID_PASS" | "ALL_REQUIRED_FORMS"
+  }
+  "OutcomePolicyWrite": {
+    "reason": string
+    "required_form_ids"?: Array<string>
+    "selection_rule": "LATEST_VALID" | "ANY_VALID_PASS" | "ALL_REQUIRED_FORMS"
+  }
   "OutcomeRead": {
     "created_at": string
     "id": string
@@ -1171,12 +1268,29 @@ export type ApiSchemas = {
     "updated_at": string
     "week_number": (number) | (null)
   }
+  "OutcomeResultRead": {
+    "authorisations": Array<ApiSchemas["ReassessmentRead"]>
+    "definition_version_id": string
+    "evidence_response_ids": Array<string>
+    "explanation": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "selection_rule": ("LATEST_VALID" | "ANY_VALID_PASS" | "ALL_REQUIRED_FORMS") | (null)
+    "status": string
+  }
   "OutcomeUpdate": {
     "kind"?: (ApiSchemas["OutcomeKind"]) | (null)
     "position"?: (number) | (null)
     "statement"?: (string) | (null)
     "title"?: (string) | (null)
     "week_number"?: (number) | (null)
+  }
+  "OutputReportWrite": {
+    "idempotency_key": string
+    "queue_kind": "ASSESSOR" | "TECHNICAL"
+    "reason": string
+    "severity"?: "NORMAL" | "HIGH" | "CRITICAL"
+    "source_id": string
+    "source_kind": "FEEDBACK" | "TUTOR"
   }
   "PairedDifferences": {
     "cost": ApiSchemas["MetricValue"]
@@ -1188,9 +1302,52 @@ export type ApiSchemas = {
   "PreferenceFormat": "NO_PREFERENCE" | "TEXT" | "VISUAL" | "WORKED_EXAMPLE" | "CIRCUIT" | "STEPWISE"
   "PreferencePace": "DEFAULT" | "SLOWER" | "FASTER"
   "QualityReviewDecision": "APPROVED" | "REJECTED"
+  "QueueMember": {
+    "id": number
+    "name": string
+  }
+  "QueueRead": {
+    "acknowledgement_target": string
+    "backup_user_id": number
+    "id": string
+    "primary_user_id": number
+    "resolution_target": string
+    "revision": number
+  }
+  "QueueWrite": {
+    "acknowledgement_target": string
+    "backup_user_id": number
+    "expected_revision": number
+    "primary_user_id": number
+    "reason": string
+    "resolution_target": string
+  }
   "ReadinessResponse": {
     "checks": Partial<Record<string, "ready" | "not_ready">>
     "status": "ready" | "not_ready"
+  }
+  "ReassessmentRead": {
+    "available": boolean
+    "created_at": string
+    "id": string
+    "learner_notice": string
+    "replacement_response_id": (string) | (null)
+    "task_id": string
+    "task_title": string
+  }
+  "ReassessmentSetup": {
+    "authorisation": (ApiSchemas["ReassessmentRead"]) | (null)
+    "definition_version_id": string
+    "forms": Array<ApiSchemas["EquivalentFormRead"]>
+    "fresh_tasks": Array<ApiSchemas["FreshTaskRead"]>
+    "policy": (ApiSchemas["OutcomePolicyRead"]) | (null)
+    "policy_forms": Array<ApiSchemas["EquivalentFormRead"]>
+  }
+  "ReassessmentWrite": {
+    "expected_decision_revision": number
+    "learner_notice": string
+    "reason": string
+    "task_form_version_id": string
   }
   "RecentActivityRead": {
     "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
@@ -1274,6 +1431,10 @@ export type ApiSchemas = {
     "simulation_references"?: Array<string>
     "sources"?: Array<ApiSchemas["FeedbackSourceView"]>
     "summary": string
+  }
+  "SamplingWrite": {
+    "feedback_id": string
+    "reason": string
   }
   "ScopedRole": "assessor" | "research"
   "ScopedRoleAssignmentCreate": {
@@ -1459,6 +1620,7 @@ export type ApiSchemas = {
   "StudentDashboardRead": {
     "achievements": Array<ApiSchemas["AchievementRead"]>
     "courses": Array<ApiSchemas["CourseProgressRead"]>
+    "gamification_enabled"?: boolean
     "recommendations": Array<ApiSchemas["RecommendationRead"]>
     "reminders": Array<ApiSchemas["ReminderRead"]>
     "student": ApiSchemas["StudentIdentityRead"]

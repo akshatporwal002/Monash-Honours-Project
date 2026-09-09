@@ -614,6 +614,7 @@ class StudentSummaryRead(LmsSchema):
 
 
 class StudentDashboardRead(LmsSchema):
+    gamification_enabled: bool = True
     student: StudentIdentityRead
     summary: StudentSummaryRead
     courses: list[CourseProgressRead]

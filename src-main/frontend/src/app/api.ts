@@ -125,6 +125,7 @@ interface RawTask {
 }
 
 interface RawStudentDashboard {
+  gamification_enabled?: boolean
   student: { id: string; display_name: string }
   summary: {
     completed_tasks: number
@@ -326,6 +327,7 @@ function normalizeStudentDashboard(raw: RawStudentDashboard): StudentDashboardDa
 
   return {
     progress: {
+      gamification_enabled: raw.gamification_enabled ?? true,
       student_id: raw.student.id,
       display_name: raw.student.display_name,
       completed_tasks: raw.summary.completed_tasks,
@@ -336,7 +338,7 @@ function normalizeStudentDashboard(raw: RawStudentDashboard): StudentDashboardDa
       points_to_next_level: raw.summary.next_level_points,
       streak_days: 0,
       level: raw.summary.level,
-      level_progress: Math.min(100, Math.round(pointsWithinLevel / pointsPerLevel * 100)),
+      level_progress: raw.gamification_enabled === false ? 0 : Math.min(100, Math.round(pointsWithinLevel / pointsPerLevel * 100)),
       achievements: raw.achievements,
       module_progress: moduleProgress,
     },

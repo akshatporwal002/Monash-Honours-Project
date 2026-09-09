@@ -69,7 +69,6 @@ from app.schemas.lms import (
     FormalAssessmentSummary,
     LabelScoreRead,
     LatestAttemptSummary,
-    LeaderboardEntryRead,
     MaterialLinkCreate,
     ModuleCreate,
     ModuleUpdate,
@@ -1000,7 +999,7 @@ class LmsService:
             )
         )
         points_awarded = 0
-        if attempt.status is AttemptStatus.COMPLETED:
+        if frozen_versions is None:
             reward = self.gamification.award_completion(
                 self._require_profile(student),
                 task,
@@ -1143,8 +1142,10 @@ class LmsService:
                 .limit(20)
             ).all()
         )
-        achievements = self._achievement_reads(profile)
+        gamification_enabled = self.gamification.preference(student.id).enabled
+        achievements = self._achievement_reads(profile) if gamification_enabled else []
         return StudentDashboardRead(
+            gamification_enabled=gamification_enabled,
             student=StudentIdentityRead(
                 id=profile.id,
                 user_id=student.id,
@@ -1159,9 +1160,13 @@ class LmsService:
                 average_score=round(sum(latest_scores) / len(latest_scores))
                 if latest_scores
                 else None,
-                points=profile.points,
-                level=self.gamification.level(profile.points, points_per_level),
-                next_level_points=points_per_level - profile.points % points_per_level,
+                points=profile.points if gamification_enabled else 0,
+                level=self.gamification.level(profile.points, points_per_level)
+                if gamification_enabled
+                else 0,
+                next_level_points=points_per_level - profile.points % points_per_level
+                if gamification_enabled
+                else 0,
             ),
             courses=course_progress,
             tasks=task_reads,
@@ -1486,33 +1491,6 @@ class LmsService:
             if by_outcome
             else {}
         )
-        profiles = (
-            {
-                profile.user_id: profile
-                for profile in self.session.scalars(
-                    select(StudentProfile).where(
-                        StudentProfile.user_id.in_({student.user_id for student in students})
-                    )
-                ).all()
-            }
-            if students
-            else {}
-        )
-        completed_by_profile: dict[str, int] = defaultdict(int)
-        for row in students:
-            completed_by_profile[row.student_id] += row.completed_tasks
-        leaderboard = sorted(
-            (
-                LeaderboardEntryRead(
-                    student_id=row.student_id,
-                    display_name=row.display_name,
-                    points=profiles[row.user_id].points if row.user_id in profiles else 0,
-                    completed_tasks=completed_by_profile[row.student_id],
-                )
-                for row in {item.student_id: item for item in students}.values()
-            ),
-            key=lambda entry: (-entry.points, -entry.completed_tasks, entry.display_name),
-        )
         return EducatorDashboardRead(
             courses=course_reads,
             total_students=len(unique_students),
@@ -1533,7 +1511,7 @@ class LmsService:
                 )
                 for outcome_id, scores in by_outcome.items()
             ],
-            leaderboard=leaderboard,
+            leaderboard=[],
             recent_activity=[
                 RecentActivityRead(
                     student_name=users[attempt.student_id].full_name,
@@ -1980,6 +1958,10 @@ class LmsService:
         return [self.read_simulation(student, run_id) for run_id in ids]
 
     def _require_unlocked(self, student: User, task: LearningTask) -> None:
+        from app.services.assessment.reassessment import ReassessmentService
+
+        if ReassessmentService(self.session).bypass_prerequisites(student.id, task.id):
+            return
         completed = set(
             self.session.scalars(
                 select(SubmissionAttempt.task_id)
@@ -2080,6 +2062,10 @@ class LmsService:
                 access_status = "completed"
             elif set(task.prerequisite_task_ids or []) - completed_ids:
                 access_status = "locked"
+                from app.services.assessment.reassessment import ReassessmentService
+
+                if ReassessmentService(self.session).bypass_prerequisites(student.id, task.id):
+                    access_status = "available"
             elif attempts or self.session.scalar(
                 select(SubmissionDraft.id).where(
                     SubmissionDraft.student_id == student.id,
@@ -2362,17 +2348,20 @@ class LmsService:
         return next((task for task in tasks if task.id not in completed_ids), None)
 
     def _achievement_reads(self, profile: StudentProfile) -> list[AchievementRead]:
+        from app.services.gamification import DEFAULT_ACHIEVEMENTS
+
+        descriptions = {item.code: item.description for item in DEFAULT_ACHIEVEMENTS}
         rows = self.session.execute(
             select(StudentAchievement, Achievement)
             .join(Achievement, Achievement.id == StudentAchievement.achievement_id)
-            .where(StudentAchievement.student_id == profile.id)
+            .where(StudentAchievement.student_id == profile.id, Achievement.code != "perfect-score")
             .order_by(StudentAchievement.earned_at.desc())
         ).all()
         return [
             AchievementRead(
                 code=achievement.code,
                 name=achievement.name,
-                description=achievement.description,
+                description=descriptions.get(achievement.code, achievement.description),
                 icon=achievement.icon,
                 earned_at=award.earned_at,
             )
