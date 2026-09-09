@@ -3,10 +3,10 @@ import { expect, test } from './fixtures/assessment'
 import type { Page } from '@playwright/test'
 
 async function expectReflow(page: Page) {
-  await expect.poll(() => page.evaluate(() => ({
-    content: document.documentElement.scrollWidth,
-    viewport: document.documentElement.clientWidth,
-  }))).toEqual({ content: 320, viewport: 320 })
+  expect(page.viewportSize()?.width).toBe(320)
+  await expect.poll(() => page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )).toBeLessThanOrEqual(0)
 }
 
 async function expectAccessible(page: Page) {
