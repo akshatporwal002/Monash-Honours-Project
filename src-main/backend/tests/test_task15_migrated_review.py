@@ -10,6 +10,7 @@ import pytest
 from alembic import command
 from sqlalchemy import create_engine, event, select, text
 from sqlalchemy.orm import Session
+from support.migration_assertions import protected_history_manifest
 from test_migrations import migration_config
 from test_task14_lifecycle import complete, setup_episode
 
@@ -34,7 +35,6 @@ from app.services.assessment.human_review import (
 from app.services.assessment.jobs import SqlAlchemyAssessmentEvaluationJobRepository
 from app.services.assessment.review import AssessmentReviewConflictError
 from app.services.episode_responses import SqlAlchemyFrozenResponseReader
-from scripts.verify_sqlite_backup import database_manifest
 
 
 @pytest.fixture
@@ -173,10 +173,10 @@ def test_real_episode_review_is_lossless_read_only_and_confirmed(migrated):
             session.execute(text(statement))
         session.rollback()
     database_path = Path(session.get_bind().url.database)
-    before_downgrade = database_manifest(database_path)
+    before_downgrade = protected_history_manifest(database_path)
     with pytest.raises(RuntimeError, match="cannot downgrade populated participation_recognitions"):
         command.downgrade(config, "20260907_0030")
-    assert database_manifest(database_path) == before_downgrade
+    assert protected_history_manifest(database_path) == before_downgrade
     assert (
         session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
         == "20260909_0038"
