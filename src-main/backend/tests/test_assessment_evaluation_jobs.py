@@ -533,7 +533,7 @@ threading.Event().wait()
                 assert session.execute(text("PRAGMA foreign_key_check")).all() == []
                 from sqlalchemy.exc import DatabaseError
 
-                with pytest.raises(DatabaseError):
+                with pytest.raises(DatabaseError, match="assessment records are append-only"):
                     session.execute(
                         text("DELETE FROM assessment_decisions WHERE id=:id"), {"id": decision_id}
                     )
