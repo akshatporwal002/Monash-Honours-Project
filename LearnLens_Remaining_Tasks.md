@@ -10,11 +10,10 @@ Post-merge CI passed 873 backend tests with 86.19% coverage, 31 migration checks
 Local main was clean and matched origin/main before Tasks 14 and 15 began in isolated worktrees.
 Task 32 has a reviewed protocol and data-plan draft naming Arv Surana as lead. Study approval remains outstanding.
 
-Local delivery, 9 September 2026: Tasks 23 and 24 are implemented on
-`codex/tutor-results-governance`, based on main `16db109`. The
+Delivery, 9 September 2026: Tasks 23 and 24 are implemented on
+`jordan/tutor-results-governance`, based on main `16db109`. The
 [delivery record](docs/learnlens/task-23-24-tutor-and-results.md) describes the
-behaviour, validation and remaining integration work. Push approval is pending;
-this update does not mark the changes as merged into main. Tasks 8 and 32 now have
+behaviour, validation and remaining integration work. Tasks 8 and 32 now have
 manual-fill comments for the team's missing decisions and supporting records.
 Their outstanding human approvals remain open.
 

@@ -1,7 +1,7 @@
 # Tutor dialogue and learner assessment review
 
 This delivery implements Tasks 23 and 24 from main `16db1093cf95314acdd698fe56d27d3b21e16435`.
-The local branch is `codex/tutor-results-governance`. Push approval is still required.
+Delivery branch: `jordan/tutor-results-governance`.
 
 ## Learner and assessor behaviour
 
