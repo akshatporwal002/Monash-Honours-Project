@@ -534,6 +534,11 @@ export const api = {
       ),
   },
   student: {
+    preferences: (signal?: AbortSignal) => request<ApiSchemas['PreferenceRead']>('/learner-preferences/me', { signal }),
+    savePreferences: (payload: ApiSchemas['PreferenceUpdate']) => request<ApiSchemas['PreferenceRead']>('/learner-preferences/me', json('PUT', payload)),
+    resetPreferences: (payload: ApiSchemas['PreferenceReset']) => request<ApiSchemas['PreferenceRead']>('/learner-preferences/me/reset', json('POST', payload)),
+    preferenceHistory: (signal?: AbortSignal, offset = 0) => request<ApiSchemas['PreferenceHistory']>(`/learner-preferences/me/history?offset=${offset}&limit=20`, { signal }),
+    effectivePreferences: (taskId: string, signal?: AbortSignal) => request<ApiSchemas['EffectivePreferences']>(`/learner-preferences/me/tasks/${encodeURIComponent(taskId)}/effective`, { signal }),
     dashboard: async (signal?: AbortSignal) =>
       normalizeStudentDashboard(await request<RawStudentDashboard>('/students/me/dashboard', { signal })),
     task: async (taskId: string, signal?: AbortSignal) =>

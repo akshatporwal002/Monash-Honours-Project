@@ -468,7 +468,7 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260908_0032"
+            == "20260908_0033"
         )
         assert inspect(connection).has_table("episode_checkpoints")
         assert (

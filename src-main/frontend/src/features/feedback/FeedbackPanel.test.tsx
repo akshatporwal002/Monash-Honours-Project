@@ -13,6 +13,21 @@ import type {
   FeedbackWorkflowResult,
 } from './types'
 
+test('expandable explanation retains required feedback, sources and actions', async () => {
+  const client = new FakeClient([result(validated())])
+  const view = render(<FeedbackPanel submissionId="submission-1" client={client} explanationForm="expandable" />)
+  await screen.findByText('Your explanation has a useful start.')
+  expect(screen.getByText('Measurement is missing.')).toBeVisible()
+  expect(screen.getByText('Explain what measurement does.')).toBeVisible()
+  expect(screen.getByText('Week 2 course notes')).toBeVisible()
+  expect(screen.getByText('state = measure(qubit)')).not.toBeVisible()
+  await userEvent.setup().click(screen.getByText('Read feedback explanation'))
+  expect(screen.getByText('state = measure(qubit)')).toBeVisible()
+  view.rerender(<FeedbackPanel submissionId="submission-1" client={client} explanationForm="inline" />)
+  expect(screen.queryByText('Read feedback explanation')).not.toBeInTheDocument()
+  expect(screen.getByText('state = measure(qubit)')).toBeVisible()
+})
+
 const processing = (): FeedbackWorkflowResponse => ({
   workflow_run_id: 'workflow-1',
   submission_id: 'submission-1',

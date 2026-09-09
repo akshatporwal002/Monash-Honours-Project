@@ -12,6 +12,7 @@ import { Button, Tag, cx } from '../../components/ui'
 import styles from './feedback.module.css'
 
 type FeedbackPanelProps = {
+  explanationForm?: 'inline' | 'expandable'
   submissionId: string
   client?: FeedbackApiClient
   pollIntervalMs?: number
@@ -76,6 +77,7 @@ export function FeedbackPanel({
   client,
   pollIntervalMs = 1_000,
   maxPollingDurationMs = DEFAULT_MAX_POLLING_DURATION_MS,
+  explanationForm = 'inline',
 }: FeedbackPanelProps) {
   const apiClient = useMemo(() => client ?? createFeedbackApiClient(), [client])
   const [workflow, setWorkflow] = useState<FeedbackWorkflowResponse | null>(null)
@@ -191,7 +193,7 @@ export function FeedbackPanel({
           <FeedbackMarkdown>{feedback.identified_error}</FeedbackMarkdown>
         </section>
       )}
-      {feedback.explanation && <FeedbackMarkdown>{feedback.explanation}</FeedbackMarkdown>}
+      {feedback.explanation && (explanationForm === 'expandable' ? <details><summary>Read feedback explanation</summary><FeedbackMarkdown>{feedback.explanation}</FeedbackMarkdown></details> : <FeedbackMarkdown>{feedback.explanation}</FeedbackMarkdown>)}
       {feedback.kind === 'validated' && (
         <ImprovementActions actions={feedback.improvement_actions} />
       )}

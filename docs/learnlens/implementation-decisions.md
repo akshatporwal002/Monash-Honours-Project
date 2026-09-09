@@ -4,6 +4,25 @@ This log records key implementation choices for later user review.
 It complements the [approved policy selections](task-08-approved-selections.md) and the [remaining task list](../../LearnLens_Remaining_Tasks.md).
 It does not claim that missing institutional approvals or release measurements exist.
 
+## Task 20: explicit global preferences with task-specific limits
+
+Store presentation choices per learner because the current consumers span courses.
+Keep every save and reset as a new revision; defaults do not create a record during reads.
+Use authenticated identity, expected versions, and request keys for ownership, conflicts, and retries.
+Preference choices belong in their own archive, not in inferred learner-model snapshots.
+They do not supply evidence of learning or change a formal result.
+
+Resolve effective settings through the existing scoped task and frozen episode readers.
+Opt-out retains requested values and returns baseline settings with personalisation explicitly disabled.
+Fresh application suppresses optional instructional presentation and repeat practice.
+Approved access support, required feedback, and reflection remain available.
+Repeat practice starts only a local draft for permitted ordinary practice; existing submission rules still apply.
+
+Only text and stepwise support presentation are offered. No alternate response form or generated explanation is promised.
+The detailed interface, defaults, recovery rules, and tests are recorded in the [Task 20 handoff](task-20-learner-preferences.md).
+The current instruction permits implementation without sub-agents. Reviews are separate coordinator self-reviews, not independent agent verdicts.
+No remote delivery or work beyond Task 20 is included.
+
 ## 2026-09-07: continue engineering under the selected policies
 
 The user selected D-05 B, D-07 C, and the recommended A options elsewhere.

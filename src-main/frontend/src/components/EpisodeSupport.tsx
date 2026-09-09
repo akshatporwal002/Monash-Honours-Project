@@ -4,8 +4,9 @@ import type { ApiSchemas } from '../api/generated'
 import type { EpisodeState } from '../app/types'
 import { Button } from './ui'
 
-export function EpisodeSupport({ taskId, workId, state, disabled }: {
+export function EpisodeSupport({ taskId, workId, state, disabled, onRequest = false }: {
   taskId: string; workId: string | null; state: EpisodeState; disabled: boolean
+  onRequest?: boolean
 }) {
   const [history, setHistory] = useState<ApiSchemas['EpisodeHelpUseRead'][]>([])
   const [offset, setOffset] = useState<number | null>(null)
@@ -40,7 +41,7 @@ export function EpisodeSupport({ taskId, workId, state, disabled }: {
   return <>
     {state.transfer ? <p>Fresh application is unaided. Accessibility support remains available.</p> : <>
       <p>Conceptual hints, use as often as needed</p>
-      {(state.supported_hints ?? []).map((label, index) => <Button key={index} disabled={disabled || loading || !workId} onClick={() => void record('conceptual_hint', index)}>Request {label.toLowerCase()}</Button>)}
+      {onRequest ? <details><summary>Open approved hint controls</summary>{(state.supported_hints ?? []).map((label, index) => <Button key={index} disabled={disabled || loading || !workId} onClick={() => void record('conceptual_hint', index)}>Request {label.toLowerCase()}</Button>)}</details> : (state.supported_hints ?? []).map((label, index) => <Button key={index} disabled={disabled || loading || !workId} onClick={() => void record('conceptual_hint', index)}>Request {label.toLowerCase()}</Button>)}
       {hint && <p aria-label="Requested conceptual hint">{hint}</p>}
     </>}
     {(state.accessibility_support ?? []).map((support, index) => <div key={index}><p>{support}</p><Button disabled={disabled || loading || !workId} onClick={() => void record('accessibility', index)}>I used access support {index + 1}</Button></div>)}

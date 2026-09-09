@@ -1,5 +1,25 @@
 # LearnLens coordinator progress
 
+## Task 20 local completion
+
+Task 20 is implemented in `.tmp-coordinator/task20` on `feat/task-20-learner-preferences`.
+The fetched base is `65a9457d27e849465e7f227471336552bb22b8b4`; the original untracked handoff is preserved.
+The current scope is Task 20 only, with no sub-agents, commits, pushes, or merges.
+Earlier entries below describe prior batches and do not expand this scope.
+
+The learner editor persists bounded global choices, correction/reset history, and personalisation opt-out.
+Task-effective reads enforce frozen stage and practice limits. Access support and required reflection remain available.
+Migration 0033 is additive. Generated contracts and readiness use that sole head.
+
+All local gates passed: 1,106 backend tests with 86.99% service coverage, 242 frontend tests, and 84 browser checks.
+The authenticated failure/recovery journey, migration checks, lint, contracts, build, and dependency audits also passed.
+A disk-space interruption was resolved by removing completed task-owned scratch data before the successful full rerun.
+The [Task 20 handoff](task-20-learner-preferences.md) records exact evidence, recovery, and remaining limits.
+Separate Standards, Spec, and Test Judge self-reviews passed, replacing agent delegation under the current instruction.
+No independent agent review or release approval is claimed.
+
+## Earlier batch history
+
 Started: 7 September 2026. Status: implementation in progress.
 
 The original request authorised Tasks 13 onward, including reviewed commits, pushes, and batch merges.

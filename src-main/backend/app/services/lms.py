@@ -737,6 +737,31 @@ class LmsService:
         )
         return EpisodeService(self.session).state(draft) if draft else None
 
+    def effective_preferences(self, student: User, task_id: str):
+        from app.services.learner_preferences import (
+            LearnerPreferenceService,
+            effective_preferences,
+        )
+
+        task = self._require_student_task(student, task_id)
+        view = self._task_read(task, student)
+        state = self.episode_state(student, task_id)
+        transfer = bool(state and state.get("transfer"))
+        criteria = task.marking_criteria if isinstance(task.marking_criteria, dict) else {}
+        repeat_allowed = (
+            view.assessment is None
+            and view.episode_plan is None
+            and task.task_type.value
+            not in {"prediction", "reasoning", "explanation", "revision", "reflection", "transfer"}
+            and view.access_status != "locked"
+            and criteria.get("allow_resubmission") is not False
+        )
+        return effective_preferences(
+            LearnerPreferenceService(self.session).read(student),
+            transfer=transfer,
+            repeat_allowed=repeat_allowed,
+        )
+
     def episode_checkpoint(
         self,
         student: User,

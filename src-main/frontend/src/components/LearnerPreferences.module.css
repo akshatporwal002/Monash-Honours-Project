@@ -1,0 +1,5 @@
+.fields { display: grid; gap: 1rem; border: 0; padding: 0; min-width: 0; }
+.fields label { display: block; }
+.fields select { display: block; width: 100%; max-width: 28rem; padding: .6rem; color: inherit; background: var(--surface, white); border: 1px solid currentColor; border-radius: .3rem; }
+.fields input { margin-right: .5rem; }
+.fields :focus-visible { outline: 3px solid #3566a0; outline-offset: 3px; }

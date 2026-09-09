@@ -1,6 +1,7 @@
 from app.models import (  # noqa: F401
     assessment_work,
     assessor_eligibility,
+    learner_preferences,
     simulation,
     source_history,
     task_review,

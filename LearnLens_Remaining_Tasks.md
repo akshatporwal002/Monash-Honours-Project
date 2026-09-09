@@ -255,11 +255,11 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Dependencies: Tasks 14 and 17; Task 8, D-05, for assessed conditions. Suggested owner: learner experience.
 
-    A preference enum exists, but there is no complete preference store, API, or screen. Add pace, format, explanation detail, optional breaks, repeat practice, and personalisation controls. Let learners correct saved choices. Keep access support separate from instructional help.
+    Implemented and locally verified in the Task 20 worktree: server-owned preference revisions, a mounted learner editor, effective workspace controls, correction/reset history, and personalisation opt-out. All local gates passed; changes remain uncommitted. Access support stays separate from instructional help.
 
     Done when preferences persist and learners can disable non-essential personalisation. Choices, help use, access support, and slower pace must not lower formal results. Do not infer a diagnosis or fixed learning style.
 
-    Evidence: [platform enums](src-main/backend/app/domain/platform_enums.py), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR35-FR37 and NFR31.
+    Evidence: [Task 20 implementation and verification](docs/learnlens/task-20-learner-preferences.md), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR35-FR37 and NFR31.
 
 21. **Build the curriculum links and approved diagnostic paths.**
 

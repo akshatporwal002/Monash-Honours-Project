@@ -1,4 +1,5 @@
 import { ArrowRight, Award, BellDot, BookOpen, Check, Lock, Trophy } from 'lucide-react'
+import { LearnerPreferences } from './LearnerPreferences'
 
 import type { LearningNotification, LearningTask, StudentDashboardData } from '../app/types'
 import { Button, Card, EmptyState, Meter, PageHeader, Tag, cx } from './ui'
@@ -43,6 +44,7 @@ export function StudentDashboard({
 
   return (
     <div className={styles.screen}>
+      <details><summary>Learning preferences</summary><LearnerPreferences /></details>
       <PageHeader
         eyebrow="My learning"
         title={`Welcome back, ${firstName}`}

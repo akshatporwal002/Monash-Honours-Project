@@ -549,6 +549,14 @@ export type ApiSchemas = {
     "total_tasks": number
     "user_id": number
   }
+  "EffectivePreferences": {
+    "limitations": Array<string>
+    "repeat_allowed": boolean
+    "requested": ApiSchemas["PreferenceValues"]
+    "transfer": boolean
+    "values": ApiSchemas["PreferenceValues"]
+    "version": number
+  }
   "EnrollmentCreate": {
     "student_id": number
   }
@@ -1111,6 +1119,39 @@ export type ApiSchemas = {
     "pass_rate": ApiSchemas["MetricValue"]
     "relevance": ApiSchemas["MetricValue"]
     "total_tokens": ApiSchemas["MetricValue"]
+  }
+  "PreferenceHistory": {
+    "items": Array<ApiSchemas["PreferenceRevision"]>
+    "next_offset": (number) | (null)
+  }
+  "PreferenceRead": {
+    "values": ApiSchemas["PreferenceValues"]
+    "version": number
+  }
+  "PreferenceReset": {
+    "expected_version": number
+    "request_key": string
+  }
+  "PreferenceRevision": {
+    "action": "save" | "reset"
+    "created_at": string
+    "values": ApiSchemas["PreferenceValues"]
+    "version": number
+  }
+  "PreferenceUpdate": {
+    "expected_version": number
+    "request_key": string
+    "values": ApiSchemas["PreferenceValues"]
+  }
+  "PreferenceValues": {
+    "breaks"?: boolean
+    "explanation_detail"?: "brief" | "detailed"
+    "feedback_form"?: "inline" | "expandable"
+    "format"?: "text" | "stepwise"
+    "pace"?: "self_paced" | "stepwise"
+    "personalisation_enabled"?: boolean
+    "repeat_practice"?: boolean
+    "support_amount"?: "standard" | "on_request"
   }
   "QualityReviewDecision": "APPROVED" | "REJECTED"
   "ReadinessResponse": {
