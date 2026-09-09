@@ -55,6 +55,7 @@ class ProgressUpdate:
     completed_task_reference: str
     idempotency_key: str
     correlation_id: str
+    execution_token: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,6 +65,7 @@ class NextTaskRequest:
     course_reference: str
     completed_task_reference: str
     correlation_id: str
+    execution_token: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,7 +92,7 @@ class ProgressPersistenceAdapter(Protocol):
 
 
 class NextTaskRecommender(Protocol):
-    async def recommend_next_task(self, request: NextTaskRequest) -> str: ...
+    async def recommend_next_task(self, request: NextTaskRequest) -> str | None: ...
 
 
 class ContinuationRepository(Protocol):
@@ -121,7 +123,7 @@ class ContinuationRepository(Protocol):
     def complete(
         self,
         claim: ContinuationClaim,
-        next_task_reference: str,
+        next_task_reference: str | None,
         *,
         completed_at: datetime,
     ) -> bool:

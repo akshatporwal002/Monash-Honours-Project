@@ -1,3 +1,4 @@
+import { CourseActivityContinuations } from './ActivityContinuation'
 import { CurriculumPanel } from './CurriculumPanel'
 import { PathwayEditor } from './PathwayEditor'
 import { useEffect, useState } from 'react'
@@ -509,7 +510,7 @@ export function CourseEditor() {
 
       {course && <>
         <Button variant="secondary" onClick={() => setPathwaysOpen(value => !value)}>Manage learning pathways</Button>
-        {pathwaysOpen && <><PathwayEditor key={`editor-${course.id}`} courseId={course.id} /><CurriculumPanel key={`review-${course.id}`} courseId={course.id} staff /></>}
+        {pathwaysOpen && <><PathwayEditor key={`editor-${course.id}`} courseId={course.id} /><CurriculumPanel key={`review-${course.id}`} courseId={course.id} staff /><CourseActivityContinuations key={`activity-${course.id}`} courseId={course.id} /></>}
         <Button variant="secondary" onClick={() => setAccessOpen((value) => !value)}>{accessOpen ? 'Close assessor eligibility' : 'Manage assessor eligibility'}</Button>
         {accessOpen && <AssessorAccessPanel key={course.id} courseId={course.id} />}
         <Button variant="quiet" onClick={() => setReviewOpen((open) => !open)}>

@@ -281,12 +281,12 @@ class SqlAlchemyContinuationRepository:
     def complete(
         self,
         claim: ContinuationClaim,
-        next_task_reference: str,
+        next_task_reference: str | None,
         *,
         completed_at: datetime,
     ) -> bool:
         _validate_claim(claim)
-        if not _valid_reference(next_task_reference):
+        if next_task_reference is not None and not _valid_reference(next_task_reference):
             raise ContinuationPersistenceError("next-task reference is invalid")
         terminal_at = _utc(completed_at)
         return self._fenced_update(

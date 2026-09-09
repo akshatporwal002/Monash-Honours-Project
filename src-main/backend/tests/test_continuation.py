@@ -317,8 +317,10 @@ def test_opaque_next_task_handoff_is_returned_without_recommendation_logic() -> 
             course_reference=item.course_reference,
             completed_task_reference=item.completed_task_reference,
             correlation_id=item.correlation_id,
+            execution_token=recommender.requests[0].execution_token,
         )
     ]
+    assert recommender.requests[0].execution_token is not None
 
 
 def test_continuation_failure_cannot_withhold_already_released_feedback() -> None:

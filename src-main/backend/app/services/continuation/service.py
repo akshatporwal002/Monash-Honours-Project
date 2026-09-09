@@ -192,6 +192,7 @@ class ContinuationWorker:
                             completed_task_reference=(current_claim.completed_task_reference),
                             idempotency_key=current_claim.workflow_run_id,
                             correlation_id=current_claim.correlation_id,
+                            execution_token=current_claim.execution_token,
                         )
                     ),
                     timeout=self._adapter_timeout_seconds,
@@ -231,6 +232,7 @@ class ContinuationWorker:
                         course_reference=current_claim.course_reference,
                         completed_task_reference=current_claim.completed_task_reference,
                         correlation_id=current_claim.correlation_id,
+                        execution_token=current_claim.execution_token,
                     )
                 ),
                 timeout=self._adapter_timeout_seconds,
@@ -241,7 +243,7 @@ class ContinuationWorker:
                 current_claim,
                 ContinuationFailureCategory.RECOMMENDER_UNAVAILABLE,
             )
-        if not _valid_reference(next_task_reference):
+        if next_task_reference is not None and not _valid_reference(next_task_reference):
             return self._retry_or_fail(
                 repository,
                 current_claim,

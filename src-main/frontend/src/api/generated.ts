@@ -24,6 +24,43 @@ export type ApiSchemas = {
     "valid_until": (string) | (null)
     "version": number
   }
+  "ActivityAction": {
+    "action": "accept" | "defer" | "replace" | "educator_override"
+    "expected_version": number
+    "reason"?: string
+    "request_key": string
+    "task_id"?: (string) | (null)
+  }
+  "ActivityHistory": {
+    "action": string
+    "created_at": string
+    "educator": boolean
+    "reason": string
+    "task_id": (string) | (null)
+    "version": number
+  }
+  "ActivityOption": {
+    "support_level": (string) | (null)
+    "task_id": string
+    "title": string
+  }
+  "ActivityRead": {
+    "can_override"?: boolean
+    "evidence_ids"?: Array<string>
+    "history"?: Array<ApiSchemas["ActivityHistory"]>
+    "learner_label"?: string
+    "next_task_id"?: (string) | (null)
+    "options"?: Array<ApiSchemas["ActivityOption"]>
+    "pathway_id"?: (string) | (null)
+    "preference_version"?: (number) | (null)
+    "reason": string
+    "rule_version"?: string
+    "snapshot_id"?: (string) | (null)
+    "state": string
+    "uncertainty"?: (number) | (null)
+    "version"?: number
+    "workflow_id": string
+  }
   "AdminUserCreate": {
     "email": string
     "full_name": string

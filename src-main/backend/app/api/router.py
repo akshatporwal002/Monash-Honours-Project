@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    activity_continuation,
     analytics,
     assessment,
     assessment_evaluation,
@@ -37,3 +38,5 @@ api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(research_exports.router, tags=["research"])
 
 api_router.include_router(curriculum.router)
+
+api_router.include_router(activity_continuation.router)

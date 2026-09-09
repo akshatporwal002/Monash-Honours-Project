@@ -63,7 +63,7 @@ class ContinuationJob(Base):
             "(state = 'completed' AND processing_attempts BETWEEN 1 AND 3 "
             "AND progress_recorded = 1 AND execution_token IS NULL "
             "AND lease_expires_at IS NULL AND next_retry_at IS NULL "
-            "AND next_task_reference IS NOT NULL AND failure_category IS NULL "
+            "AND failure_category IS NULL "
             "AND completed_at IS NOT NULL) OR "
             "(state = 'failed' AND processing_attempts BETWEEN 1 AND 3 "
             "AND execution_token IS NULL AND lease_expires_at IS NULL "

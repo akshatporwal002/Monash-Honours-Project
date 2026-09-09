@@ -320,7 +320,7 @@ def test_migration_preserves_preferences_and_refuses_destructive_downgrade(tmp_p
         actor = learner(session)
         LearnerPreferenceService(session).save(actor, command(pace="stepwise"))
     migration.upgrade(config, "head")
-    with pytest.raises(RuntimeError, match="learner history is protected"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         migration.downgrade(config, "20260908_0032")
     with engine.connect() as connection:
         assert (
@@ -329,7 +329,7 @@ def test_migration_preserves_preferences_and_refuses_destructive_downgrade(tmp_p
         )
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0034"
+            == "20260909_0035"
         )
         with pytest.raises(IntegrityError):
             connection.execute(text("DELETE FROM learner_preference_revisions"))

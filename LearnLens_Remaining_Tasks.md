@@ -277,13 +277,21 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 22. **Connect learner evidence to the next approved activity.**
 
-    Dependencies: Tasks 7, 18, 20, and 21. Suggested owner: pathway and worker teams.
+    Implemented and locally verified in `.tmp-coordinator/task22`, including the uncommitted Task 20 and Task 21 dependencies.
 
-    Durable continuation exists. Its shipped progress adapter does nothing, and its recommender returns the completed task reference. Replace these placeholders with model and pathway adapters. Select approved activities from prerequisites and evidence. Save the reason, uncertainty, model snapshot, rule version, learner choice, and educator override.
+    The shipped worker now records one durable model update after eligible checked feedback and selects approved activities.
+    Protected decisions retain evidence, uncertainty, model/rule/pathway versions, learner choices, and educator override reasons.
+    Mounted controls support inspect, accept, defer, replace, refresh, and scoped overrides. Dashboard suggestions honor saved choices and opt-out.
+    Retries, restarts, expired claims, concurrent writes, failed saves, changed approvals, and no-activity states have persistence tests.
+    Formal assessment conditions and Task 21 diagnostic authority remain unchanged. Task 23 has not started.
 
-    Done when checked feedback leads to one model update and a suitable next activity. Restart and retry must not duplicate updates. Learners can defer or replace allowed suggestions without changing the assessment standard.
+    Verification covers 1,141 backend tests through the full run and corrective rerun, with 87.23% service coverage.
+    Frontend tests passed 249 checks, existing browser tests passed 84, and authenticated Task 22 journeys passed in all four browsers.
+    Migration, contracts, lint, build, secret scan, and required dependency audit gates pass. Exact run history and limits are in the handoff.
 
-    Evidence: [worker.py](src-main/backend/app/worker.py), `_OfflineProgressAdapter` and `_OfflineNextTaskRecommender`; [continuation service](src-main/backend/app/services/continuation/service.py).
+    Evidence: [Task 22 implementation and verification](docs/learnlens/task-22-approved-activity-continuation.md),
+    [dependency hashes](docs/learnlens/task-22-dependency-baseline.json), and [Task 22 delta](docs/learnlens/task-22-change-manifest.json).
+    Changes remain uncommitted. Do not merge to main without explicit authorization.
 
 23. **Add tutor dialogue and a controlled sequence of hints.**
 

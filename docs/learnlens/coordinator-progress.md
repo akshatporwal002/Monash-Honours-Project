@@ -1,6 +1,33 @@
 # LearnLens coordinator progress
 
-## Task 21 local completion
+## Task 22 local completion
+
+Task 22 is implemented in the detached worktree `.tmp-coordinator/task22`.
+Its base is `65a9457d27e849465e7f227471336552bb22b8b4`, plus 60 verified Task 21 dependency files.
+Final checks confirm all 60 source Task 21 hashes and 38 source Task 20 hashes remain unchanged.
+No files were staged, committed, pushed, merged, or deployed. Main and its unrelated handoff remain untouched.
+The user explicitly prohibited a merge to main and all sub-agent work.
+
+The shipped worker now connects checked feedback to the shared learner model and approved activity selection.
+Lease-fenced transactions protect model receipts and suggestions. Learner choices and educator overrides retain history.
+The learner workspace and course editor mount these controls. Dashboard recommendations respect saved choices and opt-out.
+Published practice response exits now unlock practice without relying on numeric grades. Formal assessment rules remain unchanged.
+
+The full backend run covered 1,141 tests: 1,139 passed, with two documentation/test-assertion failures.
+Both were fixed. The two affected files then passed all 20 tests; combined service coverage is 87.23%.
+The frontend suite passed 249 tests, and all 84 existing browser tests passed.
+The final authenticated Task 22 journey passed in Chrome, Edge, Firefox, and WebKit.
+Migration, contracts, Ruff, frontend lint/build, Gitleaks, and required dependency audit gates pass.
+The npm development tree retains two moderate advisories below the required high-severity threshold; production has none.
+The two vulnerable Python development HTTP packages were patched in the lockfile and now pass audit.
+
+See the [Task 22 handoff](task-22-approved-activity-continuation.md) for exact evidence, separate self-reviews,
+interfaces, failure states, recovery, and delivery order. The [delta manifest](task-22-change-manifest.json)
+separates Task 22 from the preserved dependency source. Independent review and remote CI are not claimed.
+Task 23 has not started. Task 35 operational AI assessment remains disabled.
+
+
+## Earlier Task 21 local completion
 
 Task 21 is implemented in `.tmp-coordinator/task21` on `feat/task-21-curriculum-diagnostics`.
 The user authorised the next implementation step and prohibited sub-agents.

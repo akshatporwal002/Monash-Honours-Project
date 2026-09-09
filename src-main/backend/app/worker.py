@@ -33,11 +33,10 @@ from app.services.audit_events import FeedbackAuditEvents
 from app.services.continuation import (
     ContinuationWorker,
     NextTaskRecommender,
-    NextTaskRequest,
     ProgressPersistenceAdapter,
-    ProgressUpdate,
     SqlAlchemyContinuationRepository,
 )
+from app.services.continuation.activity import ApprovedActivityAdapter
 from app.services.feedback.application import (
     InProcessFeedbackExecutor,
     PipelineFactory,
@@ -121,18 +120,6 @@ class _OfflineBaselineJudge:
         raise RuntimeError("research baseline evaluation is disabled")
 
 
-class _OfflineProgressAdapter:
-    async def record_terminal_feedback(self, update: ProgressUpdate) -> None:
-        del update
-
-
-class _OfflineNextTaskRecommender:
-    async def recommend_next_task(self, request: NextTaskRequest) -> str:
-        # The LMS records progress synchronously. Reusing the completed task's
-        # opaque reference is a deterministic terminal handoff for the MVP.
-        return request.completed_task_reference
-
-
 def build_offline_worker_adapters(configured_settings: Settings) -> WorkerAdapters:
     """Build the durable worker using only adapters shipped with the MVP."""
     if configured_settings.research_enabled:
@@ -146,8 +133,8 @@ def build_offline_worker_adapters(configured_settings: Settings) -> WorkerAdapte
         baseline_context_provider=_OfflineBaselineContextProvider(),
         baseline_generator=_OfflineBaselineGenerator(),
         baseline_judge=_OfflineBaselineJudge(),
-        progress_adapter=_OfflineProgressAdapter(),
-        next_task_recommender=_OfflineNextTaskRecommender(),
+        progress_adapter=ApprovedActivityAdapter(),
+        next_task_recommender=ApprovedActivityAdapter(),
     )
 
 
@@ -180,8 +167,12 @@ class _ContinuationDatabasePass:
         with self._session_factory() as session:
             executor = ContinuationWorker(
                 SqlAlchemyContinuationRepository(session),
-                self._adapters.progress_adapter,
-                self._adapters.next_task_recommender,
+                self._adapters.progress_adapter.bind(self._session_factory, self._now)
+                if isinstance(self._adapters.progress_adapter, ApprovedActivityAdapter)
+                else self._adapters.progress_adapter,
+                self._adapters.next_task_recommender.bind(self._session_factory, self._now)
+                if isinstance(self._adapters.next_task_recommender, ApprovedActivityAdapter)
+                else self._adapters.next_task_recommender,
                 now=self._now,
                 lease_duration=self._lease_duration,
                 maximum_attempts=self._maximum_attempts,

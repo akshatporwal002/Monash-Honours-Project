@@ -1,3 +1,4 @@
+import { ActivityContinuation } from './ActivityContinuation'
 import { EpisodeSnapshot, EpisodeCircuitText } from "./EpisodeSnapshot"
 import { EpisodeFields } from "./EpisodeFields"
 import { EpisodeSupport } from './EpisodeSupport'
@@ -754,7 +755,7 @@ export function TaskView({
             </Card>
           )}
           {latestFeedbackReference && (
-            <FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} explanationForm={presentation.feedback_form} />
+            <><FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} explanationForm={presentation.feedback_form} /><ActivityContinuation key={latestFeedbackReference} submissionId={latestFeedbackReference} /></>
           )}
           <Card id="task-records" tabIndex={-1} eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (

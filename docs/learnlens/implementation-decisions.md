@@ -325,3 +325,21 @@ and access support remain available. Formal task conditions stay authoritative.
 
 Task 22 will connect the graph to durable automatic activity selection. Task 21 does not
 change the existing continuation adapters or activate AI assessment suggestions.
+
+
+## Task 22: checked feedback and approved activity continuation
+
+Checked feedback quality does not prove learner mastery. The continuation worker records response observations
+through the shared learner model, with uncertainty retained and prior Task 19 corrections preserved.
+Only accepted first-pass or second-pass feedback with a valid passing judge record can trigger this update.
+Safe fallback and unchecked output do not trigger learning inference.
+
+Approved practice steps use their published `accepted_response` exit rule. This navigation rule does not grant
+formal assessment credit or new diagnostic bypass authority. Suggestions exclude the completed activity.
+The dashboard projects durable choices, honors deferral and opt-out, and no longer ranks numeric averages.
+Before a continuation decision exists, ordinary unlocked course navigation remains available.
+
+Workflow-keyed progress and suggestion receipts provide replay safety. Both transactions fence worker leases.
+Choice commands use request keys and expected versions. SQLite write locks serialize consequential writes.
+The nullable next-task reference represents an explicit no-activity decision; it is never a fake completed-task link.
+See [Task 22 handoff](task-22-approved-activity-continuation.md) for verification and recovery.

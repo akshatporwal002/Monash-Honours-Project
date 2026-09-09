@@ -462,3 +462,28 @@ def pathway_progress(session, learner_id, task):
     faded = bool(bypassed & set(step["prerequisites"]))
     support = step["faded_support_level"] if faded else step["support_level"]
     return bypassed, set(step["prerequisites"]), support
+
+
+def pathway_completions(session, learner_id, task):
+    """Apply an approved practice exit rule without reading legacy numeric grades."""
+    from app.models.lms import SubmissionAttempt
+
+    service = CurriculumService(session)
+    path = service._latest(task.learning_outcome_id) if task.learning_outcome_id else None
+    if not path or task.id not in path.bindings or path.bindings[task.id]["assessment"]:
+        return set()
+    service._current(path)
+    practice = [
+        step["task_id"]
+        for step in path.payload["steps"]
+        if step["exit_rule"] == "accepted_response"
+        and not path.bindings[step["task_id"]]["assessment"]
+    ]
+    return set(
+        session.scalars(
+            select(SubmissionAttempt.task_id).where(
+                SubmissionAttempt.student_id == learner_id,
+                SubmissionAttempt.task_id.in_(practice),
+            )
+        )
+    )

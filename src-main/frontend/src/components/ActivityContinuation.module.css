@@ -1,0 +1,5 @@
+.card { border: 1px solid #bac8c8; border-radius: 12px; padding: 1rem; margin: 1rem 0; overflow-wrap: anywhere; }
+.controls { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
+.controls label { display: grid; gap: .4rem; max-width: 100%; }
+.controls select, .controls textarea { padding: .5rem; max-width: 100%; }
+.controls button { padding: .5rem .75rem; min-height: 44px; }

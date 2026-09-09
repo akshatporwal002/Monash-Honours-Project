@@ -206,6 +206,11 @@ __all__ = [
     "WorkerHeartbeat",
 ]
 
+from app.models.activity_continuation import (  # noqa: F401
+    ActivityChoice,
+    ActivityProgress,
+    ActivitySuggestion,
+)
 from app.models.curriculum import (  # noqa: F401
     DiagnosticConfirmation,
     DiagnosticResponse,
