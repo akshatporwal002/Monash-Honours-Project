@@ -463,6 +463,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
 36. **[Partial] Refresh traceability and run the complete automated checks.**
 
+    Independent validation batch, 9 September 2026: refreshed the verified recovery/accessibility rows and expanded-requirement crosswalk in [requirements traceability](src-main/docs/requirements-traceability.md). [Batch evidence](docs/learnlens/task-36-37-39-validation.md) records exact checks and limits. Full row-by-row traceability and final combined validation remain outstanding.
+
     Partial progress, 9 September 2026: the current delivery passed local backend, frontend, browser, formatting, lint, contract and secret checks, with 87% backend service coverage. Python and production npm audits found no known vulnerabilities; two moderate development npm advisories remain. Full requirements traceability and final combined validation after the outstanding features remain open.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
@@ -474,6 +476,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
     Evidence: [quality.yml](.github/workflows/quality.yml), [implementation-gap-matrix.md](docs/learnlens/implementation-gap-matrix.md), and [work order](docs/03-codex-implementation-work-order.md).
 
 37. **[Partial] Prove security, migration safety, restart recovery, and restore completeness.**
+
+    Independent validation batch, 9 September 2026: added formal-assessment process-kill recovery, deterministic timeout/malformed-evidence retries, real SQLite contention before claim and after decision commit, and migrated assessment backup/restore checks. Tests assert one decision and preserved frozen response/history. This extends delivered workflows only; full adaptation/research, live-provider and release drills remain outstanding. See [batch evidence](docs/learnlens/task-36-37-39-validation.md).
 
     Dependencies: Tasks 9, 10, 19, 25, 26, 28, 33, and 36. Suggested owner: platform and security reviewers.
 
@@ -496,6 +500,8 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
     Evidence: [configuration](src-main/backend/app/core/config.py), [LLM service](src-main/backend/app/services/llm.py), [deployment configuration](src-main/deploy), and requirements NFR7-NFR8 and NFR22.
 
 39. **[Partial] Complete browser, accessibility, and first-time usability checks.**
+
+    Independent validation batch, 9 September 2026: added login keyboard validation/error and enlarged-text reflow, and preference error/retry/focus/save coverage. Fixed hidden preference-load errors, rejected save payloads and login overflow. [Batch evidence](docs/learnlens/task-36-37-39-validation.md) separates automated browser results from outstanding native Safari, manual screen-reader/zoom and first-time usability trials.
 
     Partial progress, 9 September 2026: 108 automated browser journeys have passing results across Chrome, Edge, Firefox and Playwright WebKit, including reminder/deadline flows, keyboard and automated accessibility checks. Native Safari, manual screen-reader/zoom checks and the specified first-time usability trials remain open.
 
