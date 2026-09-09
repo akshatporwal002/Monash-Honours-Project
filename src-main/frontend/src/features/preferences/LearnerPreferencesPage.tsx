@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ApiError, api } from '../../app/api'
 import type { ApiSchemas } from '../../api/generated'
 import { Button, Card, Field } from '../../components/ui'
@@ -11,8 +11,28 @@ const key = () => globalThis.crypto?.randomUUID?.() ?? `preferences-${Date.now()
 export function LearnerPreferencesPage() {
   const [value, setValue] = useState<Preferences | null>(null)
   const [status, setStatus] = useState('')
-  useEffect(() => { void api.preferences.read().then(setValue).catch(() => setStatus('Preferences could not be loaded.')) }, [])
-  if (!value) return <p role="status">Loading learning preferences…</p>
+  const [reload, setReload] = useState(0)
+  const paceControl = useRef<HTMLSelectElement>(null)
+  const focusAfterReload = useRef(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    void api.preferences.read(controller.signal).then(saved => {
+      if (!controller.signal.aborted) setValue(saved)
+    }).catch(() => {
+      if (!controller.signal.aborted) setStatus('Preferences could not be loaded.')
+    })
+    return () => controller.abort()
+  }, [reload])
+  useEffect(() => {
+    if (value && focusAfterReload.current) {
+      paceControl.current?.focus()
+      focusAfterReload.current = false
+    }
+  }, [value])
+  if (!value) return status ? <section aria-label="Learning preferences">
+    <p role="alert">{status}</p>
+    <Button onClick={() => { focusAfterReload.current = true; setStatus(''); setReload(current => current + 1) }}>Reload learning preferences</Button>
+  </section> : <p role="status">Loading learning preferences…</p>
   const save = async () => {
     try {
       const saved = await api.preferences.save({ ...value, expected_revision: value.revision, idempotency_key: key() })
@@ -22,7 +42,7 @@ export function LearnerPreferencesPage() {
   return <section aria-labelledby="preferences-heading">
     <Card eyebrow="Learner controls" heading="Learning preferences">
       <p id="preferences-heading">These optional, correctable choices do not describe ability or a learning style and never affect formal results.</p>
-      <Field label="Presentation pace"><select value={value.pace} onChange={e => setValue({ ...value, pace: e.target.value as Preferences['pace'] })}><option value="DEFAULT">Default</option><option value="SLOWER">Slower</option><option value="FASTER">Faster</option></select></Field>
+      <Field label="Presentation pace"><select ref={paceControl} value={value.pace} onChange={e => setValue({ ...value, pace: e.target.value as Preferences['pace'] })}><option value="DEFAULT">Default</option><option value="SLOWER">Slower</option><option value="FASTER">Faster</option></select></Field>
       <Field label="Preferred format"><select value={value.format} onChange={e => setValue({ ...value, format: e.target.value as Preferences['format'] })}><option value="NO_PREFERENCE">No preference</option><option value="TEXT">Text</option><option value="VISUAL">Visual</option><option value="WORKED_EXAMPLE">Worked example</option><option value="CIRCUIT">Circuit</option><option value="STEPWISE">Stepwise</option></select></Field>
       <Field label="Explanation detail"><select value={value.explanation_detail} onChange={e => setValue({ ...value, explanation_detail: e.target.value as Preferences['explanation_detail'] })}><option value="BRIEF">Brief</option><option value="STANDARD">Standard</option><option value="DETAILED">Detailed</option></select></Field>
       <label><input type="checkbox" checked={value.optional_breaks_enabled} onChange={e => setValue({ ...value, optional_breaks_enabled: e.target.checked })} /> Offer optional break invitations</label><br />

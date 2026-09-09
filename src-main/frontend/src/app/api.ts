@@ -434,7 +434,16 @@ function normalizeSettings(raw: RawSettings): SystemSettings {
 export const api = {
   preferences: {
     read: (signal?: AbortSignal) => request<ApiSchemas['LearnerPreferencesRead']>('/students/me/preferences', { signal }),
-    save: (payload: ApiSchemas['LearnerPreferencesWrite']) => request<ApiSchemas['LearnerPreferencesRead']>('/students/me/preferences', json('PUT', payload)),
+    save: (payload: ApiSchemas['LearnerPreferencesWrite']) => request<ApiSchemas['LearnerPreferencesRead']>('/students/me/preferences', json('PUT', {
+      pace: payload.pace,
+      format: payload.format,
+      explanation_detail: payload.explanation_detail,
+      optional_breaks_enabled: payload.optional_breaks_enabled,
+      repeat_practice_enabled: payload.repeat_practice_enabled,
+      personalisation_enabled: payload.personalisation_enabled,
+      expected_revision: payload.expected_revision,
+      idempotency_key: payload.idempotency_key,
+    })),
   },
   reminders: {
     preferences: (signal?: AbortSignal) => request<ApiSchemas['ReminderPreferenceRead']>('/students/me/reminder-preferences', { signal }),

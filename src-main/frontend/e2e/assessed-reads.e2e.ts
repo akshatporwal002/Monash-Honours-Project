@@ -1,8 +1,9 @@
+import { apiUrl } from './urls'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 test('formal submission survives task reload, history, and both dashboards', async ({ page, request }) => {
-  const fixture = await request.post('http://127.0.0.1:4180/e2e/assessed-read-fixture')
+  const fixture = await request.post(`${apiUrl}/e2e/assessed-read-fixture`)
   expect(fixture.ok()).toBeTruthy()
   const ids = await fixture.json() as {
     student_email: string; password: string; task_id: string

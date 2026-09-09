@@ -1,3 +1,4 @@
+import { apiUrl } from './urls'
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixtures/assessment'
@@ -117,7 +118,7 @@ test('reviewed hints require reasoning and disappear at unaided transfer', async
   page,
   request,
 }) => {
-  const response = await request.post('http://127.0.0.1:4180/e2e/tutor-episode-fixture')
+  const response = await request.post(`${apiUrl}/e2e/tutor-episode-fixture`)
   expect(response.ok()).toBeTruthy()
   const fixture = await response.json()
   await signIn(page, 'Student', fixture.student_email, fixture.student_password)

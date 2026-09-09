@@ -15,6 +15,13 @@ const preferences = {
 }
 
 describe('LearnerPreferencesSummary', () => {
+  it('announces load failure while keeping task work available', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+    render(<LearnerPreferencesSummary />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('Preferences could not be loaded. Task work remains available.')
+    expect(screen.queryByText(/Loading independent preferences/)).not.toBeInTheDocument()
+  })
+
   it('persists personalisation directly while the editor remains collapsed', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_input, init) => {
       if (!init?.method || init.method === 'GET') {
@@ -36,10 +43,15 @@ describe('LearnerPreferencesSummary', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     const [, request] = fetchMock.mock.calls[1]
     expect(request?.method).toBe('PUT')
-    expect(JSON.parse(String(request?.body))).toMatchObject({
-      ...preferences,
+    expect(JSON.parse(String(request?.body))).toEqual({
+      pace: 'SLOWER',
+      format: 'TEXT',
+      explanation_detail: 'DETAILED',
+      optional_breaks_enabled: true,
+      repeat_practice_enabled: true,
       personalisation_enabled: true,
       expected_revision: 4,
+      idempotency_key: expect.any(String),
     })
     expect(screen.getByRole('button', { name: 'Edit preferences' })).toHaveAttribute('aria-expanded', 'false')
   })
