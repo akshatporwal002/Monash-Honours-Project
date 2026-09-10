@@ -29,7 +29,7 @@ from support.task37_fixture import (
 from support.task37_worker import validate_synthetic_config
 from test_task38_benchmark_integration import _stop_owned_processes
 
-from app.api import learning_event_dependencies
+from app.api import audit_dependencies, learning_event_dependencies
 from app.api.assessment_dependencies import get_assessment_evaluation_executor
 from app.api.feedback_dependencies import get_feedback_application, get_feedback_executor
 from app.api.security_dependencies import get_request_security_guard
@@ -39,6 +39,7 @@ from app.db.session import create_db_engine, create_session_factory, get_db_sess
 from app.main import create_app
 from app.models.activity_continuation import ActivityProgress, ActivitySuggestion
 from app.models.assessment import AssessmentDecision, AssessmentEvaluationJob
+from app.models.audit import AuditAction, AuditEvent
 from app.models.continuation import ContinuationJob
 from app.models.enums import LearningEventType
 from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
@@ -74,6 +75,11 @@ class LostApiDispatch:
 
     async def execute(self, *args, **kwargs):
         pass
+
+
+def clear_audit_caches():
+    audit_dependencies.get_student_audit_tracker.cache_clear()
+    audit_dependencies.get_feedback_audit_events.cache_clear()
 
 
 def utc(value):
@@ -246,8 +252,11 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
     engine = create_db_engine(database_url)
     request.addfinalizer(engine.dispose)
     request.addfinalizer(get_request_security_guard.cache_clear)
+    request.addfinalizer(clear_audit_caches)
     factory = create_session_factory(engine)
-    monkeypatch.setattr(learning_event_dependencies, "SessionLocal", factory)
+    for dependency in (audit_dependencies, learning_event_dependencies):
+        monkeypatch.setattr(dependency, "SessionLocal", factory)
+    clear_audit_caches()
     for name, value in {
         "llm_api_key": None,
         "llm_provider": "local",
@@ -441,6 +450,14 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                 )
                 assert len(feedback_views) == 1
                 feedback_view_id = feedback_views[0].id
+                audit_view_ids = list(
+                    session.scalars(
+                        select(AuditEvent.id).where(
+                            AuditEvent.action == AuditAction.FEEDBACK_VIEWED
+                        )
+                    )
+                )
+                assert len(audit_view_ids) == 1
                 outbox = list(session.scalars(select(TerminalIntegrationOutbox)))
                 assert len(outbox) == 1 and outbox[0].state.value == "completed"
                 assert outbox[0].integration_type.value == "continuation"
@@ -502,7 +519,9 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
     restored_engine = create_db_engine("sqlite:///" + restored_database.as_posix())
     try:
         restored_factory = create_session_factory(restored_engine)
-        monkeypatch.setattr(learning_event_dependencies, "SessionLocal", restored_factory)
+        for dependency in (audit_dependencies, learning_event_dependencies):
+            monkeypatch.setattr(dependency, "SessionLocal", restored_factory)
+        clear_audit_caches()
         with restored_factory() as session:
             assert session.get(SubmissionAttempt, response_id).episode == frozen_episode
             assert session.get(WorkflowRun, workflow_id).current_stage is WorkflowStage.COMPLETED
@@ -510,6 +529,7 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
             assert session.get(AssessmentDecision, decision_id).result.value == "PASS"
             assert sorted(session.scalars(select(LearningEvidence.id))) == evidence_ids
             assert session.get(LearningEvent, feedback_view_id) is not None
+            assert session.get(AuditEvent, audit_view_ids[0]) is not None
             assert session.get(HumanAssessmentAction, human_action_id) is not None
             assert sorted(session.scalars(select(HumanCriterionDecision.id))) == human_criterion_ids
             assert session.scalar(select(func.count()).select_from(ResearchGovernanceEvent)) == 7
@@ -549,6 +569,16 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                     )
                 )
             ) == [feedback_view_id]
+            assert (
+                list(
+                    session.scalars(
+                        select(AuditEvent.id).where(
+                            AuditEvent.action == AuditAction.FEEDBACK_VIEWED
+                        )
+                    )
+                )
+                == audit_view_ids
+            )
         restored_app.dependency_overrides.clear()
     finally:
         get_request_security_guard.cache_clear()
@@ -564,6 +594,7 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                 "decision_id": decision_id,
                 "evidence_ids": evidence_ids,
                 "feedback_view_id": feedback_view_id,
+                "audit_view_ids": audit_view_ids,
                 "human_action_id": human_action_id,
                 "human_criterion_ids": human_criterion_ids,
                 "recovered_feedback_status": feedback["status"],
