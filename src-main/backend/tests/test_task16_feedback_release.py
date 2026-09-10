@@ -87,7 +87,7 @@ def test_corrupt_frozen_context_never_uses_cached_practice_feedback(db_session):
     assert response.status is FeedbackWorkflowStatus.FALLBACK
     with pytest.raises(ContextIntegrityError):
         collected(db_session, attempt)
-    assert db_session.get(SubmissionAttempt, attempt.response_version_id).score is None
+    assert not hasattr(db_session.get(SubmissionAttempt, attempt.response_version_id), "score")
 
 
 @pytest.mark.parametrize(

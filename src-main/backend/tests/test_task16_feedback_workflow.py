@@ -76,7 +76,6 @@ def test_one_regeneration_preserves_rejections_versions_and_submission(
         response.code,
         response.circuit,
         response.content_digest,
-        response.score,
     )
     generator = TamperedCandidates(repair=repair)
     result, repository = run_pipeline(db_session, grounded_context, generator)
@@ -112,7 +111,6 @@ def test_one_regeneration_preserves_rejections_versions_and_submission(
         response.code,
         response.circuit,
         response.content_digest,
-        response.score,
     ) == original
 
 

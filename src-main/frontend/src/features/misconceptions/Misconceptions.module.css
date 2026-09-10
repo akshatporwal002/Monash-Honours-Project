@@ -1,0 +1,7 @@
+.page { display: grid; gap: 1rem; max-width: 60rem; margin: 0 auto; padding: 1.5rem; }
+.form { display: grid; gap: 1rem; }
+.form fieldset { display: grid; gap: .75rem; min-width: 0; }
+.form label { overflow-wrap: anywhere; }
+.evidence { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.history { display: grid; gap: 1rem; padding-left: 1.5rem; }
+.page input:not([type="checkbox"]), .page select, .page textarea { max-width: 100%; min-width: 0; }

@@ -64,10 +64,15 @@ def bootstrap_reviewed_demo(session: Session):
     return users, course
 
 
-def approve_sourced_fixture_task(session: Session, task: LearningTask) -> None:
+def approve_sourced_fixture_task(
+    session: Session, task: LearningTask, *, source_text: str | None = None
+) -> None:
     """Create explicit synthetic source and task reviews before formal fixture authoring."""
     token = uuid4().hex
-    content = f"Synthetic source for the task: {task.description}. Fixture reference {token}."
+    content = (
+        f"Synthetic source for the task: {source_text or task.description}. "
+        f"Fixture reference {token}."
+    )
     digest = hashlib.sha256(content.encode()).hexdigest()
     material = LearningMaterial(
         course_id=task.course_id,

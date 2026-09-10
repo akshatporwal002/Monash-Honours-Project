@@ -280,9 +280,6 @@ class SubmissionAttempt(Base):
         ),
         CheckConstraint("attempt_number > 0", name="submission_attempt_number"),
         CheckConstraint(
-            "score IS NULL OR score BETWEEN 0 AND 100", name="submission_attempt_legacy_score"
-        ),
-        CheckConstraint(
             "content_digest IS NULL OR (length(content_digest) = 71 AND "
             "content_digest GLOB 'sha256:*' AND content_digest NOT GLOB 'sha256:*[^0-9a-f]*')",
             name="submission_attempt_content_digest",
@@ -319,11 +316,6 @@ class SubmissionAttempt(Base):
     code: Mapped[str | None] = mapped_column(Text, nullable=True)
     circuit: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     episode: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    score: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Legacy numeric value. Formal assessment results never read this column.",
-    )
     feedback: Mapped[str] = mapped_column(Text, nullable=False)
     feedback_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
     task_form_version_id: Mapped[str | None] = mapped_column(

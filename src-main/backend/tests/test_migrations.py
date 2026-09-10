@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from pathlib import Path
 
@@ -39,6 +40,11 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "legacy_numeric_history",
+    "misconception_hypotheses",
+    "misconception_responses",
+    "misconception_reviews",
+    "misconception_closures",
     "activity_progress_receipts",
     "activity_suggestions",
     "activity_choices",
@@ -177,7 +183,7 @@ def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0042"
+            == "20260910_0044"
         )
         assert "task_revision_id" in {
             column["name"] for column in inspect(connection).get_columns("task_form_versions")
@@ -218,12 +224,12 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     command.check(config)
     with Session(engine) as session:
         assert SimulationEvidenceService(session).read(run_id) == before
-    with pytest.raises(RuntimeError, match="Simulation evidence is protected"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260907_0024")
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0042"
+            == "20260910_0044"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -314,7 +320,7 @@ def test_assessor_eligibility_migration_preserves_unapproved_legacy_grants(tmp_p
     command.check(config)
     with Session(engine) as session:
         assert session.get(RoleAssignment, grant_id).eligibility_approval_id == approval_id
-    with pytest.raises(RuntimeError, match="Assessor eligibility history is protected"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260907_0025")
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -405,7 +411,7 @@ def test_task_review_migration_backfills_exact_unapproved_history_and_replays(tm
     command.stamp(config, "20260907_0026")
     command.upgrade(config, "head")
     assert database_manifest(database_path) == before
-    with pytest.raises(RuntimeError, match="Task review history is protected"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260907_0026")
     assert protected_history_manifest(database_path) == protected_before
     for statement in (
@@ -960,7 +966,6 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
             attempt_number=1,
             status=AttemptStatus.SUBMITTED,
             answer="A formal response version.",
-            score=None,
             feedback="Recorded.",
             task_form_version_id=form.id,
             response_schema_version="assessment.response.v1",
@@ -1067,7 +1072,6 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
             attempt_number=2,
             status=AttemptStatus.SUBMITTED,
             answer="A later valid response version.",
-            score=None,
             feedback="Recorded.",
             task_form_version_id=form.id,
             response_schema_version="assessment.response.v1",
@@ -1106,7 +1110,6 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
             attempt_number=1,
             status=AttemptStatus.SUBMITTED,
             answer="A different learner's valid response version.",
-            score=None,
             feedback="Recorded.",
             task_form_version_id=form.id,
             response_schema_version="assessment.response.v1",
@@ -1518,7 +1521,20 @@ def test_assessment_migration_upgrades_clean_and_legacy_databases(tmp_path: Path
     for row in after_attempt_rows:
         assert row.pop("assessment_work_start_id") is None
         assert row.pop("episode") is None
-    assert after_attempt_rows == before_attempt_rows
+    assert after_attempt_rows == [
+        {key: value for key, value in row.items() if key != "score"} for row in before_attempt_rows
+    ]
+    with sqlite3.connect(legacy_path) as connection:
+        archived = [
+            json.loads(row[0])
+            for row in connection.execute(
+                "SELECT source_record FROM legacy_numeric_history WHERE source_table='submission_attempts' ORDER BY source_record_id"
+            )
+        ]
+    for row in archived:
+        assert row.pop("assessment_work_start_id") is None
+        assert row.pop("episode") is None
+    assert archived == before_attempt_rows
 
 
 def test_assessor_review_migration_backfills_history_and_blocks_downgrade(tmp_path: Path) -> None:
@@ -1557,9 +1573,7 @@ def test_assessor_review_migration_backfills_history_and_blocks_downgrade(tmp_pa
                 text("SELECT id, review_revision FROM assessor_reviews ORDER BY review_revision")
             ).all()
         assert rows == [("review-history-1", 1), ("review-history-2", 2)]
-        with pytest.raises(
-            RuntimeError, match="cannot downgrade populated assessor review history"
-        ):
+        with pytest.raises(RuntimeError, match="history is protected"):
             command.downgrade(config, "20260816_0020")
     finally:
         upgraded.dispose()
@@ -1567,7 +1581,7 @@ def test_assessor_review_migration_backfills_history_and_blocks_downgrade(tmp_pa
 
 def test_assessment_migration_is_repeat_safe(tmp_path: Path) -> None:
     database_path, config = _prepare_legacy_assessment_database(tmp_path)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260815_0018")
     engine = create_engine(f"sqlite:///{database_path.as_posix()}")
     try:
         first_rows = _legacy_history_rows(engine)
@@ -1618,7 +1632,7 @@ def test_assessment_migration_is_repeat_safe(tmp_path: Path) -> None:
 
 def test_assessment_migration_replaces_stale_insert_guard_on_rerun(tmp_path: Path) -> None:
     database_path, config = _prepare_legacy_assessment_database(tmp_path)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260815_0018")
     engine = create_engine(f"sqlite:///{database_path.as_posix()}")
     try:
         with engine.begin() as connection:
@@ -1962,7 +1976,7 @@ def test_assessment_evaluation_job_migration_backfills_pending_work_and_blocks_d
         "processing_attempts": 0,
     }
     protected_before_downgrade = protected_history_manifest(database_path)
-    with pytest.raises(RuntimeError, match="cannot downgrade populated assessment evaluation jobs"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260816_0021")
     assert protected_history_manifest(database_path) == protected_before_downgrade
     migrated_engine.dispose()

@@ -245,7 +245,7 @@ def test_evidence_migration_is_append_only_and_preserves_legacy_records(tmp_path
             source_connection.backup(restored_connection)
     restored_manifest = protected_history_manifest(database_path)
     # Head now archives legacy task content even before new learning evidence exists.
-    with pytest.raises(RuntimeError, match="Task review history is protected"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260815_0018")
     assert protected_history_manifest(database_path) == restored_manifest
     with sqlite3.connect(backup.backup_path) as source_connection:

@@ -187,9 +187,9 @@ function asFunnel(value: unknown): FunnelStage[] {
 
 function asLearningMetrics(value: unknown): LearningMetrics {
   const metrics = asRecord(value)
-  if (metrics.schema_version !== 'learning-metrics-v1') return invalidResponse()
+  if (metrics.schema_version !== 'learning-metrics-v2') return invalidResponse()
   return {
-    schema_version: 'learning-metrics-v1',
+    schema_version: 'learning-metrics-v2',
     filters: asFilterSnapshot(metrics.filters),
     generated_at: asDate(metrics.generated_at),
     task_views: asMetric(metrics.task_views),
@@ -197,7 +197,7 @@ function asLearningMetrics(value: unknown): LearningMetrics {
     submissions: asMetric(metrics.submissions),
     unique_submissions: asMetric(metrics.unique_submissions),
     completion_rate: asMetric(metrics.completion_rate),
-    average_score: asMetric(metrics.average_score),
+
     total_attempts: asMetric(metrics.total_attempts),
     average_attempts: asMetric(metrics.average_attempts),
     feedback_view_rate: asMetric(metrics.feedback_view_rate),

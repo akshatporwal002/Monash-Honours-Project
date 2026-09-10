@@ -8,7 +8,7 @@ beforeEach(() => vi.restoreAllMocks())
 const task: LearningTask = {
   id: 'task-13', title: 'Explain the circuit', module: 'Quantum', description: 'Explain your prediction.',
   instructions: 'Use your own reasoning.', task_type: 'short_answer', difficulty: 'beginner',
-  points: 0, position: 1, status: 'in_progress', score: null,
+  points: 0, position: 1, status: 'in_progress',
   assessment: {
     task_form_version_id: 'form-original', purpose: 'SUMMATIVE', bloom_process: 'APPLY',
     knowledge_dimension: 'PROCEDURAL', claim: 'Apply the circuit to a fresh example.', criteria: [],
@@ -32,7 +32,7 @@ test('workspace pins the displayed form and retains its work reference on save a
     const url = String(input)
     if (url.endsWith('/draft')) return response(draft)
     if (url.endsWith('/start')) return response(draft)
-    if (init?.method === 'POST') return response({ id: 'attempt', status: 'submitted', score: null, formal_assessment: { result: null }, assessment_work_start_id: 'work-original' })
+    if (init?.method === 'POST') return response({ id: 'attempt', status: 'submitted',  formal_assessment: { result: null }, assessment_work_start_id: 'work-original' })
     return response([])
   })
   showTask()
@@ -123,7 +123,7 @@ test('retryable write contention keeps local content, work reference and submiss
     }
     if (init?.method === 'POST') {
       if (++submissions === 1) return busy()
-      return response({ id: 'attempt-retry', status: 'submitted', score: null, formal_assessment: { result: null }, assessment_work_start_id: 'work-original' })
+      return response({ id: 'attempt-retry', status: 'submitted',  formal_assessment: { result: null }, assessment_work_start_id: 'work-original' })
     }
     return response([])
   })

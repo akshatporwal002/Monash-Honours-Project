@@ -69,7 +69,6 @@ function hasSummaryData(learning: LearningMetrics, research: ResearchMetrics): b
     learning.submissions,
     learning.unique_submissions,
     learning.completion_rate,
-    learning.average_score,
     learning.total_attempts,
     learning.average_attempts,
     learning.feedback_view_rate,

@@ -6,7 +6,7 @@ import { TaskView } from '../components/TaskView'
 
 const types: TaskType[] = ['prediction', 'reasoning', 'explanation', 'revision', 'reflection', 'transfer']
 test.each(types)('%s displays restored fresh circuit results and preserves saved supported input', async taskType => {
-  const task: LearningTask = { id: `task-${taskType}`, title: 'Typed episode', module: 'Hadamard', description: 'Apply H', instructions: 'Explain your result', task_type: taskType, difficulty: 'beginner', points: 0, position: 1, status: 'draft', score: null }
+  const task: LearningTask = { id: `task-${taskType}`, title: 'Typed episode', module: 'Hadamard', description: 'Apply H', instructions: 'Explain your result', task_type: taskType, difficulty: 'beginner', points: 0, position: 1, status: 'draft',  }
   const draft: TaskDraft = {
     id: 'draft', task_id: task.id, answer: '  Saved answer\n', code: '  saved.h(0)\n',
     circuit: { qubits: 1, operations: [{ gate: 'h', targets: [0] }] }, updated_at: '2026-09-07T01:00:00Z',

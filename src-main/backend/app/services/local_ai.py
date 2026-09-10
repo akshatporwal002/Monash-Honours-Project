@@ -32,36 +32,15 @@ class LocalFeedbackGenerator:
         context: FeedbackContext,
         regeneration: FeedbackRegenerationContext | None = None,
     ) -> GeneratedFeedback:
-        score = context.submission.score
-        if score is not None and score >= 80:
-            classification = FeedbackResponseClassification.CORRECT
-            summary = "Your response meets the learning outcome."
-            identified_error = None
-            explanation = (
-                "The key idea is present and consistent with the supplied course evidence."
-            )
-            actions: list[str] = []
-            next_step = "Continue to the next unlocked activity."
-        elif score is not None and score >= 50:
-            classification = FeedbackResponseClassification.PARTIALLY_CORRECT
-            summary = "Your response shows the right direction but needs one clearer connection."
-            identified_error = (
-                "The explanation does not fully connect the result to the task criteria."
-            )
-            explanation = "Compare each claim with the expected behavior and the supplied source."
-            actions = ["Add the missing reasoning step and name the expected circuit outcome."]
-            next_step = "Revise once, then compare your answer with the course source."
-        else:
-            classification = FeedbackResponseClassification.INCORRECT
-            summary = "This attempt does not yet meet the learning outcome."
-            identified_error = "The submitted result does not match the expected quantum behavior."
-            explanation = (
-                "Use the retrieved source and simulation result to check the gate sequence."
-            )
-            actions = [
-                "Trace the circuit one gate at a time and state the measurement distribution."
-            ]
-            next_step = "Review the prerequisite concept before resubmitting."
+        classification = FeedbackResponseClassification.NOT_EVALUATED
+        summary = "Your response is saved for review."
+        identified_error = None
+        explanation = (
+            "This local teaching template has not evaluated your answer. "
+            "Compare your reasoning with the cited course evidence."
+        )
+        actions = ["State your prediction, check the evidence, and explain any difference."]
+        next_step = "Revise your explanation or ask your educator to review it."
 
         if regeneration is not None:
             explanation = f"{explanation} This revision applies the quality-check guidance."

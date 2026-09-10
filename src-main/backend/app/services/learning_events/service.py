@@ -170,12 +170,7 @@ class TrustedLearningEventHooks:
         source_event_id: str,
         correlation_id: str,
         attempt_number: int,
-        score: float | None = None,
     ) -> LearningEventReceipt | None:
-        # Parse the old input shape so existing server callers fail consistently
-        # for invalid values, but never copy a numeric score into newly emitted
-        # metadata.  Formal assessment results remain Person A's responsibility.
-        SubmissionMetadata(attempt_number=attempt_number, score=score)
         return self._record(
             LearningEventCommand(
                 actor_reference=actor_reference,
@@ -199,14 +194,8 @@ class TrustedLearningEventHooks:
         source_event_id: str,
         correlation_id: str,
         completion_status: str,
-        score: float | None = None,
     ) -> LearningEventReceipt | None:
-        # Old ``passed``/``failed`` values are accepted as legacy input, yet new
-        # event production records only a server-owned completion occurrence.
-        CompletionMetadata(
-            completion_status=CompletionStatus(completion_status).value,
-            score=score,
-        )
+        CompletionMetadata(completion_status=completion_status)
         return self._record(
             LearningEventCommand(
                 actor_reference=actor_reference,

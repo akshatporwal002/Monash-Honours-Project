@@ -27,6 +27,40 @@ The [assessed-read repair record](assessed-read-repair.md) covers mixed practice
 the withheld formal-result marker, 676 backend tests, 178 frontend tests, and four browser checks.
 This scoped proof does not close legacy retirement or pending result-visibility policy.
 
+## Task 25 evidence, 9 September 2026
+
+The [complete-loop delivery record](task-25-complete-learning-loop.md) connects
+the current episode, simulation, checked feedback, revision, learner model,
+approved continuation and human-result services. It also records the missing
+prediction/transfer observation fix, assessor queue routing and actual worker-kill recovery proof.
+All four browser projects have passing new journey results, including a Firefox
+rerun with desktop process permissions. Final local regression passed 1,243 backend
+tests with 87.91% service coverage and 273 frontend tests. Existing browser checks
+passed 119 of 120 cases; the WebKit timeout passed unchanged in a focused rerun.
+These are synthetic local checks, not pilot activation or educational validation.
+
+## Task 27 evidence, 10 September 2026
+
+The [misconception-cycle record](task-27-misconception-cycle.md) supplies the
+learner and educator workflow for FR34 and AC13. It preserves uncertainty,
+supporting and contradicting observations, approved teaching, revisions, fresh
+checks and educator corrections. Unresolved cycles reach Task 28's human queue.
+Support records now reach practice evidence and formal assessor context.
+Focused checks and both independent reviews pass. Combined backend verification
+recorded 1,252 passes and 87.88% service coverage. All eight outdated assertion and
+matrix-format failures passed in the corrected 21-test batch. All four new browser
+journeys pass; these results do not establish live approval or educational validity.
+
+## Task 29 evidence, 10 September 2026
+
+The [progress and retirement record](task-29-progress-and-score-retirement.md)
+provides scoped individual and cohort views for FR22 and FR39. Observations,
+uncertain estimates, support, misconception reviews, adaptation choices and
+released formal results retain separate meanings and evidence links. D-10's
+immutable archive preserves original rows before active numeric marks are removed.
+The record includes the combined and corrective tests, four-browser checks,
+independent reviews and live migration limits.
+
 ## Interpretation
 
 This matrix is the Phase 0 inventory required by
@@ -92,7 +126,7 @@ not. `NOT RUN` and `UNVERIFIED` are deliberate results, not passes.
 | FR19 | CONFLICTING | E-SCORE and E-EVENTS prove immutable attempts and five events but mix score-bearing completion metadata with a narrow history; E-HANDOFF records the missing result/evidence-reference boundary. | Required prediction/reasoning/revision/confidence/support/reflection/transfer/result-lifecycle separation is absent. | Person A A2/A6 own result history; Steps 5-11 and 28 add append-only evidence and separated projections. | Existing event replay/history tests; planned evidence contracts, migration, repository, timeline, and projection tests. |
 | FR20 | PARTIAL | E-EVENTS and E-RESEARCH prove pseudonymous five-event capture and paired research rows. | Consent, withdrawal, missing-data, approved fields, full stage coverage, and versioned governance are absent. | Steps 5-8 and 31-35 implement expanded events, governance, export, analytics, and isolation. | Current learning-event/research tests; planned governance, eligibility, withdrawal, export-v2, analytics, and isolation tests. |
 | FR21 | CONFLICTING | E-SCORE proves private student progress/history but displays average score, mastery, and numeric attempts. | Evidence/inference/result separation, uncertainty, corrections, transfer, and binary lifecycle presentation are absent. | Person A A5/A6 own result UI; Steps 11 and 28 add evidence/model/progress projections. | Current student dashboard scope tests; planned timeline, progress projection, component, and accessibility tests. |
-| FR22 | CONFLICTING | E-ANALYTICS proves course-scoped educator metrics but exposes average score and lacks evidence/model uncertainty drill-down. | Required evidence, inference, feedback-use, misconception, independence, transfer, and result namespaces are not separated. | Person A A6 removes formal score UI; Steps 28, 34, and 36 replace Person B projections and views. | Current analytics tests are partial and two baseline cases fail; planned projection, analytics-v2, frontend, privacy, and E2E tests. |
+| FR22 | IMPLEMENTED | Task 29 provides scoped learner and cohort views with separate observations, support, uncertain estimates, misconception reviews, adaptation choices and released results. | Live study and hosted release evidence remain separate. | Step 29 delivers the projection and evidence inspection; see its delivery record for limits. | `test_learning_progress.py`, metrics and migration regressions, plus four-browser `misconceptions.e2e.ts`. |
 | FR23 | PARTIAL | Task 22 selects approved activities from recorded evidence, uncertain model state, preferences, and prerequisites. Learner choices and educator overrides persist. Dashboard recommendations project these decisions. | Broader learning-effectiveness evaluation remains outside this local implementation. | Step 26: Deterministic rules retain assessment standards and never use numeric averages for activity selection. | `test_activity_continuation.py`; `ActivityContinuation.test.tsx`; authenticated Task 22 journeys. |
 | FR24 | PARTIAL | E-COURSE proves a 24-hour reminder and rolling duplicate check. | Course time zone, extensions, access plan, completion, and learner preference handling are incomplete. | Step 30 implements a pure configurable reminder eligibility policy. | Current LMS reminder test; planned DST, time-zone, extension, opt-out, completion, and duplicate-window tests. |
 | FR25 | CONFLICTING | E-GAME proves idempotent awards and personal points but awards `perfect-score` and exposes ranking/leaderboard behaviour. | Opt-in default-off, result neutrality, inclusive event awards, and removal of public ranking are absent. | Step 29 implements optional neutral gamification; Person A A6 removes conflicting shared presentation. | Current gamification idempotency tests are partial; planned neutrality, opt-out, non-ranking, and frontend tests. |
@@ -104,12 +138,12 @@ not. `NOT RUN` and `UNVERIFIED` are deliberate results, not passes.
 | FR31 | PARTIAL | E-COURSE and E-FEEDBACK prove attempt and feedback portions of an older loop. | Prior thinking, revision, brief reflection, transfer, learner-model update, and score-free full episode are not connected. | Steps 8, 13-15, 19-21, and 25-28 implement the AAYL episode. | Current canonical loop is partial; planned episode timeline, task evidence, feedback, adaptation, and E2E tests. |
 | FR32 | PARTIAL | Deterministic Task 22 decisions use approved pathways, evidence, current model state, and allowed preferences. Opt-out stops optional suggestions. | Broader adaptation strategies and their learning effects remain unverified. | Step 26: Activity choices cannot alter criteria, Bloom targets, results, or frozen conditions. | `test_activity_continuation.py`; existing assessment and curriculum suites. |
 | FR33 | IMPLEMENTED | Task 22 protects workflow trigger, evidence IDs, full snapshot, rule version, uncertainty, preference version, pathway, reason, timestamps, and choice/override history. | Local implementation evidence does not claim remote deployment. | Step 26: Scoped reads and controls expose the decision and its history. | `test_activity_continuation.py`; `ActivityContinuation.test.tsx`; authenticated browser journeys. |
-| FR34 | MISSING | E-NONE; no misconception hypothesis/state model or flow exists. | Supporting/contradicting evidence, probe, support, revision, transfer, state update, and educator correction are absent. | Step 27 implements the full hypothesis flow and safety rules. | No current test; planned `test_misconception_flow.py` and `test_misconception_safety.py`. |
+| FR34 | IMPLEMENTED | Task 27 provides educator-approved hypotheses, probes, teaching, revisions, fresh checks and evidence-linked review states. | Live teaching content still needs scoped educator approval. | Step 27 is delivered locally; see the Task 27 record above for combined verification and activation limits. | `test_misconceptions.py`, recovery, route and support tests; four-browser `misconceptions.e2e.ts`. |
 | FR35 | PARTIAL | Task 20 persists learning preferences. Task 22 honors personalisation opt-out and retains course access and required feedback. | Full equivalent-format and reminder coverage belongs to other tasks. | Step 26: Existing frozen-condition and access-support rules remain authoritative. | Preference suites; `test_activity_continuation.py`; browser Axe and reflow checks. |
 | FR36 | MISSING | E-NONE; no typed reflection task or append-only reflection record is connected. | Prediction comparison, changed understanding, next action, and independent reuse reflection are absent. | Steps 14, 24, and 27 implement reflection contracts, feedback invitations, and misconception revisions. | No current reflection test; planned reasoning/reflection backend/frontend and episode tests. |
 | FR37 | PARTIAL | Task 19 corrections, Task 20 preferences, and Task 22 inspect/accept/defer/replace controls persist. Course owners can override with reasons and protected history. | Broader support and format features remain scoped to their own tasks. | Step 26: Current approval and access are rechecked on every choice. | `test_activity_continuation.py`; `ActivityContinuation.test.tsx`; authenticated journeys. |
 | FR38 | MISSING | E-AUTH has educator but no assessor permission; E-SCORE has no formal assessment domain. | Evidence/model/adaptation oversight, assessed Bloom/pass-rule setup, and assessor confirmation/override are absent. | Person A A3-A5 implement assessment oversight; Steps 10, 23, 26, and 27 expose Person B correction/escalation/override ports. | No current full oversight test; planned assessor, correction, escalation, adaptation, misconception, audit, and E2E tests. |
-| FR39 | CONFLICTING | E-ANALYTICS provides cohort metrics but averages learner scores and does not separate evidence/inference/results/research. | Required trend namespaces, uncertainty, evidence inspection, and binary-result-safe summaries are absent. | Person A A6 plus Steps 28, 34, and 36 replace projections and presentation. | Current metrics tests prove old calculations only; planned progress, analytics-v2, isolation, frontend, privacy, and E2E tests. |
+| FR39 | IMPLEMENTED | Task 29 provides separate individual and cohort weekly trends, with uncertainty and paged contributing evidence. Research metrics retain their own namespace. | Trend counts describe records; they do not establish learning validity. | Step 29 removes active learner marks and preserves historical values under D-10. | `test_learning_progress.py` verifies matching counts and records, scope, read purity and result visibility; browser journeys inspect history and original answers. |
 
 ## Project-document requirements
 
@@ -200,7 +234,7 @@ not. `NOT RUN` and `UNVERIFIED` are deliberate results, not passes.
 | AC10 | PARTIAL | E-RESEARCH proves versioned pseudonymous exports with several technical fields. | Evidence stages, adaptations/overrides, simulation, governance, withdrawal, missing-data, and approved-field completeness are absent. | Steps 31-36 implement research governance/export v2/analytics/UI. | Current golden/privacy export tests are partial; planned v2 golden, withdrawal, completeness, policy, audit, and UI tests. |
 | AC11 | PARTIAL | E-COURSE/E-FEEDBACK show attempt and feedback; E-EVENTS stores a narrow time order. | Initial thinking, reasoning, confidence, revision, reflection, transfer, and learner-model update are incomplete. | Steps 8-15, 19-21, and 25-28 implement and present a complete episode. | Current canonical/event tests are partial; planned episode timeline, task evidence, feedback, model, adaptation, progress, and E2E tests. |
 | AC12 | PARTIAL | Task 22 proves the local checked-feedback, model, approved suggestion, and choice loop with uncertainty and protected history. | Pilot evaluation and later adaptation strategies remain separate. | Step 26: Existing fixed assessment standards remain authoritative. | `test_activity_continuation.py`; authenticated four-browser Task 22 journeys. |
-| AC13 | MISSING | E-NONE; no misconception hypothesis cycle exists. | Hypothesis, check, support, revision, transfer, state update, and correction are absent. | Step 27 implements the complete flow. | No current test; planned end-to-end seeded misconception and safety fixtures. |
+| AC13 | IMPLEMENTED | Task 27 demonstrates probe, support, revision, fresh check, uncertain/persisted/weakened/corrected states and preserved educator corrections. | Synthetic checks do not establish expert content validity. | Step 27 is delivered locally; remaining Tasks 35 and 36 supply expert and final combined evidence. | `test_misconceptions.py` and `misconceptions.e2e.ts`, with separate immutable-history and formal-boundary checks. |
 | AC14 | PARTIAL | E-COURSE permits repeat task attempts, but E-GAME/E-SCORE can tie recognition/progress to scores and preferences are absent. | Pace/format/feedback/support controls, prior-mastery request, and neutrality proof are absent. | Steps 25, 26, 29, and 30 implement learner controls and neutral policies. | Current repeat/idempotency tests are partial; planned preferences, diagnostic, adaptation, gamification neutrality, and reminder tests. |
 | AC15 | MISSING | E-CONTINUATION has no safe learner-model records or banned-claim validators. | Evidence/uncertainty for inferences and diagnosis/stereotype/fixed-ability safety set are absent. | Steps 9, 10, 27, and 35 implement model safety, corrections, hypothesis safety, and boundary checks. | No current test; planned learner-model safety, correction, misconception safety, and architecture tests. |
 | AC16 | MISSING | E-AUTH lacks assessor; E-SCORE lacks formal evidence/rule/review control. | Inspect/approve/correct/adapt/set Bloom/confirm/override/audit path is absent. | Person A A3-A5 plus Steps 10, 23, 26, and 27 implement the combined oversight interfaces. | No current complete test; planned assessor, correction, escalation, adaptation, misconception, audit, and E2E tests. |

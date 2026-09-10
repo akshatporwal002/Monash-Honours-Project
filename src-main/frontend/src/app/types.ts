@@ -37,7 +37,7 @@ export interface LearningTask {
   points: number
   position: number
   status: LearningState | null
-  score: number | null
+
   formal_assessment?: FormalAssessmentSummary | null
   starter_code?: string | null
   due_at?: string | null
@@ -79,7 +79,7 @@ export interface StudentProgress {
   completed_tasks: number
   total_tasks: number
   completion_percent: number
-  average_score: number | null
+
   points: number
   points_to_next_level?: number
   streak_days: number
@@ -130,7 +130,7 @@ export interface TaskSubmission {
   episode?: EpisodePayload | null
   assessment_work_start_id?: string | null
   id?: string
-  score: number | null
+
   formal_assessment?: FormalAssessmentSummary | null
   feedback: string | null
   feedback_reference?: string | null
@@ -198,8 +198,8 @@ export interface EducatorDashboardData {
   at_risk_students: EducatorStudent[]
   recent_activity: ActivityItem[]
   courses: CourseSummary[]
-  task_type_performance?: Array<{ label: string; score: number }>
-  concept_mastery?: Array<{ label: string; score: number }>
+
+
   leaderboard?: Array<{
     student_id: string
     display_name: string
@@ -212,6 +212,7 @@ export type StudentRisk = 'at_risk' | 'on_track' | 'not_started'
 
 export interface EducatorStudent {
   student_id: string
+  user_id?: number
   display_name: string
   email?: string
   course_id?: string
@@ -219,7 +220,7 @@ export interface EducatorStudent {
   completed_tasks: number
   total_tasks: number
   completion_percent: number
-  average_score: number | null
+
   last_active: string | null
   risk?: StudentRisk
   overdue_tasks?: number
@@ -266,8 +267,8 @@ export interface AdminUser {
 export interface SystemSettings {
   llm_provider: string
   llm_model: string
-  at_risk_threshold: number
-  passing_score: number
+
+
   points_per_level: number
   reminders_enabled: boolean
 }

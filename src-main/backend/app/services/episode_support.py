@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.models.episode import EpisodeHelpUse, EpisodeStageStart
 from app.schemas.episode import EpisodeHelpUseRead
 from app.services.episodes import EpisodeService
+from app.services.misconception_state import active_fresh_check
 from app.services.task_review import TaskReviewError
 
 
@@ -18,6 +19,7 @@ class EpisodeSupportService:
         plan = EpisodeService(self.session).work_plan(work)
         if plan is None:
             raise TaskReviewError("This task has no approved episode support", 422)
+        fresh_check = active_fresh_check(self.session, work.student_id, work.task_id)
         stage = self.session.scalar(
             select(EpisodeStageStart).where(EpisodeStageStart.assessment_work_start_id == work.id)
         )
@@ -44,12 +46,12 @@ class EpisodeSupportService:
             return {
                 "record": self.read(prior),
                 "content": None
-                if payload.kind == "conceptual_hint" and stage
+                if payload.kind == "conceptual_hint" and (stage or fresh_check)
                 else items[payload.item_index],
             }
         if payload.stage_start_id != (stage.id if stage else None):
             raise TaskReviewError("Support action does not match the current episode stage", 409)
-        if payload.kind == "conceptual_hint" and stage:
+        if payload.kind == "conceptual_hint" and (stage or fresh_check):
             raise TaskReviewError(
                 "Instructional hints are unavailable during fresh application", 422
             )

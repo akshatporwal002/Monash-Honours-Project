@@ -200,7 +200,6 @@ export function StudentDashboard({
         </Card>
       </div>
 
-      {progress.average_score !== null && <p className={styles.pointsNote}>{progress.average_score}% practice average</p>}
       {gamificationEnabled && <Card eyebrow="Optional points" className={styles.points}>
         <p className={styles.pointsText}>
           Level {progress.level} · {progress.points} points

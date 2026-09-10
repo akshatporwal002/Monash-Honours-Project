@@ -62,7 +62,6 @@ def feedback_context(
         student_id="student-private",
         attempt_number=2,
         submitted_answer="A qubit is always either zero or one.",
-        score=score,
         submitted_at=NOW,
     )
     task = TaskContext(
@@ -186,7 +185,7 @@ def test_prompt_contains_only_required_available_context() -> None:
     assert request.schema_name == "feedback_agent_output"
     assert "response_classification" in request.response_schema["properties"]
     assert "untrusted reference data" in request.system_prompt
-    assert payload["submission"]["score"] == 0.5
+    assert "score" not in payload["submission"]
     assert payload["retrieved_context"][0]["source_id"] == "source-1"
     assert payload["simulation_context"]["simulation_id"] == "simulation-1"
     assert "student-private" not in request.user_prompt

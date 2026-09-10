@@ -70,6 +70,15 @@ class EpisodePayloadV1(EpisodeContract):
     transfer: TransferResponseV1 | None = None
 
 
+class RecordedTeachingRead(EpisodeContract):
+    evidence_id: OpaqueId
+    hypothesis_id: OpaqueId
+    instructional_support_level: Annotated[int, Field(ge=1, le=5)]
+    explanation: NonBlankText
+    occurred_at: datetime
+    during_transfer: bool
+
+
 class FrozenResponseRead(EpisodeContract):
     reference: EvidenceReference
     assessment_work_start_id: OpaqueId | None
@@ -77,6 +86,7 @@ class FrozenResponseRead(EpisodeContract):
     content: ResponseContent
     episode: EpisodePayloadV1 | None
     declared_conditions: dict[str, Any] | list[Any]
+    recorded_teaching: tuple[RecordedTeachingRead, ...] = ()
 
 
 class EpisodeTransferPlanV1(EpisodeContract):

@@ -15,6 +15,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "node ./e2e/run.mjs",
+    "test:e2e:learning-loop": "node ./e2e/run.mjs --learning-loop",
+    "test:e2e:misconceptions": "node ./e2e/run.mjs --misconceptions",
     "test:e2e:list": "playwright test --list",
     "preview": "vite preview"
   },

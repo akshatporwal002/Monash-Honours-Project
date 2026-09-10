@@ -24,7 +24,7 @@ test('withdrawn activities preserve read-only saved work without exposing provis
     })
     if (url.endsWith('/submissions')) return response([{
       id: 'attempt-1', attempt_number: 1, answer: 'My earlier submitted answer',
-      score: null, formal_assessment: { result: 'PASS', result_state: 'PROVISIONAL' },
+       formal_assessment: { result: 'PASS', result_state: 'PROVISIONAL' },
       feedback: 'Recorded for review', status: 'submitted', submitted_at: '2026-09-07T01:00:00Z',
     }])
     throw new Error(`Unexpected request: ${url}`)

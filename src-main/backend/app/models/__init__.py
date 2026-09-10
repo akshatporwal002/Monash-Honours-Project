@@ -6,6 +6,7 @@ from app.models import (  # noqa: F401
     gamification,
     learner_preferences,
     learning_evidence,
+    legacy_retirement,
     reassessment,
     reminders,
     simulation,
@@ -225,4 +226,10 @@ from app.models.curriculum import (  # noqa: F401
     DiagnosticResponse,
     DiagnosticSession,
     PathwayVersion,
+)
+from app.models.misconceptions import (  # noqa: F401
+    MisconceptionClosure,
+    MisconceptionHypothesis,
+    MisconceptionResponse,
+    MisconceptionReviewRecord,
 )

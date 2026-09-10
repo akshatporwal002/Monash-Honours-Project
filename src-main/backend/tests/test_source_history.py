@@ -425,7 +425,7 @@ def test_migration_backfills_without_inventing_approval_and_protects_populated_h
                     "INSERT OR REPLACE INTO source_passages SELECT * FROM source_passages WHERE id='p'"
                 )
             )
-    with pytest.raises(RuntimeError, match="Source history is protected"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260821_0022")
     assert protected_history_manifest(database) == protected_before
     with engine.connect() as conn:

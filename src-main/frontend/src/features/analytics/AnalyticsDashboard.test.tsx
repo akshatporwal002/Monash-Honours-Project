@@ -71,7 +71,7 @@ function emptyLearning(): LearningMetrics {
     submissions: { ...empty, unit: 'events' },
     unique_submissions: { ...empty, unit: 'actor_task_pairs' },
     completion_rate: empty,
-    average_score: { ...empty, unit: 'score' },
+
     total_attempts: { ...empty, unit: 'attempts' },
     average_attempts: { ...empty, unit: 'attempts' },
     feedback_view_rate: empty,

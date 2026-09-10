@@ -12,6 +12,7 @@ from app.models.assessment import AssessmentAttempt, AssessmentDecision
 from app.models.enums import FeedbackStatus
 from app.models.escalation import EscalationCase, EscalationEvent, EscalationQueueRevision
 from app.models.lms import Course, PlatformAuditEvent, SubmissionAttempt
+from app.models.misconceptions import MisconceptionReviewRecord
 from app.models.persistence import FeedbackRecord, LearningTask
 from app.models.user import User, UserRole
 from app.schemas.escalation import (
@@ -345,6 +346,28 @@ class EscalationService:
         if source is None:
             raise LmsServiceError(404, "Retained evidence is unavailable")
         if case.source_kind == "FEEDBACK":
+            reviews = list(
+                self.session.scalars(
+                    select(MisconceptionReviewRecord)
+                    .where(
+                        MisconceptionReviewRecord.escalation_id == case.id,
+                    )
+                    .order_by(MisconceptionReviewRecord.version)
+                )
+            )
+            if reviews:
+                from app.services.misconceptions import MisconceptionService
+
+                return {
+                    "feedback": source.record.feedback_content,
+                    "quality_status": source.record.status.value,
+                    "learning_checks": [
+                        MisconceptionService(self.session)
+                        .read(actor, identity)
+                        .model_dump(mode="json")
+                        for identity in dict.fromkeys(item.hypothesis_id for item in reviews)
+                    ],
+                }
             return {
                 "feedback": source.record.feedback_content,
                 "quality_status": source.record.status.value,

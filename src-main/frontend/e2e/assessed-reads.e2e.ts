@@ -25,7 +25,7 @@ test('formal submission survives task reload, history, and both dashboards', asy
   await page.getByRole('button', { name: 'Submit activity' }).click()
   const submission = await submitted
   expect(submission.status()).toBe(201)
-  expect(await submission.json()).toMatchObject({ score: null, formal_assessment: { result: null, visibility: 'withheld' } })
+  expect(await submission.json()).toMatchObject({  formal_assessment: { result: null, visibility: 'withheld' } })
   await expect(page.getByRole('heading', { name: 'Assessment response saved' })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('region', { name: 'Assessment result and review' })).toContainText('Awaiting assessor review')
@@ -42,6 +42,6 @@ test('formal submission survives task reload, history, and both dashboards', asy
   await expect(page.getByText(/null%|NaN/)).toHaveCount(0)
   await page.getByRole('link', { name: 'Students', exact: true }).click()
   await expect(page.getByText('Read Test Student', { exact: true })).toBeVisible()
-  await expect(page.getByText('No practice score')).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: 'Average' })).toHaveCount(0)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
 })

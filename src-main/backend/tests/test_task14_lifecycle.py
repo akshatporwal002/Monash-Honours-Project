@@ -153,7 +153,7 @@ def test_episode_full_roundtrip_and_retry(db_session):
         SubmissionCreate(**payload.model_dump(), idempotency_key="episode-response"),
     )
     assert submitted.episode == payload.episode
-    assert submitted.score is None
+    assert not hasattr(submitted, "score")
     assert (
         lms.submit(
             student,
@@ -465,13 +465,13 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
             with engine.begin() as connection:
                 connection.execute(text(statement))
     before_downgrade = protected_history_manifest(path)
-    with pytest.raises(RuntimeError, match="cannot downgrade populated participation_recognitions"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260907_0029")
     assert protected_history_manifest(path) == before_downgrade
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0042"
+            == "20260910_0044"
         )
         assert inspect(connection).has_table("episode_checkpoints")
         assert (
@@ -659,7 +659,7 @@ def test_every_supported_type_roundtrips_and_revises(db_session, task_type):
         student, task.id, SubmissionCreate(**revised.model_dump(), idempotency_key="second-typed")
     )
     assert second.episode == revised.episode
-    assert second.score is None
+    assert not hasattr(second, "score")
     assert db_session.get(SubmissionAttempt, first.id).episode == payload.episode.model_dump(
         mode="json"
     )
@@ -731,6 +731,24 @@ def test_uncheckpointed_run_is_not_revealed_through_direct_or_list_reads(db_sess
         lms.read_simulation(student, old.id)
     with pytest.raises(TaskReviewError, match="prediction"):
         lms.list_student_simulations(student, task.id, 10)
+    from fastapi import HTTPException
+
+    from app.domain.platform_enums import EvidenceType
+    from app.services.evidence.live import LiveEvidenceCapture
+    from app.services.progress_evidence import read_progress_evidence
+
+    evidence_id = LiveEvidenceCapture(db_session)._write(
+        task=task,
+        learner_id=student.id,
+        source=old.id,
+        field="simulation",
+        kind=EvidenceType.SIMULATION,
+        value={"result": {"probabilities": {"0": 0.5, "1": 0.5}}},
+        occurred_at=old.created_at,
+    )
+    db_session.commit()
+    with pytest.raises(HTTPException, match="prediction"):
+        read_progress_evidence(db_session, student, task.course_id, evidence_id)
 
 
 def test_checkpoint_history_preserves_changed_prediction_and_denies_wrong_shots(db_session):

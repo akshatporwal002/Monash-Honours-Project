@@ -23,6 +23,7 @@ from app.services.episode_contract import (
     FrozenResponseStale,
 )
 from app.services.episode_evidence import canonical_response_digest
+from app.services.misconception_support import response_teaching
 
 
 class SqlAlchemyFrozenResponseReader:
@@ -146,6 +147,7 @@ class SqlAlchemyFrozenResponseReader:
                 task_form_version_id=form.id,
                 content=content,
                 episode=episode,
+                recorded_teaching=response_teaching(self.session, response),
                 declared_conditions=response.declared_conditions
                 if response.declared_conditions is not None
                 else {},

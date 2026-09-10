@@ -872,7 +872,6 @@ class StudentSubmission(Base):
     __tablename__ = "student_submissions"
     __table_args__ = (
         UniqueConstraint("student_id", "task_id", name="uq_student_submissions_student_task"),
-        CheckConstraint("score BETWEEN 0 AND 100", name="student_submission_score"),
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
@@ -888,7 +887,6 @@ class StudentSubmission(Base):
     status: Mapped[SubmissionStatus] = mapped_column(
         enum_column(SubmissionStatus, "submission_status"), nullable=False
     )
-    score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -66,7 +66,7 @@ from app.services.feedback.judge import (
 )
 from app.services.feedback.pipeline import FeedbackPipeline
 from app.services.feedback.prompt import FEEDBACK_PROMPT_VERSION, FeedbackPromptBuilder
-from app.services.feedback.providers import SqlAlchemySubmissionProvider, SqlAlchemyTaskProvider
+from app.services.feedback.providers import SqlAlchemyTaskProvider
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.feedback.worker import FeedbackRecoveryWorker
 
@@ -116,7 +116,6 @@ __all__ = [
     "RetrievalProvider",
     "SimulationProvider",
     "SqlAlchemyFeedbackWorkflowRepository",
-    "SqlAlchemySubmissionProvider",
     "SqlAlchemyTaskProvider",
     "StaticRetrievalProvider",
     "StaticSimulationProvider",

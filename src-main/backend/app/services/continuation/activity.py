@@ -25,11 +25,11 @@ from app.models.enums import (
     WorkflowStage,
 )
 from app.models.learning_evidence import LearningEvidence
-from app.models.lms import AttemptStatus, Course, SubmissionAttempt
+from app.models.lms import Course, SubmissionAttempt
 from app.models.persistence import FeedbackRecord, LearningTask, WorkflowRun
 from app.models.user import User, UserRole
 from app.schemas.activity_continuation import ActivityAction, ActivityHistory, ActivityRead
-from app.services.curriculum import CurriculumService, pathway_completions, pathway_progress
+from app.services.curriculum import CurriculumService, pathway_progress
 from app.services.learner_model.builder import (
     DeterministicLearnerModelBuilder,
     LearnerModelBuildService,
@@ -50,7 +50,7 @@ from app.services.lms import LmsService, LmsServiceError
 from app.services.task_review import TaskReviewError
 
 RULE = "approved-activity.v1"
-MODEL_RULE = "continuation-observations.v1"
+MODEL_RULE = "continuation-observations.v2"
 
 
 def utc_now():
@@ -170,6 +170,55 @@ def workflow_scope(session, identity):
     return workflow, attempt, task, learner
 
 
+def response_observations(session, attempt, task, learner):
+    """Read the submitted episode and its exact pre-result prediction checkpoints.
+
+    Checkpoints precede submission and therefore have no response_version_id.
+    Do not collect other drafts or checkpoints merely because they share a task.
+    """
+    episode = attempt.episode or {}
+    stages = [episode.get("supported", {})]
+    if episode.get("transfer"):
+        stages.append(episode["transfer"].get("process", {}))
+    checkpoints = [
+        stage["prediction_checkpoint_id"]
+        for stage in stages
+        if stage.get("prediction_checkpoint_id")
+    ]
+    scope = (
+        LearningEvidence.learner_id == learner.id,
+        LearningEvidence.course_id == task.course_id,
+        LearningEvidence.outcome_id == task.learning_outcome_id,
+        LearningEvidence.task_id == task.id,
+    )
+    submitted = (
+        LearningEvidence.response_version_id == attempt.id
+    ) & LearningEvidence.evidence_type.in_(
+        [
+            EvidenceType.RESPONSE,
+            EvidenceType.REASONING,
+            EvidenceType.PREDICTION,
+            EvidenceType.REVISION,
+            EvidenceType.EXPLANATION,
+            EvidenceType.REFLECTION,
+            EvidenceType.TRANSFER,
+        ]
+    )
+    checkpoint = (
+        LearningEvidence.response_version_id.is_(None)
+        & (LearningEvidence.evidence_type == EvidenceType.PREDICTION)
+        & LearningEvidence.source_interaction_id.in_(checkpoints)
+        & (LearningEvidence.activity_id == attempt.assessment_work_start_id)
+    )
+    return list(
+        session.scalars(
+            select(LearningEvidence)
+            .where(*scope, submitted | checkpoint)
+            .order_by(LearningEvidence.id)
+        )
+    )
+
+
 class ApprovedActivityAdapter:
     def __init__(self, session_factory=None, *, now=utc_now):
         self.session_factory = session_factory
@@ -221,31 +270,7 @@ class ApprovedActivityAdapter:
                     and judge.decision == JudgeDecision.PASS
                 )
                 evidence = (
-                    list(
-                        session.scalars(
-                            select(LearningEvidence)
-                            .where(
-                                LearningEvidence.learner_id == learner.id,
-                                LearningEvidence.course_id == task.course_id,
-                                LearningEvidence.outcome_id == task.learning_outcome_id,
-                                LearningEvidence.task_id == task.id,
-                                LearningEvidence.response_version_id == attempt.id,
-                                LearningEvidence.evidence_type.in_(
-                                    [
-                                        EvidenceType.RESPONSE,
-                                        EvidenceType.REASONING,
-                                        EvidenceType.PREDICTION,
-                                        EvidenceType.REVISION,
-                                        EvidenceType.EXPLANATION,
-                                        EvidenceType.REFLECTION,
-                                    ]
-                                ),
-                            )
-                            .order_by(LearningEvidence.id)
-                        )
-                    )
-                    if eligible
-                    else []
+                    response_observations(session, attempt, task, learner) if eligible else []
                 )
                 state = "feedback_not_eligible" if not eligible else "insufficient_evidence"
                 snapshot_id = None
@@ -358,15 +383,11 @@ class ActivityService:
         curriculum = CurriculumService(self.session)
         curriculum._access(learner, task.course_id)
         curriculum._current(path)
-        completed = set(
-            self.session.scalars(
-                select(SubmissionAttempt.task_id).where(
-                    SubmissionAttempt.student_id == learner.id,
-                    SubmissionAttempt.status == AttemptStatus.COMPLETED,
-                )
-            )
+        from app.services.progress_activity import completed_practice_tasks
+
+        completed = completed_practice_tasks(
+            self.session, learner.id, [step["task_id"] for step in path.payload["steps"]]
         )
-        completed |= pathway_completions(self.session, learner.id, task)
         options = []
         for step in path.payload["steps"]:
             if step["task_id"] == task.id or step["task_id"] in completed:

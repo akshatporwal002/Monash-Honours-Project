@@ -1,19 +1,38 @@
 # LearnLens remaining tasks
 
-Status updated on 9 September 2026 for sequential integration of Task 40 (`b3164a8`) and Tasks 36/37/39 (`f1b01eb`) onto fetched `origin/main` at `1f39448`.
+Status updated on 10 September 2026 from main `34d686f` and the
+Tasks 25, 27 and 29 delivery. The merged baseline includes Task 40 (`b3164a8`) and
+Tasks 36/37/39 (`f1b01eb`) integrated onto `1f39448`.
+
+Local Task 25 update, 9 September 2026: the complete learning journey now has
+integration and browser checks. The changes fix missing prediction and transfer
+observations, human-review queue routing and a duplicate response focus target.
+Local verification finished on 10 September. See the [Task 25 evidence](docs/learnlens/task-25-complete-learning-loop.md).
+
+Local Task 27 update, 10 September 2026: the misconception cycle and Task 28
+queue integration are complete locally. Verification and both independent reviews
+are complete. The full backend run passed 1,252 tests with 87.88% service coverage;
+all eight migration-assertion and documentation failures passed in the corrected
+21-test batch. See the [Task 27 evidence](docs/learnlens/task-27-misconception-cycle.md).
+
+Task 29 adds scoped progress, evidence inspection and separate cohort trends.
+Active learner marks are retired after immutable preservation under D-10.
+See the [Task 29 evidence](docs/learnlens/task-29-progress-and-score-retirement.md)
+for final checks, migration safeguards and release limits.
 
 | Status | Tasks |
 | --- | --- |
-| Completed and merged | 1–7, 9–24, 26, 30, 31 |
+| Completed implementation | 1-7, 9-27, 29-31 |
 | Partial: approvals or integration remain | 8, 28, 32, 40 |
 | Partial: automated checks or recovery tooling delivered; final evidence remains | 36, 37, 39 |
-| Remaining | 25, 27, 29, 33–35, 38, 41 |
+| Remaining | 33-35, 38, 41 |
 
 “Completed” records the delivered implementation scope, not approval to activate a
 live study or release. Tasks 21 and 22 are verified in fetched remote main:
 implementation commits `5a25ae4` and `8602fb3` are ancestors of `1f39448`.
-Their combined migration head is `20260909_0042`. Task 28's reporting
-and human queues are delivered, but Task 27's misconception integration remains.
+Their earlier merged migration head is `20260909_0042`. Task 27 adds
+`20260910_0043` and connects unresolved misconception reviews to Task 28's human queue.
+Task 29 adds `20260910_0044` for preserved legacy score retirement.
 
 Current integration: Task 40 and the Tasks 36/37/39 validation batch are combined
 with Tasks 21–22. See [integration evidence](docs/learnlens/task-40-validation-integration.md)
@@ -361,7 +380,17 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Evidence: [assessment models](src-main/backend/app/models/assessment.py), `AppealOrCorrection`; [review service](src-main/backend/app/services/assessment/review.py), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and AT15-AT17, AT19, AT24.
 
-25. **[Remaining] Prove one complete quantum learning loop before expanding coverage.**
+25. **[Completed locally] Prove one complete quantum learning loop before expanding coverage.**
+
+    Implemented locally, 9 September 2026. Real service and browser journeys now
+    cover prediction, circuit simulation, checked feedback, revision, reflection,
+    transfer, model updates, approved next activities and assessor confirmation.
+    A worker process is killed after its model receipt commits; restart completes
+    one suggestion using that same snapshot. Local verification finished on 10 September:
+    1,243 backend tests, 87.91% service coverage, 273 frontend tests and four new
+    browser journeys passed. Existing browser regression passed 119 of 120 cases;
+    the WebKit timeout passed unchanged in a two-case corrective run.
+    Changes remain uncommitted. See [the verification record](docs/learnlens/task-25-complete-learning-loop.md).
 
     Dependencies: Tasks 10, 14, 16, 18, 22, 23, and 24, including their prerequisites. Suggested owner: integrated feature team.
 
@@ -381,9 +410,16 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Evidence: [ReassessmentLink](src-main/backend/app/models/assessment.py), [LmsService.submit](src-main/backend/app/services/lms.py), and [assessment specification](docs/02-pass-incomplete-bloom-assessment-spec.md), sections 4 and reassessment rules.
 
-27. **[Remaining] Complete the misconception check and recovery cycle.**
+27. **[Completed locally, uncommitted] Complete the misconception check and recovery cycle.**
 
     Dependencies: Tasks 18, 19, 21, 22, and 23. Suggested owner: learner and teaching services.
+
+    Local delivery, 10 September 2026: reviewed probes, alternate explanations, revisions,
+    fresh checks, evidence-linked states, educator corrections and preserved exits are implemented.
+    Support history reaches practice and formal review. Focused backend checks and independent
+    reviews pass. The final browser run passed all four projects with saved screenshots.
+    Combined verification and passing corrective checks are recorded in the
+    [delivery record](docs/learnlens/task-27-misconception-cycle.md).
 
     The model can store a possible misconception. It does not complete the question, alternate explanation, revision, and transfer cycle. Add supporting and contradicting evidence, a suitable probe, targeted help, and a fresh check. Preserve state changes and educator corrections.
 
@@ -397,15 +433,19 @@ The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 1
 
     Implemented 9 September 2026: feedback and tutor reporting, separate assessor and technical queues, primary and backup ownership, triage and overdue indicators, immutable human responses, learner notices, and accepted-feedback sampling. Existing repeated-rejection, failed-evaluation and conflicting-evidence producers route to these queues. Owners enter targets using the approved staffing and severity rules; operational names and schedules still require D-09 activation details.
 
-    Remaining integration: connect unresolved-misconception signals when Task 27 delivers that recovery cycle. This queue delivery does not complete Task 27 or its Task 22 dependency.
+    Local integration, 10 September 2026: uncertain and persisted misconception reviews now create
+    one assessor case with the cycle's evidence and review history. Task 28 remains partial for
+    the D-09 operational names, schedules and activation records.
 
     Done when a report moves through acknowledgement, action, resolution, and closure with an audit trail. Accepted AI feedback must also be available for human sampling.
 
     Evidence: [FeedbackReportButton.tsx](src-main/frontend/src/features/feedback/FeedbackReportButton.tsx), [feedback routes](src-main/backend/app/api/routes/feedback.py), [feedback repository](src-main/backend/app/services/feedback/repository.py), and requirements PD7, PD12, FR38, and NFR20-NFR21.
 
-29. **[Remaining] Finish progress views and retire numeric learner-result semantics.**
+29. **[Completed] Finish progress views and retire numeric learner-result semantics.**
 
     Dependencies: Tasks 3, 18, 19, 22, 24, 26, and 27. Final legacy removal also needs Task 8, D-10. Suggested owner: LMS, analytics, and frontend.
+
+    Implemented 10 September 2026: learner and educator progress separates observations, support, uncertain estimates, misconception reviews, adaptation choices and released binary results. Counts and trends open scoped evidence. Active marks and thresholds are removed after full-row preservation in an immutable archive. D-10 approves the immediate retirement. See the [delivery and migration record](docs/learnlens/task-29-progress-and-score-retirement.md).
 
     Learner and educator screens still expose scores and averages. Replace these with clearly separated activity, evidence, uncertain estimates, and formal binary results. Add individual and cohort views for revision, independence, transfer, misconceptions, feedback use, and adaptation history. Remove score-driven learner progress, recommendations, averages, and misleading result wording. Current formal submissions already skip numeric grading.
 

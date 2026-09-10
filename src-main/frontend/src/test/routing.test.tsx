@@ -15,8 +15,8 @@ const educatorDashboard = {
   at_risk_students: 0,
   completion_percentage: 0,
   weekly_engagement: [],
-  task_type_performance: [],
-  concept_mastery: [],
+
+
   leaderboard: [],
   recent_activity: [],
 }
@@ -27,7 +27,7 @@ const studentDashboard = {
     completed_tasks: 0,
     total_tasks: 0,
     completion_percentage: 0,
-    average_score: 0,
+
     points: 0,
     level: 1,
     next_level_points: 500,

@@ -193,7 +193,7 @@ def test_learning_metrics_calculate_ordered_funnel_and_inactivity() -> None:
     )
 
     assert result.completion_rate.value == 0.5
-    assert result.average_score.value == 70
+    assert not hasattr(result, "average_score")
     assert result.average_attempts.value == 1.5
     assert result.feedback_view_rate.value == 0.5
     assert [stage.count for stage in result.funnel] == [3, 1, 1, 1, 1]

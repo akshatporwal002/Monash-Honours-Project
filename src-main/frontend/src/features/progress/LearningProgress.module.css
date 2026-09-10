@@ -1,0 +1,17 @@
+.page, .scopes { display: grid; gap: 1.5rem; min-width: 0; }
+.page { max-width: 76rem; margin: 0 auto; padding: 1.25rem; }
+.page select { max-width: 100%; padding: .65rem; margin: .5rem; }
+.page details { margin: 1rem 0; }
+.page summary { cursor: pointer; font-weight: 600; }
+.page li { margin: .65rem 0; overflow-wrap: anywhere; }
+.page pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.page small { display: block; }
+.counts { display: flex; flex-wrap: wrap; gap: 1rem 2rem; }
+.counts dd { margin: .25rem 0; font-size: 1.35rem; }
+.scroll { overflow-x: auto; }
+.scroll table { width: 100%; border-collapse: collapse; }
+.scroll th, .scroll td { text-align: left; padding: .75rem; border-bottom: 1px solid #bbb; vertical-align: top; }
+.scroll caption { text-align: left; padding: .5rem 0; }
+.page nav { display: flex; gap: 1rem; }
+
+.observation { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }

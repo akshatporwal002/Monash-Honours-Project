@@ -474,7 +474,6 @@ class LatestAttemptSummary(LmsSchema):
     id: str
     attempt_number: int
     status: AttemptStatus
-    score: int | None
     formal_assessment: FormalAssessmentSummary | None = None
     submitted_at: datetime
 
@@ -525,7 +524,6 @@ class TaskRead(LmsSchema):
     starter_circuit: dict[str, Any] | None = None
     access_status: Literal["locked", "available", "in_progress", "completed"]
     attempt_count: int = 0
-    latest_score: int | None = None
     latest_attempt: LatestAttemptSummary | None = None
     assessment: AssessmentConditionsRead | None = None
 
@@ -565,7 +563,6 @@ class AttemptRead(LmsSchema):
     task_id: str
     attempt_number: int
     status: AttemptStatus
-    score: int | None
     formal_assessment: FormalAssessmentSummary | None = None
     answer: str
     code: str | None
@@ -611,7 +608,6 @@ class StudentSummaryRead(LmsSchema):
     completed_tasks: int
     total_tasks: int
     completion_percentage: int
-    average_score: int | None
     points: int
     level: int
     next_level_points: int
@@ -638,7 +634,6 @@ class EducatorStudentRead(LmsSchema):
     completed_tasks: int
     total_tasks: int
     completion_percentage: int
-    average_score: int | None
     last_active: datetime | None
     at_risk: bool
     overdue_tasks: int
@@ -647,7 +642,6 @@ class EducatorStudentRead(LmsSchema):
 class RecentActivityRead(LmsSchema):
     student_name: str
     task_title: str
-    score: int | None
     formal_assessment: FormalAssessmentSummary | None = None
     occurred_at: datetime
 
@@ -656,11 +650,6 @@ class WeeklyEngagementRead(LmsSchema):
     label: str
     active_students: int
     submissions: int
-
-
-class LabelScoreRead(LmsSchema):
-    label: str
-    score: int
 
 
 class LeaderboardEntryRead(LmsSchema):
@@ -676,8 +665,6 @@ class EducatorDashboardRead(LmsSchema):
     at_risk_students: int
     completion_percentage: int
     weekly_engagement: list[WeeklyEngagementRead]
-    task_type_performance: list[LabelScoreRead]
-    concept_mastery: list[LabelScoreRead]
     leaderboard: list[LeaderboardEntryRead]
     recent_activity: list[RecentActivityRead]
 
@@ -760,8 +747,6 @@ class AdminUserRead(LmsSchema):
 
 
 class SettingsUpdate(LmsSchema):
-    at_risk_threshold: Annotated[int, Field(ge=0, le=100)] | None = None
-    passing_score: Annotated[int, Field(ge=0, le=100)] | None = None
     points_per_level: Annotated[int, Field(gt=0, le=100_000)] | None = None
     llm_provider: (
         Annotated[
@@ -787,8 +772,6 @@ class SettingsUpdate(LmsSchema):
 
 
 class SettingsRead(LmsSchema):
-    at_risk_threshold: int
-    passing_score: int
     points_per_level: int
     llm_provider: str
     llm_model: str

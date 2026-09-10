@@ -167,7 +167,7 @@ def test_role_scoping_and_explicit_bootstrap(
     client.post("/api/v1/auth/logout")
 
     login(client, "admin")
-    assert client.get("/api/v1/admin/settings").json()["at_risk_threshold"] == 70
+    assert "at_risk_threshold" not in client.get("/api/v1/admin/settings").json()
     assert client.get("/api/v1/educator/dashboard").status_code == 403
 
     # The helper is idempotent and no read endpoint invokes it.
@@ -481,7 +481,7 @@ def test_prerequisites_attempt_history_events_and_points_once(
     )
     assert submitted.status_code == 201
     attempt = submitted.json()
-    assert attempt["status"] == "completed"
+    assert attempt["status"] == "submitted"
     assert attempt["points_awarded"] == first["points"]
     assert attempt["feedback_reference"] == attempt["id"]
 
@@ -567,8 +567,8 @@ def test_all_six_task_types_accept_and_mark_correct_responses(
             json=payloads[task["task_type"]],
         )
         assert response.status_code == 201
-        assert response.json()["status"] == "completed"
-        assert response.json()["score"] == 100
+        assert response.json()["status"] == "submitted"
+        assert "score" not in response.json()
 
 
 def test_reminders_monitoring_and_admin_lifecycle(
@@ -599,10 +599,10 @@ def test_reminders_monitoring_and_admin_lifecycle(
     client.post("/api/v1/auth/logout")
     login(client, "educator")
     students = client.get("/api/v1/educator/students").json()
-    assert students[0]["at_risk"] is False  # Not started is a distinct state.
+    assert students[0]["at_risk"] is True  # This learner has overdue work.
     dashboard = client.get("/api/v1/educator/dashboard").json()
     assert len(dashboard["weekly_engagement"]) == 7
-    assert "task_type_performance" in dashboard
+    assert "task_type_performance" not in dashboard
     course_id = dashboard["courses"][0]["id"]
 
     client.post("/api/v1/auth/logout")
@@ -624,14 +624,13 @@ def test_reminders_monitoring_and_admin_lifecycle(
     updated = client.put(
         "/api/v1/admin/settings",
         json={
-            "at_risk_threshold": 75,
             "reminders_enabled": True,
             "llm_provider": "openai",
             "llm_model": "configured-model",
         },
     )
     assert updated.status_code == 200
-    assert updated.json()["at_risk_threshold"] == 75
+    assert updated.json()["reminders_enabled"] is True
     archived = client.post(f"/api/v1/admin/courses/{course_id}/archive")
     assert archived.status_code == 200
     assert archived.json()["state"] == CourseState.ARCHIVED
@@ -706,8 +705,8 @@ def test_submission_attempts_are_immutable(
     )
     attempt = session.scalar(select(SubmissionAttempt))
     assert attempt is not None
-    assert attempt.status is AttemptStatus.COMPLETED
-    attempt.score = 0
+    assert attempt.status is AttemptStatus.SUBMITTED
+    attempt.answer = "changed"
     with pytest.raises(RuntimeError, match="immutable"):
         session.commit()
     session.rollback()

@@ -1,14 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../app/api'
 import type { LearnerModelTimelineResponse } from '../app/api'
 
 export function EducatorLearnerModelTimeline() {
   const [search] = useSearchParams()
-  const [course, setCourse] = useState(search.get('course') ?? ''); const [learner, setLearner] = useState(search.get('learner') ?? ''); const [outcome, setOutcome] = useState('')
+  const initialCourse = search.get('course') ?? ''
+  const initialLearner = search.get('learner') ?? ''
+  const initialOutcome = search.get('outcome') ?? ''
+  const [course, setCourse] = useState(initialCourse); const [learner, setLearner] = useState(initialLearner); const [outcome, setOutcome] = useState(initialOutcome)
   const [data, setData] = useState<LearnerModelTimelineResponse | null>(null); const [message, setMessage] = useState('')
   const [annotation, setAnnotation] = useState(''); const [version, setVersion] = useState('0'); const [reason, setReason] = useState('')
   const [action, setAction] = useState<'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW'>('NEEDS_REVIEW')
+  useEffect(() => {
+    if (!initialCourse || !initialLearner || !initialOutcome) return
+    let active = true
+    api.learnerModel.educatorTimeline(initialCourse, initialLearner, initialOutcome)
+      .then(page => { if (active) setData(page) })
+      .catch(() => { if (active) setMessage('This learner history is unavailable.') })
+    return () => { active = false }
+  }, [initialCourse, initialLearner, initialOutcome])
   const load = async (cursor?: string) => { try { const page = await api.learnerModel.educatorTimeline(course, learner, outcome, cursor); setData(current => cursor && current ? { ...page, entries: [...current.entries, ...page.entries] } : page); setMessage('') } catch { setMessage('This learner history is unavailable.') } }
   const review = async () => { try { await api.learnerModel.review(course, learner, annotation, outcome, { annotation_id: annotation, expected_latest_review_version: Number(version), action, reason, idempotency_key: crypto.randomUUID(), occurred_at: new Date().toISOString() }); setReason(''); await load(); setMessage('Review added.') } catch { await load(); setMessage('This review is stale. History was refreshed; your reason remains available for explicit resubmission.') } }
   return <main><h1>Learner-model review</h1><p>Review the preserved evidence and uncertainty before adding a reasoned outcome. This does not change formal assessment results.</p><label>Course ID<input value={course} onChange={e => setCourse(e.target.value)} /></label><label>Learner ID<input value={learner} onChange={e => setLearner(e.target.value)} /></label><label>Outcome ID<input value={outcome} onChange={e => setOutcome(e.target.value)} /></label><button onClick={() => void load()}>Load learner history</button><p role="status">{message}</p>{data && <><h2>Ordered history</h2><ol>{data.entries.map(item => <li key={`${item.entry_type}:${item.reference_id}`}>{item.entry_type.toLowerCase()} recorded {new Date(item.occurred_at).toLocaleString()}</li>)}</ol>{data.next_cursor && <button onClick={() => void load(data.next_cursor ?? undefined)}>Load more history</button>}<ul>{data.snapshots.map(snapshot => <li key={snapshot.snapshot_id}>Snapshot {snapshot.record_version}: {snapshot.estimates.map(estimate => `${estimate.dimension} (${estimate.inference_status})`).join(', ')}</li>)}</ul><h2>Annotations</h2><ul>{data.corrections.map(item => <li key={item.annotation.annotation_id}><button onClick={() => { setAnnotation(item.annotation.annotation_id); setVersion(String(item.reviews.length ? item.reviews[item.reviews.length - 1].review_version : 0)) }}>Review learner note</button>: {item.annotation.note}<ul>{item.reviews.map(review => <li key={review.review_id}>{review.action}: {review.reason}</li>)}</ul></li>)}</ul><h2>Add review</h2><label>Annotation ID<input value={annotation} onChange={e => setAnnotation(e.target.value)} /></label><label>Latest review version<input type="number" min="0" value={version} onChange={e => setVersion(e.target.value)} /></label><label>Outcome<select value={action} onChange={e => setAction(e.target.value as typeof action)}><option value="NEEDS_REVIEW">Needs review</option><option value="ACCEPTED">Accept</option><option value="REJECTED">Reject</option></select></label><label>Reason ({reason.length}/2000)<textarea maxLength={2000} value={reason} onChange={e => setReason(e.target.value)} /></label><button disabled={!annotation || !reason.trim()} onClick={() => void review()}>Add review</button></>}</main>

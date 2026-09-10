@@ -44,6 +44,20 @@ beforeEach(() => {
 })
 
 describe('Task 15 human assessment', () => {
+  it('shows the preserved teaching level and content beside the response', () => {
+    const response = frozenRecord().response!
+    response.recorded_teaching = [{
+      evidence_id: 'teaching-evidence', hypothesis_id: 'learning-check',
+      instructional_support_level: 5, during_transfer: true,
+      explanation: 'The approved direct-answer explanation.', occurred_at: '2026-09-10T00:00:00Z',
+    }]
+    render(<AssessorReviewResponse response={response} />)
+    const help = screen.getByRole('region', { name: 'Recorded instructional help' })
+    expect(within(help).getByText(/support level 5, after the fresh stage began/)).toBeVisible()
+    expect(within(help).getByText('The approved direct-answer explanation.')).toBeVisible()
+    expect(within(help).getByText('Evidence: teaching-evidence')).toBeVisible()
+  })
+
   it('shows full frozen content with explicit stage labels and formatted code', () => {
     render(<AssessorReviewResponse response={frozenRecord().response} />)
     expect(screen.getByText('My original prediction')).toBeInTheDocument()

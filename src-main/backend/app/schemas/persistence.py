@@ -77,7 +77,6 @@ ALLOWED_LEARNING_EVENT_METADATA_KEYS = frozenset(
         "completion_status",
         "duration_ms",
         "feedback_status",
-        "score",
         "source",
     }
 )

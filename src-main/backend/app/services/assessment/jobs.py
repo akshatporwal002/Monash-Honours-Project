@@ -391,13 +391,23 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
             ):
                 from app.services.escalation_sources import record_signal
 
+                requires_assessor = (
+                    values.get("failure_category")
+                    is AssessmentEvaluationFailureCategory.PROVIDER_UNAVAILABLE
+                )
                 record_signal(
                     self._session,
                     source_kind="ASSESSMENT",
                     source_id=claim.assessment_attempt_id,
-                    trigger="EVALUATION_FAILED",
-                    queue_kind="TECHNICAL",
-                    reason="Assessment evaluation requires human attention after its permitted retries.",
+                    trigger="HUMAN_EVALUATION_REQUIRED"
+                    if requires_assessor
+                    else "EVALUATION_FAILED",
+                    queue_kind="ASSESSOR" if requires_assessor else "TECHNICAL",
+                    reason=(
+                        "The frozen criteria require an approved human assessment."
+                        if requires_assessor
+                        else "Assessment processing could not complete and needs technical review."
+                    ),
                 )
             self._session.commit()
         except SQLAlchemyError:

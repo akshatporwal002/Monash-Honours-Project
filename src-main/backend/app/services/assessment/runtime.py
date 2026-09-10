@@ -47,6 +47,15 @@ class SqlAlchemyRuleCriterionEvaluationPort:
         bloom_process: BloomProcess,
         criterion: CriterionVersion,
     ) -> EvaluatorOutcome:
+        from app.services.misconception_support import response_teaching, teaching_result_issue
+
+        saved_response = self._session.get(SubmissionAttempt, assessment.response_version_id)
+        if saved_response is not None and teaching_result_issue(
+            response_teaching(self._session, saved_response)
+        ):
+            raise CriterionEvaluationUnavailableError(
+                "Recorded instructional help requires review and a fresh approved task"
+            )
         if criterion.evaluator_type is not CriterionEvaluatorType.RULES:
             raise CriterionEvaluationUnavailableError(
                 "this criterion requires an approved human or validated evaluator"

@@ -14,7 +14,7 @@ export type FeedbackSource = ApiSchemas['FeedbackSourceView']
 export type ValidatedFeedback = ApiSchemas['ValidatedFeedbackView'] & {
   kind: 'validated'
   feedback_id: string
-  response_classification: 'correct' | 'partially_correct' | 'incorrect' | null
+  response_classification: 'correct' | 'partially_correct' | 'incorrect' | 'not_evaluated' | null
   summary: string
   identified_error: string | null
   explanation: string | null

@@ -48,8 +48,6 @@ def _submission_payload(context: FeedbackContext) -> dict[str, Any]:
         "attempt_number": submission.attempt_number,
         "submitted_answer": submission.submitted_answer,
     }
-    if submission.score is not None:
-        payload["score"] = submission.score
     return payload
 
 

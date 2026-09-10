@@ -137,7 +137,7 @@ def test_recorder_accepts_all_five_typed_event_shapes(
         command(LearningEventType.DRAFT_SAVE, {"duration_ms": 1500}),
         command(
             LearningEventType.SUBMISSION,
-            {"attempt_number": 1, "score": 87.5},
+            {"attempt_number": 1},
         ),
         command(
             LearningEventType.FEEDBACK_VIEW,
@@ -146,7 +146,7 @@ def test_recorder_accepts_all_five_typed_event_shapes(
         ),
         command(
             LearningEventType.COMPLETION,
-            {"completion_status": "completed", "score": 90.0},
+            {"completion_status": "completed"},
         ),
     )
 
@@ -324,7 +324,7 @@ def test_workflow_reference_is_required_only_for_trusted_feedback_views(
         )
 
 
-def test_legacy_score_metadata_remains_readable_but_trusted_hooks_emit_no_scores(
+def test_trusted_hooks_emit_no_scores_and_new_numeric_events_are_rejected(
     event_session_factory: sessionmaker[Session],
 ) -> None:
     hooks = TrustedLearningEventHooks(recorder(event_session_factory))
@@ -336,7 +336,6 @@ def test_legacy_score_metadata_remains_readable_but_trusted_hooks_emit_no_scores
         source_event_id=str(uuid4()),
         correlation_id=str(uuid4()),
         attempt_number=2,
-        score=75.0,
     )
     hooks.record_completion(
         actor_reference="student-1",
@@ -344,8 +343,7 @@ def test_legacy_score_metadata_remains_readable_but_trusted_hooks_emit_no_scores
         task_id="task-1",
         source_event_id=str(uuid4()),
         correlation_id=str(uuid4()),
-        completion_status="passed",
-        score=75.0,
+        completion_status="completed",
     )
 
     with event_session_factory() as session:
@@ -359,14 +357,12 @@ def test_legacy_score_metadata_remains_readable_but_trusted_hooks_emit_no_scores
             "completion_status": "completed",
         },
     }
-    assert validate_learning_event_metadata(
-        LearningEventType.SUBMISSION,
-        {"attempt_number": 2, "score": 75.0},
-    ) == {"attempt_number": 2, "score": 75.0}
-    assert validate_learning_event_metadata(
-        LearningEventType.COMPLETION,
-        {"completion_status": "passed", "score": 75.0},
-    ) == {"completion_status": "passed", "score": 75.0}
+    for kind, metadata in (
+        (LearningEventType.SUBMISSION, {"attempt_number": 2, "score": 75.0}),
+        (LearningEventType.COMPLETION, {"completion_status": "passed", "score": 75.0}),
+    ):
+        with pytest.raises(ValueError):
+            validate_learning_event_metadata(kind, metadata)
 
 
 def test_browser_contract_rejects_server_owned_submission_and_completion_events() -> None:

@@ -12,13 +12,10 @@ from app.models import (
     LearningTask,
     MaterialIndexStatus,
     StudentProfile,
-    StudentSubmission,
-    SubmissionStatus,
     TaskType,
 )
 from app.schemas.feedback import SubmissionContext
 from app.services.feedback.composition import build_grounded_feedback_context_collector
-from app.services.feedback.providers import SqlAlchemySubmissionProvider
 from app.services.rag.contracts import ExtractedBlock, ExtractedDocument
 from app.services.rag.fakes import InMemoryVectorStore, StaticDocumentExtractor
 from app.services.rag.ingestion import MaterialProcessor
@@ -104,18 +101,16 @@ def _task_and_submission(session: Session, material: LearningMaterial) -> Submis
     )
     session.add(task)
     session.flush()
-    submission = StudentSubmission(
-        student_id=student.id,
+    session.commit()
+    return SubmissionContext(
+        submission_id="rag-source-submission",
         task_id=task.id,
-        answer="It makes superposition.",
-        status=SubmissionStatus.SUBMITTED,
-        attempts=1,
-        score=0,
+        course_id=material.course_id,
+        student_id=student.id,
+        attempt_number=1,
+        submitted_answer="It makes superposition.",
         submitted_at=datetime.now(UTC),
     )
-    session.add(submission)
-    session.commit()
-    return asyncio.run(SqlAlchemySubmissionProvider(session).get_submission(submission.id))
 
 
 def test_feedback_composition_returns_only_task_grounded_course_hits(tmp_path: Path) -> None:

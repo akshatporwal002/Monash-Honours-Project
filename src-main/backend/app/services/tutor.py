@@ -33,6 +33,7 @@ from app.services.learner_model.repository import SqlAlchemyLearnerModelReposito
 from app.services.learner_preferences.repository import SqlAlchemyLearnerPreferencesRepository
 from app.services.learner_preferences.service import LearnerPreferencesService
 from app.services.lms import LmsService, LmsServiceError
+from app.services.misconception_state import active_fresh_check
 from app.services.task_review import TaskReviewService
 
 RULE_VERSION = "reviewed-tutor-v1"
@@ -59,6 +60,11 @@ class TutorContext:
     requires_reasoning: bool
     provenance: dict
     token: str
+    fresh_check_id: str | None = None
+
+    @property
+    def unaided(self):
+        return self.stage is not None or self.fresh_check_id is not None
 
 
 class TutorService:
@@ -121,7 +127,9 @@ class TutorService:
                 requires_reasoning = bool(
                     {"reasoning", "explanation"}.intersection(plan.required_responses)
                 )
+        fresh_check_id = active_fresh_check(self.session, student.id, task_id)
         context = {
+            "misconception_fresh_check_id": fresh_check_id,
             "task_revision_id": revision_id,
             "task_review_event_id": review_id,
             "work_id": work.id if work else None,
@@ -130,14 +138,16 @@ class TutorService:
             "rule_version": RULE_VERSION,
         }
         token = sha256(json.dumps(context, sort_keys=True).encode()).hexdigest()
-        return TutorContext(task, work, stage, tuple(hints), requires_reasoning, context, token)
+        return TutorContext(
+            task, work, stage, tuple(hints), requires_reasoning, context, token, fresh_check_id
+        )
 
     def read(self, student: User, task_id: str, *, offset: int = 0) -> TutorConversationRead:
         context = self._context(student, task_id)
         latest = self._latest(student.id, task_id)
         rows = (
             []
-            if context.stage
+            if context.unaided
             else list(
                 self.session.scalars(
                     select(TutorTurn)
@@ -155,9 +165,9 @@ class TutorService:
         return TutorConversationRead(
             context_token=context.token,
             revision=latest.revision if latest else 0,
-            instructional_help_available=context.stage is None,
+            instructional_help_available=not context.unaided,
             status="Fresh application is unaided. Accessibility support remains available."
-            if context.stage
+            if context.unaided
             else "Use this conversation to explain your reasoning and work through approved hints.",
             turns=[self._read_turn(row) for row in reversed(rows[:20])],
             next_offset=offset + 20 if len(rows) > 20 else None,
@@ -172,7 +182,7 @@ class TutorService:
             task, work = current.task, current.work
             context, token = current.provenance, current.token
             hints = current.hints
-            if current.stage:
+            if current.unaided:
                 raise LmsServiceError(
                     422, "Instructional dialogue is unavailable during fresh application"
                 )

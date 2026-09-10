@@ -391,8 +391,8 @@ def test_canonical_mvp_learning_loop(
         201,
     )
     assert first_attempt["attempt_number"] == 1
-    assert first_attempt["status"] == "completed"
-    assert first_attempt["score"] == 100
+    assert first_attempt["status"] == "submitted"
+    assert "score" not in first_attempt
     assert first_attempt["points_awarded"] == 100
     assert first_attempt["feedback_reference"] == first_attempt["id"]
 
@@ -457,16 +457,17 @@ def test_canonical_mvp_learning_loop(
     assert second_attempt["id"] != first_attempt["id"]
     assert second_attempt["attempt_number"] == 2
     assert second_attempt["status"] == "submitted"
-    assert second_attempt["score"] == 40
+    assert "score" not in second_attempt
     assert second_attempt["points_awarded"] == 0
 
     history = _json(
         client.get(f"/api/v1/students/me/tasks/{first_task['id']}/submissions"),
         200,
     )
-    assert [
-        (attempt["attempt_number"], attempt["answer"], attempt["score"]) for attempt in history
-    ] == [(2, "a", 40), (1, "b", 100)]
+    assert [(attempt["attempt_number"], attempt["answer"]) for attempt in history] == [
+        (2, "a"),
+        (1, "b"),
+    ]
 
     after_resubmission = _json(
         client.get("/api/v1/students/me/dashboard"),
@@ -476,7 +477,6 @@ def test_canonical_mvp_learning_loop(
         "completed_tasks": 1,
         "total_tasks": 3,
         "completion_percentage": 33,
-        "average_score": 40,
         "points": 100,
         "level": 1,
         "next_level_points": 400,
@@ -502,9 +502,10 @@ def test_canonical_mvp_learning_loop(
                 .order_by(SubmissionAttempt.attempt_number)
             ).all()
         )
-        assert [
-            (attempt.attempt_number, attempt.answer, attempt.score) for attempt in stored_attempts
-        ] == [(1, "b", 100), (2, "a", 40)]
+        assert [(attempt.attempt_number, attempt.answer) for attempt in stored_attempts] == [
+            (1, "b"),
+            (2, "a"),
+        ]
         assert (
             session.scalar(
                 select(func.count())
@@ -525,7 +526,7 @@ def test_canonical_mvp_learning_loop(
     assert client.get(f"/api/v1/submissions/{first_attempt['id']}/feedback").status_code == 200
 
     admin_headers = _login(client, "admin@quantumlearn.demo", DEMO_PASSWORD)
-    assert _json(client.get("/api/v1/admin/settings"), 200)["passing_score"] == 70
+    assert "passing_score" not in _json(client.get("/api/v1/admin/settings"), 200)
     assert client.get("/api/v1/educator/dashboard").status_code == 403
     other_student = _json(
         client.post(

@@ -51,7 +51,7 @@ def test_task16_real_episode_feedback_preserves_response_and_never_scores(db_ses
     assert replay.source_references == result.source_references
     assert stored.content_digest == frozen_digest
     assert stored.answer == original_answer == payload.answer
-    assert stored.score is None
+    assert not hasattr(stored, "score")
     reference = AssessmentVersionReference.model_validate(
         result.validated_feedback.feedback_content["assessed"]["assessment"]
     )

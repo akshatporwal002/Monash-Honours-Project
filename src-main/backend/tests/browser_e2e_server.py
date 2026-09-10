@@ -227,7 +227,6 @@ def _seed_learning_events(
         source_event_id=str(uuid4()),
         correlation_id=CORRELATION_ID,
         attempt_number=1,
-        score=78,
     )
     hooks.record_feedback_view(
         actor_reference=STUDENT_ACTOR,
@@ -243,8 +242,7 @@ def _seed_learning_events(
         task_id=TASK_ID,
         source_event_id=str(uuid4()),
         correlation_id=CORRELATION_ID,
-        completion_status="passed",
-        score=78,
+        completion_status="completed",
     )
 
 
@@ -301,7 +299,6 @@ def _build_app(database_url: str):
         student_id="opaque-team-student-reference",
         attempt_number=1,
         submitted_answer="browser-e2e-transient-answer",
-        score=78,
         submitted_at=NOW,
     )
     retrieval = RetrievalContext(

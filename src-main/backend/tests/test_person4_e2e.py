@@ -284,7 +284,6 @@ def e2e_harness(tmp_path: Path) -> Generator[E2EHarness, None, None]:
         student_id="opaque-team-student-reference",
         attempt_number=1,
         submitted_answer=RAW_ANSWER,
-        score=78,
         submitted_at=NOW,
     )
     retrieval = RetrievalContext(
@@ -503,7 +502,6 @@ def test_person4_deterministic_end_to_end(
             source_event_id=submission_event_id,
             correlation_id=event_correlation,
             attempt_number=1,
-            score=78,
         )
         is not None
     )
@@ -590,8 +588,7 @@ def test_person4_deterministic_end_to_end(
             task_id=TASK_ID,
             source_event_id=completion_event_id,
             correlation_id=event_correlation,
-            completion_status="passed",
-            score=78,
+            completion_status="completed",
         )
         is not None
     )
@@ -712,7 +709,8 @@ def test_person4_deterministic_end_to_end(
     )
     assert learning.status_code == research.status_code == 200
     assert filters.status_code == inactive.status_code == 200
-    assert learning.json()["schema_version"] == "learning-metrics-v1"
+    assert learning.json()["schema_version"] == "learning-metrics-v2"
+    assert "average_score" not in learning.json()
     assert learning.json()["completion_rate"]["value"] == 1
     assert learning.json()["feedback_view_rate"]["value"] == 1
     assert [stage["count"] for stage in learning.json()["funnel"]] == [

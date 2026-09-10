@@ -88,7 +88,6 @@ class LmsSubmissionProvider:
             student_id=str(attempt.student_id),
             attempt_number=attempt.attempt_number,
             submitted_answer=submitted_answer,
-            score=float(attempt.score) if attempt.score is not None else None,
             submitted_at=attempt.submitted_at,
         )
 

@@ -18,11 +18,12 @@ interface NavigationItem {
 const iconSize = 18
 
 const navigation: Record<UserRole, NavigationItem[]> = {
-  student: [{ to: '/student', end: true, label: 'My learning', icon: <LayoutDashboard size={iconSize} /> }, { to: '/student/preferences', label: 'Learning preferences', icon: <Settings size={iconSize} /> }],
+  student: [{ to: '/student/progress', label: 'Learning progress', icon: <BarChart3 size={iconSize} /> }, { to: '/student', end: true, label: 'My learning', icon: <LayoutDashboard size={iconSize} /> }, { to: '/student/preferences', label: 'Learning preferences', icon: <Settings size={iconSize} /> }, { to: '/student/misconceptions', label: 'Learning checks', icon: <ClipboardCheck size={iconSize} /> }],
   educator: [
     { to: '/educator', end: true, label: 'Dashboard', icon: <LayoutDashboard size={iconSize} /> },
     { to: '/educator/courses', label: 'Course editor', icon: <BookOpen size={iconSize} /> },
     { to: '/educator/students', label: 'Students', icon: <Users size={iconSize} /> },
+    { to: '/educator/misconceptions', label: 'Misconception checks', icon: <ClipboardCheck size={iconSize} /> },
     { to: '/educator/analytics', label: 'Analytics', icon: <BarChart3 size={iconSize} /> },
     { to: '/escalations', label: 'Output reports', icon: <ClipboardCheck size={iconSize} /> },
   ],

@@ -53,7 +53,7 @@ def test_populated_learner_preference_history_blocks_downgrade(tmp_path: Path) -
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "20260909_0042"
+                == "20260910_0044"
             )
     finally:
         engine.dispose()

@@ -131,6 +131,13 @@ jobs:
         working-directory: src-main/frontend
         run: npm run test:e2e
 
+      - name: Complete learning loop with real worker
+        working-directory: src-main/frontend
+        run: npm run test:e2e:learning-loop
+      - name: Misconception learning checks
+        working-directory: src-main/frontend
+        run: npm run test:e2e:misconceptions
+
   dependency-audit:
     name: Dependency audit
     runs-on: ubuntu-latest

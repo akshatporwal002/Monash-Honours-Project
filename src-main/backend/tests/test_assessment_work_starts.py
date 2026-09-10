@@ -128,7 +128,7 @@ def test_start_save_reload_submit_keeps_exact_standard(db_session):
         db_session.get(SubmissionAttempt, response.id).declared_conditions["transfer_rule"]
         == work.declared_conditions["transfer_rule"]
     )
-    assert response.score is None and response.formal_assessment.result is None
+    assert not hasattr(response, "score") and response.formal_assessment.result is None
 
 
 def test_new_rule_during_open_draft_conflicts_and_keeps_original(db_session):
@@ -416,7 +416,7 @@ def test_work_migration_replay_scope_and_protected_downgrade(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0042"
+            == "20260910_0044"
         )
         assert inspect(connection).has_table("assessment_work_starts")
     engine.dispose()

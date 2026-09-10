@@ -445,7 +445,7 @@ def test_new_migration_matches_metadata_and_replays_guards(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260909_0042"
+            == "20260910_0044"
         )
         assert (
             connection.execute(

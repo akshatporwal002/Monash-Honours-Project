@@ -259,8 +259,6 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
                 items={[
                   { term: 'AI provider', description: settings.llm_provider || 'Not configured' },
                   { term: 'Model', description: settings.llm_model || 'Not configured' },
-                  { term: 'At-risk threshold', description: `${settings.at_risk_threshold}%` },
-                  { term: 'Passing score', description: `${settings.passing_score}%` },
                   { term: 'Points per level', description: String(settings.points_per_level) },
                   { term: 'Automatic reminders', description: settings.reminders_enabled ? 'Enabled' : 'Disabled' },
                 ]}
@@ -443,37 +441,9 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
                 <div>
                   <h2 className={styles.sectionTitle}>Student support</h2>
                   <p className={styles.sectionText}>
-                    Set when low progress should become an educator alert.
+                    Overdue work appears in educator support views. Activity rewards remain optional.
                   </p>
                 </div>
-              </div>
-              <div className={styles.rangeRow}>
-                <Field label="At-risk completion threshold" className={styles.rangeField}>
-                  <input
-                    type="range"
-                    className={styles.range}
-                    min="10"
-                    max="90"
-                    step="5"
-                    value={settings.at_risk_threshold}
-                    onChange={(event) => setSettings({ ...settings, at_risk_threshold: Number(event.target.value) })}
-                  />
-                </Field>
-                <strong className={styles.rangeValue}>{settings.at_risk_threshold}%</strong>
-              </div>
-              <div className={styles.rangeRow}>
-                <Field label="Passing score" className={styles.rangeField}>
-                  <input
-                    type="range"
-                    className={styles.range}
-                    min="0"
-                    max="100"
-                    step="5"
-                    value={settings.passing_score}
-                    onChange={(event) => setSettings({ ...settings, passing_score: Number(event.target.value) })}
-                  />
-                </Field>
-                <strong className={styles.rangeValue}>{settings.passing_score}%</strong>
               </div>
               <Field label="Points required per level" className={styles.numberField}>
                 <Input

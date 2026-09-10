@@ -58,7 +58,6 @@ def _attempt_context(
         attempt_number=1,
         status=AttemptStatus.SUBMITTED,
         answer="The response links the observation to the claim.",
-        score=None,
         feedback="Response recorded.",
         task_form_version_id=form_version.id,
         response_schema_version="assessment.response.v1",
@@ -139,7 +138,7 @@ def test_submission_attempt_is_the_immutable_response_version(db_session: Sessio
     _, response, _, _, _ = _attempt_context(db_session)
 
     assert response.id
-    assert response.score is None
+    assert not hasattr(response, "score")
     assert response.response_schema_version == "assessment.response.v1"
     response.answer = "Changed response"
     with pytest.raises(RuntimeError, match="immutable"):
@@ -157,7 +156,6 @@ def test_response_version_idempotency_allows_one_record_per_request_key(
         attempt_number=2,
         status=AttemptStatus.SUBMITTED,
         answer="Different content must not create a second response version.",
-        score=None,
         feedback="Response recorded.",
         task_form_version_id=response.task_form_version_id,
         response_schema_version="assessment.response.v1",
@@ -330,7 +328,6 @@ def test_invalid_result_lifecycle_writes_fail(db_session: Session) -> None:
         attempt_number=2,
         status=AttemptStatus.SUBMITTED,
         answer="A later response that encountered a system fault.",
-        score=None,
         feedback="Response recorded.",
         task_form_version_id=response.task_form_version_id,
         response_schema_version="assessment.response.v1",
