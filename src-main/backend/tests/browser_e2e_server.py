@@ -359,6 +359,8 @@ def _build_app(database_url: str):
         reconciliation = TerminalIntegrationWorker(
             session,
             now=lambda: NOW + timedelta(seconds=1),
+            # This isolated legacy-mechanics fixture has no live study or participant records.
+            research_repository_factory=SqlAlchemyResearchJobRepository,
         )
         if not asyncio.run(reconciliation.run_once()).processed:
             raise RuntimeError("browser E2E terminal integration was not reconciled")
