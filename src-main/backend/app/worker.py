@@ -6,8 +6,9 @@ import logging
 import re
 from collections.abc import Callable
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from typing import Protocol, cast
 from uuid import uuid4
 
@@ -49,6 +50,7 @@ from app.services.research import (
     BaselineFeedbackGenerator,
     BaselineMeasurementJudge,
 )
+from app.services.runtime_policy import read_runtime_policy
 from app.services.simulation_evidence import SimulationRecoveryWorker
 from app.services.terminal_integrations.worker import TerminalIntegrationWorker
 
@@ -137,6 +139,21 @@ def build_offline_worker_adapters(configured_settings: Settings) -> WorkerAdapte
         progress_adapter=ApprovedActivityAdapter(),
         next_task_recommender=ApprovedActivityAdapter(),
     )
+
+
+class _RuntimePolicyPass:
+    """Reload controls for each pass without restarting the owning worker."""
+
+    def __init__(self, session_factory, configured_settings, factory):
+        self._session_factory = session_factory
+        self._settings = configured_settings
+        self._factory = factory
+
+    async def run_once(self):
+        with self._session_factory() as session:
+            policy = read_runtime_policy(session, self._settings)
+        current = self._settings.model_copy(update=asdict(policy))
+        return await self._factory(current).run_once()
 
 
 class _GovernedResearchPass:
@@ -379,6 +396,11 @@ def build_database_worker(
     worker_id: str | None = None,
 ) -> DatabaseWorker:
     lease_duration = timedelta(seconds=configured_settings.feedback_job_lease_seconds)
+    policy_loader = partial(read_runtime_policy, configured_settings=configured_settings)
+
+    def runtime_pass(factory):
+        return _RuntimePolicyPass(session_factory, configured_settings, factory)
+
     audit_events = adapters.feedback_audit_events
     if audit_events is None:
         recorder = IndependentAuditRecorder(session_factory)
@@ -388,6 +410,7 @@ def build_database_worker(
         adapters.feedback_pipeline_factory,
         now=now,
         audit_events=audit_events,
+        policy_loader=policy_loader,
     )
     feedback_pass = FeedbackRecoveryWorker(
         session_factory,
@@ -395,35 +418,44 @@ def build_database_worker(
         now=now,
         lease_duration=lease_duration,
         audit_events=audit_events,
+        policy_loader=policy_loader,
     )
     assessment_executor = AssessmentEvaluationExecutor(
         session_factory,
         build_assessment_evaluation_service,
         now=now,
     )
-    assessment_evaluation_pass = AssessmentEvaluationRecoveryWorker(
-        session_factory,
-        assessment_executor,
-        now=now,
-        lease_duration=lease_duration,
-        maximum_attempts=configured_settings.max_infrastructure_attempts,
+    assessment_evaluation_pass = runtime_pass(
+        lambda current: AssessmentEvaluationRecoveryWorker(
+            session_factory,
+            assessment_executor,
+            now=now,
+            lease_duration=lease_duration,
+            maximum_attempts=current.max_infrastructure_attempts,
+        )
     )
-    baseline_pass = _GovernedResearchPass(session_factory, adapters, configured_settings, now)
-    continuation_pass = _ContinuationDatabasePass(
-        session_factory,
-        adapters,
-        now=now,
-        lease_duration=lease_duration,
-        provider_timeout_seconds=configured_settings.provider_timeout_seconds,
-        maximum_attempts=configured_settings.max_infrastructure_attempts,
+    baseline_pass = runtime_pass(
+        lambda current: _GovernedResearchPass(session_factory, adapters, current, now)
     )
-    terminal_reconciliation = _TerminalIntegrationDatabasePass(
-        session_factory,
-        now=now,
-        lease_duration=lease_duration,
-        maximum_attempts=configured_settings.max_infrastructure_attempts,
-        additional_pass=adapters.terminal_reconciliation,
-        research_enabled=configured_settings.research_enabled,
+    continuation_pass = runtime_pass(
+        lambda current: _ContinuationDatabasePass(
+            session_factory,
+            adapters,
+            now=now,
+            lease_duration=lease_duration,
+            provider_timeout_seconds=current.provider_timeout_seconds,
+            maximum_attempts=current.max_infrastructure_attempts,
+        )
+    )
+    terminal_reconciliation = runtime_pass(
+        lambda current: _TerminalIntegrationDatabasePass(
+            session_factory,
+            now=now,
+            lease_duration=lease_duration,
+            maximum_attempts=current.max_infrastructure_attempts,
+            additional_pass=adapters.terminal_reconciliation,
+            research_enabled=configured_settings.research_enabled,
+        )
     )
     ownership = WorkerHealthRegistry(
         now=now,
@@ -438,11 +470,13 @@ def build_database_worker(
         ownership,
         assessment_evaluation=assessment_evaluation_pass,
         simulation_recovery=SimulationRecoveryWorker(session_factory, now=now),
-        material_processing=MaterialRecoveryWorker(
-            session_factory,
-            now=now,
-            configured_settings=configured_settings,
-            processor_factory=adapters.material_processor_factory,
+        material_processing=runtime_pass(
+            lambda current: MaterialRecoveryWorker(
+                session_factory,
+                now=now,
+                configured_settings=current,
+                processor_factory=adapters.material_processor_factory,
+            )
         ),
         terminal_reconciliation=terminal_reconciliation,
         reminders=ReminderWorker(session_factory, now=now),

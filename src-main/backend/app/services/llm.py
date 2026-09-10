@@ -7,7 +7,9 @@ feedback or judging workflows.
 
 from __future__ import annotations
 
+import asyncio
 import json
+import math
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -74,17 +76,26 @@ class ResponsesStructuredLlmClient:
         base_url: str = "https://api.openai.com/v1",
         provider: str = "openai",
         timeout_seconds: float = 60,
+        max_infrastructure_attempts: int = 1,
         input_cost_per_million: Decimal = Decimal("0"),
         output_cost_per_million: Decimal = Decimal("0"),
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         if not api_key.strip() or not model.strip():
             raise ValueError("Model credentials and a model name are required.")
+        if not math.isfinite(timeout_seconds) or not 0 < timeout_seconds <= 60:
+            raise ValueError("Provider timeout must be positive and at most 60 seconds.")
+        if (
+            type(max_infrastructure_attempts) is not int
+            or not 1 <= max_infrastructure_attempts <= 3
+        ):
+            raise ValueError("Infrastructure attempts must be between 1 and 3.")
         self._api_key = api_key
         self._model = model
         self._provider = provider
         self._endpoint = f"{base_url.rstrip('/')}/responses"
         self._timeout = timeout_seconds
+        self._max_attempts = max_infrastructure_attempts
         self._input_cost = input_cost_per_million
         self._output_cost = output_cost_per_million
         self._transport = transport
@@ -116,23 +127,36 @@ class ResponsesStructuredLlmClient:
             },
         }
         try:
-            async with httpx.AsyncClient(
-                timeout=self._timeout,
-                transport=self._transport,
-            ) as client:
-                response = await client.post(
-                    self._endpoint,
-                    headers={
-                        "Authorization": f"Bearer {self._api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json=payload,
-                )
+            async with (
+                asyncio.timeout(self._timeout),
+                httpx.AsyncClient(
+                    timeout=self._timeout,
+                    transport=self._transport,
+                    trust_env=False,
+                ) as client,
+            ):
+                for attempt in range(self._max_attempts):
+                    try:
+                        response = await client.post(
+                            self._endpoint,
+                            headers={
+                                "Authorization": f"Bearer {self._api_key}",
+                                "Content-Type": "application/json",
+                            },
+                            json=payload,
+                        )
+                        break
+                    except (httpx.ConnectError, httpx.ConnectTimeout):
+                        # Retry only before request dispatch. Read/write ambiguity,
+                        # HTTP errors and malformed output never replay a model call.
+                        if attempt + 1 == self._max_attempts:
+                            raise
+                        await asyncio.sleep(0.05 * (2**attempt))
                 response.raise_for_status()
                 body = response.json()
             output = json.loads(_output_text(body))
             usage = _usage(body)
-        except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        except (TimeoutError, httpx.HTTPError, KeyError, TypeError, ValueError) as error:
             raise StructuredModelError(
                 "The configured model could not complete the request."
             ) from error

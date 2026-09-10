@@ -110,6 +110,7 @@ from app.services.rag.errors import RagError
 from app.services.rag.source_history import bind_sources, output_digest, resolve_passages
 from app.services.rag.storage import FileStorage
 from app.services.rag.task_generation import GenerateTasksInput
+from app.services.runtime_policy import RuntimePolicyUnavailable, read_runtime_policy
 from app.services.simulation_evidence import SimulationEvidenceError, SimulationEvidenceService
 from app.services.task_generation_runtime import build_grounded_task_generation_service
 from app.services.task_review import TaskReviewError, TaskReviewService
@@ -121,6 +122,11 @@ from app.services.task_types import (
 )
 
 DEFAULT_SETTINGS: dict[str, tuple[Any, str]] = {
+    "provider_timeout_seconds": (60, "Wall-time limit in seconds for a provider operation (1–60)."),
+    "max_infrastructure_attempts": (
+        3,
+        "Maximum total infrastructure attempts (1–3); not quality regenerations.",
+    ),
     "points_per_level": (
         500,
         "Number of points required to advance one gamification level.",
@@ -1742,13 +1748,26 @@ class LmsService:
         return self._admin_user_read(user)
 
     def read_settings(self) -> SettingsRead:
-        return SettingsRead(**{key: self._setting_value(key) for key in DEFAULT_SETTINGS})
+        try:
+            policy = read_runtime_policy(self.session)
+        except RuntimePolicyUnavailable:
+            raise LmsServiceError(503, "Runtime timeout/retry settings are invalid.") from None
+        return SettingsRead(
+            **{
+                key: getattr(policy, key)
+                if key in {"provider_timeout_seconds", "max_infrastructure_attempts"}
+                else self._setting_value(key)
+                for key in DEFAULT_SETTINGS
+            }
+        )
 
     def update_settings(
         self,
         administrator: User,
         payload: SettingsUpdate,
     ) -> SettingsRead:
+        if administrator.role is not UserRole.ADMINISTRATOR:
+            raise _forbidden()
         for key, value in payload.model_dump(exclude_unset=True).items():
             setting = self.session.scalar(select(SystemSetting).where(SystemSetting.key == key))
             if setting is None:
@@ -2582,6 +2601,8 @@ def bootstrap_demo(session: Session) -> tuple[list[User], Course]:
         profile = StudentProfile(user_id=student.id, display_name=student.full_name)
         session.add(profile)
     for key, (value, description) in DEFAULT_SETTINGS.items():
+        if key in {"provider_timeout_seconds", "max_infrastructure_attempts"}:
+            continue  # Preserve deployment defaults until an administrator explicitly sets a value.
         if not session.scalar(select(SystemSetting.id).where(SystemSetting.key == key)):
             session.add(SystemSetting(key=key, value=value, description=description))
     ensure_default_achievements(session)

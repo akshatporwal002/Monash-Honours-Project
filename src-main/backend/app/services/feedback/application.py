@@ -38,6 +38,7 @@ from app.services.feedback.errors import (
 )
 from app.services.feedback.pipeline import FeedbackPipeline
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
+from app.services.runtime_policy import RuntimePolicy, read_runtime_policy
 
 
 def _utc_now() -> datetime:
@@ -183,12 +184,14 @@ class InProcessFeedbackExecutor:
         now: Callable[[], datetime] = _utc_now,
         retry_backoff: timedelta = timedelta(seconds=5),
         audit_events: FeedbackAuditEvents | None = None,
+        policy_loader: Callable[[Session], RuntimePolicy] = read_runtime_policy,
     ) -> None:
         self._session_factory = session_factory
         self._pipeline_factory = pipeline_factory
         self._now = now
         self._retry_backoff = retry_backoff
         self._audit_events = audit_events
+        self._policy_loader = policy_loader
 
     async def execute(
         self,
@@ -200,7 +203,9 @@ class InProcessFeedbackExecutor:
         job_correlation_id = correlation_id or workflow_run_id
         try:
             with self._session_factory() as session:
-                repository = SqlAlchemyFeedbackWorkflowRepository(session)
+                repository = SqlAlchemyFeedbackWorkflowRepository(
+                    session, runtime_policy=self._policy_loader(session)
+                )
                 pipeline = self._pipeline_factory(repository)
                 pipeline.attach_progress_recorder(repository)
                 if self._audit_events is not None:

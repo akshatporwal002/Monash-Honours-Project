@@ -46,6 +46,7 @@ from app.services.quantum import SIMULATION_POLICY_VERSION, CircuitOperation, Qu
 from app.services.rag.feedback_adapter import RagFeedbackRetrievalProvider
 from app.services.rag.local_retrieval import LocalCourseRetrievalService
 from app.services.research.governance import research_processing_approved
+from app.services.runtime_policy import RuntimePolicy, read_runtime_policy
 from app.services.simulation_evidence import (
     SimulationEvidenceError,
     SimulationEvidenceService,
@@ -205,7 +206,8 @@ def build_feedback_pipeline(
     session: Session,
     repository: SqlAlchemyFeedbackWorkflowRepository,
 ) -> FeedbackPipeline:
-    client = _configured_model_client(session)
+    policy = repository.runtime_policy
+    client = _configured_model_client(session, policy)
     base_generator = (
         LlmFeedbackGenerator(client) if client is not None else LocalFeedbackGenerator()
     )
@@ -218,7 +220,7 @@ def build_feedback_pipeline(
         retrieval_provider=TaskSourceRetrievalProvider(session),
         simulation_provider=SubmittedCircuitSimulationProvider(session),
         assessment_context_provider=SqlAlchemyAssessmentFeedbackContextProvider(session),
-        provider_timeout_seconds=settings.provider_timeout_seconds,
+        provider_timeout_seconds=policy.provider_timeout_seconds,
     )
     secret_setting = settings.learning_event_pseudonym_secret
     pseudonymizer = (
@@ -240,7 +242,7 @@ def build_feedback_pipeline(
         judge,
         repository,
         terminal_integration_planner=integrations,
-        provider_timeout_seconds=settings.provider_timeout_seconds,
+        provider_timeout_seconds=policy.provider_timeout_seconds,
     )
 
 
@@ -253,7 +255,9 @@ def build_feedback_pipeline_for_repository(
 
 def _configured_model_client(
     session: Session,
+    policy: RuntimePolicy | None = None,
 ) -> ResponsesStructuredLlmClient | None:
+    policy = policy or read_runtime_policy(session)
     selection = runtime_model_selection(session)
     api_key = settings.llm_api_key.get_secret_value() if settings.llm_api_key is not None else ""
     if selection.local or not api_key or not selection.model:
@@ -263,7 +267,9 @@ def _configured_model_client(
         model=selection.model,
         base_url=settings.llm_api_base_url,
         provider=selection.provider,
-        timeout_seconds=settings.provider_timeout_seconds,
+        timeout_seconds=policy.provider_timeout_seconds,
+        # Durable feedback owns its retry ceiling; never multiply it in transport.
+        max_infrastructure_attempts=1,
         input_cost_per_million=settings.llm_input_cost_per_million,
         output_cost_per_million=settings.llm_output_cost_per_million,
     )
