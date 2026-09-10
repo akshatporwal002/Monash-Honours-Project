@@ -13,11 +13,15 @@ from app.db.session import create_db_engine, create_session_factory
 def db_session(tmp_path: Path) -> Generator[Session, None, None]:
     database_path = tmp_path / "test.db"
     engine = create_db_engine(f"sqlite:///{database_path.as_posix()}")
-    Base.metadata.create_all(engine)
-    session_factory = create_session_factory(engine)
+    try:
+        # SQLite's legacy mode otherwise commits each schema statement separately.
+        with engine.begin() as connection:
+            connection.exec_driver_sql("BEGIN")
+            Base.metadata.create_all(connection)
+        session_factory = create_session_factory(engine)
 
-    with session_factory() as session:
-        yield session
-
-    Base.metadata.drop_all(engine)
-    engine.dispose()
+        with session_factory() as session:
+            yield session
+    finally:
+        # tmp_path gives each test its own file; no later test reuses this schema.
+        engine.dispose()

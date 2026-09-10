@@ -67,6 +67,11 @@ history or treat a destructive downgrade as rollback.
 
 ## Verification
 
+The final full backend run passed all 1,268 tests in 11 minutes 28 seconds.
+Service coverage was 88.49%, above the unchanged 80% gate. This run includes the
+fixture change described below and is recorded in `q29-fixture-full.log`.
+The fixture-only support-level enum serialization warning remains.
+
 The combined backend run completed in 19 minutes 52 seconds: 1,261 passed and
 seven failed. Four failures expected an earlier downgrade error. One new fixture
 missed required outcome fields. Two older integration tests still supplied
@@ -116,6 +121,22 @@ Standards reviews passed again with zero findings.
 The backend CI limit is now 45 minutes. The previous main run had been cancelled
 after 20 minutes during backend tests; successful earlier runs took 17-19 minutes.
 The longer allowance retains every test, migration, contract and coverage gate.
+
+The second CI run passed all 272 frontend tests and 128 browser cases. Dependency
+and secret checks also passed. Backend tests reached only 54% before the longer
+timeout. Database-heavy files took much longer than in the first run, while pure
+calculation tests retained their earlier timings.
+
+The shared test fixture now creates its schema in one explicit transaction.
+SQLite's legacy transaction mode previously committed each schema statement
+separately. Each test still uses a fresh, file-backed database. The fixture also
+skips redundant schema teardown and always disposes its engine after the session
+closes. Tests, foreign keys, history guards and coverage requirements are unchanged.
+
+A local comparison found identical definitions for all 534 database objects.
+Schema creation took 0.048 seconds instead of 0.687 seconds; the former teardown
+took another 0.218 seconds. These measurements describe test setup only. Both
+independent reviewers passed this fixture change with zero findings.
 
 ## Remaining work
 
