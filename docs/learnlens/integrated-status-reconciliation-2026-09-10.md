@@ -1,4 +1,19 @@
-# Integrated status reconciliation — final follow-up refresh
+# Integrated status reconciliation — current next wave
+
+10 September 2026. **Combined validation: IN_PROGRESS** at frozen application/test source `6d20416c6760d4841828c9e59cc74679d8ca0ae7` on `codex/integrate-next-wave-20260910`. Later commits currently change documentation only.
+
+**12 of 41 tasks still need work: 29 completed implementations, 11 partial, one remaining.** Partial IDs: 8, 28, 32–40. Task 41 remains. The [master checklist](../../LearnLens_Remaining_Tasks.md#concrete-work-left-after-the-local-changes) preserves a concrete action and dependency for each unfinished task.
+
+The [authoritative matrix](implementation-gap-matrix.md) covers all **143 requirements: 87 IMPLEMENTED, 43 PARTIAL, zero MISSING/CONFLICTING, 13 UNVERIFIED**. NFR30 and AC18 move from MISSING to PARTIAL because Task 34A supplies meaningful governed instrument-stage capture, missingness and status records; complete approved workflows, content and pilot evidence remain due. NFR5/NFR17 retain PARTIAL pending frozen-source execution despite strengthened local recovery/restore evidence. No requirement status establishes human or institutional approval.
+
+Task 38A adds administrator timeout/infrastructure-retry settings and immutable per-attempt policy; durable metering and budget reservation/enforcement remain open. Task 37 adds actual local accepted-work crash/restart and database/source restore evidence. The assessor focus fix and deterministic Cancel/Confirm regressions are integrated. Task 35 fingerprints and dependent draft/numerical artifacts reflect runtime changes: 108 DRAFT, zero approved/outputs/ratings, 12/12 numerical matches, quality UNVERIFIED and AI release PENDING.
+
+The [current verification receipt](next-wave-integration-verification-2026-09-10.md) owns exact sources, initial failures/corrections and executed results. Full frontend passed 319 tests across 85 files plus lint/types/build. Dependency audits, contracts, migration/readiness head 0046 and Ruff pass. Backend coverage and the complete 132-case browser matrix are in progress. The initial mixed-checkout browser run is diagnostic only; its Python import provenance must be corrected before counting final results. Current documentation validation will be recorded after execution.
+
+The historical audit, baseline Task 36 report and previous parallel-integration report remain unchanged. The paragraphs below are the original documentation delivery and prior accepted-batch receipts, retained as dated history; their counts and PASS labels do not apply to the current next-wave source.
+
+## Historical final-follow-up documentation receipt
+
 
 10 September 2026. **Full combined validation: PASS for the current delivered scope.** The [coordinator report](parallel-integration-2026-09-10.md) owns final central receipts.
 
