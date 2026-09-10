@@ -884,17 +884,25 @@ class LmsService:
                 )
             )
             if existing is not None:
-                if existing.response_schema_version == "assessment.response.v2":
-                    payload_digest = canonical_response_digest(
-                        content=ResponseContent(
-                            answer=payload.answer, code=payload.code, circuit=payload.circuit
-                        ),
-                        episode=payload.episode,
-                        schema_version="assessment.response.v2",
-                        assessment_work_start_id=existing.assessment_work_start_id,
-                        task_form_version_id=existing.task_form_version_id,
-                        declared_conditions=existing.declared_conditions,
-                    )
+                if existing.response_schema_version in {
+                    "assessment.response.v2",
+                    "practice.response.v1",
+                }:
+                    try:
+                        payload_digest = canonical_response_digest(
+                            content=ResponseContent(
+                                answer=payload.answer, code=payload.code, circuit=payload.circuit
+                            ),
+                            episode=payload.episode,
+                            schema_version=existing.response_schema_version,
+                            assessment_work_start_id=existing.assessment_work_start_id,
+                            task_form_version_id=existing.task_form_version_id,
+                            declared_conditions=existing.declared_conditions,
+                        )
+                    except ValueError as error:
+                        raise _conflict(
+                            "This idempotency key was already used for different content"
+                        ) from error
                 if existing.content_digest == payload_digest:
                     if (
                         payload.assessment_work_start_id is not None
@@ -929,6 +937,8 @@ class LmsService:
             task_id=task.id,
         )
         schema_version = "assessment.response.v2" if payload.episode else "assessment.response.v1"
+        if payload.episode and frozen_versions is None:
+            schema_version = "practice.response.v1"
         conditions = (
             {
                 **self._declared_conditions(task, frozen_versions),

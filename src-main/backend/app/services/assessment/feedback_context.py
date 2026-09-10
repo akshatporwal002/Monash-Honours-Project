@@ -62,8 +62,10 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
             )
         )
         if attempt is None:
-            if response.task_form_version_id or (response.response_schema_version or "").startswith(
-                "assessment."
+            if (
+                response.assessment_work_start_id
+                or response.task_form_version_id
+                or (response.response_schema_version or "").startswith("assessment.")
             ):
                 return _unresolved(AssessmentContextStatus.MISSING, "ASSESSMENT_ATTEMPT_MISSING")
             return _unresolved(AssessmentContextStatus.NOT_ASSESSED, "NOT_ASSESSED")

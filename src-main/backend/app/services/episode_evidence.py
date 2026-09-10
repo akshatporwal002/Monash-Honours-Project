@@ -19,7 +19,14 @@ def canonical_response_digest(
     declared_conditions: dict | list | None = None,
 ) -> str:
     payload: dict[str, Any] = content.model_dump(mode="json")
-    if schema_version == "assessment.response.v2":
+    if schema_version == "practice.response.v1" and (
+        episode is None
+        or assessment_work_start_id is not None
+        or task_form_version_id is not None
+        or declared_conditions is not None
+    ):
+        raise ValueError("Typed practice requires an episode without formal assessment bindings")
+    if schema_version in {"assessment.response.v2", "practice.response.v1"}:
         payload.update(
             schema_version=schema_version,
             episode=episode.model_dump(mode="json") if episode else None,
