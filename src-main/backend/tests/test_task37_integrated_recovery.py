@@ -29,6 +29,7 @@ from support.task37_fixture import (
 from support.task37_worker import validate_synthetic_config
 from test_task38_benchmark_integration import _stop_owned_processes
 
+from app.api import learning_event_dependencies
 from app.api.assessment_dependencies import get_assessment_evaluation_executor
 from app.api.feedback_dependencies import get_feedback_application, get_feedback_executor
 from app.api.security_dependencies import get_request_security_guard
@@ -39,10 +40,18 @@ from app.main import create_app
 from app.models.activity_continuation import ActivityProgress, ActivitySuggestion
 from app.models.assessment import AssessmentDecision, AssessmentEvaluationJob
 from app.models.continuation import ContinuationJob
+from app.models.enums import LearningEventType
+from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.learner_model import LearnerModelSnapshot
 from app.models.learning_evidence import LearningEvidence
 from app.models.lms import SubmissionAttempt
-from app.models.persistence import FeedbackRecord, ResearchEvaluation, WorkflowRun, WorkflowStage
+from app.models.persistence import (
+    FeedbackRecord,
+    LearningEvent,
+    ResearchEvaluation,
+    WorkflowRun,
+    WorkflowStage,
+)
 from app.models.research_governance import ResearchGovernanceEvent
 from app.models.terminal_integration import TerminalIntegrationOutbox
 from app.services.feedback.application import FeedbackWorkflowApplication
@@ -238,6 +247,7 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
     request.addfinalizer(engine.dispose)
     request.addfinalizer(get_request_security_guard.cache_clear)
     factory = create_session_factory(engine)
+    monkeypatch.setattr(learning_event_dependencies, "SessionLocal", factory)
     for name, value in {
         "llm_api_key": None,
         "llm_provider": "local",
@@ -422,6 +432,15 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                         model.__name__
                     )
                 assert session.scalar(select(func.count()).select_from(ResearchEvaluation)) == 0
+                feedback_views = list(
+                    session.scalars(
+                        select(LearningEvent).where(
+                            LearningEvent.event_type == LearningEventType.FEEDBACK_VIEW
+                        )
+                    )
+                )
+                assert len(feedback_views) == 1
+                feedback_view_id = feedback_views[0].id
                 outbox = list(session.scalars(select(TerminalIntegrationOutbox)))
                 assert len(outbox) == 1 and outbox[0].state.value == "completed"
                 assert outbox[0].integration_type.value == "continuation"
@@ -441,6 +460,10 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                 decision = session.scalar(select(AssessmentDecision))
                 decision_id = decision.id
                 assert session.scalar(select(func.count()).select_from(AssessmentDecision)) == 1
+                assert session.scalar(select(func.count()).select_from(HumanAssessmentAction)) == 1
+                human_action_id = session.scalar(select(HumanAssessmentAction.id))
+                human_criterion_ids = sorted(session.scalars(select(HumanCriterionDecision.id)))
+                assert len(human_criterion_ids) == 3
                 assert_denied_research(session, study, fixture)
             released_result = checked(client, "GET", result_path, headers=headers)
             assert released_result["result"] == "PASS"
@@ -471,22 +494,31 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
     restored_engine = create_db_engine("sqlite:///" + restored_database.as_posix())
     try:
         restored_factory = create_session_factory(restored_engine)
+        monkeypatch.setattr(learning_event_dependencies, "SessionLocal", restored_factory)
         with restored_factory() as session:
             assert session.get(SubmissionAttempt, response_id).episode == frozen_episode
             assert session.get(WorkflowRun, workflow_id).current_stage is WorkflowStage.COMPLETED
             assert session.get(ActivityProgress, workflow_id).snapshot_id == snapshot_id
             assert session.get(AssessmentDecision, decision_id).result.value == "PASS"
             assert sorted(session.scalars(select(LearningEvidence.id))) == evidence_ids
+            assert session.get(LearningEvent, feedback_view_id) is not None
+            assert session.get(HumanAssessmentAction, human_action_id) is not None
+            assert sorted(session.scalars(select(HumanCriterionDecision.id))) == human_criterion_ids
             assert session.scalar(select(func.count()).select_from(ResearchGovernanceEvent)) == 7
             assert_denied_research(session, study, fixture)
             assert session.execute(text("PRAGMA foreign_key_check")).all() == []
         with restored_engine.begin() as connection:
-            for statement in (
-                "UPDATE assessment_decisions SET result='INCOMPLETE'",
-                "DELETE FROM research_governance_events",
-                "UPDATE source_revisions SET source_label='altered'",
+            for statement, guard in (
+                (
+                    "UPDATE assessment_decisions SET result='INCOMPLETE'",
+                    "matching assessor review",
+                ),
+                ("DELETE FROM human_assessment_actions", "append-only"),
+                ("UPDATE human_criterion_decisions SET reason='altered'", "append-only"),
+                ("DELETE FROM research_governance_events", "immutable"),
+                ("UPDATE source_revisions SET source_label='altered'", "append-only"),
             ):
-                with pytest.raises(IntegrityError, match="immutable"):
+                with pytest.raises(IntegrityError, match=guard):
                     connection.execute(text(statement))
 
         # Read restored results through the same real API routes on the restored storage.
@@ -501,6 +533,14 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
             headers = login(client, fixture)
             assert checked(client, "GET", feedback_path, headers=headers) == feedback
             assert checked(client, "GET", result_path, headers=headers) == released_result
+        with restored_factory() as session:
+            assert list(
+                session.scalars(
+                    select(LearningEvent.id).where(
+                        LearningEvent.event_type == LearningEventType.FEEDBACK_VIEW
+                    )
+                )
+            ) == [feedback_view_id]
         restored_app.dependency_overrides.clear()
     finally:
         get_request_security_guard.cache_clear()
@@ -515,6 +555,9 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                 "snapshot_id": snapshot_id,
                 "decision_id": decision_id,
                 "evidence_ids": evidence_ids,
+                "feedback_view_id": feedback_view_id,
+                "human_action_id": human_action_id,
+                "human_criterion_ids": human_criterion_ids,
                 "chronology_utc": {
                     "accepted": accepted_at.isoformat(),
                     "claimed": claimed_at.isoformat(),
