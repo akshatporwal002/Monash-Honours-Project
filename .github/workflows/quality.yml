@@ -204,7 +204,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install pinned Gitleaks
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir -p gitleaks-8.28.0
+          cd gitleaks-8.28.0
+          curl --fail --location --retry 3 --output gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          echo 'a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb  gitleaks.tar.gz' | sha256sum --check
+          tar -xzf gitleaks.tar.gz gitleaks
+
+      - name: Verify full history and secret detection
+        working-directory: ${{ github.workspace }}
+        run: |
+          python3 .github/scripts/secret_scan.py \
+            --gitleaks "$RUNNER_TEMP/gitleaks-8.28.0/gitleaks" \
+            --report-dir "$RUNNER_TEMP/secret-scan"
+
+      - name: Retain redacted secret-scan evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-scan-evidence
+          path: ${{ runner.temp }}/secret-scan/*.*
+          if-no-files-found: warn

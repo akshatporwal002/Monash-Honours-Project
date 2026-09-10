@@ -1,0 +1,15 @@
+# Owner: Jordan Tran (@jordann-trann), reviewed 2026-09-10.
+# Exact historical findings only; all default Gitleaks rules remain enabled.
+# Evidence and renewal policy: docs/learnlens/secret-scan-gate-2026-09-10.md
+
+# A second synthetic assessment decision in the review-queue query-count test.
+681bba2583a0360f16f99b587d93689d11484402:src-main/backend/tests/test_assessor_review_api.py:generic-api-key:374
+# Shared helper persists a synthetic provisional assessment decision.
+681bba2583a0360f16f99b587d93689d11484402:src-main/backend/tests/support/assessment.py:generic-api-key:310
+# Static evaluator/quality ports exercise creation of one provisional decision.
+b85b1bdfe716a3b46bd581e62c675f1cc509c3c5:src-main/backend/tests/test_assessment_evaluation_api.py:generic-api-key:131
+# Synthetic learner-model payload tests rejection of unsafe extra fields.
+a15a497ea448eb1ccc5cc66e5aca29ce37a28c65:src-main/backend/tests/test_learner_model_safety.py:generic-api-key:80
+# Synthetic decision helper and deliberate duplicate test the uniqueness constraint.
+d8ba5ac760ccc1815462a2e88cdb4dfb623fc380:src-main/backend/tests/test_assessment_attempt_models.py:generic-api-key:91
+d8ba5ac760ccc1815462a2e88cdb4dfb623fc380:src-main/backend/tests/test_assessment_attempt_models.py:generic-api-key:204
