@@ -6,6 +6,7 @@ No learner code is executed and no source, task or assessment is approved here.
 
 from app.models import TaskType
 from app.models.lms import OutcomeKind
+from app.schemas.curriculum import PathwayPublish
 from app.schemas.episode import EpisodePlanV1
 from app.schemas.lms import CourseCreate, ModuleCreate, OutcomeCreate, TaskCreate
 from app.services.assessment.definitions import CriterionDraft
@@ -167,3 +168,33 @@ def criterion_drafts() -> list[CriterionDraft]:
             ),
         )
     ]
+
+
+def pathway_draft(
+    *, task_ids: tuple[str, str, str], expected_version: int, request_key: str, reason: str
+) -> PathwayPublish:
+    """Compose the shared curriculum command; only an educator may publish it.
+
+    Call after all tasks and the assessment definition have actual approval, so
+    the shared service freezes those versions. This factory grants no approval.
+    """
+    return PathwayPublish(
+        expected_version=expected_version,
+        request_key=request_key,
+        title="Trace, correct and apply conditional boundaries",
+        steps=[
+            dict(
+                task_id=task_id,
+                concept="Conditional boundaries",
+                prerequisites=list(task_ids[index - 1 : index]) if index else [],
+                support_level="guided",
+                faded_support_level="concept_cue",
+                evidence_rule="An accepted response permits continuation; formal criteria require assessor review.",
+            )
+            for index, task_id in enumerate(task_ids)
+        ],
+        diagnostic_prompt="Trace the equality case and explain which branch runs.",
+        diagnostic_task_id=task_ids[0],
+        independent_conditions="Respond without instructional hints. Approved accessibility support remains available.",
+        reason=reason,
+    )

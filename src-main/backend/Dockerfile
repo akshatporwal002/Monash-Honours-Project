@@ -11,7 +11,7 @@ WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:0.11.12 /uv /uvx /usr/local/bin/
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends libgomp1 \
+    && apt-get install --yes --no-install-recommends libgomp1 clamav \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock ./
@@ -22,6 +22,7 @@ RUN uv sync --frozen --no-dev --extra quantum --no-editable \
 
 COPY alembic.ini ./
 COPY migrations ./migrations
+COPY scripts ./scripts
 COPY docker-entrypoint.sh /usr/local/bin/quantumlearn-entrypoint
 
 RUN groupadd --gid 10001 quantumlearn \
@@ -33,6 +34,7 @@ RUN groupadd --gid 10001 quantumlearn \
         quantumlearn \
     && mkdir -p /data/uploads \
     && chown -R quantumlearn:quantumlearn /data \
+    && sed -i 's/\r$//' /usr/local/bin/quantumlearn-entrypoint \
     && chmod 0755 /usr/local/bin/quantumlearn-entrypoint
 
 USER quantumlearn

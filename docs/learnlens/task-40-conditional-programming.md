@@ -5,6 +5,46 @@ Decision: D-11, `programming-reuse-v1-selection`. This delivery implements the
 independent content/configuration exercise. It does not complete Task 25 or 36,
 activate a course, or demonstrate learning benefit in a second subject.
 
+## Integrated software reuse update — 11 September 2026
+
+The content factory now supplies `pathway_draft(...)`, a `PathwayPublish` command
+for tracing, correction and fresh application. It creates no approval or database
+record. After actual source/task/assessment approval, the educator can publish it
+through `CurriculumService.publish`; the service freezes the reviewed versions.
+
+```python
+from app.services.curriculum import CurriculumService
+
+pathway = content.pathway_draft(
+    task_ids=tuple(task.id for task in tasks),
+    expected_version=0,
+    request_key="conditional-pathway-v1",
+    reason="Record the actual educator approval reason here",
+)
+# Only after the educator has reviewed the real sources, tasks and assessment:
+CurriculumService(session).publish(educator, outcome.id, pathway)
+```
+
+The existing `test_episode_freezes_conditional_evidence_and_reuses_assessment`
+now traverses both practice tasks, real local feedback execution, durable worker
+continuation, outcome-scoped model snapshots and accepted next-task suggestions,
+then the supported/transfer episode and authorised human-assessment service.
+Predictions, code text, explanation, reflection and revision stay frozen; results
+remain withheld pending review. The formal episode also records a model snapshot,
+and the finished pathway offers no unrelated task. The existing pass-rule checks
+retain PASS only when all mandatory criteria are met and INCOMPLETE for missing
+or incorrect transfer evidence. Source indexing/approvals and human decisions in
+this test are explicitly synthetic.
+
+**Core engine changes: none.** The missing integration was module pathway
+configuration. Shared evidence, feedback, model, adaptation, assessment, schemas
+and learner UI are unchanged. This is service-level software compatibility proof,
+not an independently observed published course or a 16-hour effort measurement.
+The affected integration case passed in 8.68 seconds after correcting its synthetic
+learner profile and indexed-source setup. The original source helper only created
+authoring approval, so assessed feedback correctly withheld unindexed sources.
+Earlier validation below is historical; it is not a new broad-suite execution.
+
 ## Delivered module
 
 `src-main/backend/app/services/conditional_programming.py` supplies ordinary
@@ -72,7 +112,7 @@ ALL_OF definition rule. These proposed values are not an approved assessment bun
 | Drafts and frozen response evidence | Real database round trip preserves code, prediction and transfer; replay returns the same submission; a linked revision preserves the first response; cross-course reads fail. |
 | Assessment definitions | Synthetic test-only source/task/outcome approval binds this module's reviewed episode plan into the existing versioned task form. |
 | Criterion evaluator and pass rule | Existing human evaluator preserves an evidence reference; synthetic criterion decisions produce PASS only when all mandatory criteria are met, and INCOMPLETE for unavailable or incorrect transfer evidence. These are adapter/engine checks, not independent human judgements. |
-| Learner model and adaptation | No changes or dependencies introduced. Reuse across the complete journey remains unverified until Tasks 21, 22 and 25 supply their completed integrations. |
+| Learner model and adaptation | Shared services now run through all three activities in the integrated synthetic journey above. Approved independent practical verification remains due. |
 
 **Required core changes: none.** No existing runtime service, schema, database,
 registry, frontend, evidence engine, model engine, adaptation engine or assessment
@@ -158,7 +198,7 @@ Review totals: Standards 0; Spec 0. Neither axis identified an actionable issue.
   effort across contributors, separately reporting elapsed waiting; independently
   verify the approved scope against the 16 developer-hour target.
 - Tasks 25 and 36: complete integrated learning journey and final combined checks,
-  including evidence/model/adaptation/assessment reuse after outstanding integration.
+  including the final source/scanner, typed-task, research and moderation changes.
 - Independent practical verification, including the configured course, source and
   assessment versions, tested commit, observed journey and any further core changes.
 

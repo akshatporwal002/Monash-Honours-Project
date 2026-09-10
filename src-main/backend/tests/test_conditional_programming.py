@@ -1,5 +1,6 @@
 """D-11 reuse checks. All identities, source approvals and decisions are synthetic."""
 
+import asyncio
 from dataclasses import replace
 from datetime import UTC, datetime
 
@@ -7,19 +8,33 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import select
 from support.assessment import assign_assessor
+from support.task37_fixture import synthetic_assessor_decision
 from support.task_review import approve_sourced_fixture_task
 from test_assessment_definitions import _draft
 from test_task14_lifecycle import assessment_reference
 
+from app.core.config import Settings
+from app.db.session import create_session_factory
 from app.domain.assessment import AssessmentResult, BloomProcess, CriterionDecision
-from app.models import LearningTask, User, UserRole
+from app.models import (
+    LearningMaterial,
+    LearningTask,
+    MaterialIndexStatus,
+    StudentProfile,
+    User,
+    UserRole,
+)
+from app.models.activity_continuation import ActivityProgress
 from app.models.assessment import (
     AssessmentApprovalState,
     CriterionEvaluatorType,
     OutcomeVersion,
     TaskFormVersion,
 )
+from app.models.learner_model import LearnerModelSnapshot
 from app.models.lms import CourseState, Enrollment
+from app.models.persistence import WorkflowRun
+from app.schemas.activity_continuation import ActivityAction
 from app.schemas.episode import EpisodePayloadV1, ResponseContent
 from app.schemas.lms import DraftWrite, SubmissionCreate
 from app.services import conditional_programming as module
@@ -35,11 +50,17 @@ from app.services.assessment.pass_rules import (
     PassRuleEvaluationRequest,
 )
 from app.services.assessment.publication import learner_task_available
+from app.services.continuation.activity import ActivityService
+from app.services.curriculum import CurriculumService
 from app.services.episode_contract import FrozenResponseStale, learner_episode_plan
 from app.services.episode_responses import SqlAlchemyFrozenResponseReader
+from app.services.feedback import runtime as feedback_runtime
+from app.services.feedback.application import FeedbackWorkflowApplication, InProcessFeedbackExecutor
+from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.lms import LmsService, LmsServiceError
 from app.services.task_review import TaskReviewError
 from app.services.task_types import UnsupportedTaskTypeError, build_default_task_type_registry
+from app.worker import build_database_worker, build_offline_worker_adapters
 
 
 @pytest.fixture
@@ -57,6 +78,8 @@ def content(db_session):
         role=UserRole.STUDENT,
     )
     db_session.add_all([owner, student])
+    db_session.commit()
+    db_session.add(StudentProfile(user_id=student.id, display_name=student.full_name))
     db_session.commit()
     lms = LmsService(db_session)
     course = lms.create_course(owner, module.course_draft())
@@ -124,10 +147,19 @@ def test_contract_rejects_malformed_input_and_keeps_transfer_private():
     )
 
 
-def test_episode_freezes_conditional_evidence_and_reuses_assessment(db_session, content):
+def test_episode_freezes_conditional_evidence_and_reuses_assessment(
+    db_session, content, monkeypatch
+):
     lms, owner, student, course, outcome, tasks = content
     for item in tasks:
         approve_sourced_fixture_task(db_session, db_session.get(LearningTask, item.id))
+    # The authoring-only source helper leaves intake pending. This fixture models
+    # completed indexing so the real assessed retrieval boundary can use its passages.
+    for material in db_session.scalars(
+        select(LearningMaterial).where(LearningMaterial.course_id == course.id)
+    ):
+        material.indexing_status = MaterialIndexStatus.INDEXED
+    db_session.commit()
     assign_assessor(db_session, owner, course.id, owner)
     version = OutcomeVersion(
         course_id=course.id,
@@ -190,6 +222,71 @@ def test_episode_freezes_conditional_evidence_and_reuses_assessment(db_session, 
     lms.set_course_state(owner, course.id, CourseState.PUBLISHED)
     db_session.add(Enrollment(course_id=course.id, student_id=student.id))
     db_session.commit()
+    path = CurriculumService(db_session).publish(
+        owner,
+        outcome.id,
+        module.pathway_draft(
+            task_ids=tuple(item.id for item in tasks),
+            expected_version=0,
+            request_key="conditional-pathway",
+            reason="Synthetic source and form approval only",
+        ),
+    )
+    configured = Settings(
+        _env_file=None,
+        research_enabled=False,
+        llm_api_key="",
+        llm_model="",
+        learning_event_pseudonym_secret="synthetic-conditional-secret-32-bytes",
+    )
+    monkeypatch.setattr(feedback_runtime, "settings", configured)
+    factory = create_session_factory(db_session.get_bind())
+    worker = build_database_worker(
+        build_offline_worker_adapters(configured),
+        configured_settings=configured,
+        engine=db_session.get_bind(),
+        session_factory=factory,
+    )
+
+    def finish_feedback(response_id):
+        claim = FeedbackWorkflowApplication(SqlAlchemyFeedbackWorkflowRepository(db_session)).start(
+            response_id
+        )
+        executor = InProcessFeedbackExecutor(
+            factory, feedback_runtime.build_feedback_pipeline_for_repository
+        )
+        asyncio.run(executor.execute(claim.workflow_run_id, response_id, claim.execution_token))
+        for _ in range(3):
+            asyncio.run(worker.run_once())
+        db_session.expire_all()
+        view = ActivityService(db_session).read(student, claim.workflow_run_id)
+        receipt = db_session.get(ActivityProgress, claim.workflow_run_id)
+        assert receipt.state == "observations_recorded"
+        snapshot = db_session.get(LearnerModelSnapshot, view.snapshot_id)
+        assert (snapshot.course_id, snapshot.outcome_id, snapshot.learner_id) == (
+            course.id,
+            outcome.id,
+            student.id,
+        )
+        assert view.evidence_ids and view.uncertainty == 1
+        assert db_session.get(WorkflowRun, claim.workflow_run_id).current_stage.value == "completed"
+        return claim, view
+
+    for index, answer in enumerate(("cool", "inclusive")):
+        practice = lms.submit(
+            student,
+            tasks[index].id,
+            SubmissionCreate(
+                answer=answer,
+                idempotency_key=f"conditional-practice-{index}",
+            ),
+        )
+        claim, view = finish_feedback(practice.id)
+        assert view.next_task_id == tasks[index + 1].id
+        assert view.rule_version == "approved-activity.v1"
+        action = ActivityAction(expected_version=0, request_key=f"choose-{index}", action="accept")
+        assert ActivityService(db_session).act(student, claim.workflow_run_id, action).version == 1
+        assert CurriculumService(db_session)._latest(outcome.id).id == path.id
     started = lms.start_assessment_work(student, task.id, form.id)
     payload = DraftWrite(
         assessment_work_start_id=started.assessment_work_start_id,
@@ -241,6 +338,9 @@ def test_episode_freezes_conditional_evidence_and_reuses_assessment(db_session, 
     assert frozen.content.answer == payload.answer
     assert frozen.content.code is None
     assert frozen.episode == payload.episode
+    claim, view = finish_feedback(submitted.id)
+    assert view.next_task_id is None
+    assert lms.list_attempts(student, task.id)[0].formal_assessment.result is None
     revised = payload.episode.model_dump(mode="json")
     revised["supported"]["revision"] = {
         "previous_response_version_id": submitted.id,
@@ -295,3 +395,9 @@ def test_episode_freezes_conditional_evidence_and_reuses_assessment(db_session, 
             )
         )
         assert result.result is expected
+    result = synthetic_assessor_decision(
+        db_session,
+        {"teacher_id": owner.id},
+        submitted.id,
+    )
+    assert result["result"] == "PASS"

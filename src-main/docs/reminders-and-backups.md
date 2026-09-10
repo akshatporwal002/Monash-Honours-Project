@@ -32,6 +32,11 @@ backup and the corresponding application version.
 
 ## Capture a backup
 
+For Docker capture and preparing a fresh rollback volume, use the packaged
+[release commands](deployment.md#release-backup-and-rollback-candidate). The backend
+image includes both `scripts.learning_backup` and `scripts.verify_sqlite_backup`.
+The commands below are the corresponding source-checkout interfaces.
+
 From `src-main/backend`, using the installed backend Python environment:
 
 ```powershell

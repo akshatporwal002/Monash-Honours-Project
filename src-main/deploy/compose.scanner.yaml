@@ -1,0 +1,13 @@
+# Operator-maintained ClamAV signatures; never copied into source or an image.
+services:
+  backend:
+    volumes:
+      - clamav_signatures:/var/lib/clamav:ro
+  worker:
+    volumes:
+      - clamav_signatures:/var/lib/clamav:ro
+
+volumes:
+  clamav_signatures:
+    external: true
+    name: ${CLAMAV_SIGNATURE_VOLUME:?Set the provisioned ClamAV signature volume}

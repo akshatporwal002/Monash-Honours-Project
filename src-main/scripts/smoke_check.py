@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify that the QuantumLearn SPA and same-origin API are reachable."""
+"""Verify the SPA, same-origin API, migration state and durable worker readiness."""
 
 from __future__ import annotations
 
@@ -12,6 +12,14 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 DEFAULT_BASE_URL = "http://localhost:8080"
+REQUIRED_CHECKS = {
+    "database",
+    "migrations",
+    "worker",
+    "pseudonym_secret",
+    "production_adapters",
+    "llm_credentials",
+}
 
 
 class SmokeCheckError(RuntimeError):
@@ -50,6 +58,24 @@ def check(base_url: str, timeout: float) -> None:
         raise SmokeCheckError("/api/v1/health returned invalid JSON") from None
     if payload != {"status": "ok"}:
         raise SmokeCheckError("/api/v1/health returned an unexpected payload")
+
+    ready, ready_type = fetch(base_url, "/api/v1/ready", timeout)
+    if ready_type != "application/json":
+        raise SmokeCheckError("/api/v1/ready did not return JSON")
+    try:
+        payload = json.loads(ready)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise SmokeCheckError("/api/v1/ready returned invalid JSON") from None
+    checks = payload.get("checks") if isinstance(payload, dict) else None
+    if (
+        not isinstance(checks, dict)
+        or not REQUIRED_CHECKS <= checks.keys()
+        or payload.get("status") != "ready"
+        or any(value != "ready" for value in checks.values())
+    ):
+        raise SmokeCheckError(
+            "/api/v1/ready did not pass every required readiness check"
+        )
 
 
 def parse_args() -> argparse.Namespace:
