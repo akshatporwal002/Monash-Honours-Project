@@ -23,6 +23,7 @@ from app.api.routes import (
     reminders,
     research_exports,
     research_governance,
+    research_instruments,
     retrieval,
     support_preferences,
     task_generation,
@@ -54,6 +55,7 @@ api_router.include_router(tutor.router)
 api_router.include_router(analytics.router, tags=["analytics"])
 api_router.include_router(research_exports.router, tags=["research"])
 api_router.include_router(research_governance.router)
+api_router.include_router(research_instruments.router)
 
 api_router.include_router(curriculum.router)
 

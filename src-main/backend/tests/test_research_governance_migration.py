@@ -17,7 +17,7 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 def test_governance_forward_replay_and_populated_downgrade(tmp_path):
     path = tmp_path / "synthetic-forward.db"
     config = migration_config(f"sqlite:///{path.as_posix()}")
-    assert ScriptDirectory.from_config(config).get_heads() == ["20260910_0045"]
+    assert ScriptDirectory.from_config(config).get_heads() == ["20260910_0046"]
     command.upgrade(config, "20260910_0044")
     engine = create_engine(config.get_main_option("sqlalchemy.url"))
     with Session(engine) as session:
@@ -54,6 +54,9 @@ def test_governance_forward_replay_and_populated_downgrade(tmp_path):
     command.upgrade(config, "head")
     command.check(config)
     assert database_manifest(path) == populated
+    # Empty later tables may downgrade; isolate the populated 0045 history guard.
+    command.downgrade(config, "20260910_0045")
+    populated = database_manifest(path)
     with pytest.raises(RuntimeError, match="populated"):
         command.downgrade(config, "20260910_0044")
     assert database_manifest(path) == populated

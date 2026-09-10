@@ -3315,43 +3315,76 @@
           },
           "fields": {
             "items": {
-              "enum": [
-                "case_id",
-                "pseudonymous_user_id",
-                "course_id",
-                "task_id",
-                "task_type",
-                "submission_reference",
-                "experimental_condition",
-                "judge_decision",
-                "correctness_score",
-                "relevance_score",
-                "grounding_score",
-                "actionability_score",
-                "safety_score",
-                "unsupported_claim_count",
-                "latency_ms",
-                "input_tokens",
-                "output_tokens",
-                "total_tokens",
-                "estimated_cost",
-                "regeneration_count",
-                "fallback_used",
-                "status",
-                "comparable",
-                "usage_complete",
-                "measurement_schema_version",
-                "created_at",
-                "completed_at",
-                "processing.technical_pair",
-                "processing.provider_input",
-                "processing.generated_output",
-                "processing.judge_result",
-                "processing.input_references",
-                "processing.retrieved_sources",
-                "processing.simulation_reference"
-              ],
-              "type": "string"
+              "anyOf": [
+                {
+                  "enum": [
+                    "case_id",
+                    "pseudonymous_user_id",
+                    "course_id",
+                    "task_id",
+                    "task_type",
+                    "submission_reference",
+                    "experimental_condition",
+                    "judge_decision",
+                    "correctness_score",
+                    "relevance_score",
+                    "grounding_score",
+                    "actionability_score",
+                    "safety_score",
+                    "unsupported_claim_count",
+                    "latency_ms",
+                    "input_tokens",
+                    "output_tokens",
+                    "total_tokens",
+                    "estimated_cost",
+                    "regeneration_count",
+                    "fallback_used",
+                    "status",
+                    "comparable",
+                    "usage_complete",
+                    "measurement_schema_version",
+                    "created_at",
+                    "completed_at",
+                    "processing.technical_pair",
+                    "processing.provider_input",
+                    "processing.generated_output",
+                    "processing.judge_result",
+                    "processing.input_references",
+                    "processing.retrieved_sources",
+                    "processing.simulation_reference"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "instrument.define",
+                    "instrument.collect",
+                    "instrument.read",
+                    "instrument.export",
+                    "instrument.record_id",
+                    "instrument.participant_id",
+                    "instrument.course_ref",
+                    "instrument.sequence_id",
+                    "instrument.form_id",
+                    "instrument.form_version",
+                    "instrument.item_id",
+                    "instrument.stage",
+                    "instrument.outcome_ref",
+                    "instrument.task_ref",
+                    "instrument.response_ref",
+                    "instrument.choice_code",
+                    "instrument.integer_value",
+                    "instrument.response_text",
+                    "instrument.missing_reason",
+                    "instrument.event_kind",
+                    "instrument.reason_code",
+                    "instrument.revision",
+                    "instrument.supersedes_id",
+                    "instrument.correction_reason_code"
+                  ],
+                  "type": "string"
+                }
+              ]
             },
             "maxItems": 64,
             "title": "Fields",
@@ -3367,7 +3400,8 @@
             "items": {
               "enum": [
                 "technical_pair",
-                "provider_processing"
+                "provider_processing",
+                "study_instruments"
               ],
               "type": "string"
             },
@@ -6398,6 +6432,100 @@
         "title": "FeedbackWorkflowStatus",
         "type": "string"
       },
+      "FormFreeze": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          },
+          "synthetic_review_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Synthetic Review Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "content_digest",
+          "synthetic_review_reference"
+        ],
+        "title": "FormFreeze",
+        "type": "object"
+      },
+      "FormRead": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "definition": {
+            "$ref": "#/components/schemas/InstrumentDefinition"
+          },
+          "frozen_for_synthetic_validation": {
+            "title": "Frozen For Synthetic Validation",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "content_digest",
+          "definition",
+          "frozen_for_synthetic_validation"
+        ],
+        "title": "FormRead",
+        "type": "object"
+      },
+      "FormWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/InstrumentDefinition"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "request_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "expected_version",
+          "definition"
+        ],
+        "title": "FormWrite",
+        "type": "object"
+      },
       "FormalAssessmentSummary": {
         "additionalProperties": false,
         "description": "Keep formal results separate and withheld until visibility is approved.",
@@ -7596,6 +7724,479 @@
         ],
         "title": "InstructionalSupportLevel",
         "type": "integer"
+      },
+      "InstrumentAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "choice_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,47}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Choice Code"
+          },
+          "integer_value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Integer Value"
+          },
+          "item_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,47}$",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_collected",
+                  "not_applicable",
+                  "participant_skipped",
+                  "technical_failure",
+                  "not_evaluable",
+                  "outside_window",
+                  "withdrawn",
+                  "not_approved"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "response_text": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Text"
+          }
+        },
+        "required": [
+          "item_id"
+        ],
+        "title": "InstrumentAnswer",
+        "type": "object"
+      },
+      "InstrumentDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "event_reason_codes": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,47}$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Event Reason Codes",
+            "type": "array"
+          },
+          "instrument_kind": {
+            "enum": [
+              "conceptual",
+              "transfer",
+              "retention",
+              "learner_experience",
+              "educator_review",
+              "process"
+            ],
+            "title": "Instrument Kind",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InstrumentItem"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "review_status": {
+            "const": "DRAFT_FOR_REVIEW",
+            "default": "DRAFT_FOR_REVIEW",
+            "title": "Review Status",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "learnlens.instrument-definition.v1",
+            "default": "learnlens.instrument-definition.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "enum": [
+                "T0_BASELINE",
+                "T1_STUDY_ACTIVITY",
+                "T1_FORMAL_SUPPORTED",
+                "T1_FORMAL_UNAIDED",
+                "T2_CONCEPTUAL",
+                "T2_TRANSFER",
+                "T3_CONCEPTUAL",
+                "T3_TRANSFER"
+              ],
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Stages",
+            "type": "array"
+          },
+          "support_manifest_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Support Manifest Reference",
+            "type": "string"
+          },
+          "synthetic_only": {
+            "const": true,
+            "default": true,
+            "title": "Synthetic Only",
+            "type": "boolean"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "instrument_kind",
+          "stages",
+          "items",
+          "event_reason_codes",
+          "support_manifest_reference"
+        ],
+        "title": "InstrumentDefinition",
+        "type": "object"
+      },
+      "InstrumentExportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "items": {
+              "enum": [
+                "instrument.record_id",
+                "instrument.participant_id",
+                "instrument.course_ref",
+                "instrument.sequence_id",
+                "instrument.form_id",
+                "instrument.form_version",
+                "instrument.item_id",
+                "instrument.stage",
+                "instrument.outcome_ref",
+                "instrument.task_ref",
+                "instrument.response_ref",
+                "instrument.choice_code",
+                "instrument.integer_value",
+                "instrument.missing_reason",
+                "instrument.event_kind",
+                "instrument.reason_code",
+                "instrument.revision",
+                "instrument.supersedes_id",
+                "instrument.correction_reason_code"
+              ],
+              "type": "string"
+            },
+            "maxItems": 24,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "format": {
+            "enum": [
+              "csv",
+              "json"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "enum": [
+                "T0_BASELINE",
+                "T1_STUDY_ACTIVITY",
+                "T1_FORMAL_SUPPORTED",
+                "T1_FORMAL_UNAIDED",
+                "T2_CONCEPTUAL",
+                "T2_TRANSFER",
+                "T3_CONCEPTUAL",
+                "T3_TRANSFER"
+              ],
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "fields",
+          "format",
+          "stages"
+        ],
+        "title": "InstrumentExportRequest",
+        "type": "object"
+      },
+      "InstrumentItem": {
+        "additionalProperties": false,
+        "properties": {
+          "choices": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,47}$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Choices",
+            "type": "array"
+          },
+          "item_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,47}$",
+            "title": "Item Id",
+            "type": "string"
+          },
+          "max_characters": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Characters"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "prompt": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "response_type": {
+            "enum": [
+              "choice",
+              "integer",
+              "text"
+            ],
+            "title": "Response Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_id",
+          "prompt",
+          "response_type"
+        ],
+        "title": "InstrumentItem",
+        "type": "object"
+      },
+      "InstrumentReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "recorded_at"
+        ],
+        "title": "InstrumentReceipt",
+        "type": "object"
+      },
+      "InstrumentRecordWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/InstrumentAnswer"
+            },
+            "maxItems": 30,
+            "title": "Answers",
+            "type": "array"
+          },
+          "correction_reason_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,47}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correction Reason Code"
+          },
+          "form_version_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Form Version Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "response",
+              "missingness",
+              "attrition",
+              "deviation"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "links": {
+            "$ref": "#/components/schemas/LearningStageLinks"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_collected",
+                  "not_applicable",
+                  "participant_skipped",
+                  "technical_failure",
+                  "not_evaluable",
+                  "outside_window",
+                  "withdrawn",
+                  "not_approved"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,47}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "request_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          },
+          "sequence_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Sequence Key",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "T0_BASELINE",
+              "T1_STUDY_ACTIVITY",
+              "T1_FORMAL_SUPPORTED",
+              "T1_FORMAL_UNAIDED",
+              "T2_CONCEPTUAL",
+              "T2_TRANSFER",
+              "T3_CONCEPTUAL",
+              "T3_TRANSFER"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "subject_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Subject User Id",
+            "type": "integer"
+          },
+          "supersedes_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Id"
+          }
+        },
+        "required": [
+          "request_key",
+          "subject_user_id",
+          "form_version_id",
+          "sequence_key",
+          "stage",
+          "kind"
+        ],
+        "title": "InstrumentRecordWrite",
+        "type": "object"
       },
       "InvalidEvidenceReference": {
         "additionalProperties": false,
@@ -9040,6 +9641,52 @@
           "next_offset"
         ],
         "title": "LearningProgressPage",
+        "type": "object"
+      },
+      "LearningStageLinks": {
+        "additionalProperties": false,
+        "properties": {
+          "outcome_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Id"
+          },
+          "response_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          }
+        },
+        "title": "LearningStageLinks",
         "type": "object"
       },
       "LiveEvidencePage": {
@@ -12549,43 +13196,76 @@
           },
           "fields": {
             "items": {
-              "enum": [
-                "case_id",
-                "pseudonymous_user_id",
-                "course_id",
-                "task_id",
-                "task_type",
-                "submission_reference",
-                "experimental_condition",
-                "judge_decision",
-                "correctness_score",
-                "relevance_score",
-                "grounding_score",
-                "actionability_score",
-                "safety_score",
-                "unsupported_claim_count",
-                "latency_ms",
-                "input_tokens",
-                "output_tokens",
-                "total_tokens",
-                "estimated_cost",
-                "regeneration_count",
-                "fallback_used",
-                "status",
-                "comparable",
-                "usage_complete",
-                "measurement_schema_version",
-                "created_at",
-                "completed_at",
-                "processing.technical_pair",
-                "processing.provider_input",
-                "processing.generated_output",
-                "processing.judge_result",
-                "processing.input_references",
-                "processing.retrieved_sources",
-                "processing.simulation_reference"
-              ],
-              "type": "string"
+              "anyOf": [
+                {
+                  "enum": [
+                    "case_id",
+                    "pseudonymous_user_id",
+                    "course_id",
+                    "task_id",
+                    "task_type",
+                    "submission_reference",
+                    "experimental_condition",
+                    "judge_decision",
+                    "correctness_score",
+                    "relevance_score",
+                    "grounding_score",
+                    "actionability_score",
+                    "safety_score",
+                    "unsupported_claim_count",
+                    "latency_ms",
+                    "input_tokens",
+                    "output_tokens",
+                    "total_tokens",
+                    "estimated_cost",
+                    "regeneration_count",
+                    "fallback_used",
+                    "status",
+                    "comparable",
+                    "usage_complete",
+                    "measurement_schema_version",
+                    "created_at",
+                    "completed_at",
+                    "processing.technical_pair",
+                    "processing.provider_input",
+                    "processing.generated_output",
+                    "processing.judge_result",
+                    "processing.input_references",
+                    "processing.retrieved_sources",
+                    "processing.simulation_reference"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "instrument.define",
+                    "instrument.collect",
+                    "instrument.read",
+                    "instrument.export",
+                    "instrument.record_id",
+                    "instrument.participant_id",
+                    "instrument.course_ref",
+                    "instrument.sequence_id",
+                    "instrument.form_id",
+                    "instrument.form_version",
+                    "instrument.item_id",
+                    "instrument.stage",
+                    "instrument.outcome_ref",
+                    "instrument.task_ref",
+                    "instrument.response_ref",
+                    "instrument.choice_code",
+                    "instrument.integer_value",
+                    "instrument.response_text",
+                    "instrument.missing_reason",
+                    "instrument.event_kind",
+                    "instrument.reason_code",
+                    "instrument.revision",
+                    "instrument.supersedes_id",
+                    "instrument.correction_reason_code"
+                  ],
+                  "type": "string"
+                }
+              ]
             },
             "maxItems": 64,
             "minItems": 1,
@@ -14490,43 +15170,76 @@
           },
           "fields": {
             "items": {
-              "enum": [
-                "case_id",
-                "pseudonymous_user_id",
-                "course_id",
-                "task_id",
-                "task_type",
-                "submission_reference",
-                "experimental_condition",
-                "judge_decision",
-                "correctness_score",
-                "relevance_score",
-                "grounding_score",
-                "actionability_score",
-                "safety_score",
-                "unsupported_claim_count",
-                "latency_ms",
-                "input_tokens",
-                "output_tokens",
-                "total_tokens",
-                "estimated_cost",
-                "regeneration_count",
-                "fallback_used",
-                "status",
-                "comparable",
-                "usage_complete",
-                "measurement_schema_version",
-                "created_at",
-                "completed_at",
-                "processing.technical_pair",
-                "processing.provider_input",
-                "processing.generated_output",
-                "processing.judge_result",
-                "processing.input_references",
-                "processing.retrieved_sources",
-                "processing.simulation_reference"
-              ],
-              "type": "string"
+              "anyOf": [
+                {
+                  "enum": [
+                    "case_id",
+                    "pseudonymous_user_id",
+                    "course_id",
+                    "task_id",
+                    "task_type",
+                    "submission_reference",
+                    "experimental_condition",
+                    "judge_decision",
+                    "correctness_score",
+                    "relevance_score",
+                    "grounding_score",
+                    "actionability_score",
+                    "safety_score",
+                    "unsupported_claim_count",
+                    "latency_ms",
+                    "input_tokens",
+                    "output_tokens",
+                    "total_tokens",
+                    "estimated_cost",
+                    "regeneration_count",
+                    "fallback_used",
+                    "status",
+                    "comparable",
+                    "usage_complete",
+                    "measurement_schema_version",
+                    "created_at",
+                    "completed_at",
+                    "processing.technical_pair",
+                    "processing.provider_input",
+                    "processing.generated_output",
+                    "processing.judge_result",
+                    "processing.input_references",
+                    "processing.retrieved_sources",
+                    "processing.simulation_reference"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "instrument.define",
+                    "instrument.collect",
+                    "instrument.read",
+                    "instrument.export",
+                    "instrument.record_id",
+                    "instrument.participant_id",
+                    "instrument.course_ref",
+                    "instrument.sequence_id",
+                    "instrument.form_id",
+                    "instrument.form_version",
+                    "instrument.item_id",
+                    "instrument.stage",
+                    "instrument.outcome_ref",
+                    "instrument.task_ref",
+                    "instrument.response_ref",
+                    "instrument.choice_code",
+                    "instrument.integer_value",
+                    "instrument.response_text",
+                    "instrument.missing_reason",
+                    "instrument.event_kind",
+                    "instrument.reason_code",
+                    "instrument.revision",
+                    "instrument.supersedes_id",
+                    "instrument.correction_reason_code"
+                  ],
+                  "type": "string"
+                }
+              ]
             },
             "maxItems": 64,
             "minItems": 1,
@@ -14554,7 +15267,8 @@
             "items": {
               "enum": [
                 "technical_pair",
-                "provider_processing"
+                "provider_processing",
+                "study_instruments"
               ],
               "type": "string"
             },
@@ -25656,6 +26370,566 @@
         "summary": "Read Participation",
         "tags": [
           "research"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/exports": {
+      "post": {
+        "operationId": "export_api_v1_research_instruments__study_id___course_id__exports_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstrumentExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export",
+        "tags": [
+          "research instruments"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/forms/{form_id}": {
+      "get": {
+        "operationId": "read_form_api_v1_research_instruments__study_id___course_id__forms__form_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "form_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Form Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Form",
+        "tags": [
+          "research instruments"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/forms/{form_id}/freeze": {
+      "post": {
+        "operationId": "freeze_form_api_v1_research_instruments__study_id___course_id__forms__form_id__freeze_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "form_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Form Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormFreeze"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Freeze Form",
+        "tags": [
+          "research instruments"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/forms/{instrument_key}": {
+      "post": {
+        "operationId": "save_form_api_v1_research_instruments__study_id___course_id__forms__instrument_key__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "instrument_key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Instrument Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FormRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Form",
+        "tags": [
+          "research instruments"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/records": {
+      "post": {
+        "operationId": "collect_api_v1_research_instruments__study_id___course_id__records_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstrumentRecordWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Collect",
+        "tags": [
+          "research instruments"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/records/{record_id}": {
+      "get": {
+        "operationId": "read_record_api_v1_research_instruments__study_id___course_id__records__record_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Record Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fields",
+            "required": true,
+            "schema": {
+              "items": {
+                "enum": [
+                  "instrument.record_id",
+                  "instrument.participant_id",
+                  "instrument.course_ref",
+                  "instrument.sequence_id",
+                  "instrument.form_id",
+                  "instrument.form_version",
+                  "instrument.item_id",
+                  "instrument.stage",
+                  "instrument.outcome_ref",
+                  "instrument.task_ref",
+                  "instrument.response_ref",
+                  "instrument.choice_code",
+                  "instrument.integer_value",
+                  "instrument.missing_reason",
+                  "instrument.event_kind",
+                  "instrument.reason_code",
+                  "instrument.revision",
+                  "instrument.supersedes_id",
+                  "instrument.correction_reason_code"
+                ],
+                "type": "string"
+              },
+              "maxItems": 24,
+              "minItems": 1,
+              "title": "Fields",
+              "type": "array"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "type": "object"
+                  },
+                  "title": "Response Read Record Api V1 Research Instruments  Study Id   Course Id  Records  Record Id  Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Record",
+        "tags": [
+          "research instruments"
         ]
       }
     },

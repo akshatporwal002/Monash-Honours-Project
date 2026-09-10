@@ -5,7 +5,7 @@ from typing import Annotated, Literal, get_args
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 Code = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
-FieldPath = Literal[
+TechnicalPairField = Literal[
     "case_id",
     "pseudonymous_user_id",
     "course_id",
@@ -43,7 +43,36 @@ FieldPath = Literal[
 ]
 # The existing paired processor persists this fixed measurement contract. Partial
 # permission denies the pair; it must not silently collect unapproved metrics.
-PROCESSING_FIELDS = frozenset(get_args(FieldPath))
+PROCESSING_FIELDS = frozenset(get_args(TechnicalPairField))
+InstrumentField = Literal[
+    "instrument.define",
+    "instrument.collect",
+    "instrument.read",
+    "instrument.export",
+    "instrument.record_id",
+    "instrument.participant_id",
+    "instrument.course_ref",
+    "instrument.sequence_id",
+    "instrument.form_id",
+    "instrument.form_version",
+    "instrument.item_id",
+    "instrument.stage",
+    "instrument.outcome_ref",
+    "instrument.task_ref",
+    "instrument.response_ref",
+    "instrument.choice_code",
+    "instrument.integer_value",
+    "instrument.response_text",
+    "instrument.missing_reason",
+    "instrument.event_kind",
+    "instrument.reason_code",
+    "instrument.revision",
+    "instrument.supersedes_id",
+    "instrument.correction_reason_code",
+]
+INSTRUMENT_FIELDS = frozenset(get_args(InstrumentField))
+FieldPath = TechnicalPairField | InstrumentField
+ResearchPurpose = Literal["technical_pair", "provider_processing", "study_instruments"]
 
 
 class GovernanceContract(BaseModel):
@@ -70,7 +99,7 @@ class StudyScope(GovernanceContract):
     processing_researcher_id: int = Field(gt=0)
     course_ids: list[Code] = Field(min_length=1, max_length=100)
     fields: list[FieldPath] = Field(min_length=1, max_length=64)
-    purposes: list[Literal["technical_pair", "provider_processing"]] = Field(min_length=1)
+    purposes: list[ResearchPurpose] = Field(min_length=1)
     valid_from: AwareDatetime
     valid_until: AwareDatetime
     retention: list[RetentionClass] = Field(min_length=1, max_length=30)
@@ -80,10 +109,23 @@ class StudyScope(GovernanceContract):
         if self.valid_until <= self.valid_from:
             raise ValueError("invalid study window")
         classes = {item.record_class for item in self.retention}
-        if not {"governance", "identity_mapping", "technical_pairs", "export_audit"} <= classes:
+        required = {"governance", "identity_mapping", "export_audit"}
+        if {"technical_pair", "provider_processing"} & set(self.purposes):
+            required.add("technical_pairs")
+        if not required <= classes:
             raise ValueError("required retention classes are missing")
         if len(classes) != len(self.retention):
             raise ValueError("duplicate retention class")
+        if (
+            "study_instruments" in self.purposes
+            and not {
+                "instrument_definitions",
+                "instrument_records",
+                "restricted_instrument_evidence",
+            }
+            <= classes
+        ):
+            raise ValueError("instrument retention classes are missing")
         return self
 
 
@@ -105,7 +147,7 @@ class ConsentDecision(GovernanceContract):
     decision: Literal["consented", "declined", "withdrawn"]
     consent_version: Code
     fields: list[FieldPath] = Field(default_factory=list, max_length=64)
-    purposes: list[Literal["technical_pair", "provider_processing"]] = Field(default_factory=list)
+    purposes: list[ResearchPurpose] = Field(default_factory=list)
 
 
 class EligibilityDecision(GovernanceContract):
