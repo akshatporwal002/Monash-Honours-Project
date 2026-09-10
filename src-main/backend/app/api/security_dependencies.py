@@ -72,6 +72,7 @@ def get_request_security_guard() -> RequestSecurityGuard:
             "escalation": RateLimit(60, 60),
             "gamification": RateLimit(60, 60),
             "reminders": RateLimit(60, 60),
+            "research-governance": RateLimit(60, 60),
             "tutor": RateLimit(60, 60),
             "misconceptions": RateLimit(60, 60),
             "analytics": RateLimit(300, 60),
