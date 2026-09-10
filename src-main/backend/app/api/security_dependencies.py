@@ -77,7 +77,6 @@ def get_request_security_guard() -> RequestSecurityGuard:
             "misconceptions": RateLimit(60, 60),
             "analytics": RateLimit(300, 60),
             "exports": RateLimit(10, 60),
-            "research-governance": RateLimit(60, 60),
             "research-instruments": RateLimit(60, 60),
         }
     )

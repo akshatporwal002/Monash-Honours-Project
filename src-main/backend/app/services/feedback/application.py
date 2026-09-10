@@ -201,10 +201,12 @@ class InProcessFeedbackExecutor:
         correlation_id: str | None = None,
     ) -> None:
         job_correlation_id = correlation_id or workflow_run_id
+        runtime_policy: RuntimePolicy | None = None
         try:
             with self._session_factory() as session:
+                runtime_policy = self._policy_loader(session)
                 repository = SqlAlchemyFeedbackWorkflowRepository(
-                    session, runtime_policy=self._policy_loader(session)
+                    session, runtime_policy=runtime_policy
                 )
                 pipeline = self._pipeline_factory(repository)
                 pipeline.attach_progress_recorder(repository)
@@ -223,7 +225,10 @@ class InProcessFeedbackExecutor:
             try:
                 failed_at = self._now()
                 with self._session_factory() as session:
-                    repository = SqlAlchemyFeedbackWorkflowRepository(session)
+                    repository = SqlAlchemyFeedbackWorkflowRepository(
+                        session,
+                        runtime_policy=runtime_policy or self._policy_loader(session),
+                    )
                     repository.mark_failed(
                         workflow_run_id,
                         failure_category,

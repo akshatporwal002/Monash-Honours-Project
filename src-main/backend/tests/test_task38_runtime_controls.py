@@ -330,6 +330,40 @@ def test_running_recovery_worker_reloads_limits_without_duplicate_logical_work(d
     assert db_session.scalar(select(func.count()).select_from(WorkflowRun)) == 1
 
 
+@pytest.mark.parametrize("initial_attempts,changed_attempts", [(1, 3), (3, 1)])
+def test_inprocess_failure_retains_policy_while_admin_changes_limits(
+    db_session, initial_attempts, changed_attempts
+):
+    now = datetime(2026, 9, 10, tzinfo=UTC)
+    factory = create_session_factory(db_session.get_bind())
+    set_policy(db_session, 9, initial_attempts)
+    claim = SqlAlchemyFeedbackWorkflowRepository(db_session).claim_workflow(
+        "policy-snapshot-failure",
+        str(uuid4()),
+        started_at=now,
+        lease_expires_at=now + timedelta(seconds=30),
+    )
+
+    class ChangingPipeline:
+        def attach_progress_recorder(self, repository):
+            self.policy = repository.runtime_policy
+
+        async def run(self, *args, **kwargs):
+            assert self.policy.max_infrastructure_attempts == initial_attempts
+            with factory() as administrator_session:
+                set_policy(administrator_session, 4, changed_attempts)
+            raise ContextCollectionError()
+
+    executor = InProcessFeedbackExecutor(factory, lambda repo: ChangingPipeline(), now=lambda: now)
+    asyncio.run(executor.execute(claim.workflow_run_id, claim.submission_id, claim.execution_token))
+    db_session.expire_all()
+    failed = db_session.get(WorkflowRun, claim.workflow_run_id)
+    assert failed.current_stage is WorkflowStage.FAILED
+    assert failed.execution_attempt_count == 1
+    assert (failed.next_retry_at is not None) is (initial_attempts > 1)
+    assert read_runtime_policy(db_session).max_infrastructure_attempts == changed_attempts
+
+
 def test_lower_limit_preserves_an_active_execution_lease(db_session):
     now = [datetime(2026, 9, 10, tzinfo=UTC)]
     calls = []
