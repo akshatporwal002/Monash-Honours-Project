@@ -467,6 +467,14 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                 assert_denied_research(session, study, fixture)
             released_result = checked(client, "GET", result_path, headers=headers)
             assert released_result["result"] == "PASS"
+            # Human review changes the release context. Cached assessed feedback
+            # from before that action must be withheld, independently of restore.
+            post_review_feedback = checked(client, "GET", feedback_path, headers=headers)
+            assert post_review_feedback["status"] == "fallback"
+            assert (
+                post_review_feedback["feedback"]["feedback_id"]
+                == feedback["feedback"]["feedback_id"]
+            )
             progress_page = checked(
                 client, "GET", f"progress/{fixture['course_id']}", headers=headers
             )
@@ -531,7 +539,7 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
         restored_app.dependency_overrides[get_db_session] = restored_storage
         with TestClient(restored_app, base_url=ORIGIN) as client:
             headers = login(client, fixture)
-            assert checked(client, "GET", feedback_path, headers=headers) == feedback
+            assert checked(client, "GET", feedback_path, headers=headers) == post_review_feedback
             assert checked(client, "GET", result_path, headers=headers) == released_result
         with restored_factory() as session:
             assert list(
@@ -558,6 +566,8 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
                 "feedback_view_id": feedback_view_id,
                 "human_action_id": human_action_id,
                 "human_criterion_ids": human_criterion_ids,
+                "recovered_feedback_status": feedback["status"],
+                "post_review_feedback_status": post_review_feedback["status"],
                 "chronology_utc": {
                     "accepted": accepted_at.isoformat(),
                     "claimed": claimed_at.isoformat(),
