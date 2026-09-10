@@ -473,9 +473,9 @@ export type ApiSchemas = {
     "consent_version": string
     "course_id": string
     "decision": "consented" | "declined" | "withdrawn"
-    "fields"?: Array<"case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference">
+    "fields"?: Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code")>
     "kind"?: "consent"
-    "purposes"?: Array<"technical_pair" | "provider_processing">
+    "purposes"?: Array<"technical_pair" | "provider_processing" | "study_instruments">
     "scope_id": string
     "subject_user_id": number
   }
@@ -919,6 +919,24 @@ export type ApiSchemas = {
     "workflow_run_id": string
   }
   "FeedbackWorkflowStatus": "processing" | "validated" | "fallback" | "failed"
+  "FormFreeze": {
+    "content_digest": string
+    "request_key": string
+    "synthetic_review_reference": string
+  }
+  "FormRead": {
+    "content_digest": string
+    "definition": ApiSchemas["InstrumentDefinition"]
+    "frozen_for_synthetic_validation": boolean
+    "id": string
+    "production_active"?: false
+    "version": number
+  }
+  "FormWrite": {
+    "definition": ApiSchemas["InstrumentDefinition"]
+    "expected_version": number
+    "request_key": string
+  }
   "FormalAssessmentSummary": {
     "result"?: null
     "visibility"?: "withheld"
@@ -1112,6 +1130,58 @@ export type ApiSchemas = {
   }
   "InferenceStatus": "UNCERTAIN" | "SUPPORTED" | "CONTRADICTED" | "NEEDS_REVIEW"
   "InstructionalSupportLevel": 0 | 1 | 2 | 3 | 4 | 5
+  "InstrumentAnswer": {
+    "choice_code"?: (string) | (null)
+    "integer_value"?: (number) | (null)
+    "item_id": string
+    "missing_reason"?: ("not_collected" | "not_applicable" | "participant_skipped" | "technical_failure" | "not_evaluable" | "outside_window" | "withdrawn" | "not_approved") | (null)
+    "response_text"?: (string) | (null)
+  }
+  "InstrumentDefinition": {
+    "event_reason_codes": Array<string>
+    "instrument_kind": "conceptual" | "transfer" | "retention" | "learner_experience" | "educator_review" | "process"
+    "items": Array<ApiSchemas["InstrumentItem"]>
+    "review_status"?: "DRAFT_FOR_REVIEW"
+    "schema_version"?: "learnlens.instrument-definition.v1"
+    "stages": Array<"T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER">
+    "support_manifest_reference": string
+    "synthetic_only"?: true
+    "title": string
+  }
+  "InstrumentExportRequest": {
+    "fields": Array<"instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code">
+    "format": "csv" | "json"
+    "stages": Array<"T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER">
+  }
+  "InstrumentItem": {
+    "choices"?: Array<string>
+    "item_id": string
+    "max_characters"?: (number) | (null)
+    "maximum"?: (number) | (null)
+    "minimum"?: (number) | (null)
+    "prompt": string
+    "response_type": "choice" | "integer" | "text"
+  }
+  "InstrumentReceipt": {
+    "id": string
+    "production_active"?: false
+    "recorded_at": string
+    "revision": number
+  }
+  "InstrumentRecordWrite": {
+    "answers"?: Array<ApiSchemas["InstrumentAnswer"]>
+    "correction_reason_code"?: (string) | (null)
+    "form_version_id": string
+    "kind": "response" | "missingness" | "attrition" | "deviation"
+    "links"?: ApiSchemas["LearningStageLinks"]
+    "missing_reason"?: ("not_collected" | "not_applicable" | "participant_skipped" | "technical_failure" | "not_evaluable" | "outside_window" | "withdrawn" | "not_approved") | (null)
+    "reason_code"?: (string) | (null)
+    "request_key": string
+    "sequence_key": string
+    "stage": "T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER"
+    "subject_user_id": number
+    "supersedes_id"?: (string) | (null)
+  }
   "InvalidEvidenceReference": {
     "reason_code": string
     "reference_id"?: (string) | (null)
@@ -1335,6 +1405,11 @@ export type ApiSchemas = {
     "history_limit"?: number
     "items": Array<ApiSchemas["ProgressScopeRead"]>
     "next_offset": (number) | (null)
+  }
+  "LearningStageLinks": {
+    "outcome_id"?: (string) | (null)
+    "response_id"?: (string) | (null)
+    "task_id"?: (string) | (null)
   }
   "LiveEvidencePage": {
     "items": Array<ApiSchemas["LiveEvidenceRead"]>
@@ -1884,7 +1959,7 @@ export type ApiSchemas = {
     "authority_reference": string
     "course_id": string
     "evidence_reference": string
-    "fields": Array<"case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference">
+    "fields": Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code")>
     "kind"?: "grant"
     "revoked"?: boolean
     "scope_id": string
@@ -2178,11 +2253,11 @@ export type ApiSchemas = {
     "course_ids": Array<string>
     "data_plan_version": string
     "eligibility_rule_version": string
-    "fields": Array<"case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference">
+    "fields": Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code")>
     "kind"?: "scope"
     "processing_researcher_id": number
     "protocol_version": string
-    "purposes": Array<"technical_pair" | "provider_processing">
+    "purposes": Array<"technical_pair" | "provider_processing" | "study_instruments">
     "retention": Array<ApiSchemas["RetentionClass"]>
     "valid_from": string
     "valid_until": string

@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from app.models.research_governance import ResearchExportEligibility
 from app.schemas.research_export import ResearchExportFormat, _contains_sensitive_value
+from app.schemas.research_governance import PROCESSING_FIELDS
 from app.services.research.governance import GovernanceDenied, ResearchGovernanceService
 from app.services.research_export import (
     PreparedResearchExport,
@@ -39,6 +40,7 @@ class GovernedResearchExportService:
         if (
             not self.study_id
             or not self.fields
+            or not set(self.fields) <= PROCESSING_FIELDS
             or any(field.startswith("processing.") for field in self.fields)
         ):
             raise GovernanceDenied("explicit_study_and_export_fields_required")
