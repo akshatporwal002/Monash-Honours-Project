@@ -1,36 +1,43 @@
-# Requirement traceability
+# Feedback and research integration traceability
 
-This matrix maps the Person 4 brief to implementation surfaces and release evidence. A row is
-release-complete only when its referenced automated checks pass in the locked CI environment.
+Inspected integration: `d30570eb048443bc2ac46a6b420f0153d5904d69`, 10 September 2026. **Combined final validation: IN_PROGRESS.**
 
-| Requirements | Capability | Primary implementation/evidence |
+The [current implementation gap matrix](../../docs/learnlens/implementation-gap-matrix.md) is the authoritative status ledger for every numbered requirement. Its 143 rows link each controlling definition to precise production/service/route/model/migration/UI paths, named fixture tests, dated evidence, current gap, dependency and acceptance check. This file is a crosswalk, not a second independently maintained status table.
+
+Definitions and settled policy remain in [implementation requirements](../../docs/01-implementation-requirements.md), [assessment specification](../../docs/02-pass-incomplete-bloom-assessment-spec.md), [work order](../../docs/03-codex-implementation-work-order.md) and [Task 8 selections](../../docs/learnlens/task-08-approved-selections.md). The [baseline report](../../docs/learnlens/task-36-requirements-reconciliation.md) and [main audit](../../docs/learnlens/main-audit-2026-09-10.md) remain evidence at `27a397a`, not an audit of the later integrated tree.
+
+## Person 4 capability crosswalk
+
+The original Person 4 brief is a subset of the expanded product. Every ID below resolves to the exact current matrix row; ranges include every integer ID between their bounds and duplicate references are not counted again. The companion [complete-family crosswalk](requirements-traceability.md) accounts for all 143 definitions.
+
+| Requirement IDs | Capability | Evidence catalog in current matrix / baseline report |
 | --- | --- | --- |
-| FR15, FR28, NFR9 | Idempotent feedback orchestration and persistence | `app/services/feedback`, workflow repository, pipeline/application/API tests |
-| FR16, NFR12, NFR13, NFR21 | Structured generation, retrieval/simulation grounding, sanitized failures | feedback agent/context contracts and tests |
-| FR17, FR18, NFR14, NFR23 | Versioned quality policy, one regeneration, safe fallback | quality judge/pipeline tests and aggregate constraints |
-| FR15–FR18, NFR7, NFR21 | Authorized feedback states, reports, accessible route-ready UI | feedback API and frontend feature tests |
-| FR20, NFR16, NFR20 | Privacy-safe learning events and metrics | learning-event schemas/services/API tests, metrics tests |
-| FR20, NFR12–NFR14, NFR22, NFR25 | Paired research pipeline and cost/latency measurement | research case/baseline repository/worker tests |
-| NFR16, NFR25, AC10 | Auditability, privacy, secure export | audit, privacy/security, export tests |
-| NFR16, NFR20, NFR21 | Aggregate learning/research analytics | metrics/API tests and route-ready analytics UI |
-| FR28, AC4, AC6, AC8, AC10 | End-to-end continuation and release integration | deterministic adapter E2E harness and browser checks |
+| FR15, FR28, NFR9 | Durable feedback orchestration and connected loop | E-FEEDBACK, E-LOOP, E-RECOVERY; I-MAP; full interface documentation/final integration still scoped by NFR9 |
+| FR16, NFR12, NFR13, NFR21 | Grounded actionable feedback and educational safety | E-FEEDBACK, E-RESULT, E-TUTOR; I-EXPERT; actual expert measurements remain absent |
+| FR17, FR18, NFR14, NFR23 | Quality review, one regeneration, fixed safe fallback | E-FEEDBACK, E-EVAL, E-RECOVERY; I-EXPERT; fixture judge pass is not AI-assessment approval |
+| FR15–FR18, NFR7, NFR21 | Authorized feedback states, reports and accessible UI | E-FEEDBACK, E-ESCALATION, E-ACCESS; I-ACCESS, I-LOAD; human/access/load evidence remains open |
+| FR20, NFR16, NFR20 | Operational evidence, purpose separation and audit | E-EVIDENCE, E-SECURITY; I-GOV; full study-stage instruments remain Task 34 |
+| FR20, NFR12–NFR14, NFR22, NFR25 | Technical research pairs, quality metrics and usage records | I-GOV, I-EXPERT, I-LOAD; technical comparisons do not demonstrate educational improvement |
+| NFR16, NFR25, AC10 | Governed restricted export | I-GOV supersedes unrestricted legacy v1/analytics authorization claims; live processing closed, full study export incomplete |
+| NFR16, NFR20, NFR21 | Scoped analytics, output reporting and audit | E-PROGRESS, E-SECURITY, E-ESCALATION; I-GOV, I-TIME; no learner grades from research/quality metrics |
+| FR28, AC4, AC6, AC8, AC10 | End-to-end learner/feedback/continuation and research boundaries | E-LOOP, E-FEEDBACK, E-ADAPT; I-GOV; complete local quantum loop is delivered but study export/release acceptance remains partial |
 
-## Required E2E scenarios
+Catalog prefixes refer to exact source/model/migration/frontend and named-test paths in the [matrix](../../docs/learnlens/implementation-gap-matrix.md#integrated-evidence-register) and its linked immutable baseline catalog. Current matrix gaps and I-* overrides control where old catalog prose differs from integrated code.
 
-| # | Scenario | Release evidence |
+## Scenario evidence and its limits
+
+| Scenario | Existing connected/focused evidence | What it does not prove |
 | --- | --- | --- |
-| 1 | Correct multiple-choice answer | First-pass validated feedback and continuation assertions |
-| 2 | Incorrect short answer | Grounded improvement action and learning events |
-| 3 | Code explanation with retrieved documentation | Source attribution and no chunk leakage |
-| 4 | Quantum circuit response with simulation | Simulation reference/status and scoped prompt |
-| 5 | Judge rejection then successful regeneration | Two attempts, one release, fenced terminal state |
-| 6 | Two judge failures then fallback | Safe fallback and fallback audit |
-| 7 | External LLM timeout | Bounded call, sanitized retry/failure, no raw exception |
-| 8 | Missing retrieval | Typed not-configured/empty result handling |
-| 9 | Simulation failure | Typed failure, safe response, no raw error |
-| 10 | Export after completion | Eligible pair, authorization, fail-closed audit, privacy sentinels |
+| Correct/incorrect answer, code explanation, quantum response | Feedback source/response validation and complete-loop fixtures; E-FEEDBACK/E-EPISODE/E-QISKIT/E-LOOP | Expert factual accuracy or all alternate formats |
+| Rejection then successful regeneration; two rejections | Named pipeline/tutor retry/fallback cases in E-FEEDBACK/E-TUTOR | Quality thresholds on an approved expert dataset |
+| Provider timeout, missing retrieval, simulation failure | E-FEEDBACK/E-QISKIT/E-RECOVERY cases preserve accepted work and safe error states | Complete hosted/live-provider drills or latency targets |
+| Export after technical-pair completion | I-GOV tests exact approved scalar fields, before-byte/between-row consent/grant rechecks and audit | Production availability, complete learning-study stages, raw-answer export or actual institutional approval |
+| Withdrawal/refusal/condition changes | I-GOV actual ledger transitions preserve non-research/formal history and ordinary adaptation | Approved live participation or final study data completeness |
+| Worker recovery and learner choice | E-LOOP/E-ADAPT connect evidence, model and next activity without duplicate receipts | Benchmark typed follow-on submission, currently pending integration, or second-subject reuse |
+| Browser/accessibility | Prior automated journeys plus I-ACCESS preparation | Native Safari, manual screen reader/zoom, first-time usability or completion of the pending circuit keyboard fix |
 
-The integration harness must additionally cover authorization denial, reporting, one feedback-view
-event, baseline isolation, dashboards, worker restart, stale-token fencing, progress idempotency,
-next-task handoff, and database/log/API/export privacy sentinels. Real provider access is forbidden
-in all automated tests.
+The original fixture harness deliberately replaces provider/security/research boundaries for deterministic cases. Its export scenario cannot be cited as proof that the production release gate is open. Real provider access remains forbidden in ordinary automated tests; the separate Task 38 real campaign requires explicit configured approvals and is not a completed measurement here.
+
+## Release handoff
+
+Final combined validation is **IN_PROGRESS**, including backend/frontend/browser gates, service coverage, migrations/contracts and dependency/secret scans. Use exact final integrated SHAs/receipts after pending circuit and benchmark follow-ups. The [post-baseline coordinator register](../../docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts) records readiness fix `a38e6af`, draft-provenance refresh `0eaf467` and scoped green checks; the earlier full backend attempt was superseded before completion and is not a full pass. Task 33/35/38/39 preparation is not live approval, expert validation, performance compliance or human-trial evidence. The historical audit, baseline Task 36 report and old delivery logs retain their original scope and are not relabelled as current runs.
