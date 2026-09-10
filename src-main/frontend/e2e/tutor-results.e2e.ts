@@ -65,15 +65,38 @@ test('learner conversation and review survive reload and reach a scoped assessor
     await expect(
       assessor.getByRole('status').filter({ hasText: 'Confirm result recorded' }),
     ).toBeVisible()
-    await requests.getByRole('button', { name: 'Refresh requests' }).click()
-    await requests.getByRole('button', { name: 'Open decision and evidence' }).click()
-    await requests.getByLabel('Internal resolution reason').fill('PRIVATE resolution record.')
-    await requests
-      .getByLabel('Response to the learner')
-      .fill(
-        'Your explanation meets the criterion. Review the saved evidence alongside the criterion.',
-      )
-    await requests.getByRole('button', { name: 'Resolve request' }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(assessor.getByRole('button', { name: 'Confirm result', exact: true })).toBeFocused()
+
+    // Refresh and open are asynchronous reads; wait for the new revision before
+    // entering the resolution, and report a lost field at the field itself.
+    const [refreshedRequests] = await Promise.all([
+      assessor.waitForResponse((response) =>
+        new URL(response.url()).pathname === `/api/v1/assessment/courses/${fixture.course_id}/review-requests`
+        && response.request().method() === 'GET',
+      ),
+      requests.getByRole('button', { name: 'Refresh requests' }).click(),
+    ])
+    expect(refreshedRequests.status()).toBe(200)
+    const [openedDecision] = await Promise.all([
+      assessor.waitForResponse((response) =>
+        new URL(response.url()).pathname === `/api/v1/assessment/decisions/${fixture.decision_id}/review`
+        && response.request().method() === 'GET',
+      ),
+      requests.getByRole('button', { name: 'Open decision and evidence' }).click(),
+    ])
+    expect(openedDecision.status()).toBe(200)
+
+    const reason = requests.getByLabel('Internal resolution reason')
+    const notice = requests.getByLabel('Response to the learner')
+    const learnerNotice = 'Your explanation meets the criterion. Review the saved evidence alongside the criterion.'
+    await reason.fill('PRIVATE resolution record.')
+    await notice.fill(learnerNotice)
+    await expect(reason).toHaveValue('PRIVATE resolution record.')
+    await expect(notice).toHaveValue(learnerNotice)
+    const resolve = requests.getByRole('button', { name: 'Resolve request' })
+    await expect(resolve).toBeEnabled()
+    await resolve.click()
     await expect(requests.getByText('No pending requests on this page.')).toBeVisible()
     await result.getByRole('button', { name: 'Refresh result' }).click()
     await expect(result.getByText('PASS', { exact: true })).toBeVisible()
