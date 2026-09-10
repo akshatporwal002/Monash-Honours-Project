@@ -170,7 +170,7 @@ def test_learning_event_metadata_is_allow_listed_and_private() -> None:
         task_id="task-external",
         event_type=LearningEventType.SUBMISSION,
         correlation_id=uuid_string(),
-        metadata={"attempt_number": 1, "score": 0.75},
+        metadata={"attempt_number": 1},
     )
     assert event.metadata["attempt_number"] == 1
 

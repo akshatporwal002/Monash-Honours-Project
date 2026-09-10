@@ -46,7 +46,7 @@ test('educator demo connects dashboard, editor, students, and analytics', async 
   await expect(page.getByRole('heading', { name: 'Students', exact: true })).toBeVisible()
   await page.getByRole('link', { name: 'Analytics' }).click()
   await expect(page).toHaveURL(/\/educator\/analytics$/)
-  await expect(page.getByRole('heading', { name: 'Cohort analytics' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cohort learning progress' })).toBeVisible()
 })
 
 test('student demo opens the scaffolded pathway and an interactive task', async ({

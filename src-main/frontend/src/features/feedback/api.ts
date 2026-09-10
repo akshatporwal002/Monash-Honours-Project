@@ -156,7 +156,8 @@ function asValidatedFeedback(value: unknown): ValidatedFeedback {
     classification !== null &&
     classification !== 'correct' &&
     classification !== 'partially_correct' &&
-    classification !== 'incorrect'
+    classification !== 'incorrect' &&
+    classification !== 'not_evaluated'
   ) {
     return invalidResponse()
   }

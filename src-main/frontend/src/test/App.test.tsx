@@ -18,8 +18,8 @@ const educatorDashboard = {
   at_risk_students: 0,
   completion_percentage: 0,
   weekly_engagement: [],
-  task_type_performance: [],
-  concept_mastery: [],
+
+
   leaderboard: [],
   recent_activity: [],
 }
@@ -47,7 +47,7 @@ const rawStudentTask = {
   ],
   access_status: 'available',
   attempt_count: 0,
-  latest_score: null,
+
 }
 
 const studentDashboard = {
@@ -56,7 +56,7 @@ const studentDashboard = {
     completed_tasks: 0,
     total_tasks: 1,
     completion_percentage: 0,
-    average_score: 0,
+
     points: 0,
     level: 1,
     next_level_points: 500,
@@ -230,9 +230,9 @@ test('maps the backend administrator role to the Admin workspace', async () => {
       return response({
         llm_provider: '',
         llm_model: '',
-        at_risk_threshold: 50,
+
         reminders_enabled: true,
-        passing_score: 70,
+
         points_per_level: 500,
       })
     }
@@ -373,7 +373,7 @@ test('submits an MCQ and renders only validated feedback from the feedback workf
         task_id: 'task-1',
         attempt_number: 1,
         status: 'completed',
-        score: 100,
+
         feedback: 'pending',
         feedback_reference: 'attempt-1',
         points_awarded: 100,
@@ -416,7 +416,7 @@ test('submits an MCQ and renders only validated feedback from the feedback workf
     points: 100,
     position: 1,
     status: 'in_progress',
-    score: null,
+
     options: [
       { id: 'a', text: 'Creates an equal superposition' },
       { id: 'b', text: 'Measures immediately' },
@@ -449,7 +449,7 @@ test('shows formal assessment conditions and saves a response without a numeric 
     return response({
       id: 'formal-attempt-1',
       status: 'submitted',
-      score: null,
+
       formal_assessment: { result: null, visibility: 'withheld' },
       feedback_reference: null,
     })
@@ -465,7 +465,7 @@ test('shows formal assessment conditions and saves a response without a numeric 
     points: 0,
     position: 2,
     status: 'in_progress',
-    score: null,
+
     assessment: {
       task_form_version_id: 'formal-form-1',
       purpose: 'SUMMATIVE',
@@ -510,7 +510,7 @@ test('submits multiple-answer choice identifiers as a JSON set', async () => {
     return response({
         id: 'attempt-multi',
         status: 'completed',
-        score: 100,
+
         feedback_reference: null,
       })
   })
@@ -525,7 +525,7 @@ test('submits multiple-answer choice identifiers as a JSON set', async () => {
     points: 120,
     position: 2,
     status: 'in_progress',
-    score: null,
+
     options: [
       { id: 'a', text: 'Measurement produces a classical result.' },
       { id: 'b', text: 'Measurement preserves every amplitude.' },
@@ -553,7 +553,7 @@ test('allows code-completion tasks to edit and submit Qiskit code', async () => 
     return response({
         id: 'attempt-code',
         status: 'completed',
-        score: 100,
+
         feedback_reference: null,
       })
   })
@@ -568,7 +568,7 @@ test('allows code-completion tasks to edit and submit Qiskit code', async () => 
     points: 100,
     position: 3,
     status: 'in_progress',
-    score: null,
+
     starter_code: 'from qiskit import QuantumCircuit\n\ncircuit = QuantumCircuit(1, 1)',
   }
   render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
@@ -621,7 +621,7 @@ test('shows retained student attempt history and the latest existing feedback', 
         task_id: 'task-history',
         attempt_number: 2,
         status: 'completed',
-        score: 90,
+
         feedback: 'Validated feedback',
         feedback_reference: 'attempt-2',
         points_awarded: 100,
@@ -632,7 +632,7 @@ test('shows retained student attempt history and the latest existing feedback', 
         task_id: 'task-history',
         attempt_number: 1,
         status: 'submitted',
-        score: 65,
+
         feedback: 'Validated feedback',
         feedback_reference: 'attempt-1',
         points_awarded: 0,
@@ -651,14 +651,15 @@ test('shows retained student attempt history and the latest existing feedback', 
     points: 100,
     position: 2,
     status: 'completed',
-    score: 90,
+
   }
 
   render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
 
   expect(await screen.findByText('2 attempts')).toBeInTheDocument()
   expect(screen.getByText('#2')).toBeInTheDocument()
-  expect(screen.getByText('90%')).toBeInTheDocument()
+  expect(screen.queryByText('90%')).not.toBeInTheDocument()
+  expect(screen.getAllByText('Response saved').length).toBeGreaterThan(0)
   expect(screen.getByText(latestSubmittedLabel)).toHaveAttribute('datetime', latestSubmittedAt)
   expect(screen.getByText('submitted')).toBeInTheDocument()
   expect(await screen.findByText('Review how relative phase changes interference.')).toBeInTheDocument()
@@ -689,7 +690,7 @@ test('restores a saved MCQ selection', async () => {
     points: 100,
     position: 1,
     status: 'in_progress',
-    score: null,
+
     options: [
       { id: 'a', text: 'First answer' },
       { id: 'b', text: 'Saved answer' },
@@ -725,7 +726,7 @@ test('restores saved multiple-answer identifiers', async () => {
     points: 100,
     position: 1,
     status: 'in_progress',
-    score: null,
+
     options: [
       { id: 'a', text: 'Classical result' },
       { id: 'b', text: 'Every amplitude remains' },
@@ -778,7 +779,7 @@ test('restores saved text and Qiskit code responses', async () => {
     points: 100,
     position: 1,
     status: 'in_progress',
-    score: null,
+
   }
   const { unmount } = render(
     <TaskView task={textTask} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />,
@@ -832,7 +833,7 @@ test('restores a saved quantum circuit', async () => {
     points: 150,
     position: 1,
     status: 'in_progress',
-    score: null,
+
   }
 
   render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
@@ -868,7 +869,7 @@ test('saves a circuit draft before a simulation fault', async () => {
     points: 100,
     position: 1,
     status: 'in_progress',
-    score: null,
+
   }
   render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
   const user = userEvent.setup()
@@ -912,7 +913,7 @@ test('shows saved exact probabilities separately from sampled frequencies and cl
     id: 'task-run', title: 'Inspect a saved circuit', module: 'Module 3',
     description: 'Compare exact and sampled values.', instructions: 'Add H and run.',
     task_type: 'quantum_circuit', difficulty: 'intermediate', points: 100, position: 1,
-    status: 'in_progress', score: null,
+    status: 'in_progress',
   }
   render(<TaskView task={task} onClose={() => undefined} onSubmitted={() => Promise.resolve()} />)
   const user = userEvent.setup()

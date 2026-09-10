@@ -32,11 +32,19 @@ function FrozenContent({ response }: { response: FrozenResponse }) {
   return <section className={styles.section}>
     <p>Immutable response: {response.reference.evidence_id}</p>
     <details><summary>Declared response conditions</summary><CodeBlock code={JSON.stringify(response.declared_conditions, null, 2)} label="Exact declared response conditions" /></details>
+    {Boolean(response.recorded_teaching?.length) && <section aria-label="Recorded instructional help">
+      <h3>Recorded instructional help</h3>
+      {response.recorded_teaching?.map(item => <div key={item.evidence_id}>
+        <p>Instructional support level {item.instructional_support_level}{item.during_transfer ? ', after the fresh stage began' : ''}. Recorded {new Date(item.occurred_at).toLocaleString()}.</p>
+        <p style={{ whiteSpace: 'pre-wrap' }}>{item.explanation}</p>
+        <p>Evidence: {item.evidence_id}</p>
+      </div>)}
+    </section>}
     <h3>Supported response</h3>
     <ResponseContent content={response.content} />
     {response.episode && <ResponseProcess stage={response.episode.supported} />}
     {response.episode && <>
-      <h3>Unaided transfer response</h3>
+      <h3>Fresh transfer response</h3>
       {response.episode.transfer ? <>
         <p>Part: {response.episode.transfer.part_id}. Stage entry: {response.episode.transfer.stage_start_id}.</p>
         <ResponseContent content={response.episode.transfer.content} />

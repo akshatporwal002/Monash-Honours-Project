@@ -224,7 +224,6 @@ export function StudentsView() {
                   <th scope="col">Student</th>
                   <th scope="col">Course</th>
                   <th scope="col">Progress</th>
-                  <th scope="col">Average</th>
                   <th scope="col">Last active</th>
                   <th scope="col">Status</th>
                 </tr>
@@ -247,7 +246,7 @@ export function StudentsView() {
                       <th scope="row" className={styles.studentCell}>
                         <strong className={styles.studentName}>{student.display_name}</strong>
                         <small className={styles.studentEmail}>{student.email}</small>
-                        {student.course_id && <Link to={`/educator/learner-model?course=${encodeURIComponent(student.course_id)}&learner=${encodeURIComponent(student.student_id)}`}>Review learner model</Link>}
+                        {student.course_id && student.user_id && <Link to={`/educator/analytics?course=${encodeURIComponent(student.course_id)}&learner=${student.user_id}`}>Inspect learning progress</Link>}
                       </th>
                       <td>{student.course_title || 'All courses'}</td>
                       <td>
@@ -260,11 +259,6 @@ export function StudentsView() {
                         <small className={styles.progressDetail}>
                           {student.completed_tasks}/{student.total_tasks} activities
                         </small>
-                      </td>
-                      <td>
-                        <strong className={styles.average}>
-                          {student.average_score !== null ? `${student.average_score}%` : 'No practice score'}
-                        </strong>
                       </td>
                       <td>{formatLastActive(student.last_active)}</td>
                       <td>

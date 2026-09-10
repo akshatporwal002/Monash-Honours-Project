@@ -174,12 +174,12 @@ def test_real_episode_review_is_lossless_read_only_and_confirmed(migrated):
         session.rollback()
     database_path = Path(session.get_bind().url.database)
     before_downgrade = protected_history_manifest(database_path)
-    with pytest.raises(RuntimeError, match="cannot downgrade populated participation_recognitions"):
+    with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260907_0030")
     assert protected_history_manifest(database_path) == before_downgrade
     assert (
         session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        == "20260909_0042"
+        == "20260910_0044"
     )
     assert session.execute(text("PRAGMA foreign_key_check")).all() == []
 

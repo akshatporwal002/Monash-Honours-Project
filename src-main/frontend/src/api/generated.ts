@@ -412,7 +412,6 @@ export type ApiSchemas = {
     "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
     "id": string
     "points_awarded": number
-    "score": (number) | (null)
     "status": ApiSchemas["AttemptStatus"]
     "submitted_at": string
     "task_id": string
@@ -631,17 +630,14 @@ export type ApiSchemas = {
   "EducatorDashboardRead": {
     "at_risk_students": number
     "completion_percentage": number
-    "concept_mastery": Array<ApiSchemas["LabelScoreRead"]>
     "courses": Array<ApiSchemas["CourseRead"]>
     "leaderboard": Array<ApiSchemas["LeaderboardEntryRead"]>
     "recent_activity": Array<ApiSchemas["RecentActivityRead"]>
-    "task_type_performance": Array<ApiSchemas["LabelScoreRead"]>
     "total_students": number
     "weekly_engagement": Array<ApiSchemas["WeeklyEngagementRead"]>
   }
   "EducatorStudentRead": {
     "at_risk": boolean
-    "average_score": (number) | (null)
     "completed_tasks": number
     "completion_percentage": number
     "course_id": string
@@ -880,7 +876,7 @@ export type ApiSchemas = {
     "report_id": string
     "status"?: "received"
   }
-  "FeedbackResponseClassification": "correct" | "partially_correct" | "incorrect"
+  "FeedbackResponseClassification": "not_evaluated" | "correct" | "partially_correct" | "incorrect"
   "FeedbackSourceView": {
     "label": string
     "source_id": string
@@ -940,6 +936,7 @@ export type ApiSchemas = {
     "content": ApiSchemas["ResponseContent"]
     "declared_conditions": (Record<string, unknown>) | (Array<unknown>)
     "episode": (ApiSchemas["EpisodePayloadV1"]) | (null)
+    "recorded_teaching"?: Array<ApiSchemas["RecordedTeachingRead"]>
     "reference": ApiSchemas["EvidenceReference"]
     "task_form_version_id": (string) | (null)
   }
@@ -1061,6 +1058,7 @@ export type ApiSchemas = {
     "total": number
   }
   "InferenceStatus": "UNCERTAIN" | "SUPPORTED" | "CONTRADICTED" | "NEEDS_REVIEW"
+  "InstructionalSupportLevel": 0 | 1 | 2 | 3 | 4 | 5
   "InvalidEvidenceReference": {
     "reason_code": string
     "reference_id"?: (string) | (null)
@@ -1068,15 +1066,10 @@ export type ApiSchemas = {
   }
   "JsonValue": unknown
   "JudgeDecision": "pass" | "fail"
-  "LabelScoreRead": {
-    "label": string
-    "score": number
-  }
   "LatestAttemptSummary": {
     "attempt_number": number
     "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
     "id": string
-    "score": (number) | (null)
     "status": ApiSchemas["AttemptStatus"]
     "submitted_at": string
   }
@@ -1265,7 +1258,6 @@ export type ApiSchemas = {
   }
   "LearningMetricsResult": {
     "average_attempts": ApiSchemas["MetricValue"]
-    "average_score": ApiSchemas["MetricValue"]
     "completion_rate": ApiSchemas["MetricValue"]
     "excluded_incomplete_count"?: number
     "feedback_view_rate": ApiSchemas["MetricValue"]
@@ -1279,6 +1271,17 @@ export type ApiSchemas = {
     "total_attempts": ApiSchemas["MetricValue"]
     "unique_submissions": ApiSchemas["MetricValue"]
     "unique_task_views": ApiSchemas["MetricValue"]
+  }
+  "LearningProgressPage": {
+    "cohort_observations": Partial<Record<string, number>>
+    "cohort_weekly_observations": Partial<Record<string, Partial<Record<string, number>>>>
+    "cohort_weekly_trends": Partial<Record<string, Partial<Record<string, number>>>>
+    "course_id": string
+    "course_title": string
+    "generated_at": string
+    "history_limit"?: number
+    "items": Array<ApiSchemas["ProgressScopeRead"]>
+    "next_offset": (number) | (null)
   }
   "LiveEvidencePage": {
     "items": Array<ApiSchemas["LiveEvidenceRead"]>
@@ -1335,6 +1338,119 @@ export type ApiSchemas = {
     "sample_size": number
     "unit": string
     "value": (number) | (null)
+  }
+  "MisconceptionAnswer": {
+    "answer": string
+    "confidence": number
+    "expected_version": number
+    "help_used": boolean
+    "reasoning": string
+    "request_key": string
+    "stage": "PROBE" | "REVISION" | "TRANSFER"
+    "start_fresh_check"?: boolean
+  }
+  "MisconceptionCandidateRead": {
+    "course_title": string
+    "evidence": Array<ApiSchemas["MisconceptionEvidenceRead"]>
+    "feedback_id": string
+    "response": string
+    "student_id": number
+    "student_name": string
+    "task_id": string
+    "task_title": string
+  }
+  "MisconceptionClosureRead": {
+    "actor_id": number
+    "created_at": string
+    "disposition": "DEFERRED" | "INVALIDATED"
+    "reason": string
+  }
+  "MisconceptionEvidenceRead": {
+    "content": string
+    "id": string
+    "kind": string
+  }
+  "MisconceptionExit": {
+    "disposition": "DEFERRED" | "INVALIDATED"
+    "expected_version": number
+    "reason": string
+    "request_key": string
+  }
+  "MisconceptionOpen": {
+    "confidence": number
+    "content_approval_reason": string
+    "evidence_ids": Array<string>
+    "explanation": string
+    "explanation_support_level": ApiSchemas["InstructionalSupportLevel"]
+    "feedback_id": string
+    "fresh_question": string
+    "hypothesis": string
+    "persistence_stages": Array<"PROBE" | "REVISION" | "TRANSFER">
+    "probe": string
+    "request_key": string
+    "selection_reason": string
+  }
+  "MisconceptionRead": {
+    "approved_at": string
+    "approved_by": number
+    "closure": (ApiSchemas["MisconceptionClosureRead"]) | (null)
+    "confidence": number
+    "content_approval_reason": string
+    "course_id": string
+    "evidence_ids": Array<string>
+    "explanation": (string) | (null)
+    "fresh_question": (string) | (null)
+    "hypothesis": string
+    "id": string
+    "initial_evidence": Array<ApiSchemas["MisconceptionEvidenceRead"]>
+    "next_stage": ("PROBE" | "REVISION" | "TRANSFER") | (null)
+    "outcome_id": string
+    "persistence_stages": Array<"PROBE" | "REVISION" | "TRANSFER">
+    "probe": (string) | (null)
+    "responses": Array<ApiSchemas["MisconceptionResponseRead"]>
+    "reviews": Array<ApiSchemas["MisconceptionReviewRead"]>
+    "selection_reason": string
+    "state": ApiSchemas["MisconceptionState"]
+    "student_id": number
+    "task_id": string
+    "teaching_available": boolean
+    "version": number
+  }
+  "MisconceptionResponseRead": {
+    "answer": string
+    "confidence": number
+    "created_at": string
+    "evidence_id": string
+    "help_used": boolean
+    "id": string
+    "reasoning": string
+    "stage": "PROBE" | "REVISION" | "TRANSFER"
+    "version": number
+  }
+  "MisconceptionReview": {
+    "confidence": number
+    "contradicts"?: Array<string>
+    "expected_version": number
+    "next_action": string
+    "reason": string
+    "request_key": string
+    "state": ApiSchemas["MisconceptionState"]
+    "supports"?: Array<string>
+  }
+  "MisconceptionReviewRead": {
+    "actor_id": number
+    "confidence": number
+    "contradicts": Array<string>
+    "created_at": string
+    "escalation_id": (string) | (null)
+    "evidence_id": string
+    "id": string
+    "next_action": string
+    "reason": string
+    "snapshot_id": string
+    "state": ApiSchemas["MisconceptionState"]
+    "supports": Array<string>
+    "version": number
   }
   "MisconceptionState": "PERSISTED" | "WEAKENED" | "CORRECTED" | "UNCERTAIN"
   "MissingEvidenceReference": {
@@ -1502,6 +1618,110 @@ export type ApiSchemas = {
     "repeat_practice"?: boolean
     "support_amount"?: "standard" | "on_request"
   }
+  "ProgressAdaptation": {
+    "choices": Array<ApiSchemas["ActivityHistory"]>
+    "evidence_ids": Array<string>
+    "occurred_at": string
+    "reason": string
+    "snapshot_id": (string) | (null)
+    "state": string
+    "uncertainty": number
+    "workflow_id": string
+  }
+  "ProgressEstimate": {
+    "dimension": string
+    "estimate_id": string
+    "evidence": Array<ApiSchemas["ProgressEvidenceLink"]>
+    "occurred_at": string
+    "prior_snapshot_id": (string) | (null)
+    "reason": string
+    "snapshot_id": string
+    "status": string
+    "uncertainty": number
+  }
+  "ProgressEvidenceDetail": {
+    "confidence"?: (number) | (string) | (null)
+    "course_id": string
+    "evidence_id": string
+    "fields": Array<ApiSchemas["ProgressEvidenceField"]>
+    "kind": string
+    "learner_id": number
+    "occurred_at": string
+    "outcome_id": string
+    "related_evidence_ids": Array<string>
+    "response_id": (string) | (null)
+    "status": string
+    "support_level": number
+    "task_id": string
+  }
+  "ProgressEvidenceField": {
+    "label": string
+    "text": string
+  }
+  "ProgressEvidenceLink": {
+    "evidence_id": string
+    "relation": string
+  }
+  "ProgressObservation": {
+    "confidence"?: (number) | (string) | (null)
+    "evidence_id": string
+    "kind": string
+    "occurred_at": string
+    "response_id": (string) | (null)
+    "support_level": number
+    "task_id": string
+  }
+  "ProgressOutcome": {
+    "definition_version_id": string
+    "evidence_response_ids": Array<string>
+    "explanation": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "selection_rule": (string) | (null)
+    "status": string
+  }
+  "ProgressResult": {
+    "occurred_at": string
+    "response_id": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "status": string
+    "task_id": string
+  }
+  "ProgressScopeRead": {
+    "adaptations": Array<ApiSchemas["ProgressAdaptation"]>
+    "estimates": Array<ApiSchemas["ProgressEstimate"]>
+    "independent_responses": number
+    "learner_id": number
+    "learner_name": string
+    "misconception_ids": Array<string>
+    "observations": Partial<Record<string, number>>
+    "outcome_id": string
+    "outcome_results": Array<ApiSchemas["ProgressOutcome"]>
+    "outcome_title": string
+    "recent_evidence": Array<ApiSchemas["ProgressObservation"]>
+    "results": Array<ApiSchemas["ProgressResult"]>
+    "supported_responses": number
+    "weekly_observations": Partial<Record<string, Partial<Record<string, number>>>>
+  }
+  "ProgressTrendPage": {
+    "items": Array<ApiSchemas["ProgressTrendRecord"]>
+    "next_offset": (number) | (null)
+  }
+  "ProgressTrendRecord": {
+    "estimate_id": (string) | (null)
+    "evidence_id": (string) | (null)
+    "evidence_ids": Array<string>
+    "id": string
+    "kind": string
+    "learner_id": number
+    "learner_name": string
+    "occurred_at": string
+    "outcome_id": string
+    "reason": (string) | (null)
+    "response_id": (string) | (null)
+    "task_id": (string) | (null)
+    "uncertainty": (number) | (null)
+    "workflow_id": (string) | (null)
+  }
   "QualityReviewDecision": "APPROVED" | "REJECTED"
   "QueueMember": {
     "id": number
@@ -1553,7 +1773,6 @@ export type ApiSchemas = {
   "RecentActivityRead": {
     "formal_assessment"?: (ApiSchemas["FormalAssessmentSummary"]) | (null)
     "occurred_at": string
-    "score": (number) | (null)
     "student_name": string
     "task_title": string
   }
@@ -1563,6 +1782,14 @@ export type ApiSchemas = {
     "task_id": string
     "title": string
     "updated_at": string
+  }
+  "RecordedTeachingRead": {
+    "during_transfer": boolean
+    "evidence_id": string
+    "explanation": string
+    "hypothesis_id": string
+    "instructional_support_level": number
+    "occurred_at": string
   }
   "ReminderPreferenceRead": {
     "enabled"?: boolean
@@ -1691,18 +1918,14 @@ export type ApiSchemas = {
     "reason": string
   }
   "SettingsRead": {
-    "at_risk_threshold": number
     "llm_model": string
     "llm_provider": string
-    "passing_score": number
     "points_per_level": number
     "reminders_enabled": boolean
   }
   "SettingsUpdate": {
-    "at_risk_threshold"?: (number) | (null)
     "llm_model"?: (string) | (null)
     "llm_provider"?: (string) | (null)
-    "passing_score"?: (number) | (null)
     "points_per_level"?: (number) | (null)
     "reminders_enabled"?: (boolean) | (null)
   }
@@ -1845,7 +2068,6 @@ export type ApiSchemas = {
     "user_id": number
   }
   "StudentSummaryRead": {
-    "average_score": (number) | (null)
     "completed_tasks": number
     "completion_percentage": number
     "level": number
@@ -1901,7 +2123,6 @@ export type ApiSchemas = {
     "id": string
     "instructions": string
     "latest_attempt"?: (ApiSchemas["LatestAttemptSummary"]) | (null)
-    "latest_score"?: (number) | (null)
     "learning_outcome_id": string
     "module_id": string
     "module_title": string

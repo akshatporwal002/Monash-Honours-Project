@@ -68,6 +68,7 @@ class FeedbackContract(BaseModel):
 
 
 class FeedbackResponseClassification(str, Enum):
+    NOT_EVALUATED = "not_evaluated"
     CORRECT = "correct"
     PARTIALLY_CORRECT = "partially_correct"
     INCORRECT = "incorrect"
@@ -250,7 +251,6 @@ class SubmissionContext(FeedbackContract):
     student_id: ExternalId
     attempt_number: Annotated[int, Field(ge=1)]
     submitted_answer: PromptText
-    score: float | None = None
     submitted_at: datetime
 
 

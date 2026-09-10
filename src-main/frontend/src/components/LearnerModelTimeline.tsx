@@ -1,15 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../app/api'
 import type { LearnerModelTimelineResponse } from '../app/api'
 
 export function LearnerModelTimeline() {
-  const [courseId, setCourseId] = useState('')
-  const [outcomeId, setOutcomeId] = useState('')
+  const [search] = useSearchParams()
+  const initialCourse = search.get('course') ?? ''
+  const initialOutcome = search.get('outcome') ?? ''
+  const [courseId, setCourseId] = useState(initialCourse)
+  const [outcomeId, setOutcomeId] = useState(initialOutcome)
   const [timeline, setTimeline] = useState<LearnerModelTimelineResponse | null>(null)
   const [message, setMessage] = useState('')
   const [evidenceId, setEvidenceId] = useState('')
   const [targetKind, setTargetKind] = useState<'EVIDENCE' | 'ESTIMATE'>('EVIDENCE')
   const [note, setNote] = useState('')
+  useEffect(() => {
+    if (!initialCourse || !initialOutcome) return
+    let active = true
+    api.learnerModel.mine(initialCourse, initialOutcome)
+      .then(page => { if (active) setTimeline(page) })
+      .catch(() => { if (active) setMessage('This learning history is unavailable.') })
+    return () => { active = false }
+  }, [initialCourse, initialOutcome])
   const load = async (cursor?: string) => {
     try {
       const page = await api.learnerModel.mine(courseId, outcomeId, cursor)

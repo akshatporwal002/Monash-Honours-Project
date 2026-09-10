@@ -18,11 +18,16 @@ import { Button } from './components/ui'
 import { StudentDashboard } from './components/StudentDashboard'
 import { StudentsView } from './components/StudentsView'
 import { LearnerModelTimeline } from './components/LearnerModelTimeline'
+import { MisconceptionChecks } from './features/misconceptions/MisconceptionChecks'
+import { MisconceptionCheck } from './features/misconceptions/MisconceptionCheck'
 import { EducatorLearnerModelTimeline } from './components/EducatorLearnerModelTimeline'
 import { TaskPage } from './components/TaskPage'
 import { AssessorSetup } from './features/assessment/AssessorSetup'
 import { AssessorReviewQueue } from './features/assessment/AssessorReviewQueue'
 import { LearnerPreferencesPage } from './features/preferences/LearnerPreferencesPage'
+import { LearningProgress } from './features/progress/LearningProgress'
+import { LearningEvidenceDetail } from './features/progress/LearningEvidenceDetail'
+import { ProgressRecordList } from './features/progress/ProgressRecordList'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
 
@@ -224,6 +229,13 @@ function AppRoutes() {
       <Route element={<AppShell user={user} hasAssessorAccess={assessorAccess} onLogout={logout} />}>
         <Route path="/student" element={guard(user.role === 'student', studentHome)} />
         <Route path="/student/learner-model" element={guard(user.role === 'student', <LearnerModelTimeline />)} />
+        <Route path="/student/progress" element={guard(user.role === 'student', <LearningProgress role="student" />)} />
+        <Route path="/student/evidence/:evidenceId" element={guard(user.role === 'student', <LearningEvidenceDetail role="student" />)} />
+        <Route path="/student/progress/records" element={guard(user.role === 'student', <ProgressRecordList role="student" />)} />
+        <Route path="/educator/progress/records" element={guard(user.role === 'educator', <ProgressRecordList role="educator" />)} />
+        <Route path="/educator/evidence/:evidenceId" element={guard(user.role === 'educator', <LearningEvidenceDetail role="educator" />)} />
+        <Route path="/student/misconceptions" element={guard(user.role === 'student', <MisconceptionChecks />)} />
+        <Route path="/student/misconceptions/:identity" element={guard(user.role === 'student', <MisconceptionCheck />)} />
         <Route path="/student/preferences" element={guard(user.role === 'student', <LearnerPreferencesPage />)} />
         <Route
           path="/student/tasks/:taskId"
@@ -242,6 +254,8 @@ function AppRoutes() {
         <Route path="/educator/courses" element={guard(user.role === 'educator', <CourseEditor />)} />
         <Route path="/educator/students" element={guard(user.role === 'educator', <StudentsView />)} />
         <Route path="/educator/learner-model" element={guard(user.role === 'educator', <EducatorLearnerModelTimeline />)} />
+        <Route path="/educator/misconceptions" element={guard(user.role === 'educator', <MisconceptionChecks educator />)} />
+        <Route path="/educator/misconceptions/:identity" element={guard(user.role === 'educator', <MisconceptionCheck educator />)} />
         <Route path="/educator/analytics" element={guard(user.role === 'educator', <AnalyticsView />)} />
         <Route
           path="/assessor/setup"

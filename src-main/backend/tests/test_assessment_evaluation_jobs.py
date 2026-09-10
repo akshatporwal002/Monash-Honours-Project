@@ -270,6 +270,16 @@ def test_unavailable_adapter_leaves_response_under_review(db_session: Session) -
     assert job.failure_category is AssessmentEvaluationFailureCategory.PROVIDER_UNAVAILABLE
     assert attempt.state is AssessmentAttemptState.PENDING
     assert db_session.scalar(select(AssessmentDecision)) is None
+    from app.models.escalation import EscalationCase
+
+    case = db_session.scalar(select(EscalationCase))
+    assert (case.queue_kind, case.trigger, case.source_id) == (
+        "ASSESSOR",
+        "HUMAN_EVALUATION_REQUIRED",
+        attempt.id,
+    )
+    asyncio.run(executor.execute(claim))
+    assert len(db_session.scalars(select(EscalationCase)).all()) == 1
 
 
 def test_advisory_evaluator_cannot_create_a_provisional_result(db_session: Session) -> None:

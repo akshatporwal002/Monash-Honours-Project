@@ -47,7 +47,7 @@ export function learningMetrics(
   updates: Partial<LearningMetrics> = {},
 ): LearningMetrics {
   return {
-    schema_version: 'learning-metrics-v1',
+    schema_version: 'learning-metrics-v2',
     filters: SNAPSHOT,
     generated_at: '2026-07-25T12:00:00Z',
     task_views: metric(40, 'events', 40),
@@ -55,7 +55,7 @@ export function learningMetrics(
     submissions: metric(20, 'events', 20),
     unique_submissions: metric(16, 'actor_task_pairs', 16),
     completion_rate: metric(0.75),
-    average_score: metric(82, 'score'),
+
     total_attempts: metric(20, 'attempts', 16),
     average_attempts: metric(1.25, 'attempts', 16),
     feedback_view_rate: metric(0.8),

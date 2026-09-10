@@ -2951,17 +2951,6 @@
             "title": "Points Awarded",
             "type": "integer"
           },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
-          },
           "status": {
             "$ref": "#/components/schemas/AttemptStatus"
           },
@@ -2980,7 +2969,6 @@
           "task_id",
           "attempt_number",
           "status",
-          "score",
           "answer",
           "code",
           "circuit",
@@ -4393,13 +4381,6 @@
             "title": "Completion Percentage",
             "type": "integer"
           },
-          "concept_mastery": {
-            "items": {
-              "$ref": "#/components/schemas/LabelScoreRead"
-            },
-            "title": "Concept Mastery",
-            "type": "array"
-          },
           "courses": {
             "items": {
               "$ref": "#/components/schemas/CourseRead"
@@ -4421,13 +4402,6 @@
             "title": "Recent Activity",
             "type": "array"
           },
-          "task_type_performance": {
-            "items": {
-              "$ref": "#/components/schemas/LabelScoreRead"
-            },
-            "title": "Task Type Performance",
-            "type": "array"
-          },
           "total_students": {
             "title": "Total Students",
             "type": "integer"
@@ -4446,8 +4420,6 @@
           "at_risk_students",
           "completion_percentage",
           "weekly_engagement",
-          "task_type_performance",
-          "concept_mastery",
           "leaderboard",
           "recent_activity"
         ],
@@ -4460,17 +4432,6 @@
           "at_risk": {
             "title": "At Risk",
             "type": "boolean"
-          },
-          "average_score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Average Score"
           },
           "completed_tasks": {
             "title": "Completed Tasks",
@@ -4536,7 +4497,6 @@
           "completed_tasks",
           "total_tasks",
           "completion_percentage",
-          "average_score",
           "last_active",
           "at_risk",
           "overdue_tasks"
@@ -6110,6 +6070,7 @@
       },
       "FeedbackResponseClassification": {
         "enum": [
+          "not_evaluated",
           "correct",
           "partially_correct",
           "incorrect"
@@ -6541,6 +6502,14 @@
                 "type": "null"
               }
             ]
+          },
+          "recorded_teaching": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RecordedTeachingRead"
+            },
+            "title": "Recorded Teaching",
+            "type": "array"
           },
           "reference": {
             "$ref": "#/components/schemas/EvidenceReference"
@@ -7235,6 +7204,18 @@
         "title": "InferenceStatus",
         "type": "string"
       },
+      "InstructionalSupportLevel": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "title": "InstructionalSupportLevel",
+        "type": "integer"
+      },
       "InvalidEvidenceReference": {
         "additionalProperties": false,
         "properties": {
@@ -7282,25 +7263,6 @@
         "title": "JudgeDecision",
         "type": "string"
       },
-      "LabelScoreRead": {
-        "additionalProperties": false,
-        "properties": {
-          "label": {
-            "title": "Label",
-            "type": "string"
-          },
-          "score": {
-            "title": "Score",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "label",
-          "score"
-        ],
-        "title": "LabelScoreRead",
-        "type": "object"
-      },
       "LatestAttemptSummary": {
         "additionalProperties": false,
         "properties": {
@@ -7322,17 +7284,6 @@
             "title": "Id",
             "type": "string"
           },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
-          },
           "status": {
             "$ref": "#/components/schemas/AttemptStatus"
           },
@@ -7346,7 +7297,6 @@
           "id",
           "attempt_number",
           "status",
-          "score",
           "submitted_at"
         ],
         "title": "LatestAttemptSummary",
@@ -8563,9 +8513,6 @@
           "average_attempts": {
             "$ref": "#/components/schemas/MetricValue"
           },
-          "average_score": {
-            "$ref": "#/components/schemas/MetricValue"
-          },
           "completion_rate": {
             "$ref": "#/components/schemas/MetricValue"
           },
@@ -8597,7 +8544,7 @@
             "$ref": "#/components/schemas/MetricValue"
           },
           "schema_version": {
-            "default": "learning-metrics-v1",
+            "default": "learning-metrics-v2",
             "title": "Schema Version",
             "type": "string"
           },
@@ -8624,7 +8571,6 @@
           "submissions",
           "unique_submissions",
           "completion_rate",
-          "average_score",
           "total_attempts",
           "average_attempts",
           "feedback_view_rate",
@@ -8632,6 +8578,86 @@
           "inactive_learner_count"
         ],
         "title": "LearningMetricsResult",
+        "type": "object"
+      },
+      "LearningProgressPage": {
+        "additionalProperties": false,
+        "properties": {
+          "cohort_observations": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Cohort Observations",
+            "type": "object"
+          },
+          "cohort_weekly_observations": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Cohort Weekly Observations",
+            "type": "object"
+          },
+          "cohort_weekly_trends": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Cohort Weekly Trends",
+            "type": "object"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "course_title": {
+            "title": "Course Title",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "history_limit": {
+            "default": 20,
+            "title": "History Limit",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressScopeRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "course_id",
+          "course_title",
+          "generated_at",
+          "cohort_observations",
+          "cohort_weekly_observations",
+          "cohort_weekly_trends",
+          "items",
+          "next_offset"
+        ],
+        "title": "LearningProgressPage",
         "type": "object"
       },
       "LiveEvidencePage": {
@@ -9011,6 +9037,718 @@
           "unit"
         ],
         "title": "MetricValue",
+        "type": "object"
+      },
+      "MisconceptionAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Answer",
+            "type": "string"
+          },
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "help_used": {
+            "title": "Help Used",
+            "type": "boolean"
+          },
+          "reasoning": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reasoning",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "PROBE",
+              "REVISION",
+              "TRANSFER"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "start_fresh_check": {
+            "default": false,
+            "title": "Start Fresh Check",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "request_key",
+          "expected_version",
+          "stage",
+          "answer",
+          "reasoning",
+          "confidence",
+          "help_used"
+        ],
+        "title": "MisconceptionAnswer",
+        "type": "object"
+      },
+      "MisconceptionCandidateRead": {
+        "properties": {
+          "course_title": {
+            "title": "Course Title",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionEvidenceRead"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "feedback_id": {
+            "title": "Feedback Id",
+            "type": "string"
+          },
+          "response": {
+            "title": "Response",
+            "type": "string"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_title": {
+            "title": "Task Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feedback_id",
+          "task_id",
+          "student_id",
+          "student_name",
+          "course_title",
+          "task_title",
+          "response",
+          "evidence"
+        ],
+        "title": "MisconceptionCandidateRead",
+        "type": "object"
+      },
+      "MisconceptionClosureRead": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "disposition": {
+            "enum": [
+              "DEFERRED",
+              "INVALIDATED"
+            ],
+            "title": "Disposition",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "disposition",
+          "reason",
+          "actor_id",
+          "created_at"
+        ],
+        "title": "MisconceptionClosureRead",
+        "type": "object"
+      },
+      "MisconceptionEvidenceRead": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "content"
+        ],
+        "title": "MisconceptionEvidenceRead",
+        "type": "object"
+      },
+      "MisconceptionExit": {
+        "additionalProperties": false,
+        "properties": {
+          "disposition": {
+            "enum": [
+              "DEFERRED",
+              "INVALIDATED"
+            ],
+            "title": "Disposition",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "expected_version",
+          "reason",
+          "disposition"
+        ],
+        "title": "MisconceptionExit",
+        "type": "object"
+      },
+      "MisconceptionOpen": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "content_approval_reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Content Approval Reason",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "explanation": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "explanation_support_level": {
+            "$ref": "#/components/schemas/InstructionalSupportLevel",
+            "ge": 1,
+            "le": 5
+          },
+          "feedback_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Feedback Id",
+            "type": "string"
+          },
+          "fresh_question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Fresh Question",
+            "type": "string"
+          },
+          "hypothesis": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "persistence_stages": {
+            "items": {
+              "enum": [
+                "PROBE",
+                "REVISION",
+                "TRANSFER"
+              ],
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "title": "Persistence Stages",
+            "type": "array"
+          },
+          "probe": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Probe",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          },
+          "selection_reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Selection Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "feedback_id",
+          "hypothesis",
+          "confidence",
+          "evidence_ids",
+          "probe",
+          "explanation",
+          "explanation_support_level",
+          "fresh_question",
+          "selection_reason",
+          "content_approval_reason",
+          "persistence_stages"
+        ],
+        "title": "MisconceptionOpen",
+        "type": "object"
+      },
+      "MisconceptionRead": {
+        "properties": {
+          "approved_at": {
+            "format": "date-time",
+            "title": "Approved At",
+            "type": "string"
+          },
+          "approved_by": {
+            "title": "Approved By",
+            "type": "integer"
+          },
+          "closure": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MisconceptionClosureRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "content_approval_reason": {
+            "title": "Content Approval Reason",
+            "type": "string"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          },
+          "fresh_question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fresh Question"
+          },
+          "hypothesis": {
+            "title": "Hypothesis",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "initial_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionEvidenceRead"
+            },
+            "title": "Initial Evidence",
+            "type": "array"
+          },
+          "next_stage": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PROBE",
+                  "REVISION",
+                  "TRANSFER"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Stage"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "persistence_stages": {
+            "items": {
+              "enum": [
+                "PROBE",
+                "REVISION",
+                "TRANSFER"
+              ],
+              "type": "string"
+            },
+            "title": "Persistence Stages",
+            "type": "array"
+          },
+          "probe": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probe"
+          },
+          "responses": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionResponseRead"
+            },
+            "title": "Responses",
+            "type": "array"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/MisconceptionReviewRead"
+            },
+            "title": "Reviews",
+            "type": "array"
+          },
+          "selection_reason": {
+            "title": "Selection Reason",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MisconceptionState"
+          },
+          "student_id": {
+            "title": "Student Id",
+            "type": "integer"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "teaching_available": {
+            "title": "Teaching Available",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "course_id",
+          "outcome_id",
+          "student_id",
+          "hypothesis",
+          "evidence_ids",
+          "selection_reason",
+          "content_approval_reason",
+          "approved_by",
+          "approved_at",
+          "version",
+          "state",
+          "confidence",
+          "next_stage",
+          "probe",
+          "explanation",
+          "fresh_question",
+          "responses",
+          "reviews",
+          "persistence_stages",
+          "closure",
+          "teaching_available",
+          "initial_evidence"
+        ],
+        "title": "MisconceptionRead",
+        "type": "object"
+      },
+      "MisconceptionResponseRead": {
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "help_used": {
+            "title": "Help Used",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reasoning": {
+            "title": "Reasoning",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "PROBE",
+              "REVISION",
+              "TRANSFER"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "evidence_id",
+          "version",
+          "stage",
+          "answer",
+          "reasoning",
+          "confidence",
+          "help_used",
+          "created_at"
+        ],
+        "title": "MisconceptionResponseRead",
+        "type": "object"
+      },
+      "MisconceptionReview": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "contradicts": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Contradicts",
+            "type": "array"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "next_action": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Next Action",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MisconceptionState"
+          },
+          "supports": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Supports",
+            "type": "array"
+          }
+        },
+        "required": [
+          "request_key",
+          "expected_version",
+          "state",
+          "confidence",
+          "reason",
+          "next_action"
+        ],
+        "title": "MisconceptionReview",
+        "type": "object"
+      },
+      "MisconceptionReviewRead": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "integer"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "contradicts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Contradicts",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "escalation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Id"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "next_action": {
+            "title": "Next Action",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/MisconceptionState"
+          },
+          "supports": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supports",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "actor_id",
+          "state",
+          "confidence",
+          "supports",
+          "contradicts",
+          "reason",
+          "next_action",
+          "evidence_id",
+          "snapshot_id",
+          "escalation_id",
+          "created_at"
+        ],
+        "title": "MisconceptionReviewRead",
         "type": "object"
       },
       "MisconceptionState": {
@@ -10088,6 +10826,693 @@
         "title": "PreferenceValues",
         "type": "object"
       },
+      "ProgressAdaptation": {
+        "additionalProperties": false,
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityHistory"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "uncertainty": {
+            "title": "Uncertainty",
+            "type": "number"
+          },
+          "workflow_id": {
+            "title": "Workflow Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workflow_id",
+          "state",
+          "reason",
+          "uncertainty",
+          "snapshot_id",
+          "evidence_ids",
+          "occurred_at",
+          "choices"
+        ],
+        "title": "ProgressAdaptation",
+        "type": "object"
+      },
+      "ProgressEstimate": {
+        "additionalProperties": false,
+        "properties": {
+          "dimension": {
+            "title": "Dimension",
+            "type": "string"
+          },
+          "estimate_id": {
+            "title": "Estimate Id",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressEvidenceLink"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "prior_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior Snapshot Id"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "uncertainty": {
+            "title": "Uncertainty",
+            "type": "number"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "prior_snapshot_id",
+          "estimate_id",
+          "dimension",
+          "status",
+          "uncertainty",
+          "reason",
+          "occurred_at",
+          "evidence"
+        ],
+        "title": "ProgressEstimate",
+        "type": "object"
+      },
+      "ProgressEvidenceDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressEvidenceField"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "learner_id": {
+            "title": "Learner Id",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "related_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Evidence Ids",
+            "type": "array"
+          },
+          "response_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "support_level": {
+            "title": "Support Level",
+            "type": "integer"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "task_id",
+          "response_id",
+          "kind",
+          "support_level",
+          "occurred_at",
+          "course_id",
+          "learner_id",
+          "outcome_id",
+          "status",
+          "fields",
+          "related_evidence_ids"
+        ],
+        "title": "ProgressEvidenceDetail",
+        "type": "object"
+      },
+      "ProgressEvidenceField": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "text"
+        ],
+        "title": "ProgressEvidenceField",
+        "type": "object"
+      },
+      "ProgressEvidenceLink": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "relation": {
+            "title": "Relation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "relation"
+        ],
+        "title": "ProgressEvidenceLink",
+        "type": "object"
+      },
+      "ProgressObservation": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "response_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Id"
+          },
+          "support_level": {
+            "title": "Support Level",
+            "type": "integer"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "task_id",
+          "response_id",
+          "kind",
+          "support_level",
+          "occurred_at"
+        ],
+        "title": "ProgressObservation",
+        "type": "object"
+      },
+      "ProgressOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "definition_version_id": {
+            "title": "Definition Version Id",
+            "type": "string"
+          },
+          "evidence_response_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Response Ids",
+            "type": "array"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selection_rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection Rule"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "definition_version_id",
+          "result",
+          "status",
+          "selection_rule",
+          "evidence_response_ids",
+          "explanation"
+        ],
+        "title": "ProgressOutcome",
+        "type": "object"
+      },
+      "ProgressResult": {
+        "additionalProperties": false,
+        "properties": {
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "response_id": {
+            "title": "Response Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "response_id",
+          "task_id",
+          "result",
+          "status",
+          "occurred_at"
+        ],
+        "title": "ProgressResult",
+        "type": "object"
+      },
+      "ProgressScopeRead": {
+        "additionalProperties": false,
+        "properties": {
+          "adaptations": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressAdaptation"
+            },
+            "title": "Adaptations",
+            "type": "array"
+          },
+          "estimates": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressEstimate"
+            },
+            "title": "Estimates",
+            "type": "array"
+          },
+          "independent_responses": {
+            "title": "Independent Responses",
+            "type": "integer"
+          },
+          "learner_id": {
+            "title": "Learner Id",
+            "type": "integer"
+          },
+          "learner_name": {
+            "title": "Learner Name",
+            "type": "string"
+          },
+          "misconception_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Misconception Ids",
+            "type": "array"
+          },
+          "observations": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Observations",
+            "type": "object"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "outcome_results": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressOutcome"
+            },
+            "title": "Outcome Results",
+            "type": "array"
+          },
+          "outcome_title": {
+            "title": "Outcome Title",
+            "type": "string"
+          },
+          "recent_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressObservation"
+            },
+            "title": "Recent Evidence",
+            "type": "array"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "supported_responses": {
+            "title": "Supported Responses",
+            "type": "integer"
+          },
+          "weekly_observations": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Weekly Observations",
+            "type": "object"
+          }
+        },
+        "required": [
+          "learner_id",
+          "learner_name",
+          "outcome_id",
+          "outcome_title",
+          "observations",
+          "weekly_observations",
+          "independent_responses",
+          "supported_responses",
+          "recent_evidence",
+          "estimates",
+          "results",
+          "outcome_results",
+          "adaptations",
+          "misconception_ids"
+        ],
+        "title": "ProgressScopeRead",
+        "type": "object"
+      },
+      "ProgressTrendPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressTrendRecord"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "title": "ProgressTrendPage",
+        "type": "object"
+      },
+      "ProgressTrendRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "estimate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimate Id"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "learner_id": {
+            "title": "Learner Id",
+            "type": "integer"
+          },
+          "learner_name": {
+            "title": "Learner Name",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "response_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "uncertainty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uncertainty"
+          },
+          "workflow_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Id"
+          }
+        },
+        "required": [
+          "id",
+          "learner_id",
+          "learner_name",
+          "outcome_id",
+          "occurred_at",
+          "kind",
+          "evidence_id",
+          "task_id",
+          "response_id",
+          "workflow_id",
+          "estimate_id",
+          "uncertainty",
+          "reason",
+          "evidence_ids"
+        ],
+        "title": "ProgressTrendRecord",
+        "type": "object"
+      },
       "QualityReviewDecision": {
         "enum": [
           "APPROVED",
@@ -10398,17 +11823,6 @@
             "title": "Occurred At",
             "type": "string"
           },
-          "score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Score"
-          },
           "student_name": {
             "title": "Student Name",
             "type": "string"
@@ -10421,7 +11835,6 @@
         "required": [
           "student_name",
           "task_title",
-          "score",
           "occurred_at"
         ],
         "title": "RecentActivityRead",
@@ -10465,6 +11878,56 @@
           "updated_at"
         ],
         "title": "RecommendationRead",
+        "type": "object"
+      },
+      "RecordedTeachingRead": {
+        "additionalProperties": false,
+        "properties": {
+          "during_transfer": {
+            "title": "During Transfer",
+            "type": "boolean"
+          },
+          "evidence_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "explanation": {
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "hypothesis_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Hypothesis Id",
+            "type": "string"
+          },
+          "instructional_support_level": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Instructional Support Level",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "hypothesis_id",
+          "instructional_support_level",
+          "explanation",
+          "occurred_at",
+          "during_transfer"
+        ],
+        "title": "RecordedTeachingRead",
         "type": "object"
       },
       "ReminderPreferenceRead": {
@@ -11259,10 +12722,6 @@
       "SettingsRead": {
         "additionalProperties": false,
         "properties": {
-          "at_risk_threshold": {
-            "title": "At Risk Threshold",
-            "type": "integer"
-          },
           "llm_model": {
             "title": "Llm Model",
             "type": "string"
@@ -11270,10 +12729,6 @@
           "llm_provider": {
             "title": "Llm Provider",
             "type": "string"
-          },
-          "passing_score": {
-            "title": "Passing Score",
-            "type": "integer"
           },
           "points_per_level": {
             "title": "Points Per Level",
@@ -11285,8 +12740,6 @@
           }
         },
         "required": [
-          "at_risk_threshold",
-          "passing_score",
           "points_per_level",
           "llm_provider",
           "llm_model",
@@ -11298,19 +12751,6 @@
       "SettingsUpdate": {
         "additionalProperties": false,
         "properties": {
-          "at_risk_threshold": {
-            "anyOf": [
-              {
-                "maximum": 100.0,
-                "minimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "At Risk Threshold"
-          },
           "llm_model": {
             "anyOf": [
               {
@@ -11336,19 +12776,6 @@
               }
             ],
             "title": "Llm Provider"
-          },
-          "passing_score": {
-            "anyOf": [
-              {
-                "maximum": 100.0,
-                "minimum": 0.0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Passing Score"
           },
           "points_per_level": {
             "anyOf": [
@@ -12296,17 +13723,6 @@
       "StudentSummaryRead": {
         "additionalProperties": false,
         "properties": {
-          "average_score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Average Score"
-          },
           "completed_tasks": {
             "title": "Completed Tasks",
             "type": "integer"
@@ -12336,7 +13752,6 @@
           "completed_tasks",
           "total_tasks",
           "completion_percentage",
-          "average_score",
           "points",
           "level",
           "next_level_points"
@@ -12693,17 +14108,6 @@
                 "type": "null"
               }
             ]
-          },
-          "latest_score": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Latest Score"
           },
           "learning_outcome_id": {
             "title": "Learning Outcome Id",
@@ -20085,6 +21489,77 @@
         ]
       }
     },
+    "/api/v1/educators/tasks/{task_id}/learners/{learner_id}/misconceptions": {
+      "get": {
+        "operationId": "teaching_api_v1_educators_tasks__task_id__learners__learner_id__misconceptions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "learner_id",
+            "required": true,
+            "schema": {
+              "title": "Learner Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MisconceptionRead"
+                  },
+                  "title": "Response Teaching Api V1 Educators Tasks  Task Id  Learners  Learner Id  Misconceptions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Teaching",
+        "tags": [
+          "misconception checks"
+        ]
+      }
+    },
     "/api/v1/escalations/courses/{course_id}/samples": {
       "get": {
         "operationId": "samples_api_v1_escalations_courses__course_id__samples_get",
@@ -21650,6 +23125,453 @@
         ]
       }
     },
+    "/api/v1/misconceptions": {
+      "get": {
+        "operationId": "owned_api_v1_misconceptions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MisconceptionRead"
+                  },
+                  "title": "Response Owned Api V1 Misconceptions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Owned",
+        "tags": [
+          "misconception checks"
+        ]
+      },
+      "post": {
+        "operationId": "open_check_api_v1_misconceptions_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MisconceptionOpen"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisconceptionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Open Check",
+        "tags": [
+          "misconception checks"
+        ]
+      }
+    },
+    "/api/v1/misconceptions/teaching": {
+      "get": {
+        "operationId": "candidates_api_v1_misconceptions_teaching_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MisconceptionCandidateRead"
+                  },
+                  "title": "Response Candidates Api V1 Misconceptions Teaching Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Candidates",
+        "tags": [
+          "misconception checks"
+        ]
+      }
+    },
+    "/api/v1/misconceptions/{identity}": {
+      "get": {
+        "operationId": "read_api_v1_misconceptions__identity__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisconceptionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "misconception checks"
+        ]
+      }
+    },
+    "/api/v1/misconceptions/{identity}/exit": {
+      "post": {
+        "operationId": "exit_check_api_v1_misconceptions__identity__exit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MisconceptionExit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisconceptionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Exit Check",
+        "tags": [
+          "misconception checks"
+        ]
+      }
+    },
+    "/api/v1/misconceptions/{identity}/responses": {
+      "post": {
+        "operationId": "answer_api_v1_misconceptions__identity__responses_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MisconceptionAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisconceptionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Answer",
+        "tags": [
+          "misconception checks"
+        ]
+      }
+    },
+    "/api/v1/misconceptions/{identity}/reviews": {
+      "post": {
+        "operationId": "review_api_v1_misconceptions__identity__reviews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity",
+            "required": true,
+            "schema": {
+              "title": "Identity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MisconceptionReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MisconceptionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Review",
+        "tags": [
+          "misconception checks"
+        ]
+      }
+    },
     "/api/v1/modules/{module_id}": {
       "delete": {
         "operationId": "delete_module_api_v1_modules__module_id__delete",
@@ -22009,6 +23931,343 @@
         "summary": "Update Outcome",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/progress/{course_id}": {
+      "get": {
+        "operationId": "read_progress_api_v1_progress__course_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "learner_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Learner Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 25,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningProgressPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Progress",
+        "tags": [
+          "learning progress"
+        ]
+      }
+    },
+    "/api/v1/progress/{course_id}/evidence/{evidence_id}": {
+      "get": {
+        "operationId": "inspect_evidence_api_v1_progress__course_id__evidence__evidence_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressEvidenceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inspect Evidence",
+        "tags": [
+          "learning progress"
+        ]
+      }
+    },
+    "/api/v1/progress/{course_id}/records": {
+      "get": {
+        "operationId": "trend_records_api_v1_progress__course_id__records_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "learner_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Learner Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "outcome_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outcome Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "week",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Week"
+            }
+          },
+          {
+            "in": "query",
+            "name": "response_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Response Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressTrendPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trend Records",
+        "tags": [
+          "learning progress"
         ]
       }
     },
@@ -23881,6 +26140,68 @@
         "summary": "Enter Episode Transfer",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/students/me/tasks/{task_id}/misconceptions": {
+      "get": {
+        "operationId": "mine_api_v1_students_me_tasks__task_id__misconceptions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MisconceptionRead"
+                  },
+                  "title": "Response Mine Api V1 Students Me Tasks  Task Id  Misconceptions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mine",
+        "tags": [
+          "misconception checks"
         ]
       }
     },

@@ -240,7 +240,6 @@ def _submission(
     task: TaskContext,
     *,
     answer: str,
-    score: float | None,
 ) -> SubmissionContext:
     return SubmissionContext(
         submission_id=f"submission-{slug}",
@@ -249,7 +248,6 @@ def _submission(
         student_id=f"opaque-student-{slug}",
         attempt_number=1,
         submitted_answer=answer,
-        score=score,
         submitted_at=NOW,
     )
 
@@ -389,7 +387,7 @@ def test_scenario_1_correct_multiple_choice_is_first_pass_and_schedules_continua
         prompt="Which gate creates an equal superposition from |0>?",
         expected_answer={"correct_option": "B", "option": "Hadamard"},
     )
-    submission = _submission("correct-mc", task, answer="B", score=100)
+    submission = _submission("correct-mc", task, answer="B")
     scheduler = RecordingContinuationScheduler()
     pseudonymizer = HmacSha256Pseudonymizer(PSEUDONYM_SECRET)
     continuation = ContinuationTerminalFeedbackObserver(scheduler, pseudonymizer)
@@ -458,7 +456,6 @@ def test_scenario_2_incorrect_short_answer_has_grounded_action_and_learning_even
         "incorrect-short",
         task,
         answer="Measurement always returns zero.",
-        score=20,
     )
 
     scenario = _run_scenario(
@@ -491,7 +488,6 @@ def test_scenario_2_incorrect_short_answer_has_grounded_action_and_learning_even
             source_event_id=str(uuid4()),
             correlation_id=scenario.correlation_id,
             attempt_number=1,
-            score=20,
         )
         is not None
     )
@@ -502,8 +498,7 @@ def test_scenario_2_incorrect_short_answer_has_grounded_action_and_learning_even
             task_id=task.task_id,
             source_event_id=str(uuid4()),
             correlation_id=scenario.correlation_id,
-            completion_status="failed",
-            score=20,
+            completion_status="completed",
         )
         is not None
     )
@@ -538,7 +533,6 @@ def test_scenario_3_code_explanation_attributes_retrieval_without_chunk_storage(
         "code-retrieval",
         task,
         answer="It creates a circuit and measures it.",
-        score=70,
     )
     source = RetrievalContext(
         retrieval_request_id="retrieval-code-reference",
@@ -605,7 +599,6 @@ def test_scenario_4_quantum_simulation_is_scoped_and_referenced(
         "quantum-simulation",
         task,
         answer="The outcomes should be approximately balanced.",
-        score=85,
     )
     simulation = SimulationContext(
         simulation_id="simulation-hadamard-balanced",
@@ -678,7 +671,6 @@ def test_scenario_6_two_judge_rejections_release_one_audited_safe_fallback(
         "double-rejection",
         task,
         answer="Measurement only reads the state.",
-        score=30,
     )
 
     scenario = _run_scenario(
@@ -736,7 +728,6 @@ def test_scenario_7_external_llm_timeout_is_bounded_and_sanitized(
         "provider-timeout",
         task,
         answer="Amplitudes can reinforce or cancel.",
-        score=None,
     )
     client = SlowStructuredClient()
 
@@ -817,7 +808,6 @@ def test_scenario_8_missing_retrieval_preserves_typed_state_and_safe_grounding(
         slug,
         task,
         answer="The code creates a circuit.",
-        score=50,
     )
     client = RecordingStructuredLlmClient(_response(_agent_output("correct")))
 
@@ -853,7 +843,6 @@ def test_scenario_9_simulation_failure_is_typed_and_never_leaks_raw_error(
         "simulation-failure",
         task,
         answer="The Hadamard gate creates a superposition.",
-        score=75,
     )
     provider = TypedSimulationProvider(
         SimulationResult(status=ContextProviderStatus.FAILED),

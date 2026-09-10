@@ -88,14 +88,9 @@ class DraftSaveMetadata(LearningEventContract):
 
 
 class SubmissionMetadata(LearningEventContract):
-    """Historical submission metadata kept readable for existing event rows.
-
-    New Person B evidence capture does not use this score field.  It writes an
-    opaque :class:`TrustedEvidenceAnalyticsMetadata` record instead.
-    """
+    """Numeric learner marks are not accepted by current event writers."""
 
     attempt_number: Annotated[int, Field(ge=1, le=10_000)]
-    score: Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)] | None = None
 
 
 class FeedbackViewMetadata(LearningEventContract):
@@ -103,14 +98,9 @@ class FeedbackViewMetadata(LearningEventContract):
 
 
 class CompletionMetadata(LearningEventContract):
-    """Historical completion metadata kept readable, including old pass states.
+    """An observed activity completion, separate from formal results."""
 
-    ``passed`` and ``failed`` remain compatibility values only.  They are not
-    formal assessment results and are not emitted by new trusted hooks.
-    """
-
-    completion_status: Literal["completed", "passed", "failed"]
-    score: Annotated[float, Field(ge=0, le=100, allow_inf_nan=False)] | None = None
+    completion_status: Literal["completed"]
 
 
 class TrustedEvidenceAnalyticsMetadata(LearningEventContract):

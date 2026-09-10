@@ -41,7 +41,7 @@ export type FunnelStage = {
 export type InactiveLearner = ApiSchemas['InactiveLearner']
 
 export type LearningMetrics = {
-  schema_version: 'learning-metrics-v1'
+  schema_version: 'learning-metrics-v2'
   filters: AnalyticsFilterSnapshot
   generated_at: string
   task_views: MetricValue
@@ -49,7 +49,7 @@ export type LearningMetrics = {
   submissions: MetricValue
   unique_submissions: MetricValue
   completion_rate: MetricValue
-  average_score: MetricValue
+
   total_attempts: MetricValue
   average_attempts: MetricValue
   feedback_view_rate: MetricValue

@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import { LearnerModelTimeline } from '../components/LearnerModelTimeline'
 
@@ -11,7 +12,7 @@ test('loads metadata-only evidence and keeps an annotation draft on failure', as
     if (url.includes('/learner-model/me/timeline')) return new Response(JSON.stringify({ evidence: [{ id: 'e-1', type: 'REASONING', occurred_at: '2026-09-08T00:00:00Z' }], snapshots: [], corrections: [], entries: [], next_cursor: null }))
     throw new Error(`Unexpected ${url}`)
   })
-  render(<LearnerModelTimeline />)
+  render(<MemoryRouter><LearnerModelTimeline /></MemoryRouter>)
   const user = userEvent.setup()
   const inputs = screen.getAllByRole('textbox')
   await user.type(inputs[0], 'course-1'); await user.type(inputs[1], 'outcome-1')

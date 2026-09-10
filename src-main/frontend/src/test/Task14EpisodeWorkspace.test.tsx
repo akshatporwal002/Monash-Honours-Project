@@ -9,7 +9,7 @@ const state: EpisodeState = { supported_part_id: 'supported', prediction_require
 function Harness() {
   const [value, setValue] = useState<EpisodePayload>({ schema_version: 'learnlens.episode.v1', supported: {} })
   const [stage, setStage] = useState(state)
-  return <><EpisodeFields value={value} state={stage} attempts={[{ id: 'old', attempt_number: 1, score: null, feedback: null, status: 'submitted' }]} disabled={false} onChange={setValue} onCheckpoint={() => setValue({ ...value, supported: { ...value.supported, prediction_checkpoint_id: 'checkpoint' } })} onTransfer={() => {
+  return <><EpisodeFields value={value} state={stage} attempts={[{ id: 'old', attempt_number: 1,  feedback: null, status: 'submitted' }]} disabled={false} onChange={setValue} onCheckpoint={() => setValue({ ...value, supported: { ...value.supported, prediction_checkpoint_id: 'checkpoint' } })} onTransfer={() => {
     const transfer = { stage_start_id: 'start', part_id: 'fresh', prompt: 'Fresh approved application', instructions: 'Work independently', starter_circuit: { qubits: 1, operations: [] } }
     setStage({ ...state, supported_hints: [], transfer })
     setValue({ ...value, transfer: { stage_start_id: 'start', part_id: 'fresh', content: { answer: '', circuit: transfer.starter_circuit }, process: {} } })

@@ -345,7 +345,6 @@ def build_assessment_attempt(
         attempt_number=1,
         status=AttemptStatus.SUBMITTED,
         answer="The response links the observation to the claim.",
-        score=None,
         feedback="Response recorded.",
         task_form_version_id=form.id,
         response_schema_version="assessment.response.v1",

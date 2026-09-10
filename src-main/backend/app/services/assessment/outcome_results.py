@@ -17,13 +17,17 @@ class OutcomeResultService:
 
     def read(self, learner, response_id):
         owned = LearnerResultService(self.session)._owned_attempt(learner, response_id)
+        return self.project_authorized(owned)
+
+    def project_authorized(self, owned):
+        """Project an outcome after the caller has authorized the frozen attempt scope."""
         reassessment = ReassessmentService(self.session)
         policy = reassessment.policy(owned.assessment_definition_version_id)
         attempts = list(
             self.session.scalars(
                 select(AssessmentAttempt)
                 .where(
-                    AssessmentAttempt.student_id == learner.id,
+                    AssessmentAttempt.student_id == owned.student_id,
                     AssessmentAttempt.assessment_definition_version_id
                     == owned.assessment_definition_version_id,
                 )

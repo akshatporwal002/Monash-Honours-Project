@@ -93,6 +93,7 @@ class LiveEvidenceCapture:
         observation=ObservationType.DIRECT,
         support=InstructionalSupportLevel.INDEPENDENT,
         access=AccessSupportState.NOT_DECLARED,
+        actor_reference=None,
     ):
         # Unscoped sandbox circuits are not course learning observations.
         if not task.course_id or not task.learning_outcome_id:
@@ -154,11 +155,11 @@ class LiveEvidenceCapture:
         digest = "sha256:" + sha256(content.encode()).hexdigest()
         artifact_id = evidence_id(source, field + ":artifact")
         when = utc(occurred_at)
-        actor = str(learner_id)
+        actor = actor_reference or str(learner_id)
         record = EvidenceRecord(
             evidence_id=identity,
             course_id=task.course_id,
-            learner_id=actor,
+            learner_id=str(learner_id),
             outcome_id=task.learning_outcome_id,
             activity_id=work.id if work else task.id,
             task_id=task.id,
@@ -199,7 +200,7 @@ class LiveEvidenceCapture:
                 artifact=EvidenceArtifact(
                     artifact_id=artifact_id,
                     course_id=task.course_id,
-                    learner_id=actor,
+                    learner_id=str(learner_id),
                     content=content,
                     content_digest=digest,
                     content_format="application.json",
@@ -312,7 +313,10 @@ class LiveEvidenceCapture:
         supported_process = episode.get("supported", {})
         parents = (*parents, *self._sources(supported_process))
         support, access, support_parents = self._support_for(
-            response.assessment_work_start_id, response.submitted_at
+            response.assessment_work_start_id,
+            response.submitted_at,
+            task_id=response.task_id,
+            student_id=response.student_id,
         )
         parents = (*parents, *support_parents)
         common.update(support=support, access=access)
@@ -352,31 +356,42 @@ class LiveEvidenceCapture:
             )
             self._process(common, transfer.get("process", {}), "transfer", ref)
 
-    def _support_for(self, work_id, when, stage_id=None):
-        if not work_id:
-            return InstructionalSupportLevel.INDEPENDENT, AccessSupportState.NOT_DECLARED, ()
-        uses = list(
-            self.session.scalars(
-                select(EpisodeHelpUse).where(
-                    EpisodeHelpUse.assessment_work_start_id == work_id,
-                    (EpisodeHelpUse.stage_start_id == stage_id)
-                    | (EpisodeHelpUse.kind == "accessibility"),
-                    EpisodeHelpUse.created_at <= when,
+    def _support_for(self, work_id, when, stage_id=None, *, task_id=None, student_id=None):
+        uses = (
+            list(
+                self.session.scalars(
+                    select(EpisodeHelpUse).where(
+                        EpisodeHelpUse.assessment_work_start_id == work_id,
+                        (EpisodeHelpUse.stage_start_id == stage_id)
+                        | (EpisodeHelpUse.kind == "accessibility"),
+                        EpisodeHelpUse.created_at <= when,
+                    )
                 )
             )
+            if work_id
+            else []
         )
         from app.services.episode_support import EpisodeSupportService
 
         parents = tuple(self.support({"record": EpisodeSupportService.read(use)}) for use in uses)
         kinds = {use.kind for use in uses}
+        from app.services.misconception_support import teaching_observations
+
+        teaching = teaching_observations(
+            self.session, work_id, when, stage_id=stage_id, task_id=task_id, student_id=student_id
+        )
+        level = max(
+            [
+                2 if "conceptual_hint" in kinds else 0,
+                *(item.instructional_support_level for item in teaching),
+            ]
+        )
         return (
-            InstructionalSupportLevel.CONCEPT_CUE
-            if "conceptual_hint" in kinds
-            else InstructionalSupportLevel.INDEPENDENT,
+            InstructionalSupportLevel(level),
             AccessSupportState.PROVIDED
             if "accessibility" in kinds
             else AccessSupportState.NOT_DECLARED,
-            parents,
+            (*parents, *(item.id for item in teaching)),
         )
 
     def _sources(self, process):

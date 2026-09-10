@@ -15,12 +15,17 @@ const playwrightEntry = fileURLToPath(
 const services = []
 const apiPort = process.env.QUANTUMLEARN_E2E_API_PORT ?? '4180'
 const webPort = process.env.QUANTUMLEARN_E2E_WEB_PORT ?? '4173'
+const learningLoop = process.argv.includes('--learning-loop')
+const misconceptions = process.argv.includes('--misconceptions')
+if (learningLoop) process.env.QUANTUMLEARN_E2E_LEARNING_LOOP = '1'
+if (misconceptions) process.env.QUANTUMLEARN_E2E_MISCONCEPTIONS = '1'
 
 function start(command, arguments_, cwd = root) {
   const child = spawn(command, arguments_, {
     cwd,
     detached: !isWindows,
     stdio: 'inherit',
+    windowsHide: true,
   })
   services.push(child)
   return child
@@ -103,7 +108,7 @@ async function run() {
   ])
   start(
     backendPython(),
-    ['tests/browser_e2e_server.py'],
+    [learningLoop || misconceptions ? 'tests/learning_loop_browser_server.py' : 'tests/browser_e2e_server.py'],
     backendRoot,
   )
   start(process.execPath, [
@@ -119,7 +124,7 @@ async function run() {
 
   const runner = spawn(
     process.execPath,
-    [playwrightEntry, 'test', ...process.argv.slice(2)],
+    [playwrightEntry, 'test', ...process.argv.slice(2).filter((arg) => !['--learning-loop', '--misconceptions'].includes(arg))],
     {
       cwd: root,
       stdio: 'inherit',

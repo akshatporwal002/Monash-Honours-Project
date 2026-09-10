@@ -82,7 +82,7 @@ test('educator routes have no serious accessibility violations', async ({ page }
   await expectNoSeriousViolations(page, testInfo, '/educator/students')
 
   await page.goto('/educator/analytics')
-  await expect(page.getByRole('heading', { name: 'Cohort analytics' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cohort learning progress' })).toBeVisible()
   await expectNoSeriousViolations(page, testInfo, '/educator/analytics')
 })
 

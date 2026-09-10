@@ -96,7 +96,7 @@ class InactiveLearner(MetricsContract):
 
 
 class LearningMetricsResult(MetricsContract):
-    schema_version: str = "learning-metrics-v1"
+    schema_version: str = "learning-metrics-v2"
     filters: AnalyticsFilterSnapshot = Field(default_factory=AnalyticsFilterSnapshot)
     generated_at: datetime
     task_views: MetricValue
@@ -104,7 +104,6 @@ class LearningMetricsResult(MetricsContract):
     submissions: MetricValue
     unique_submissions: MetricValue
     completion_rate: MetricValue
-    average_score: MetricValue
     total_attempts: MetricValue
     average_attempts: MetricValue
     feedback_view_rate: MetricValue
@@ -423,12 +422,6 @@ def calculate_learning_metrics(
         if event.event_type is LearningEventType.FEEDBACK_VIEW
         and event.workflow_reference is not None
     }
-    scores = [
-        float(event.metadata["score"])
-        for event in submissions
-        if isinstance(event.metadata.get("score"), int | float)
-        and not isinstance(event.metadata.get("score"), bool)
-    ]
     attempt_counts: dict[tuple[str, str], int] = defaultdict(int)
     for event in submissions:
         attempt_counts[(event.pseudonymous_user_id, event.task_id)] += 1
@@ -472,7 +465,6 @@ def calculate_learning_metrics(
             len(submitted_pairs),
             "ratio",
         ),
-        average_score=_average(scores, "score"),
         total_attempts=_metric(
             len(submissions),
             len(submitted_pairs),

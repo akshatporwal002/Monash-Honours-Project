@@ -56,7 +56,7 @@ def test_production_adapter_preserves_null_assessment_score(db_session: Session)
 
     assert context is not None
     assert context.submission_id == response.id
-    assert context.score is None
+    assert not hasattr(context, "score")
 
 
 def test_assessed_attempt_reaches_terminal_feedback_through_production_adapter(
@@ -86,10 +86,10 @@ def test_assessed_attempt_reaches_terminal_feedback_through_production_adapter(
     result = asyncio.run(pipeline.run(response.id))
 
     assert result.status is FeedbackPipelineStatus.VALIDATED
-    assert generator.contexts[0].submission.score is None
+    assert not hasattr(generator.contexts[0].submission, "score")
     stored_response = db_session.get(SubmissionAttempt, response.id)
     assert stored_response is not None
-    assert stored_response.score is None
+    assert not hasattr(stored_response, "score")
     assert stored_response.answer == "The response links the observation to the claim."
 
 
@@ -123,5 +123,5 @@ def test_assessed_response_survives_feedback_generation_failure(db_session: Sess
     assert judge.call_count == 0
     stored_response = db_session.get(SubmissionAttempt, response.id)
     assert stored_response is not None
-    assert stored_response.score is None
+    assert not hasattr(stored_response, "score")
     assert stored_response.answer == "The response links the observation to the claim."

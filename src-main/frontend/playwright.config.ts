@@ -8,8 +8,19 @@ const localWindowsFirefoxHeaded = process.platform === 'win32'
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: '**/*.e2e.ts',
-  outputDir: 'test-results/playwright',
+  testMatch: process.env.QUANTUMLEARN_E2E_MISCONCEPTIONS === '1'
+    ? '**/misconceptions.e2e.ts'
+    : process.env.QUANTUMLEARN_E2E_LEARNING_LOOP === '1'
+    ? '**/learning-loop.e2e.ts'
+    : '**/*.e2e.ts',
+  testIgnore: process.env.QUANTUMLEARN_E2E_LEARNING_LOOP === '1' || process.env.QUANTUMLEARN_E2E_MISCONCEPTIONS === '1'
+    ? []
+    : ['**/learning-loop.e2e.ts', '**/misconceptions.e2e.ts'],
+  outputDir: process.env.QUANTUMLEARN_E2E_MISCONCEPTIONS === '1'
+    ? 'test-results/misconceptions'
+    : process.env.QUANTUMLEARN_E2E_LEARNING_LOOP === '1'
+    ? 'test-results/learning-loop'
+    : 'test-results/playwright',
   fullyParallel: false,
   forbidOnly: inCi,
   retries: inCi ? 2 : 0,

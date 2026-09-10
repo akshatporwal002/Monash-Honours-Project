@@ -234,7 +234,7 @@ def test_episode_freezes_conditional_evidence_and_reuses_assessment(db_session, 
     request = SubmissionCreate(**payload.model_dump(), idempotency_key="conditional-first")
     submitted = lms.submit(student, task.id, request)
     assert lms.submit(student, task.id, request).id == submitted.id
-    assert submitted.score is None
+    assert not hasattr(submitted, "score")
     reference = assessment_reference(db_session, submitted.id)
     reader = SqlAlchemyFrozenResponseReader(db_session)
     frozen = reader.read(assessment=reference)

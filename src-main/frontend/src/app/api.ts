@@ -119,7 +119,7 @@ interface RawTask {
   choices?: Array<{ id: string; text: string }>
   access_status?: 'locked' | 'available' | 'in_progress' | 'completed'
   attempt_count?: number
-  latest_score?: number | null
+
   latest_attempt?: ApiSchemas['LatestAttemptSummary'] | null
   assessment?: AssessmentConditions | null
 }
@@ -131,7 +131,7 @@ interface RawStudentDashboard {
     completed_tasks: number
     total_tasks: number
     completion_percentage: number
-    average_score: number | null
+
     points: number
     level: number
     next_level_points: number
@@ -174,13 +174,13 @@ interface RawEducatorDashboard {
   at_risk_students: number
   completion_percentage: number
   weekly_engagement: EducatorDashboardData['engagement']
-  task_type_performance: NonNullable<EducatorDashboardData['task_type_performance']>
-  concept_mastery: NonNullable<EducatorDashboardData['concept_mastery']>
+
+
   leaderboard: NonNullable<EducatorDashboardData['leaderboard']>
   recent_activity: Array<{
     student_name: string
     task_title: string
-    score: number | null
+
     formal_assessment?: FormalAssessmentSummary | null
     occurred_at: string
   }>
@@ -188,6 +188,7 @@ interface RawEducatorDashboard {
 
 interface RawEducatorStudent {
   student_id: string
+  user_id: number
   display_name: string
   email: string
   course_id: string
@@ -195,7 +196,7 @@ interface RawEducatorStudent {
   completed_tasks: number
   total_tasks: number
   completion_percentage: number
-  average_score: number | null
+
   last_active: string | null
   at_risk: boolean
   overdue_tasks: number
@@ -205,7 +206,7 @@ interface RawSubmission {
   episode?: EpisodePayload | null
   assessment_work_start_id?: string | null
   id?: string
-  score?: number | null
+
   formal_assessment?: FormalAssessmentSummary | null
   feedback?: string | null
   feedback_reference?: string | null
@@ -251,9 +252,9 @@ interface RawMaterial {
 interface RawSettings {
   llm_provider?: string
   llm_model?: string
-  at_risk_threshold: number
+
   reminders_enabled?: boolean
-  passing_score?: number
+
   points_per_level?: number
 }
 
@@ -298,7 +299,7 @@ function normalizeTask(task: RawTask): LearningTask {
     points: task.points,
     position: task.position,
     status: learningState(task.access_status),
-    score: task.latest_score ?? null,
+
     formal_assessment: task.latest_attempt?.formal_assessment ?? null,
     starter_code: task.starter_code,
     due_at: task.due_at,
@@ -334,7 +335,7 @@ function normalizeStudentDashboard(raw: RawStudentDashboard): StudentDashboardDa
       completed_tasks: raw.summary.completed_tasks,
       total_tasks: raw.summary.total_tasks,
       completion_percent: raw.summary.completion_percentage,
-      average_score: raw.summary.average_score,
+
       points: raw.summary.points,
       points_to_next_level: raw.summary.next_level_points,
       streak_days: 0,
@@ -376,6 +377,7 @@ function normalizeCourse(course: RawCourse): CourseSummary {
 function normalizeStudent(student: RawEducatorStudent): EducatorStudent {
   return {
     student_id: student.student_id,
+    user_id: student.user_id,
     display_name: student.display_name,
     email: student.email,
     course_id: student.course_id,
@@ -383,7 +385,7 @@ function normalizeStudent(student: RawEducatorStudent): EducatorStudent {
     completed_tasks: student.completed_tasks,
     total_tasks: student.total_tasks,
     completion_percent: student.completion_percentage,
-    average_score: student.average_score,
+
     last_active: student.last_active,
     risk: student.completed_tasks === 0 ? 'not_started' : student.at_risk ? 'at_risk' : 'on_track',
     overdue_tasks: student.overdue_tasks,
@@ -395,7 +397,7 @@ function normalizeSubmission(raw: RawSubmission): TaskSubmission {
     assessment_work_start_id: raw.assessment_work_start_id,
     episode: raw.episode,
     id: raw.id,
-    score: raw.score ?? null,
+
     formal_assessment: raw.formal_assessment ?? null,
     feedback: raw.feedback ?? null,
     feedback_reference: raw.feedback_reference ?? null,
@@ -424,8 +426,8 @@ function normalizeSettings(raw: RawSettings): SystemSettings {
   return {
     llm_provider: raw.llm_provider ?? '',
     llm_model: raw.llm_model ?? '',
-    at_risk_threshold: raw.at_risk_threshold,
-    passing_score: raw.passing_score ?? 70,
+
+
     points_per_level: raw.points_per_level ?? 500,
     reminders_enabled: raw.reminders_enabled ?? true,
   }
@@ -650,13 +652,13 @@ export const api = {
           actor: item.student_name,
           action: `${item.task_title} · ${item.formal_assessment
             ? 'Assessment response submitted. Formal result unavailable.'
-            : item.score === null ? 'Response submitted.' : `${item.score}% practice`}`,
+            : 'Practice response submitted.'}`,
           formal_assessment: item.formal_assessment ?? null,
           occurred_at: item.occurred_at,
         })),
         courses: raw.courses.map(normalizeCourse),
-        task_type_performance: raw.task_type_performance,
-        concept_mastery: raw.concept_mastery,
+
+
         leaderboard: raw.leaderboard,
       }
     },

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -67,7 +66,6 @@ from app.schemas.lms import (
     EducatorStudentRead,
     EnrollmentRead,
     FormalAssessmentSummary,
-    LabelScoreRead,
     LatestAttemptSummary,
     MaterialLinkCreate,
     ModuleCreate,
@@ -123,14 +121,6 @@ from app.services.task_types import (
 )
 
 DEFAULT_SETTINGS: dict[str, tuple[Any, str]] = {
-    "at_risk_threshold": (
-        70,
-        "Students with recorded work below this percentage are flagged at risk.",
-    ),
-    "passing_score": (
-        70,
-        "Minimum score that completes a task and unlocks its dependants.",
-    ),
     "points_per_level": (
         500,
         "Number of points required to advance one gamification level.",
@@ -978,8 +968,8 @@ class LmsService:
         draft.code = payload.code
         draft.circuit = payload.circuit
         draft.episode = payload.episode.model_dump(mode="json") if payload.episode else None
-        score, _ = self._grade(task, payload) if frozen_versions is None else (None, "")
-        passing_score = int(self._setting_value("passing_score"))
+        if frozen_versions is None:
+            self._validate_practice_response(task, payload)
         attempt_id = self._uuid()
         attempt = SubmissionAttempt(
             id=attempt_id,
@@ -988,16 +978,11 @@ class LmsService:
             student_id=student.id,
             task_id=task.id,
             attempt_number=len(previous) + 1,
-            status=(
-                AttemptStatus.COMPLETED
-                if score is not None and score >= passing_score
-                else AttemptStatus.SUBMITTED
-            ),
+            status=AttemptStatus.SUBMITTED,
             answer=payload.answer,
             code=payload.code,
             circuit=payload.circuit,
             episode=payload.episode.model_dump(mode="json") if payload.episode else None,
-            score=score,
             feedback="Submission recorded. Validated feedback is being prepared.",
             feedback_reference=attempt_id,
             task_form_version_id=(
@@ -1055,24 +1040,25 @@ class LmsService:
             LearningEventType.SUBMISSION,
             {
                 "attempt_number": attempt.attempt_number,
-                "score": float(score) if score is not None else None,
             },
             correlation_id=correlation_id,
         )
-        if attempt.status is AttemptStatus.COMPLETED:
+        from app.services.progress_activity import completed_practice_tasks
+
+        if task.id in completed_practice_tasks(self.session, student.id, [task.id]):
             self._learning_event(
                 student,
                 task,
                 LearningEventType.COMPLETION,
-                {"completion_status": "passed", "score": float(score)},
+                {"completion_status": "completed"},
                 correlation_id=correlation_id,
             )
             self._audit(
                 student,
                 "progress.updated",
-                "task",
-                task.id,
-                {"attempt_id": attempt.id},
+                "submission_attempt",
+                attempt.id,
+                {"task_id": task.id, "basis": "accepted_practice_response"},
             )
         student_tasks = self._student_tasks(student)
         self._persist_recommendations(
@@ -1141,7 +1127,6 @@ class LmsService:
         tasks = self._student_tasks(student)
         task_reads = [self._task_read(task, student) for task in tasks]
         completed = [task for task in task_reads if task.access_status == "completed"]
-        latest_scores = [task.latest_score for task in task_reads if task.latest_score is not None]
         course_rows = self.list_courses(student)
         course_progress = []
         for course in course_rows:
@@ -1188,9 +1173,6 @@ class LmsService:
                 completion_percentage=round(len(completed) / len(task_reads) * 100)
                 if task_reads
                 else 0,
-                average_score=round(sum(latest_scores) / len(latest_scores))
-                if latest_scores
-                else None,
                 points=profile.points if gamification_enabled else 0,
                 level=self.gamification.level(profile.points, points_per_level)
                 if gamification_enabled
@@ -1357,7 +1339,6 @@ class LmsService:
         course_id: str | None = None,
     ) -> list[EducatorStudentRead]:
         courses = self._educator_courses(educator, course_id)
-        threshold = int(self._setting_value("at_risk_threshold"))
         now = datetime.now(UTC)
         result: list[EducatorStudentRead] = []
         for course in courses:
@@ -1378,16 +1359,11 @@ class LmsService:
             ).all()
             for _, student, profile in enrollments:
                 attempts = self._latest_attempts(student.id, [task.id for task in tasks])
-                completed_ids = {
-                    attempt.task_id
-                    for attempt in attempts.values()
-                    if attempt.status is AttemptStatus.COMPLETED
-                }
-                scores = [
-                    attempt.score
-                    for attempt in attempts.values()
-                    if attempt.score is not None and attempt.task_form_version_id is None
-                ]
+                from app.services.progress_activity import completed_practice_tasks
+
+                completed_ids = completed_practice_tasks(
+                    self.session, student.id, [task.id for task in tasks]
+                )
                 from app.services.reminders import ReminderService
 
                 deadlines = ReminderService(self.session)
@@ -1397,7 +1373,6 @@ class LmsService:
                     and _aware(due) < now
                     for task in tasks
                 )
-                average = round(sum(scores) / len(scores)) if scores else None
                 result.append(
                     EducatorStudentRead(
                         student_id=profile.id,
@@ -1411,13 +1386,11 @@ class LmsService:
                         completion_percentage=(
                             round(len(completed_ids) / len(tasks) * 100) if tasks else 0
                         ),
-                        average_score=average,
                         last_active=max(
                             (attempt.submitted_at for attempt in attempts.values()),
                             default=None,
                         ),
-                        at_risk=bool(attempts)
-                        and ((average is not None and average < threshold) or overdue > 0),
+                        at_risk=overdue > 0,
                         overdue_tasks=overdue,
                     )
                 )
@@ -1486,51 +1459,17 @@ class LmsService:
                     submissions=len(day_attempts),
                 )
             )
-        by_type: dict[str, list[int]] = defaultdict(list)
-        by_outcome: dict[str, list[int]] = defaultdict(list)
-        for attempt in attempts:
-            task = tasks.get(attempt.task_id)
-            if task is None or attempt.score is None or attempt.task_form_version_id is not None:
-                continue
-            by_type[task.task_type.value].append(attempt.score)
-            if task.learning_outcome_id:
-                by_outcome[task.learning_outcome_id].append(attempt.score)
-        outcomes = (
-            {
-                outcome.id: outcome.title
-                for outcome in self.session.scalars(
-                    select(LearningOutcome).where(LearningOutcome.id.in_(by_outcome))
-                ).all()
-            }
-            if by_outcome
-            else {}
-        )
         return EducatorDashboardRead(
             courses=course_reads,
             total_students=len(unique_students),
             at_risk_students=len({row.student_id for row in students if row.at_risk}),
             completion_percentage=round(completed_tasks / total_tasks * 100) if total_tasks else 0,
             weekly_engagement=weekly,
-            task_type_performance=[
-                LabelScoreRead(
-                    label=task_type.replace("_", " ").title(),
-                    score=round(sum(scores) / len(scores)),
-                )
-                for task_type, scores in sorted(by_type.items())
-            ],
-            concept_mastery=[
-                LabelScoreRead(
-                    label=outcomes.get(outcome_id, "Learning outcome"),
-                    score=round(sum(scores) / len(scores)),
-                )
-                for outcome_id, scores in by_outcome.items()
-            ],
             leaderboard=[],
             recent_activity=[
                 RecentActivityRead(
                     student_name=users[attempt.student_id].full_name,
                     task_title=tasks[attempt.task_id].title,
-                    score=attempt.score if attempt.task_form_version_id is None else None,
                     formal_assessment=self._formal_assessment_read(attempt),
                     occurred_at=attempt.submitted_at,
                 )
@@ -1976,19 +1915,15 @@ class LmsService:
 
         if ReassessmentService(self.session).bypass_prerequisites(student.id, task.id):
             return
-        completed = set(
-            self.session.scalars(
-                select(SubmissionAttempt.task_id)
-                .where(
-                    SubmissionAttempt.student_id == student.id,
-                    SubmissionAttempt.status == AttemptStatus.COMPLETED,
-                )
-                .distinct()
-            ).all()
-        )
-        from app.services.curriculum import pathway_completions, pathway_progress
+        from app.services.curriculum import pathway_progress
+        from app.services.progress_activity import completed_practice_tasks
 
-        completed |= pathway_completions(self.session, student.id, task)
+        related_ids = list(
+            self.session.scalars(
+                select(LearningTask.id).where(LearningTask.course_id == task.course_id)
+            )
+        )
+        completed = completed_practice_tasks(self.session, student.id, related_ids)
         bypassed, prerequisites, _ = pathway_progress(self.session, student.id, task)
         missing = prerequisites - completed - bypassed
         if missing:
@@ -2066,19 +2001,15 @@ class LmsService:
             )
             latest = attempts[0] if attempts else None
             attempt_count = len(attempts)
-            completed_ids = set(
-                self.session.scalars(
-                    select(SubmissionAttempt.task_id)
-                    .where(
-                        SubmissionAttempt.student_id == student.id,
-                        SubmissionAttempt.status == AttemptStatus.COMPLETED,
-                    )
-                    .distinct()
-                ).all()
-            )
-            from app.services.curriculum import pathway_completions, pathway_progress
+            from app.services.curriculum import pathway_progress
+            from app.services.progress_activity import completed_practice_tasks
 
-            completed_ids |= pathway_completions(self.session, student.id, task)
+            related_ids = list(
+                self.session.scalars(
+                    select(LearningTask.id).where(LearningTask.course_id == task.course_id)
+                )
+            )
+            completed_ids = completed_practice_tasks(self.session, student.id, related_ids)
             bypassed, prerequisites, _ = pathway_progress(self.session, student.id, task)
             if task.id in completed_ids:
                 access_status = "completed"
@@ -2134,12 +2065,10 @@ class LmsService:
             starter_circuit=criteria.get("starter_circuit"),
             access_status=access_status,
             attempt_count=attempt_count,
-            latest_score=latest.score if latest and latest.task_form_version_id is None else None,
             latest_attempt=LatestAttemptSummary(
                 id=latest.id,
                 attempt_number=latest.attempt_number,
                 status=latest.status,
-                score=latest.score if latest.task_form_version_id is None else None,
                 submitted_at=latest.submitted_at,
                 formal_assessment=self._formal_assessment_read(latest),
             )
@@ -2179,11 +2108,11 @@ class LmsService:
             ),
         )
 
-    def _grade(
+    def _validate_practice_response(
         self,
         task: LearningTask,
         payload: SubmissionCreate,
-    ) -> tuple[int | None, str]:
+    ) -> None:
         from app.services.task_types import EPISODE_TASK_TYPES
 
         if task.task_type.value in EPISODE_TASK_TYPES:
@@ -2195,17 +2124,12 @@ class LmsService:
                 field = payload.episode.transfer
             if field is None:
                 raise _unprocessable(f"Complete the {task.task_type.value} response")
-            return None, "Response recorded for criterion review."
+            return
         try:
-            correct = self.task_types.is_correct(task.task_type, task, payload)
+            # Retain task-handler payload validation. A practice match is never a grade.
+            self.task_types.is_correct(task.task_type, task, payload)
         except (InvalidTaskSubmissionError, UnsupportedTaskTypeError) as error:
             raise _unprocessable(str(error)) from error
-        if correct:
-            return 100, "Correct. You can continue to the next unlocked task."
-        return (
-            40,
-            "Review the learning outcome, correct the highlighted concept, and try again.",
-        )
 
     @staticmethod
     def _submission_digest(payload: SubmissionCreate) -> str:
@@ -2243,7 +2167,6 @@ class LmsService:
             task_id=attempt.task_id,
             attempt_number=attempt.attempt_number,
             status=attempt.status,
-            score=attempt.score if attempt.task_form_version_id is None else None,
             formal_assessment=LmsService._formal_assessment_read(attempt),
             answer=attempt.answer,
             code=attempt.code,
@@ -2306,21 +2229,16 @@ class LmsService:
         )
         if not enrolled_course_ids:
             return None
-        completed_ids = set(
-            self.session.scalars(
-                select(SubmissionAttempt.task_id)
-                .where(
-                    SubmissionAttempt.student_id == student_id,
-                    SubmissionAttempt.status == AttemptStatus.COMPLETED,
-                )
-                .distinct()
-            ).all()
-        )
         tasks = self.session.scalars(
             select(LearningTask)
             .where(LearningTask.course_id.in_(enrolled_course_ids))
             .order_by(LearningTask.position)
         ).all()
+        from app.services.progress_activity import completed_practice_tasks
+
+        completed_ids = completed_practice_tasks(
+            self.session, student_id, [task.id for task in tasks]
+        )
         return next((task for task in tasks if task.id not in completed_ids), None)
 
     def _achievement_reads(self, profile: StudentProfile) -> list[AchievementRead]:
@@ -2454,28 +2372,16 @@ class LmsService:
             ).all()
         )
         possible_completions = len(task_ids) * student_count
-        completed_count = (
-            len(
-                self.session.execute(
-                    select(
-                        SubmissionAttempt.student_id,
-                        SubmissionAttempt.task_id,
-                    )
-                    .join(
-                        Enrollment,
-                        Enrollment.student_id == SubmissionAttempt.student_id,
-                    )
-                    .where(
-                        Enrollment.course_id == course.id,
-                        Enrollment.status == EnrollmentStatus.ACTIVE,
-                        SubmissionAttempt.task_id.in_(task_ids),
-                        SubmissionAttempt.status == AttemptStatus.COMPLETED,
-                    )
-                    .distinct()
-                ).all()
+        from app.services.progress_activity import completed_practice_tasks
+
+        learners = self.session.scalars(
+            select(Enrollment.student_id).where(
+                Enrollment.course_id == course.id, Enrollment.status == EnrollmentStatus.ACTIVE
             )
-            if task_ids and student_count
-            else 0
+        )
+        completed_count = sum(
+            len(completed_practice_tasks(self.session, learner_id, task_ids))
+            for learner_id in learners
         )
         return CourseRead(
             id=course.id,

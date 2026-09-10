@@ -42,7 +42,6 @@ def test_gamification_awards_each_task_once_and_recalculates_level(db_session) -
         task_id=task.id,
         attempt_number=1,
         status=AttemptStatus.COMPLETED,
-        score=100,
         feedback="Validated feedback is pending.",
         feedback_reference="attempt-1",
     )

@@ -151,6 +151,11 @@ class FrozenReviewEvidenceReader:
             reference = self.reference(attempt)
             response = self.reader.read(assessment=reference)
             result["response"] = response
+            from app.services.misconception_support import teaching_result_issue
+
+            support_issue = teaching_result_issue(response.recorded_teaching)
+            if support_issue:
+                result["issues"].append(support_issue)
         except errors:
             result["issues"].append(
                 "Frozen response evidence is unavailable or stale. Technical review is required."

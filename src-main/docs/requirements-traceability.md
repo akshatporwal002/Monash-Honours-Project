@@ -107,6 +107,26 @@ used, inspected, copied, or treated as a design source.**
 
 ## Release interpretation
 
+Task 27's [delivery record](../../docs/learnlens/task-27-misconception-cycle.md)
+adds direct evidence for FR34 and AC13: reviewed hypotheses, probes, targeted help,
+revision, fresh checks, state history and educator corrections. BP5 support
+records now include misconception teaching in later practice and formal work.
+Answer-revealing help remains outside formal result evidence. Task 28 receives
+unresolved-cycle signals, extending PD7, FR38 and NFR20 evidence. The focused
+backend batch passed 51 checks; both independent reviews have no open findings.
+Combined verification remains recorded in that delivery record.
+
+Task 25's local [connected-loop record](../../docs/learnlens/task-25-complete-learning-loop.md)
+adds direct service and browser evidence for FR12, FR14-FR19, FR23 and FR28.
+The saved prediction and transfer observations now reach the learner model without
+changing formal results. A real worker-kill test reuses one committed model snapshot
+after restart, adding scoped NFR23 evidence. The complete-loop browser check also
+exercises human confirmation, assessor queue routing and result visibility.
+Final local checks passed 1,243 backend tests with 87.91% service coverage,
+273 frontend tests and all four new browser journeys. Existing browser regression
+passed 119 of 120 cases; the WebKit timeout passed unchanged in a focused rerun.
+manual accessibility, live-provider and study evidence remain separate.
+
 “Automated” means a directly relevant test exists; it does not waive a stricter external
 measurement stated by another NFR. This historical MVP matrix is not a complete audit of the expanded LearnLens requirements.
 Tasks 36, 37 and 39 remain partial; a complete release claim still requires:

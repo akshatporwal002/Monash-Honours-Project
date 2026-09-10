@@ -30,7 +30,7 @@ from app.schemas.lms import SubmissionCreate
 from app.services.lms import DEMO_PASSWORD, LmsService
 
 
-def prepare_reads(session: Session, legacy_score: int | None):
+def prepare_reads(session: Session, with_practice: bool):
     users, _ = bootstrap_reviewed_demo(session)
     student = next(user for user in users if user.role is UserRole.STUDENT)
     definition, _, _, _, form, owner = build_assessment_blueprint(session)
@@ -39,7 +39,7 @@ def prepare_reads(session: Session, legacy_score: int | None):
     assert course is not None and task is not None
     course.state = CourseState.PUBLISHED
     session.add(Enrollment(course_id=course.id, student_id=student.id))
-    if legacy_score is not None:
+    if with_practice:
         draft = SubmissionDraft(student_id=student.id, task_id=task.id)
         session.add(draft)
         session.flush()
@@ -51,7 +51,6 @@ def prepare_reads(session: Session, legacy_score: int | None):
                 attempt_number=1,
                 status=AttemptStatus.SUBMITTED,
                 answer="Earlier practice",
-                score=25,
                 feedback="Recorded.",
             )
         )
@@ -84,7 +83,6 @@ def prepare_reads(session: Session, legacy_score: int | None):
                 attempt_number=1,
                 status=AttemptStatus.SUBMITTED,
                 answer="Practice",
-                score=legacy_score,
                 feedback="Recorded.",
             )
         )
@@ -121,18 +119,16 @@ def prepare_reads(session: Session, legacy_score: int | None):
             idempotency_key="assessed-read-test",
         ),
     )
-    assert attempt.score is None
+    assert not hasattr(attempt, "score")
     return student, owner, course, task
 
 
-@pytest.mark.parametrize("legacy_score", (None, 0, 80))
+@pytest.mark.parametrize("with_practice", (False, True))
 @pytest.mark.parametrize(
     "path", ("task", "student_dashboard", "educator_students", "educator_dashboard", "history")
 )
-def test_reads_after_formal_submission(
-    db_session: Session, legacy_score: int | None, path: str
-) -> None:
-    student, owner, course, task = prepare_reads(db_session, legacy_score)
+def test_reads_after_formal_submission(db_session: Session, with_practice: bool, path: str) -> None:
+    student, owner, course, task = prepare_reads(db_session, with_practice)
     actor = owner if path.startswith("educator") else student
     app = create_app()
     app.dependency_overrides[get_db] = lambda: db_session
@@ -156,35 +152,35 @@ def test_reads_after_formal_submission(
         assert response.status_code == 200, response.text
         data = response.json()
     if path == "task":
-        assert data["latest_score"] is None
-        assert data["latest_attempt"]["score"] is None
+        assert "latest_score" not in data
+        assert "score" not in data["latest_attempt"]
         assert data["latest_attempt"]["formal_assessment"] == {
             "result": None,
             "visibility": "withheld",
         }
         assert data["assessment"]["criteria"][0]["mandatory"] is True
     elif path == "student_dashboard":
-        assert data["summary"]["average_score"] == legacy_score
+        assert "average_score" not in data["summary"]
         assert data["recommendations"]
-        if legacy_score is None:
+        if not with_practice:
             assert all("%" not in item["reason"] for item in data["recommendations"])
     elif path == "educator_students":
-        assert data[0]["average_score"] == legacy_score
-        if legacy_score is None:
+        assert "average_score" not in data[0]
+        if not with_practice:
             assert data[0]["at_risk"] is False
     elif path == "educator_dashboard":
-        assert any(item["score"] is None for item in data["recent_activity"])
+        assert all("score" not in item for item in data["recent_activity"])
         formal = next(item for item in data["recent_activity"] if item["formal_assessment"])
         assert formal["formal_assessment"] == {"result": None, "visibility": "withheld"}
-        if legacy_score is None:
-            assert data["task_type_performance"] == []
-            assert data["concept_mastery"] == []
+        if not with_practice:
+            assert "task_type_performance" not in data
+            assert "concept_mastery" not in data
     else:
-        assert data[0]["score"] is None
+        assert "score" not in data[0]
         assert data[0]["formal_assessment"] == {"result": None, "visibility": "withheld"}
-        assert len(data) == (1 if legacy_score is None else 2)
-        if legacy_score is not None:
-            assert data[1]["score"] == 25
+        assert len(data) == (1 if not with_practice else 2)
+        if with_practice:
+            assert "score" not in data[1]
             assert data[1]["formal_assessment"] is None
     stored = db_session.scalars(
         select(SubmissionAttempt).where(SubmissionAttempt.task_id == task.id)

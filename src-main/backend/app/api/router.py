@@ -17,6 +17,8 @@ from app.api.routes import (
     learning_events,
     lms,
     materials,
+    misconceptions,
+    progress,
     reassessment,
     reminders,
     research_exports,
@@ -28,6 +30,7 @@ from app.api.routes import (
 )
 
 api_router = APIRouter()
+api_router.include_router(progress.router)
 api_router.include_router(health.router, tags=["health"])
 api_router.include_router(authentication.router, tags=["authentication"])
 api_router.include_router(lms.router, tags=["learning management"])
@@ -53,6 +56,7 @@ api_router.include_router(research_exports.router, tags=["research"])
 api_router.include_router(curriculum.router)
 
 api_router.include_router(activity_continuation.router)
+api_router.include_router(misconceptions.router)
 
 
 api_router.include_router(support_preferences.router)

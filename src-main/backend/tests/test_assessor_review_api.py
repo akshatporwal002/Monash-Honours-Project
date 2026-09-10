@@ -348,7 +348,6 @@ def test_review_queue_query_count_is_constant_as_records_grow(db_session: Sessio
         attempt_number=2,
         status=first_response.status,
         answer="The second response links the observation to the claim.",
-        score=None,
         feedback="Response recorded.",
         task_form_version_id=first_response.task_form_version_id,
         response_schema_version=first_response.response_schema_version,

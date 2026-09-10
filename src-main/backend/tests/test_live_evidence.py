@@ -23,7 +23,7 @@ def test_episode_commands_capture_ordered_evidence_and_replay(db_session):
     before = list(db_session.scalars(select(LearningEvidence.id)))
     assert lms.submit(student, task.id, command).id == response.id
     assert list(db_session.scalars(select(LearningEvidence.id))) == before
-    assert response.score is None
+    assert not hasattr(response, "score")
 
 
 def test_failed_evidence_write_rolls_back_submission_and_keeps_prior_history(

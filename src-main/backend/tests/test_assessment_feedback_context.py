@@ -213,7 +213,7 @@ def test_collector_uses_frozen_task_context_without_legacy_marking_fields(
 
     context = asyncio.run(collector.collect(submission, "00000000-0000-4000-8000-000000000001"))
 
-    assert context.submission.score is None
+    assert not hasattr(context.submission, "score")
     assert context.assessment_context is not None
     assert context.task == context.assessment_context.task
     assert context.task.marking_criteria is not None
@@ -244,7 +244,6 @@ def test_provider_fails_closed_for_cross_course_stale_and_missing_context(
         attempt_number=2,
         status=AttemptStatus.SUBMITTED,
         answer="A second immutable response without its assessment attempt.",
-        score=None,
         feedback="Response recorded.",
         task_form_version_id=attempt.task_form_version_id,
         response_schema_version="assessment.response.v1",

@@ -48,7 +48,7 @@ const defaultOptions = [
 
 function attemptLabel(attempt: TaskSubmission): string {
   if (attempt.formal_assessment) return 'Assessment response saved'
-  return attempt.score === null ? 'Response saved' : `${attempt.score}%`
+  return 'Response saved'
 }
 
 function taskMode(task: LearningTask): 'mcq' | 'multi' | 'code-explanation' | 'code-completion' | 'circuit' | 'text' | 'unsupported' {
@@ -514,7 +514,7 @@ export function TaskView({
       {preferenceError && <p role="status">{preferenceError} <Button onClick={() => setPreferenceReload(value => value + 1)}>Retry workspace preferences</Button></p>}
       {effective && <PreferenceWorkspace effective={transferActive ? { ...effective, transfer: true, repeat_allowed: false } : effective} disabled={busy || draftLoading || workConflict || Boolean(task.assessment && !workStartId)} onBreak={() => void saveBreak()} onRepeat={() => { if (dirty) setStatusMessage('Save your current draft before starting another practice draft.'); else void repeatPractice() }} />}
 
-      <div id="task-response" tabIndex={-1} className={styles.layout}>
+      <div className={styles.layout}>
         <aside className={styles.brief}>
           <Card eyebrow="Your mission">
             <h2 className={styles.briefTitle}>{task.description}</h2>

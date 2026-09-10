@@ -267,7 +267,7 @@ def test_normal_submission_uses_one_durable_job_and_withholds_the_decision(
         assert history.status_code == task.status_code == 200
         assert len(history.json()) == 1
         for summary in (history.json()[0], task.json()["latest_attempt"]):
-            assert summary["score"] is None
+            assert "score" not in summary
             assert summary["formal_assessment"] == {"result": None, "visibility": "withheld"}
     db_session.expire_all()
     assert len(db_session.scalars(select(SubmissionAttempt)).all()) == 1

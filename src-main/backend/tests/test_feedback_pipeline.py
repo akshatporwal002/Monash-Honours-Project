@@ -65,7 +65,6 @@ def submission() -> SubmissionContext:
         student_id="student-pseudonym",
         attempt_number=1,
         submitted_answer="A qubit can be in a combination of zero and one.",
-        score=0.8,
         submitted_at=STARTED_AT,
     )
 

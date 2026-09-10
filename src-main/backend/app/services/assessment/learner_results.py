@@ -64,6 +64,11 @@ class LearnerResultService:
 
     def read(self, learner: User, response_id: str) -> LearnerResultRead:
         attempt = self._owned_attempt(learner, response_id)
+        return self.project_authorized(attempt)
+
+    def project_authorized(self, attempt: AssessmentAttempt) -> LearnerResultRead:
+        """Project released fields after the caller has authorized the frozen attempt scope."""
+        response_id = attempt.response_version_id
         decision = self.session.scalar(
             select(AssessmentDecision).where(AssessmentDecision.assessment_attempt_id == attempt.id)
         )
