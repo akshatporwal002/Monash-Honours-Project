@@ -1,0 +1,772 @@
+{
+  "$defs": {
+    "Adjudication": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "task",
+            "feedback",
+            "evaluation",
+            "judge",
+            "assessment"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "reviewer_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Reviewer Id",
+          "type": "string"
+        },
+        "rating_ids": {
+          "items": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Rating Ids",
+          "type": "array"
+        },
+        "rationale": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "decided_at": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Decided At",
+          "type": "string"
+        },
+        "values": {
+          "$ref": "#/$defs/Values"
+        }
+      },
+      "required": [
+        "case_id",
+        "channel",
+        "reviewer_id",
+        "rating_ids",
+        "rationale",
+        "decided_at",
+        "values"
+      ],
+      "title": "Adjudication",
+      "type": "object"
+    },
+    "Case": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "DRAFT",
+          "title": "Status",
+          "type": "string"
+        },
+        "family": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Family",
+          "type": "string"
+        },
+        "task_type": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "variant": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Variant",
+          "type": "string"
+        },
+        "access_form": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Access Form",
+          "type": "string"
+        },
+        "style": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Style",
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "supported",
+            "unaided_transfer"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "criteria": {
+          "additionalProperties": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Criteria",
+          "type": "object"
+        },
+        "prompt": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "response": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Response",
+          "type": "string"
+        },
+        "draft_expected": {
+          "additionalProperties": {
+            "enum": [
+              "MET",
+              "NOT_MET",
+              "NOT_EVALUABLE"
+            ],
+            "type": "string"
+          },
+          "title": "Draft Expected",
+          "type": "object"
+        },
+        "draft_rationale": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Draft Rationale",
+          "type": "string"
+        },
+        "draft_feedback_candidate": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Draft Feedback Candidate",
+          "type": "string"
+        },
+        "draft_judge_flawed": {
+          "title": "Draft Judge Flawed",
+          "type": "boolean"
+        },
+        "draft_judge_rationale": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Draft Judge Rationale",
+          "type": "string"
+        },
+        "reviewer_decision": {
+          "default": null,
+          "title": "Reviewer Decision",
+          "type": "null"
+        },
+        "reviewer_provenance": {
+          "default": null,
+          "title": "Reviewer Provenance",
+          "type": "null"
+        }
+      },
+      "required": [
+        "case_id",
+        "status",
+        "family",
+        "task_type",
+        "variant",
+        "access_form",
+        "style",
+        "stage",
+        "source_ids",
+        "criteria",
+        "prompt",
+        "response",
+        "draft_expected",
+        "draft_rationale",
+        "draft_feedback_candidate",
+        "draft_judge_flawed",
+        "draft_judge_rationale"
+      ],
+      "title": "Case",
+      "type": "object"
+    },
+    "CaseApproval": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "case_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Digest",
+          "type": "string"
+        },
+        "manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Manifest Digest",
+          "type": "string"
+        },
+        "reviewer_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Reviewer Id",
+          "type": "string"
+        },
+        "approval_reference": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Approval Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "case_digest",
+        "manifest_digest",
+        "reviewer_id",
+        "approval_reference"
+      ],
+      "title": "CaseApproval",
+      "type": "object"
+    },
+    "Manifest": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "task35-manifest-v1",
+          "title": "Version",
+          "type": "string"
+        },
+        "components": {
+          "additionalProperties": {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "title": "Components",
+          "type": "object"
+        },
+        "files": {
+          "additionalProperties": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "object"
+        },
+        "source_references": {
+          "items": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "title": "Source References",
+          "type": "array"
+        },
+        "provenance": {
+          "enum": [
+            "DRAFT",
+            "SYNTHETIC",
+            "RECORDED"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "components",
+        "files",
+        "source_references",
+        "provenance"
+      ],
+      "title": "Manifest",
+      "type": "object"
+    },
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "task",
+            "feedback",
+            "evaluation",
+            "judge",
+            "assessment"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Manifest Digest",
+          "type": "string"
+        },
+        "case_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Digest",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "RECORDED",
+            "MISSING",
+            "INVALID",
+            "ABSTAINED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "title": "Text",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "judge_decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "APPROVED",
+                "REJECTED"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Judge Decision"
+        },
+        "criteria": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "enum": [
+                  "MET",
+                  "NOT_MET",
+                  "NOT_EVALUABLE"
+                ],
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Criteria"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "enum": [
+                "PASS",
+                "INCOMPLETE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result"
+        }
+      },
+      "required": [
+        "case_id",
+        "channel",
+        "manifest_digest",
+        "case_digest",
+        "state"
+      ],
+      "title": "Output",
+      "type": "object"
+    },
+    "Rating": {
+      "additionalProperties": false,
+      "properties": {
+        "rating_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Rating Id",
+          "type": "string"
+        },
+        "case_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "task",
+            "feedback",
+            "evaluation",
+            "judge",
+            "assessment"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "reviewer_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Reviewer Id",
+          "type": "string"
+        },
+        "rated_at": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(?:Z|[+-]\\d{2}:\\d{2})$",
+          "title": "Rated At",
+          "type": "string"
+        },
+        "manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Manifest Digest",
+          "type": "string"
+        },
+        "case_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Digest",
+          "type": "string"
+        },
+        "output_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Digest"
+        },
+        "state": {
+          "enum": [
+            "RATED",
+            "ABSTAINED",
+            "INVALID"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "rationale": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "independent": {
+          "const": true,
+          "title": "Independent",
+          "type": "boolean"
+        },
+        "values": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Values"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "rating_id",
+        "case_id",
+        "channel",
+        "reviewer_id",
+        "rated_at",
+        "manifest_digest",
+        "case_digest",
+        "state",
+        "rationale",
+        "independent"
+      ],
+      "title": "Rating",
+      "type": "object"
+    },
+    "Reviewer": {
+      "additionalProperties": false,
+      "properties": {
+        "reviewer_id": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Reviewer Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Name",
+          "type": "string"
+        },
+        "expertise_reference": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Expertise Reference",
+          "type": "string"
+        },
+        "training_reference": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Training Reference",
+          "type": "string"
+        },
+        "appointment_reference": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Appointment Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewer_id",
+        "name",
+        "expertise_reference",
+        "training_reference",
+        "appointment_reference"
+      ],
+      "title": "Reviewer",
+      "type": "object"
+    },
+    "Values": {
+      "additionalProperties": false,
+      "properties": {
+        "factual_correct": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Factual Correct"
+        },
+        "hallucination": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hallucination"
+        },
+        "feedback_ratings": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "maximum": 5,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Feedback Ratings"
+        },
+        "incomplete_response": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Incomplete Response"
+        },
+        "next_action_and_revision": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Action And Revision"
+        },
+        "flawed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Flawed"
+        },
+        "criteria": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "enum": [
+                  "MET",
+                  "NOT_MET",
+                  "NOT_EVALUABLE"
+                ],
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Criteria"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "enum": [
+                "PASS",
+                "INCOMPLETE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result"
+        }
+      },
+      "title": "Values",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "task35-review-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "enum": [
+        "SYNTHETIC",
+        "EXPERT_RECORDED"
+      ],
+      "title": "Provenance",
+      "type": "string"
+    },
+    "manifest": {
+      "$ref": "#/$defs/Manifest"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/Case"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Cases",
+      "type": "array"
+    },
+    "reviewers": {
+      "items": {
+        "$ref": "#/$defs/Reviewer"
+      },
+      "title": "Reviewers",
+      "type": "array"
+    },
+    "approvals": {
+      "items": {
+        "$ref": "#/$defs/CaseApproval"
+      },
+      "title": "Approvals",
+      "type": "array"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/Output"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+    "ratings": {
+      "items": {
+        "$ref": "#/$defs/Rating"
+      },
+      "title": "Ratings",
+      "type": "array"
+    },
+    "adjudications": {
+      "items": {
+        "$ref": "#/$defs/Adjudication"
+      },
+      "title": "Adjudications",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "provenance",
+    "manifest",
+    "cases"
+  ],
+  "title": "Bundle",
+  "type": "object"
+}
