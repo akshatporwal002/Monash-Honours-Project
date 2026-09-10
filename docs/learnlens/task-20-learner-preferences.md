@@ -1,9 +1,7 @@
 # Task 20: Learner preferences
 
-Status: implemented and locally verified in `feat/task-20-learner-preferences`; uncommitted.
-Worktree: `.tmp-coordinator/task20`. Base: `65a9457d27e849465e7f227471336552bb22b8b4`, verified after fetching origin.
-No commit, push, pull request, merge, hosted deployment, or Task 21 work is included.
-The original untracked implementation handoff remains in the main worktree.
+This records the original implementation and local verification of Task 20.
+The [Task 22 integration record](task-22-main-integration.md) describes the later shared preference storage and migration sequence.
 
 ## What now works
 
@@ -113,22 +111,13 @@ Completed checks:
 - First full backend run: 1,104 passed and one migration replay failure, with 86.55% service coverage.
   The additive migration now handles replay; its focused regression passes.
 - Second full backend run: interrupted after the disk filled and caused migration failures.
-  Only completed Task 20 scratch data and the audit download cache were removed.
 - Final full backend run: 1,106 passed with 86.99% service statement coverage.
   This includes all 31 cases in `test_migrations.py`, plus the Task 20 migration/history tests.
   The final focused migration-recovery suite also passed after the missing-guard recovery change.
 
-Logs and local browser evidence are under `src-main/backend/.tmp-task20`.
-The complete backend receipt is `backend-full3.log`; the complete frontend receipt is `frontend-final.log`.
-Existing browser receipts are `browser-full1.log` and the successful Firefox rerun, `browser-firefox2.log`.
-The new four-browser preference receipt is `browser-preferences-four.log`.
-The final authenticated receipt is `browser-1788872750698/result.json`, with `preferences-mobile.png` beside it.
-Gitleaks over nonzero Task 20 commits is not applicable because no Task 20 commit exists.
-
 ## Review and limits
 
-The coordinator completed separate Standards, Spec, and Test Judge self-reviews.
-The user's instruction prohibits sub-agents, so independent agent reviews are not claimed.
+Separate Standards, Spec, and Test Judge self-reviews checked the implementation; independent review is not claimed.
 Standards checks cover scope, additive migration, typed contracts, source ownership, and unrelated-work preservation.
 Spec checks cover every requested control, global versus effective state, opt-out, transfer, and protected assessment history.
 Test Judge checks cover real persistence, owner denial, concurrency, transaction failure, and the authenticated browser path.

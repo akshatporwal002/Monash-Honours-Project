@@ -8,20 +8,6 @@ configuration format, bounded budgets, human-review workflow and exact later
 campaign instructions are in the [harness guide](../../src-main/backend/scripts/task38_benchmark/README.md).
 The [smoke summary](task-38-smoke-summary.json) is explicitly synthetic.
 
-Branch: `codex/task38-load-cost-harness`.
-Actual starting commit: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4` on local `main`.
-Separate worktree:
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-task38-worktree`.
-`git status --short` was empty there before editing. The original checkout had
-untracked `docs/learnlens/main-audit-2026-09-10.md` and
-`docs/learnlens/parallel-assignments-2026-09-10/`; neither was edited.
-The audit was read from the explicitly supplied original absolute path. The
-five requested requirements/policy files were read in the worktree. No GitHub
-access, integration credentials, global Git configuration, merge or push was used.
-Before committing, both `git var GIT_AUTHOR_IDENT` and
-`git var GIT_COMMITTER_IDENT` with command-scoped personal identity settings
-resolved to `Jordan Tran <226841807+jordann-trann@users.noreply.github.com>`.
-
 ## Requirements prepared
 
 - **NFR7:** separate ordinary/progress/formative-feedback p95, HTTP errors,
@@ -97,7 +83,7 @@ harness; no production data migration or history rollback is involved.
 ## Verification and exact commands
 
 Working directory for checks:
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-task38-worktree/src-main/backend`.
+`src-main/backend`.
 The coordinator's existing Python environment was used read-only; no dependency
 install or shared runtime change occurred. In the commands below `$task38Python`
 is exactly:

@@ -1,16 +1,10 @@
-# Tasks 36, 37 and 39: independent validation batch
+# Tasks 36, 37 and 39: validation batch
 
 Date: 9 September 2026. All three tasks remain partial.
 
 ## Isolation and boundaries
 
-Base: freshly fetched `origin/main` at `e3ce194`.
-Branch: `jordan/validation-36-37-39-20260909`.
-Worktree: `C:/Users/Jordan.Tran/Downloads/Honours Project/learnlens-validation-36-37-39`.
-The original checkout had Task 40 changes and was inspected read-only. No original-checkout
-switch, stash, clean, staging or commit was performed. Tasks 21, 22 and 40 are excluded.
-GitHub authentication verified `jordann-trann` with repository push permission. Commits use
-Jordan Tran, `226841807+jordann-trann@users.noreply.github.com`; no global Git settings changed.
+Tested baseline: `e3ce194`. Tasks 21, 22 and 40 are excluded from these implementation changes.
 
 ## Gaps, changes and evidence
 
@@ -87,8 +81,7 @@ The code commits are listed below; documentation records the results without cha
 
 Execution qualifications:
 
-- Broad checks were paused while Task 40's broad checks ran, then resumed. Existing frontend
-  timeouts and one worker-start failure were retained in the raw log, not counted as passes.
+- Existing frontend timeouts and one worker-start failure were retained in the raw log, not counted as passes.
   The assessor loop also timed out when isolated; separating independent cases fixed it at the
   same timeout. Course persistence also timed out on rerun; using one user paste preserves its
   value/reload/delete assertions without measuring each keystroke. Dedicated keyboard tests still
@@ -103,16 +96,7 @@ Execution qualifications:
   created; that setup was corrected and the failed log retained. Machine settings and source
   storage assertions remain unchanged. This is not validation of arbitrary Windows path lengths.
 
-Local raw logs are in `.tmp-validation/` in the isolated worktree; browser artifacts are in
-`src-main/frontend/test-results/` and the retained headed failures in
-`.tmp-validation/browser-headed-artifacts/`. These transient outputs are not source deliverables.
-
 ## Integration and remaining acceptance
-
-The only observed changed-file overlap with Task 40's isolated branch at `b3164a8` is
-`LearnLens_Remaining_Tasks.md`. This is a file overlap, not a tested merge conflict. Preserve
-Task 40's status and delivery note when integrating the three task-list additions. No Task 40
-implementation or extension guide was changed. Do not merge this branch into main out of sequence.
 
 Task 36 still needs every expanded FR/PD/BP/NFR/AC/AT row reconciled and combined validation after
 outstanding features. Task 37 still needs complete-system adaptation/research, live-provider,

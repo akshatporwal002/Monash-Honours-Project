@@ -4,6 +4,13 @@ Status: implemented and locally verified; independent review and integration rem
 
 ## Learner behavior
 
+The accepted interaction policy is to freeze approved assessment versions through
+an explicit **Start assessed task** action, then resume saved work safely without
+duplicate submissions. The current implementation starts assessed work when the
+formal workspace opens, as described below. A distinct visible start action
+remains an interaction requirement to reconcile; the existing automatic start
+must not be described as satisfying that explicit-action requirement.
+
 Opening a formal workspace now starts assessed work against the exact form shown to the learner.
 The start saves an immutable reference before the learner enters an answer.
 Draft saves and submissions carry that reference through reloads and retries.

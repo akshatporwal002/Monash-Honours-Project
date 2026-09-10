@@ -2,11 +2,7 @@
 
 ## Audited revision and scope
 
-Local `main` was fast-forwarded from `34d686f` to
-`27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4` (PR #12, Tasks 25/27/29).
-The working tree was clean before the update. Fetch used the repository-specific
-GitHub username `jordann-trann`; the effective author identity is Jordan Tran,
-`226841807+jordann-trann@users.noreply.github.com`. Global Git settings were not changed.
+Audited source: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4` (PR #12, Tasks 25/27/29).
 
 This audit reads the numbered [task list](../../LearnLens_Remaining_Tasks.md),
 implementation and assessment requirements, approval records, delivery records,

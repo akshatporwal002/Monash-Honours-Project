@@ -120,14 +120,14 @@ worker. A revision fixture's serialization warning was corrected and that case
 rerun separately. Ruff lint/format passed for all eight changed Python files.
 
 ```text
-python -m pytest tests/test_typed_practice_model_input.py tests/test_typed_practice_feedback.py tests/test_feedback_agent.py tests/test_quality_judge.py tests/test_assessment_feedback_context.py tests/test_task16_feedback_release.py tests/test_assessed_feedback_integration.py tests/test_local_worker_template.py -q --basetemp=C:/Users/Jordan.Tran/AppData/Local/Temp/ll-typed-input-final --tb=short
+python -m pytest tests/test_typed_practice_model_input.py tests/test_typed_practice_feedback.py tests/test_feedback_agent.py tests/test_quality_judge.py tests/test_assessment_feedback_context.py tests/test_task16_feedback_release.py tests/test_assessed_feedback_integration.py tests/test_local_worker_template.py -q --basetemp="$env:TEMP/ll-typed-input-final" --tb=short
 ```
 
 The focused run used Python 3.11.16 from the existing root backend virtual
 environment, `PYTHONPATH=.`, and a fresh short Windows temporary directory:
 
 ```text
-python -m pytest tests/test_typed_practice_feedback.py tests/test_task14_lifecycle.py tests/test_assessment_feedback_context.py tests/test_activity_continuation.py tests/test_live_evidence.py tests/test_lms_core_api.py tests/test_local_worker_template.py tests/test_task16_feedback_context.py -q --basetemp=C:/Users/Jordan.Tran/AppData/Local/Temp/ll-typed-focused --tb=short
+python -m pytest tests/test_typed_practice_feedback.py tests/test_task14_lifecycle.py tests/test_assessment_feedback_context.py tests/test_activity_continuation.py tests/test_live_evidence.py tests/test_lms_core_api.py tests/test_local_worker_template.py tests/test_task16_feedback_context.py -q --basetemp="$env:TEMP/ll-typed-focused" --tb=short
 ```
 
 No full backend suite or remote provider calls are part of this delegated fix.

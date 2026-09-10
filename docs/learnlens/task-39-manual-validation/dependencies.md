@@ -76,7 +76,7 @@ Coordinator must integrate/retest before final chronological-evidence acceptance
 This assignment leaves production code, browser specs/config, dependencies,
 migrations, shared fixtures, the master checklist and historical audit untouched.
 The original uncommitted audit was read at
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/docs/learnlens/main-audit-2026-09-10.md`.
+`docs/learnlens/main-audit-2026-09-10.md`.
 It is not copied into this branch. The historical
 [Tasks 36/37/39 note](../task-36-37-39-validation.md) records earlier automation;
 it does not fill this kit's blank human-result fields.

@@ -355,4 +355,4 @@ Relative to reconciliation 21e4f81, FR14 returns from PARTIAL to IMPLEMENTED: ke
 
 Policy safeguards remain: no numeric learner grades, no automatic formal confirmation, no loss of protected history, no instructional hint-count cap for the supported selected stage, no conceptual hints during separate unaided transfer, and no research participation effect on teaching or results.
 
-Focused documentation verification and delivery scope are recorded in [integrated documentation reconciliation](integrated-status-reconciliation-2026-09-10.md). Do not edit the historical audit or baseline Task 36 report when attaching later receipts.
+The [integration verification](parallel-integration-2026-09-10.md) records the tested source revisions and automated results. Historical audit counts describe their stated baseline; current requirement statuses are recorded above.

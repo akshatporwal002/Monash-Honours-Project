@@ -13,14 +13,13 @@ The remote has not been refreshed during this task.
 
 ## What this package settles
 
-The saved decision tickets contain accepted directions for all twelve policy areas.
+The approved selections cover all twelve policy areas.
 D-10 already has an explicit implementation approval.
 The user has now selected D-05 B, D-07 C, and A for the other offered choices.
 The [approved selections](task-08-approved-selections.md) record the exact scope, versions, date, and remaining requirements.
 Those selections control any conflicting wording in this draft. Other detailed proposals still need their own approval records.
 
 The [register](known-limits-and-deferred-decisions.md) remains the approval index.
-The [saved map](../../.scratch/learnlens-pilot-readiness/map.md) records the prior user choices.
 New proposals below are not retrospective approvals. Unselected details remain proposals.
 The original audit's statement that all twelve decisions remain pending is stale.
 
@@ -35,18 +34,18 @@ Policy changes need a new version. Existing assessed attempts keep their frozen 
 
 | Decision | Existing direction and source | Proposed version | Approval still needed |
 | --- | --- | --- | --- |
-| D-01 | [Hide provisional results](../../.scratch/learnlens-pilot-readiness/issues/02-learner-result-visibility.md#recommended-direction-accepted) | `learner-visibility-v1` | Product owner and assessor names; approve the state table and course scope |
-| D-02 | [Explicit course assessor grants](../../.scratch/learnlens-pilot-readiness/issues/03-assessor-permission.md#recommended-direction-accepted) | `assessor-access-v1` | Product owner; name eligible staff and grant authorities for each course |
-| D-03 | [Separate research grants](../../.scratch/learnlens-pilot-readiness/issues/04-research-permission.md#recommended-direction-accepted) | `research-access-v1` | Product and research owners; name approved staff, courses, studies, and fields |
-| D-04 | [Prediction, explanation, fresh application](../../.scratch/learnlens-pilot-readiness/issues/05-outcome-criteria-and-evidence.md#recommended-direction-accepted) | `single-qubit-outcome-v1` | Assigned assessor; approve the outcome, sources, criteria, examples, and sufficiency rule |
+| D-01 | [Hide provisional results](task-08-approved-selections.md#d-01) | `learner-visibility-v1` | Product owner and assessor names; approve the state table and course scope |
+| D-02 | [Explicit course assessor grants](task-08-approved-selections.md#d-02) | `assessor-access-v1` | Product owner; name eligible staff and grant authorities for each course |
+| D-03 | [Separate research grants](task-08-approved-selections.md#d-03) | `research-access-v1` | Product and research owners; name approved staff, courses, studies, and fields |
+| D-04 | [Prediction, explanation, fresh application](task-08-approved-selections.md#d-04) | `single-qubit-outcome-v1` | Assigned assessor; approve the outcome, sources, criteria, examples, and sufficiency rule |
 | D-05 | [Unlimited approved conceptual hints and unaided transfer](task-08-approved-selections.md#d-05) | `single-qubit-conditions-v1-selection` | Assigned assessor; approve concrete hint content, tools, equivalent forms, and access conditions |
-| D-06 | [Fresh equivalent reassessment](../../.scratch/learnlens-pilot-readiness/issues/07-reassessment-and-current-result.md#recommended-direction-accepted) | `reassessment-v1` | Product owner and assessors; approve eligibility, selection, and review rules |
+| D-06 | [Fresh equivalent reassessment](task-08-approved-selections.md#d-06) | `reassessment-v1` | Product owner and assessors; approve eligibility, selection, and review rules |
 | D-07 | [Validated AI suggestions with human confirmation](task-08-approved-selections.md#d-07) | `ai-assessor-suggestions-v1-selection` | Assessment governance and expert reviewers; approve dataset, measures, error limits, and release process |
-| D-08 | [Separate consent and owner-approved lifecycle](../../.scratch/learnlens-pilot-readiness/issues/09-retention-consent-and-withdrawal.md#recommended-direction-accepted) | `data-lifecycle-v1` | Privacy and research owners; supply field schedule, retention periods, and institutional decisions |
-| D-09 | [Learning and technical queues](../../.scratch/learnlens-pilot-readiness/issues/10-human-escalation.md#recommended-direction-accepted) | `human-escalation-v1` | Product and operations owners; name primary and backup staff, service hours, and targets |
-| D-10 | [Immediate retirement](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer), approved 2026-09-06 by the requesting user | `legacy-retirement-v1`, already effective for implementation | No new policy choice; implementation and migration evidence remain due |
-| D-11 | [Programming module within 16 hours](../../.scratch/learnlens-pilot-readiness/issues/12-second-subject-reuse.md#recommended-direction-accepted) | `programming-reuse-v1` | Product owner; approve module, effort accounting, and independent verifier |
-| D-12 | [One hosted pilot and assigned reviewers](../../.scratch/learnlens-pilot-readiness/issues/13-release-environments-and-evidence.md#recommended-direction-accepted) | `release-evidence-v1` | Product, accessibility, and operations owners; name environments, providers, reviewers, and release authority |
+| D-08 | [Separate consent and owner-approved lifecycle](task-08-approved-selections.md#d-08) | `data-lifecycle-v1` | Privacy and research owners; supply field schedule, retention periods, and institutional decisions |
+| D-09 | [Learning and technical queues](task-08-approved-selections.md#d-09) | `human-escalation-v1` | Product and operations owners; name primary and backup staff, service hours, and targets |
+| D-10 | [Immediate retirement](task-08-approved-selections.md#d-10), approved 2026-09-06 by the requesting user | `legacy-retirement-v1`, already effective for implementation | No new policy choice; implementation and migration evidence remain due |
+| D-11 | [Programming module within 16 hours](task-08-approved-selections.md#d-11) | `programming-reuse-v1` | Product owner; approve module, effort accounting, and independent verifier |
+| D-12 | [One hosted pilot and assigned reviewers](task-08-approved-selections.md#d-12) | `release-evidence-v1` | Product, accessibility, and operations owners; name environments, providers, reviewers, and release authority |
 
 ## D-01: learner result visibility
 
@@ -250,7 +249,7 @@ Remove numeric result interfaces and supporting score-driven behaviour through a
 Preserve original attempts, protected legacy history, and audit records before obsolete active columns are removed.
 An old score cannot become a formal PASS. Quantum probabilities retain their technical meaning.
 
-The [original approval](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer) controls the full scope.
+The [original approval](task-08-approved-selections.md#d-10) controls the full scope.
 Tasks 29, 31, and 37 still owe implementation and preservation evidence.
 
 ## D-11: second-subject reuse

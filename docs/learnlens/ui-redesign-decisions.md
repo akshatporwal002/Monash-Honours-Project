@@ -10,8 +10,7 @@ collides with existing behaviour (scores, leaderboard, gamification defaults), t
 conflict is flagged with its blocking decision or roadmap step rather than resolved
 silently.
 
-Implementation: requires a numbered plan under `docs/plans/` (via `/draft-plan`) before
-any code changes. This document is the design authority that plan will cite.
+This document is the design authority for visual identity, shared components, and routing.
 
 ---
 
@@ -340,10 +339,10 @@ their `aria-live` narration.
 **Result presentation** — The ResultSeal (§4.5) leads; below it, in serif, the D2
 §10.1/10.2 structure verbatim: what is shown / what is still needed (dashed-outline
 list items — missing evidence is the canonical dashed element) / next step / review
-control. Reason codes surface only from the learner-safe list (D2 §9.3). Until D-01 is
-approved, the pre-confirmation state is the dashed "Under review — your result will
-appear here once reviewed" card and **no result value renders** (Plan 005 Step 2 gate);
-both variants are designed so approval is a flag flip, not a redesign.
+control. Reason codes surface only from the learner-safe list (D2 §9.3). Under the
+[approved D-01 selection](task-08-approved-selections.md#d-01), the pre-confirmation
+state is the dashed "Under review — your result will appear here once reviewed" card
+and **no provisional result value renders**. Confirmed results use the result presentation above.
 
 **Educator overview** — Four metric Cards (counts, not scores), engagement LineChart
 with table equivalent, at-risk list using outlined estimate chips (inference, not
@@ -406,7 +405,7 @@ drops in cleanly.
 | Hardcoded 70% score threshold drives a green success banner | `TaskView.tsx:517-528` | Score semantics retire in roadmap Step 3. Design's submission states carry no score colouring; assessed responses show "response saved for assessment". |
 | Gamification is on by default | `StudentDashboard.tsx:39-44` | FR25 says optional, off by user choice. Design demotes it visually; the default flip is a behaviour change with its own plan step. |
 | Client-side risk cutoffs ignore admin settings | `StudentsView.tsx:8-12` hardcodes `<50%` | Behaviour bug; out of scope here, noted for the implementation plan. |
-| Provisional-result visibility | — | **D-01 `PENDING`** (`docs/learnlens/known-limits-and-deferred-decisions.md`). Design ships the no-value "under review" state as default; the reveal variant activates only on recorded approval. |
+| Provisional-result visibility | — | [D-01 approved selection](task-08-approved-selections.md#d-01) hides provisional verdicts. Design shows the no-value "under review" state until assessor confirmation; concrete course records and final wording remain due. |
 | `QuantumLearn` e2e heading assertion | `e2e/person4.e2e.ts:21` | Updated alongside the wordmark change in the implementation plan. |
 
 ## 9. Accessibility commitments
@@ -422,13 +421,9 @@ narration, semantic tables, and reduced-motion support are retained and extended
 screen-reader checks remain required and separately recorded per D3 §15.3 — this
 document claims design intent, not test evidence.
 
-## 10. What implementation will need (for the coming plan)
+## 10. Implementation verification
 
-Sequencing sketch for `/draft-plan` — not a plan itself: (1) tokens + fonts + global
-reset; (2) `ui/` primitives with tests; (3) shell + routing; (4) screen migrations in
-risk order (login → student → task → assessor → educator → admin); (5) CSS-system
-consolidation and deletion of `styles.css` decorative sections; (6) e2e updates
-(heading assertion, route-based navigation, axe runs per route). Every step must keep
+Implementation changes must keep
 `npm run lint`, `npm test`, `npm run build`, and `npm run test:e2e` green per
 `.github/workflows/quality.yml`. Verification of visual claims: axe per route, contrast
 assertions on tokens, and screenshot review; NOT RUN until run.

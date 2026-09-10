@@ -8,16 +8,16 @@ Branch: `codex/person-b-platform`
 
 Baseline parent head: `0a11d0ad36068b4af886fe31fe4ec9b72a2f43b4`
 
-Scope: Step 3 of `docs/plans/001-person-b-platform-implementation.md`
+Scope: pre-feature implementation baseline after the research-clock and locked-toolchain repairs.
 
 ## Outcome
 
 The runnable commands configured in `.github/workflows/quality.yml` pass locally after two bounded
 baseline repairs:
 
-1. Step 2 injected the deterministic workflow clock into paired research creation, repairing the
+1. The research-clock repair injected the deterministic workflow clock into paired research creation, repairing the
    two reproduced analytics failures without weakening the half-open time filter.
-2. Step 3 raised stale minimum tool/dependency versions and refreshed only the affected lock
+2. The toolchain repair raised stale minimum tool/dependency versions and refreshed only the affected lock
    entries so the configured audits and declared runtime engines pass.
 
 This record is pre-feature evidence. It does not prove the later Person B modules, hosted service,

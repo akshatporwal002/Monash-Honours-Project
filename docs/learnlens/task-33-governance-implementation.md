@@ -4,21 +4,6 @@ Status: technical implementation delivered; **production research remains closed
 No institutional approval, recruitment, participant data, instrument, or study activation
 is supplied by this work. The Task 32 protocol/data-plan drafts remain proposals.
 
-## Checkout and scope
-
-- Branch: `codex/task33-research-governance`.
-- Actual starting commit: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4` on local `main`.
-- Separate worktree: `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-task33/worktree`.
-- `git status --short` was empty in that worktree before editing. The original
-  checkout's uncommitted audit and parallel assignment files were read and preserved.
-- Read the absolute original-checkout `docs/learnlens/main-audit-2026-09-10.md`,
-  the required implementation/assessment/work-order files, settled Task 8 selections,
-  Task 32 drafts, and existing research/access/export/worker/lifecycle code and tests.
-- No GitHub access, fetch, push, merge, account integration, global Git configuration,
-  shared dependency installation, CI change, or runtime configuration change.
-  Commit identity is explicitly Jordan Tran
-  `<226841807+jordann-trann@users.noreply.github.com>`.
-
 ## Implemented behaviour
 
 `ResearchGovernanceService` interprets an append-only, typed governance ledger.
@@ -147,11 +132,11 @@ the closed release gate is the default quarantine, not a promise to reconstruct 
 
 ## Verification
 
-All commands run from this worktree's `src-main/backend` unless indicated otherwise.
+Commands run from `src-main/backend` unless indicated otherwise.
 The existing frozen Python 3.11.16 environment was reused without changes:
 
 ```powershell
-$py = 'C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/src-main/backend/.venv/Scripts/python.exe'
+$py = (Resolve-Path './.venv/Scripts/python.exe').Path
 $env:PYTHONPATH = '.'
 ```
 
@@ -166,10 +151,10 @@ Final commands/results:
 
 ```powershell
 $researchTests = @(Get-ChildItem -Path tests/test_research*.py | ForEach-Object { $_.FullName })
-& $py -m pytest @researchTests tests/test_terminal_integration_outbox.py tests/test_database_worker.py tests/test_task7_worker_recovery.py tests/test_local_worker_template.py tests/test_legacy_retirement.py -q --basetemp=C:/Users/Jordan.Tran/AppData/Local/Temp/ll-task33-release --tb=short --junitxml=.tmp-task33/release-focused.xml
+& $py -m pytest @researchTests tests/test_terminal_integration_outbox.py tests/test_database_worker.py tests/test_task7_worker_recovery.py tests/test_local_worker_template.py tests/test_legacy_retirement.py -q --basetemp="$env:TEMP/ll-task33-release" --tb=short --junitxml=.tmp-task33/release-focused.xml
 # 147 passed; exit 0. Includes all 70 new governance cases.
 
-& $py -m pytest tests/test_research_governance.py tests/test_research_governed_paths.py tests/test_research_governance_migration.py tests/test_terminal_integration_outbox.py tests/test_database_worker.py tests/test_task7_worker_recovery.py tests/test_local_worker_template.py tests/test_migrations.py tests/test_legacy_retirement.py -q --basetemp=C:/Users/Jordan.Tran/AppData/Local/Temp/ll-task33-final2 --tb=short --junitxml=.tmp-task33/final-focused2.xml
+& $py -m pytest tests/test_research_governance.py tests/test_research_governed_paths.py tests/test_research_governance_migration.py tests/test_terminal_integration_outbox.py tests/test_database_worker.py tests/test_task7_worker_recovery.py tests/test_local_worker_template.py tests/test_migrations.py tests/test_legacy_retirement.py -q --basetemp="$env:TEMP/ll-task33-final2" --tb=short --junitxml=.tmp-task33/final-focused2.xml
 # 128 passed / 1 failed before the last legacy-retirement fixture correction.
 # All 31 test_migrations.py cases passed; that migration implementation is unchanged afterward.
 
@@ -190,7 +175,7 @@ The contracts were regenerated with the same two Python scripts without `--check
 Frontend verification ran from this worktree's `src-main/frontend`:
 
 ```powershell
-$node = 'C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-task23-24/tools/node-v22.13.0-win-x64/node.exe'
+$node = (Get-Command node).Source
 & $node node_modules/eslint/bin/eslint.js .
 & $node node_modules/typescript/bin/tsc -p tsconfig.app.json --noEmit --incremental false
 # Both passed; exit 0. Node 22.13.0.
@@ -200,7 +185,7 @@ An ignored worktree-local `node_modules` junction reuses the existing installati
 No install, lockfile, shared dependency or shared TypeScript cache write was performed.
 Logs/XML are retained in the ignored worktree directory `src-main/backend/.tmp-task33/`.
 Each run uses its own fresh short `--basetemp` under
-`C:/Users/Jordan.Tran/AppData/Local/Temp/ll-task33-*`; no learner database or server port is used.
+`$env:TEMP/ll-task33-*`; no learner database or server port is used.
 Ordinary tests run serially; explicit concurrency tests use two workers.
 
 Initial failures and resolutions:

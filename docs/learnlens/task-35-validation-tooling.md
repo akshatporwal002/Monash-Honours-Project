@@ -1,6 +1,6 @@
 # Task 35 — offline validation tooling delivery
 
-Date: 10 September 2026. Branch: `codex/task35-validation-tooling`.
+Date: 10 September 2026.
 
 ## Outcome
 
@@ -21,34 +21,6 @@ existing public `simulate_circuit` interface. Saved evidence includes exact prob
 sample counts, statevectors, bit order, measurement mappings, seed 35, 32 shots,
 engine versions and manifest/scenario hashes. This establishes numerical consistency
 for these fixtures, not human approval of explanations or full outcome validity.
-
-## Starting state and isolation
-
-First read the original uncommitted audit at:
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/docs/learnlens/main-audit-2026-09-10.md`.
-
-Actual starting commit: **`27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`**, local `main`.
-Confirmed the audited commit was an ancestor of main before creating the branch.
-The new worktree was clean before editing:
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-task35-worktree`.
-
-Original checkout initially contained untracked audit and parallel-assignment documents;
-they were not copied into the patch, edited or committed. Shared runtime/dependencies,
-the master task list, historical audit, production services and configuration are unchanged
-by this assignment. There were no databases, server ports, learner records or paid provider
-calls. Tests ran serially. Scratch output is isolated in `.tmp-task35-checks/` in the worktree.
-
-Read the five requested worktree documents, Task 8 policy details, current quantum
-simulation, feedback/judge, assessment evaluator/pass-rule interfaces, research
-methodology, research-export golden test conventions and related simulation tests.
-Reused the public simulator and its gate validation; did not reproduce the learning
-engine or invoke provider adapters. The quality runner consumes recorded outputs only.
-
-Git author and committer were verified as
-**Jordan Tran <226841807+jordann-trann@users.noreply.github.com>** with command-scoped
-Git identity overrides before committing. No global configuration changed. No GitHub
-access, integration, authentication, merge or push was performed; no Kogan account or
-credential was used. The final delivery message records the resulting commit SHA.
 
 ## Requirements supported
 
