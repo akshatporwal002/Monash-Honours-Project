@@ -1,7 +1,7 @@
 # LearnLens remaining tasks
 
-Current integration status: **10 September 2026**, inspected at `d30570eb048443bc2ac46a6b420f0153d5904d69` on `codex/integrate-parallel-20260910`.
-**Combined final validation: IN_PROGRESS.** The coordinator will attach final receipts after the pending follow-ups are integrated. No full combined pass, live research activation or pilot readiness is claimed here.
+Current integration status: **10 September 2026**, inspected at `0bbf95e25e4124f7484944c9493d1165d7b8023b` on `codex/integrate-parallel-20260910`.
+**Combined final validation: IN_PROGRESS.** The coordinator owns the final combined receipts after the benchmark delivery and central suites complete. No full combined pass, live research activation or pilot readiness is claimed here.
 
 | Status | Count | Tasks |
 | --- | --- | --- |
@@ -13,15 +13,17 @@ Current integration status: **10 September 2026**, inspected at `d30570eb048443b
 
 Settled [Task 8 selections](docs/learnlens/task-08-approved-selections.md) remain controlling: PASS/INCOMPLETE and human confirmation, hidden provisional verdicts, unrestricted approved conceptual hints during supported work, separate unaided transfer, protected histories, no research participation penalty and the 16 developer-hour reuse target. Missing institutional/expert/content/host approvals must be supplied as actual records, never inferred from fixtures.
 
-## Integrated deliveries and pending follow-ups
+## Integrated deliveries and final verification
 
-The eight deliveries now present are the Task 29 timestamp fix, frontend stability/Vitest update, secret-scan gate repair, Task 33 governance, Task 35 validation tooling, Task 36 reconciliation, Task 38 harness and Task 39 manual kit. Exact delivered SHAs and scoped receipts are in the [integrated matrix evidence register](docs/learnlens/implementation-gap-matrix.md#integrated-evidence-register). The migration graph head is `20260910_0045`, but this inspected snapshot still pins runtime readiness to `0044`. The coordinator reports a later correction at `a38e6af5fad7f475c4b4032492e68db3c9f429ce`; see the [post-baseline receipts](docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts). No migration was run by this documentation reconciliation.
+The eight original deliveries and subsequent readiness, typed-practice, validation-provenance and circuit fixes are recorded in the [matrix evidence register](docs/learnlens/implementation-gap-matrix.md#integrated-evidence-register). Runtime readiness and the migration graph both use `20260910_0045`. The earlier d305 readiness and keyboard defects are dated findings, resolved in this inspected integration.
 
-- **Pending integration:** keyboard circuit target-wire placement/semantics follow-up (`codex/fix-circuit-keyboard`), affecting FR14/NFR4/AC17/AT24; the Task 39 kit identifies T39-C1 and T39-C2.
-- **Pending integration:** benchmark typed next-activity submission follow-up (`codex/verify-benchmark-integration`), affecting Task 38 harness readiness. A fake smoke is not authenticated typed follow-on proof or performance evidence.
-- **Coordinator final evidence:** complete combined suites, unchanged coverage/security gates, generated contracts and migrations at the final integrated commit, including any subsequent fixes. Existing branch-level passes remain scoped receipts.
-- **Later coordinator corrections:** readiness fix `a38e6af` has 16 reported focused passes; Task 35 provenance refresh `0eaf467025591e75814dc590c6c35ea936bbc506` has 44 tooling and 12/12 numerical checks reported passing, with all 108 cases still DRAFT and no AI activation. The earlier full backend attempt was deliberately superseded before completion, so it is not a full pass. Later scoped lint/build/audit/root checks reported green are recorded separately from the still-pending full combined suite.
-- **Additional requirement gaps:** recoverable course revisions, upload malware policy, broader generated/accessible task types, integrity review cues, moderation/AI revalidation, and fuller model/feedback-effectiveness evidence are tracked in the matrix. These are not erased by the 29 delivered-task count.
+- **Circuit:** keyboard H/X target selection, explicit removal names and live/saved CX control/target text are integrated. Nine final focused cases passed according to the delivery record. FR14's bounded implementation is delivered; NFR4/AC17/AT24 still need actual manual accessibility evidence.
+- **Typed practice:** purpose separation and complete bounded generator/judge input are integrated at fa0c6ee. The corrected focused run passed 80 cases, including actual model-request assertions, 20,000-character bounds, digest, approval, transfer and cached-release restrictions. No external model was called by those regressions.
+- **Task 35:** provenance refreshes 0eaf467 and 0af4873 include the changed practice-input dependencies. Latest reported tooling results are 44 tests and 12/12 numerical checks, with 108 DRAFT cases, zero approved, quality UNVERIFIED and AI release PENDING.
+- **Task 38:** final owner receipt `471f185a089d660f439ab9e21adf0113d01fdb96` verifies one fresh synthetic learner against a real local API, 35 successful HTTP calls, three feedback workflows and both actual local provider inputs; 54 focused checks passed. The owned benchmark changes are integrated as be3e92a, 9239dc1 and 0bbf95e. Six local usage rows have null actual AUD cost and zero human-confirmed loops. It is compatibility evidence, not a representative load/cost campaign or recovery proof. See the [dated receipt summary](docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts).
+- **Final frontend/source receipt:** 306 frontend tests across 84 files passed with zero failed/skipped; lint/build pass and frontend trees at e93842f/0bbf95e match. API/TypeScript contract drift and Ruff (539 files) pass at 0bbf95e per the coordinator.
+- **Final combined evidence:** remains **IN_PROGRESS**. The [coordinator report](docs/learnlens/parallel-integration-2026-09-10.md) owns final integrated SHAs, suites, coverage, migrations/contracts and security receipts. The superseded unfinished backend run is not a pass; earlier scoped greens retain their original revisions.
+- **Additional requirement gaps:** recoverable course revisions, upload malware policy, broader generated/accessible task types, integrity review cues, moderation/AI revalidation and fuller model/feedback-effectiveness evidence remain in the matrix.
 
 ## Numbered task ledger
 
@@ -89,7 +91,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 7. **[Completed] Start the durable worker and check actual readiness.**
 
-    The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. Recovery is implemented; the assigned snapshot has a readiness-pin mismatch subsequently fixed by coordinator commit a38e6af. Final corrected runtime validation remains pending; the coordinator owns shared setup.
+    The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. Recovery is implemented and readiness now matches migration head 0045 through a38e6af. The separate single-learner benchmark reports all readiness checks ready; final combined recovery/release validation remains pending with the coordinator.
 
     Dependencies: none for local template mode. Suggested owner: platform.
 
@@ -129,7 +131,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 11. **[Completed] Store trustworthy simulation evidence and enforce execution limits.**
 
-    Bounded Qiskit/Aer simulation retains settings, counts, exact probabilities, bit order and equivalent text evidence, with controlled errors. Expert validity and the pending keyboard circuit follow-up remain separate acceptance work.
+    Bounded Qiskit/Aer simulation retains settings, counts, exact probabilities, bit order and equivalent text evidence, with controlled errors. Keyboard target selection and explicit live/saved CX text are integrated; expert validity and native/manual accessibility remain separate acceptance work.
 
     Dependencies: none. Suggested owner: quantum services.
 
@@ -159,7 +161,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 14. **[Completed] Complete the learning episode inside the task workspace.**
 
-    Typed prediction, reasoning, code/circuit, revision, reflection and unaided transfer survive saved drafts, submission and reload. The two-qubit keyboard placement/semantics follow-up is pending integration under Task 39; full manual equivalence is not yet established.
+    Typed prediction, reasoning, code/circuit, revision, reflection and unaided transfer survive saved drafts, submission and reload. Two-qubit keyboard placement and explicit live/saved circuit semantics are integrated; full manual equivalence is not yet established. Typed practice now retains complete bounded evidence at both feedback model inputs with digest/approval/transfer guards.
 
     Dependencies: Tasks 11 and 13; Task 8, D-04 and D-05, for approved assessed stages. Suggested owner: task engine and frontend.
 
@@ -399,7 +401,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 38. **[Partial] Measure load, provider cost, and runtime configuration changes.**
 
-    Opt-in load/cost/runtime-configuration harness and 47 focused fake/fixture tests are integrated; the tiny smoke is synthetic with null actual external cost. Typed next-activity submission follow-up is pending integration. No representative 50-user latency, 5–100 scaling, real provider-switch/budget propagation or <=AUD 0.10 complete-loop cost evidence has been produced.
+    The opt-in harness has a final owner receipt for typed follow-on submission, actual local generator/judge inputs and bounded process cleanup: 54 focused checks and one fresh learner with 35 successful real HTTP calls. The owned delivery is integrated at 0bbf95e. Its six local usage rows have null actual AUD cost; API background execution handled the captured calls, so worker heartbeat alone is not recovery proof. Runtime timeout/retry/budget controls, full metering, provider approval and representative 50-user latency, 5–100 scaling and <=AUD 0.10 human-confirmed complete-loop cost remain open.
 
     Dependencies: Tasks 25, 35, 36, and 37; Task 8, D-12. Suggested owner: platform and operations.
 
@@ -409,7 +411,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 39. **[Partial] Complete browser, accessibility, and first-time usability checks.**
 
-    Automated browser/keyboard/reflow/axe coverage and a manual-validation kit with 27 blank role cases are integrated. Native Safari, actual screen-reader/native zoom/contrast checks and first-time usability trials remain undone. T39-C1 keyboard target-wire placement and circuit semantics/accessibility follow-up is pending integration; T39-C2 still needs human speech verification. The inherited timestamp fix is now integrated.
+    Automated browser/keyboard/reflow/axe coverage and a manual-validation kit with 27 blank role cases are integrated. Native Safari, actual screen-reader/native zoom/contrast checks and first-time usability trials remain undone. T39-C1 keyboard target-wire placement/removal and T39-C2 explicit live/saved CX control/target text are fixed with focused and browser receipts; actual human speech verification remains due. The inherited timestamp fix is now integrated.
 
     Dependencies: Tasks 24-31 and 36; Task 8, D-12. Suggested owner: accessibility reviewers and product testing.
 

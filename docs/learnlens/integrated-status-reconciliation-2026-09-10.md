@@ -1,51 +1,50 @@
-# Integrated status reconciliation — documentation delivery
+# Integrated status reconciliation — final follow-up refresh
 
-10 September 2026. **Full combined validation: IN_PROGRESS.**
+10 September 2026. **Full combined validation: IN_PROGRESS.** The [coordinator report](parallel-integration-2026-09-10.md) owns final central receipts.
 
-## Scope and starting state
+## Scope and source
 
-Coordinator-assigned branch: `codex/reconcile-integrated-status`.
-Actual starting commit: `d30570eb048443bc2ac46a6b420f0153d5904d69`, containing all eight parallel deliveries.
-Isolated worktree: `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-integrated-status/worktree`.
-The new worktree was clean before editing; the coordinator checkout was left intact.
+Branch `codex/final-status-reconciliation` was created from requested integration `e93842f21fbeb14d88e3a18ac132abcec9012db0`, then advanced before editing to coordinator-authorized application freeze `0bbf95e25e4124f7484944c9493d1165d7b8023b`. The earlier `codex/reconcile-integrated-status` branch and commit `21e4f81d9d09d29200da810481bac640ef8e4ce2` are preserved. The isolated worktree is `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-final-status/worktree`.
 
 Only these four canonical documents and this delivery note change:
 
 - [Master task list](../../LearnLens_Remaining_Tasks.md).
-- [Authoritative current gap matrix](implementation-gap-matrix.md).
-- [Complete requirement-family crosswalk](../../src-main/docs/requirements-traceability.md).
-- [Feedback/research capability crosswalk](../../src-main/docs/requirement-traceability.md).
-- This separate delivery note.
+- [Current requirement matrix](implementation-gap-matrix.md).
+- [Complete-family crosswalk](../../src-main/docs/requirements-traceability.md).
+- [Feedback/research crosswalk](../../src-main/docs/requirement-traceability.md).
+- This delivery note.
 
-The historical main audit and baseline Task 36 report are unchanged. No app, test, script deliverable, configuration, dependency, migration or generated-contract file is edited. Temporary generation/check scripts live only in this worktree's ignored scratch directory. No database, server, provider or browser was started; no learner data or credentials were used. No GitHub access, fetch, push or merge occurred.
+The [historical audit](main-audit-2026-09-10.md), [baseline Task 36 report](task-36-requirements-reconciliation.md), coordinator report and all application/test/configuration files remain unchanged by this task. No application suite, database, server, provider, browser, load campaign or human trial was run here. Scratch scripts stay ignored. No GitHub access, push or merge was performed by this documentation task.
 
-## Reconciliation result
+## Result and evidence boundaries
 
-The master task ledger has **29 completed implementation, 10 partial and 2 remaining**. Partial tasks are **8, 28, 32, 33, 35, 36, 37, 38, 39, 40**; remaining tasks are **34 and 41**. All 41 individual headings agree with the summary. Current descriptions replace obsolete missing-feature claims; dependencies and acceptance conditions remain explicit.
+The 41-task ledger remains **29 completed implementation, 10 partial, 2 remaining**. Partial tasks are **8, 28, 32, 33, 35, 36, 37, 38, 39, 40**; remaining tasks are **34 and 41**. Implementation task delivery does not close requirement clauses or external release gates.
 
-The current matrix accounts for all **143 controlling definitions exactly once**, with source line/title, current status/gap, acceptance/dependency and resolvable production/test evidence. Totals are **86 IMPLEMENTED, 42 PARTIAL, 2 MISSING, 0 CONFLICTING, 13 UNVERIFIED**. Status changes from the unchanged baseline are FR19/FR21/BP13/AT23 to IMPLEMENTED, BP14 to PARTIAL and FR14 to PARTIAL for the pending keyboard circuit issue. Unchanged statuses can still have added tooling evidence. Task delivery counts do not imply all related requirements or release gates are complete.
+The matrix accounts for all **143 controlling definitions exactly once**: **87 IMPLEMENTED, 41 PARTIAL, 2 MISSING, 0 CONFLICTING, 13 UNVERIFIED**. Each row preserves the exact source/title, six-column structure, acceptance/dependencies and production/test evidence crosswalk. The two traceability files explicitly delegate current statuses to that complete matrix.
 
-The two old traceability tables now point explicitly to the current matrix. Their historical FR1–28/NFR1–25 and Person 4 subsets are not competing current status sources. The baseline report retains complete wording, named fixtures and historical run evidence. Current I-* evidence entries give all eight delivery SHAs and source/test paths; changed research/time behavior overrides the baseline's older statements without rewriting it.
+FR14 returns from PARTIAL in 21e4f81 to IMPLEMENTED. Its definition requires bounded Qiskit Aer circuits, displayed probabilities/counts/shots and equivalent text, assessed prediction before results, controlled faults and saved work. Existing simulation/episode evidence is now accompanied by keyboard H/X target selection, explicit removal names and live/saved CX control/target text. Scoped component/browser cases cover those corrections. Actual screen-reader/native zoom/contrast, complete key-path WCAG and first-time usability evidence remain open under NFR4/AC17/AT24 and Task 39. A source/fixture implementation status does not certify human accessibility acceptance.
 
-Tasks 25/27/29 are merged; Task 27 already supplies misconception escalation to Task 28. Task 33 has real versioned governance/consent/withdrawal and restricted technical-pair exports while production stays closed. Task 35 has 108 DRAFT probes, zero approvals/ratings/actual outputs and a separate unpassed AI gate. Task 38 has a harness/fake smoke, not measured performance or real cost. Task 39 has blank human-test procedures, not native/manual/usability results. Task 40 still needs independently observed full model/adaptation reuse and measured <=16 developer-hours despite Task 25 now being delivered.
+Relative to the immutable baseline, FR19/FR21/BP13/AT23 advance to IMPLEMENTED and BP14 to PARTIAL; FR14 now has the same status as that baseline with corrected current evidence. No other status is promoted by the final follow-ups. Policy D-01–D-12 and all human, institutional, expert, source, transfer and release boundaries remain controlling.
 
-Settled D-01–D-12 decisions are preserved, including human confirmation, hidden provisional results, unrestricted approved supported-stage conceptual hints, separate unaided transfer, protected histories and research neutrality. No human/institutional/expert approval or participant record is invented.
+## Integrated follow-ups and scoped receipts
 
-## Later coordinator reports and pending work
+The [matrix receipt register](implementation-gap-matrix.md#post-baseline-coordinator-receipts) distinguishes exact source changes, owner executions and still-pending central validation:
 
-The matrix's [post-baseline receipts](implementation-gap-matrix.md#post-baseline-coordinator-receipts) distinguish later coordinator changes from this worktree's fixed source snapshot:
+- Readiness `a38e6af` is integrated; runtime and migration graph both use 0045. The old d305 readiness mismatch is historical, with 16 focused health/deployment/worker checks reported passing after the regression failed.
+- Practice `0b43220` plus `af7bfb8`, merged at fa0c6ee, preserve purpose boundaries and complete untrusted typed evidence in both actual model inputs. The final corrected run reports 80 focused passes, including 20,000-character bounds, digest/approval/transfer and cached-release restrictions. Stored history and formal confirmation stay protected. Recording transports are not external-model quality evidence.
+- Provenance `0eaf467` and `0af4873` include the changed practice-input dependencies. Latest Task 35 receipt: 44 tooling tests, 12/12 numerical checks, 108 DRAFT cases, zero approved, content/feedback UNVERIFIED and AI release PENDING. This supplies no expert ratings or AI activation.
+- Circuit `065d70a` and `0d6e1b7`, integrated by 131df17, supply keyboard targeting/removal and explicit live/saved CX roles. Nine final focused cases and the documented browser regression pass; actual human/native checks remain due.
+- Benchmark owned commits 0dd3673/45f43cb/471f185 are integrated as be3e92a/9239dc1/0bbf95e. The [final owner receipt](task-38-integration-verification.md) at `471f185a089d660f439ab9e21adf0113d01fdb96` reports 54 focused passes (50 harness/usage and four integration/preparer/cleanup; final integration file 28.35 seconds), plus lint/format for 11 files. One fresh synthetic learner completed 35 successful real local HTTP calls, three submissions, two assessment attempts, three feedback workflows and three model snapshots, with zero decisions. Readiness was HTTP 200/all checks ready/head 0045. Both actual local generator/judge inputs retained the exact episode explanation and empty legacy answer. API background execution handled the captured calls; the durable worker heartbeat is not recovery proof. Six local usage rows leave actual AUD null and cost unknown_or_incomplete, with zero human-confirmed complete loops. Both owned processes stopped and the port was free. Earlier failures and exact receipt hashes remain in the owner record.
 
-- `a38e6af5fad7f475c4b4032492e68db3c9f429ce` corrects the runtime readiness pin from 0044 to migration head 0045. Coordinator reports a red existing regression followed by 16 focused health/deployment/worker-health passes.
-- `0eaf467025591e75814dc590c6c35ea936bbc506` refreshes Task 35 draft provenance and numerical evidence. Coordinator reports 44 tooling tests and 12/12 numerical checks passing, with all 108 cases still DRAFT and no AI activation.
-- Backend lint/contracts, 13 root tests, traceability/manual-kit checks, frontend lint/build and fresh npm/Python vulnerability audits were reported green. Final revision/commands/logs belong in the coordinator's final receipts.
-- The earlier full backend run was deliberately superseded before completion. It is not a full pass. Full combined validation remains IN_PROGRESS.
-- Circuit keyboard target-wire/semantics and benchmark typed next-activity submission follow-ups remain pending integration relative to the assigned baseline. The coordinator must attach their final SHAs and affected results; native screen-reader/circuit speech verification remains separate.
+Task 33 remains implemented controls behind a closed production gate, with actual approvals/full Task 34 instruments still due. Task 38 remains partial for runtime controls, full metering, provider/budget approval and a representative real load/cost campaign. Task 39 remains a kit plus scoped automated corrections, not completed human trials. Moderation/evaluator validation, staffing, study, hosted availability/rollback and independent reuse obligations remain open.
 
-Other live approval, complete-study instruments, moderation/evaluator validation, real load/cost, manual/usability, independent reuse and hosted/availability/rollback evidence remains open in the matrix. New requirement-level behavior gaps are retained as coordinator follow-ups, not silently assigned or patched here.
+Final frontend receipt: **306 tests passed across 84 files, zero failed/skipped, 184.63 seconds**, with lint and production build passing. The frontend tree at e93842f is identical to application freeze 0bbf95e; the 837.64 kB / 244.54 kB gzip chunk advisory remains. API/TypeScript contract drift and Ruff (539 files) also pass at 0bbf95e according to the coordinator. Full backend coverage/browser/final security receipts remain pending.
 
-## Focused verification
+Full combined validation stays **IN_PROGRESS** while central backend/browser/security/coverage checks complete. Earlier scoped greens retain their revisions; the superseded unfinished backend attempt is not a full pass. The coordinator will record central final results without relabelling this documentation work as an application test run.
 
-Commands run from this worktree root, using the existing Python executable read-only:
+## Focused documentation verification
+
+From this isolated worktree, using the existing backend Python executable:
 
 ```powershell
 $statusPython = 'C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/src-main/backend/.venv/Scripts/python.exe'
@@ -54,25 +53,13 @@ $env:PYTHONIOENCODING = 'utf-8'
 & $statusPython scripts/task36_traceability/check.py
 & $statusPython .tmp-doc-checks/check_docs.py
 git diff --check
-git diff d30570eb048443bc2ac46a6b420f0153d5904d69 -- docs/learnlens/main-audit-2026-09-10.md docs/learnlens/task-36-requirements-reconciliation.md
+git diff 0bbf95e25e4124f7484944c9493d1165d7b8023b -- docs/learnlens/main-audit-2026-09-10.md docs/learnlens/task-36-requirements-reconciliation.md
 ```
 
-The current canonical validator checks the six-column matrix and required legacy Step reference. The unchanged Task 36 checker checks the immutable baseline report and its 446 references; its 83/44/3/0/13 totals describe that earlier report, not the new current matrix. The scratch standard-library checker independently discovers current authoritative definitions, checks exact row/source/title/status totals, all 41 task statuses and exact partial/remaining sets, local links/anchors, repository paths and named Python cases, and unchanged historical files. Its source and output are retained only in this worktree's ignored `.tmp-doc-checks/` for local reproducibility.
+The canonical validator checks all families and the legacy Step reference in the retained six-column format. The unchanged baseline checker still reports historical totals 83/44/3/0/13, not current totals. The scratch checker discovers controlling definitions, exact row/title/source and task sets, local links/anchors, repository paths/named Python cases, and unchanged historical files. Its source remains in this worktree's ignored scratch directory for local reproduction.
 
-Final focused results:
-
-| Check | Result |
-| --- | --- |
-| Canonical matrix validator | PASS: all 143 rows, exact family inventory and valid six-column structure/Step references |
-| Unchanged baseline checker | PASS: 143 historical rows and 446 repository references; baseline report left intact |
-| Current source/task/link checker | PASS: 143 exact current definitions, exact 29/10/2 task sets, 884 local links/anchors and 185 source/path/named-case references |
-| Historical-file preservation | Empty diff against the assigned starting commit for the audit and baseline Task 36 report |
-| Patch whitespace | PASS; repeated after staging |
-
-No application suite, coverage run, load campaign or manual validation was executed by this documentation task. These mechanical checks do not certify semantic completeness, actual institutional approvals or the coordinator's pending final runtime results.
-
-Initial discovery used an incorrect Task 35 script-root guess; the actual files are under the backend scripts directory. The first document-generation attempt wrote the master/matrix but stopped before the two crosswalk files because Windows cp1252 stdout could not print the arrow in a diagnostic message. Re-running with process-local UTF-8 output completed all four documents; this was a local generation failure, not an application test result. No system encoding or shared environment setting changed.
+Mechanical checks pass: 143 exact current rows and all family/source/title mappings; exact 29/10/2 task sets; 906 local links/anchors and 198 source/path/named-case references. The canonical validator passes all 143 rows, and the unchanged historical checker passes its 143 rows/446 references. Historical-file preservation is an empty diff against 0bbf95e. Whitespace is checked again after staging. No mechanical document check substitutes for human approval, effectiveness measurement or runtime validation.
 
 ## Commit and handoff
 
-Only the five Markdown files listed above are staged. Effective author and committer must both be `Jordan Tran <226841807+jordann-trann@users.noreply.github.com>` and are verified immediately before the commit with command/process-local settings. Global Git configuration stays unchanged. The commit SHA is returned to the coordinator after a clean-worktree check; no merge or push is performed. The coordinator will attach final combined evidence after integration, preserving the historical audit and baseline report.
+Only the five assigned Markdown files are committed using verified personal author and committer `Jordan Tran <226841807+jordann-trann@users.noreply.github.com>`. Global Git configuration stays unchanged. The coordinator receives the commit SHA after scope, whitespace and clean-worktree checks; no push or merge is performed here.
