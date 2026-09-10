@@ -1,6 +1,8 @@
 # Feedback and research integration traceability
 
-Inspected integration: `0bbf95e25e4124f7484944c9493d1165d7b8023b`, 10 September 2026. **Combined final validation: IN_PROGRESS.**
+Inspected integration: `4fe8bb8184359e1fae606bc8cdd559fe54bc4760`, 10 September 2026. **Combined final validation: PASS for the current delivered scope.**
+
+Coordinator final receipt: The corrected delivery at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` passed 1,475 backend tests with 88.73% service coverage (80% minimum), 306 frontend tests across 84 files, and 132 configured browser checks at `ece4bedd41c36c7c37e89a10ce20fcd96a329f0f`. There were no failed, skipped or flaky cases in these final receipts. Root checks, lint/build, migration and contract checks, dependency audits and the full-history secret gate also pass. The coordinator report records exact commands, source trees, original failures and corrected runs. This verifies the delivered code; it does not close manual, expert, institutional or hosted-release requirements, or include unmerged next-batch branches. A separately reproduced assessor dialog-return focus race remains open in this source and is assigned to the next integration.
 
 The [current implementation gap matrix](../../docs/learnlens/implementation-gap-matrix.md) is the authoritative status ledger for every numbered requirement. Its 143 rows link each controlling definition to precise production/service/route/model/migration/UI paths, named fixture tests, dated evidence, current gap, dependency and acceptance check. This file is a crosswalk, not a second independently maintained status table.
 
@@ -40,4 +42,4 @@ The original fixture harness deliberately replaces provider/security/research bo
 
 ## Release handoff
 
-Final combined validation is **IN_PROGRESS**, including backend/frontend/browser gates, service coverage, migrations/contracts and dependency/secret scans. Use exact final integrated SHAs/receipts from the [coordinator report](../../docs/learnlens/parallel-integration-2026-09-10.md). Circuit/practice fixes are integrated; the later final benchmark owner receipt is scoped compatibility evidence. The [post-baseline coordinator register](../../docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts) records integrated readiness `a38e6af`, draft-provenance refreshes `0eaf467`/`0af4873`, practice and circuit fixes, the later Task 38 owner receipt and scoped green checks; the earlier full backend attempt was superseded before completion and is not a full pass. The final 306-test/84-file frontend run, lint/build, contracts and Ruff are reported passing; full backend/browser/coverage receipts remain pending. Task 33/35/38/39 preparation is not live approval, expert validation, performance compliance or human-trial evidence. The historical audit, baseline Task 36 report and old delivery logs retain their original scope and are not relabelled as current runs.
+Full combined validation is **PASS for the current delivered scope**. See the coordinator receipt above; this does not close the known focus-return race or external acceptance gates.

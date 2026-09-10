@@ -1,8 +1,12 @@
 # Integrated status reconciliation — final follow-up refresh
 
-10 September 2026. **Full combined validation: IN_PROGRESS.** The [coordinator report](parallel-integration-2026-09-10.md) owns final central receipts.
+10 September 2026. **Full combined validation: PASS for the current delivered scope.** The [coordinator report](parallel-integration-2026-09-10.md) owns final central receipts.
 
-## Scope and source
+Coordinator final receipt: The corrected delivery at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` passed 1,475 backend tests with 88.73% service coverage (80% minimum), 306 frontend tests across 84 files, and 132 configured browser checks at `ece4bedd41c36c7c37e89a10ce20fcd96a329f0f`. There were no failed, skipped or flaky cases in these final receipts. Root checks, lint/build, migration and contract checks, dependency audits and the full-history secret gate also pass. The coordinator report records exact commands, source trees, original failures and corrected runs. This verifies the delivered code; it does not close manual, expert, institutional or hosted-release requirements, or include unmerged next-batch branches. A separately reproduced assessor dialog-return focus race remains open in this source and is assigned to the next integration.
+
+## Original documentation delivery scope
+
+The following scope, commands and 906-link receipt describe the original isolated documentation task. The coordinator later added the final automated receipt above and the current focus-race finding. Its current checker passes 903 links/anchors and 198 source/path/named-case references; the original audit and baseline report remain unchanged.
 
 Branch `codex/final-status-reconciliation` was created from requested integration `e93842f21fbeb14d88e3a18ac132abcec9012db0`, then advanced before editing to coordinator-authorized application freeze `0bbf95e25e4124f7484944c9493d1165d7b8023b`. The earlier `codex/reconcile-integrated-status` branch and commit `21e4f81d9d09d29200da810481bac640ef8e4ce2` are preserved. The isolated worktree is `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-final-status/worktree`.
 
@@ -28,7 +32,7 @@ Relative to the immutable baseline, FR19/FR21/BP13/AT23 advance to IMPLEMENTED a
 
 ## Integrated follow-ups and scoped receipts
 
-The [matrix receipt register](implementation-gap-matrix.md#post-baseline-coordinator-receipts) distinguishes exact source changes, owner executions and still-pending central validation:
+The [matrix receipt register](implementation-gap-matrix.md#post-baseline-coordinator-receipts) distinguishes exact source changes, owner executions and the now-completed central validation:
 
 - Readiness `a38e6af` is integrated; runtime and migration graph both use 0045. The old d305 readiness mismatch is historical, with 16 focused health/deployment/worker checks reported passing after the regression failed.
 - Practice `0b43220` plus `af7bfb8`, merged at fa0c6ee, preserve purpose boundaries and complete untrusted typed evidence in both actual model inputs. The final corrected run reports 80 focused passes, including 20,000-character bounds, digest/approval/transfer and cached-release restrictions. Stored history and formal confirmation stay protected. Recording transports are not external-model quality evidence.
@@ -38,9 +42,9 @@ The [matrix receipt register](implementation-gap-matrix.md#post-baseline-coordin
 
 Task 33 remains implemented controls behind a closed production gate, with actual approvals/full Task 34 instruments still due. Task 38 remains partial for runtime controls, full metering, provider/budget approval and a representative real load/cost campaign. Task 39 remains a kit plus scoped automated corrections, not completed human trials. Moderation/evaluator validation, staffing, study, hosted availability/rollback and independent reuse obligations remain open.
 
-Final frontend receipt: **306 tests passed across 84 files, zero failed/skipped, 184.63 seconds**, with lint and production build passing. The frontend tree at e93842f is identical to application freeze 0bbf95e; the 837.64 kB / 244.54 kB gzip chunk advisory remains. API/TypeScript contract drift and Ruff (539 files) also pass at 0bbf95e according to the coordinator. Full backend coverage/browser/final security receipts remain pending.
+Final frontend receipt: **306 tests passed across 84 files, zero failed/skipped, 184.63 seconds**, with lint and production build passing. The frontend tree at e93842f is identical to application freeze 0bbf95e; the 837.64 kB / 244.54 kB gzip chunk advisory remains. API/TypeScript contract drift and Ruff (539 files) also pass at 0bbf95e according to the coordinator. Corrected backend coverage/browser/final security receipts now pass; see the coordinator report.
 
-Full combined validation stays **IN_PROGRESS** while central backend/browser/security/coverage checks complete. Earlier scoped greens retain their revisions; the superseded unfinished backend attempt is not a full pass. The coordinator will record central final results without relabelling this documentation work as an application test run.
+Full combined validation is **PASS for the current delivered scope**. See the coordinator receipt above; this does not close the known focus-return race or external acceptance gates.
 
 ## Focused documentation verification
 
@@ -58,7 +62,7 @@ git diff 0bbf95e25e4124f7484944c9493d1165d7b8023b -- docs/learnlens/main-audit-2
 
 The canonical validator checks all families and the legacy Step reference in the retained six-column format. The unchanged baseline checker still reports historical totals 83/44/3/0/13, not current totals. The scratch checker discovers controlling definitions, exact row/title/source and task sets, local links/anchors, repository paths/named Python cases, and unchanged historical files. Its source remains in this worktree's ignored scratch directory for local reproduction.
 
-Mechanical checks pass: 143 exact current rows and all family/source/title mappings; exact 29/10/2 task sets; 906 local links/anchors and 198 source/path/named-case references. The canonical validator passes all 143 rows, and the unchanged historical checker passes its 143 rows/446 references. Historical-file preservation is an empty diff against 0bbf95e. Whitespace is checked again after staging. No mechanical document check substitutes for human approval, effectiveness measurement or runtime validation.
+Original owner mechanical checks passed: 143 exact current rows and all family/source/title mappings; exact 29/10/2 task sets; 906 local links/anchors and 198 source/path/named-case references. The canonical validator passes all 143 rows, and the unchanged historical checker passes its 143 rows/446 references. Historical-file preservation is an empty diff against 0bbf95e. Whitespace is checked again after staging. No mechanical document check substitutes for human approval, effectiveness measurement or runtime validation.
 
 ## Commit and handoff
 

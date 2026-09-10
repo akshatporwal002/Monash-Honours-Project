@@ -1,7 +1,9 @@
 # LearnLens remaining tasks
 
-Current integration status: **10 September 2026**, inspected at `0bbf95e25e4124f7484944c9493d1165d7b8023b` on `codex/integrate-parallel-20260910`.
-**Combined final validation: IN_PROGRESS.** The coordinator owns the final combined receipts after the benchmark delivery and central suites complete. No full combined pass, live research activation or pilot readiness is claimed here.
+Current integration status: **10 September 2026**, inspected at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` on `codex/integrate-parallel-20260910`.
+**Combined final validation: PASS for the current delivered scope.** See the coordinator receipt below and the remaining implementation/evidence gaps.
+
+Coordinator final receipt: The corrected delivery at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` passed 1,475 backend tests with 88.73% service coverage (80% minimum), 306 frontend tests across 84 files, and 132 configured browser checks at `ece4bedd41c36c7c37e89a10ce20fcd96a329f0f`. There were no failed, skipped or flaky cases in these final receipts. Root checks, lint/build, migration and contract checks, dependency audits and the full-history secret gate also pass. The coordinator report records exact commands, source trees, original failures and corrected runs. This verifies the delivered code; it does not close manual, expert, institutional or hosted-release requirements, or include unmerged next-batch branches. A separately reproduced assessor dialog-return focus race remains open in this source and is assigned to the next integration.
 
 | Status | Count | Tasks |
 | --- | --- | --- |
@@ -22,7 +24,7 @@ The eight original deliveries and subsequent readiness, typed-practice, validati
 - **Task 35:** provenance refreshes 0eaf467 and 0af4873 include the changed practice-input dependencies. Latest reported tooling results are 44 tests and 12/12 numerical checks, with 108 DRAFT cases, zero approved, quality UNVERIFIED and AI release PENDING.
 - **Task 38:** final owner receipt `471f185a089d660f439ab9e21adf0113d01fdb96` verifies one fresh synthetic learner against a real local API, 35 successful HTTP calls, three feedback workflows and both actual local provider inputs; 54 focused checks passed. The owned benchmark changes are integrated as be3e92a, 9239dc1 and 0bbf95e. Six local usage rows have null actual AUD cost and zero human-confirmed loops. It is compatibility evidence, not a representative load/cost campaign or recovery proof. See the [dated receipt summary](docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts).
 - **Final frontend/source receipt:** 306 frontend tests across 84 files passed with zero failed/skipped; lint/build pass and frontend trees at e93842f/0bbf95e match. API/TypeScript contract drift and Ruff (539 files) pass at 0bbf95e per the coordinator.
-- **Final combined evidence:** remains **IN_PROGRESS**. The [coordinator report](docs/learnlens/parallel-integration-2026-09-10.md) owns final integrated SHAs, suites, coverage, migrations/contracts and security receipts. The superseded unfinished backend run is not a pass; earlier scoped greens retain their original revisions.
+- **Final combined evidence:** **PASS for the current delivered scope.** Exact source identities and results are in the coordinator receipt above; the known focus-return race and external acceptance gates remain open.
 - **Additional requirement gaps:** recoverable course revisions, upload malware policy, broader generated/accessible task types, integrity review cues, moderation/AI revalidation and fuller model/feedback-effectiveness evidence remain in the matrix.
 
 ## Numbered task ledger
@@ -91,7 +93,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 7. **[Completed] Start the durable worker and check actual readiness.**
 
-    The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. Recovery is implemented and readiness now matches migration head 0045 through a38e6af. The separate single-learner benchmark reports all readiness checks ready; final combined recovery/release validation remains pending with the coordinator.
+    The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. Recovery is implemented and readiness now matches migration head 0045 through a38e6af. The separate single-learner benchmark reports all readiness checks ready; current automated recovery checks pass; the separate integrated operational drill and hosted release remain Task 37/41 work.
 
     Dependencies: none for local template mode. Suggested owner: platform.
 
@@ -311,7 +313,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 29. **[Completed] Finish progress views and retire numeric learner-result semantics.**
 
-    Scoped progress separates observations, support, uncertain estimates, adaptations and released binary results. Numeric learner marks were retired after immutable preservation. The integrated timezone repair normalizes known UTC response timestamps after SQLite reload without rewriting stored history; final combined regression is IN_PROGRESS.
+    Scoped progress separates observations, support, uncertain estimates, adaptations and released binary results. Numeric learner marks were retired after immutable preservation. The integrated timezone repair normalizes known UTC response timestamps after SQLite reload without rewriting stored history; final combined regression is PASS for the current delivered scope.
 
     Dependencies: Tasks 3, 18, 19, 22, 24, 26, and 27. Final legacy removal also needs Task 8, D-10. Suggested owner: LMS, analytics, and frontend.
 
@@ -381,7 +383,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 36. **[Partial] Refresh traceability and run the complete automated checks.**
 
-    The immutable baseline Task 36 report accounts for all 143 requirements. The current matrix now reconciles integrated changes and preserves exact source/evidence crosswalks. Full combined backend/frontend/browser/security/contract/migration checks are IN_PROGRESS, owned by the coordinator; final receipts and independent review still need attachment at the final integrated SHA.
+    The immutable baseline and current matrix account for all 143 requirements. The current delivery's combined checks and independent reviews pass at the source revision recorded in the coordinator report. Task 36 remains partial because its Tasks 1–34 dependency set includes outstanding Task 34 work; repeat the combined checks and reconcile evidence after the next feature integration.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
 
@@ -412,6 +414,8 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 39. **[Partial] Complete browser, accessibility, and first-time usability checks.**
 
     Automated browser/keyboard/reflow/axe coverage and a manual-validation kit with 27 blank role cases are integrated. Native Safari, actual screen-reader/native zoom/contrast checks and first-time usability trials remain undone. T39-C1 keyboard target-wire placement/removal and T39-C2 explicit live/saved CX control/target text are fixed with focused and browser receipts; actual human speech verification remains due. The inherited timestamp fix is now integrated.
+
+    A separate controlled regression now reproduces lost dialog-return focus when a late evidence read finishes during assessor access checking. Cancel and Confirm both fail in that sequence. Its application correction and focused tests are assigned to the next integration; the current delivered source retains this known gap. The coordinator report distinguishes it from the earlier unconfirmed WebKit empty-reason timeout.
 
     Dependencies: Tasks 24-31 and 36; Task 8, D-12. Suggested owner: accessibility reviewers and product testing.
 
