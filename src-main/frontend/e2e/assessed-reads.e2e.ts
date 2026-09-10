@@ -41,6 +41,8 @@ test('formal submission survives task reload, history, and both dashboards', asy
   await expect(page.getByText(/Assessment response submitted. Formal result unavailable/)).toBeVisible()
   await expect(page.getByText(/null%|NaN/)).toHaveCount(0)
   await page.getByRole('link', { name: 'Students', exact: true }).click()
+  await expect(page).toHaveURL(/\/educator\/students$/)
+  await expect(page.getByRole('heading', { name: 'Students', level: 1, exact: true })).toBeVisible()
   await expect(page.getByText('Read Test Student', { exact: true })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: 'Average' })).toHaveCount(0)
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])

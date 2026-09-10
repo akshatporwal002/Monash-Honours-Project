@@ -67,3 +67,44 @@ The proposed canonical reconciliation moves Task 34 from remaining to partial (2
 Task 37's original seven-case synthetic receipt is local recovery evidence, with a 1 ms injected initial API lease and real 30-second worker leases, no second submission, and same-human-review-state backup/restore comparison. Repeating it after migration 0046 is focused integration evidence, not hosted TLS, live-provider recovery, institutional approval or complete Task 37 sign-off. Human accessibility/usability and expert/evaluator approvals remain open. Independent requirements review recommends NFR30/AC18 move MISSING to PARTIAL: substantial governed capture exists, while approved pilot capture and complete experience/reviewer workflows remain due. No pilot acceptance is implied. The canonical ledgers now record that foundation and the unchanged 12 unfinished tasks; no full Task 34/38 or release-completion claim is made.
 
 Preparation is complete with the baseline isolated-import limitation retained. The final source and focus correction are now integrated, and full suites are in progress. The retry/provenance correction is committed at `d988a70`; preparation commit `071913130ebe3b01d088468fa42dbed7fa007d1f` records the empty-table comparison correction. No full combined validation pass is claimed.
+
+## Current verification details
+
+The first full backend command, from the isolated backend directory, uses the existing Python 3.11.16 executable:
+
+```powershell
+python -m pytest --cov=app.services --cov-report=term-missing --cov-report=xml:../../.tmp-next-wave-checks/full-coverage.xml --cov-report=json:../../.tmp-next-wave-checks/full-coverage.json --cov-fail-under=80 -p no:cacheprovider --basetemp=C:/Users/Jordan.Tran/AppData/Local/Temp/ll-nw-full-a54b254a/pytest --junitxml=../../.tmp-next-wave-checks/backend-full.xml --tb=short
+```
+
+APP_ENV=test, RESEARCH_ENABLED=false and an empty LLM_API_KEY are explicit. Its global database/uploads and test databases use the fresh owned OS-temp parent. Pytest's configured pythonpath resolves this worktree; the Task 37 subprocess helper independently pins backend/test imports. No existing learner database is used. The full run collected 1,607 cases. The separately reproduced retirement assertion is exactly `['20260910_0046'] != ['20260910_0045']`, one failure in 7.44 seconds; the historical rollback target 0043 remains correct. The original report is retained as head-red.xml/head-red.log.
+
+The corrected browser runner sets PYTHONPATH to this worktree's backend and tests directories before launching the shared Python executable. A read-only provenance probe resolves both app and its settings schema inside this worktree and finds both new runtime fields. API/web ports are 4820/4813, Firefox is headless with the isolated firefox-1532 bundle, and every run uses a fresh short OS-temp output/data root. It executes all six groups sequentially:
+
+```powershell
+node e2e/run.mjs --project=chrome-stable --project=edge-stable --project=webkit --reporter=list,json --output=<fresh-group-directory>
+node e2e/run.mjs --project=firefox --reporter=list,json --output=<fresh-group-directory>
+node e2e/run.mjs --learning-loop --project=chrome-stable --project=edge-stable --project=webkit --reporter=list,json --output=<fresh-group-directory>
+node e2e/run.mjs --learning-loop --project=firefox --reporter=list,json --output=<fresh-group-directory>
+node e2e/run.mjs --misconceptions --project=chrome-stable --project=edge-stable --project=webkit --reporter=list,json --output=<fresh-group-directory>
+node e2e/run.mjs --misconceptions --project=firefox --reporter=list,json --output=<fresh-group-directory>
+```
+
+The owned runner and browser-checks.json preserve exact absolute executable/output paths and start/end timestamps. Expected inventory is 93+31+3+1+3+1 = 132 cases, with no skip/retry allowance substituted for a pass. The initial mixed-checkout group is retained separately, including 87 passes and six administrator-route failures; all its cases are excluded from final-source proof.
+
+Fresh root execution `python -m pytest tests scripts/task36_traceability -q -p no:cacheprovider --basetemp=<fresh-owned-temp> --junitxml=.tmp-next-wave-checks/root-final.xml` passed **13 tests plus 9 subtests in 9.43 seconds**. `python scripts/task39_manual_validation/check_kit.py` passed 9 documents, 58 links, 36 routes and 27 blank human-validation cases. The canonical validator passes 143 rows; the historical checker still passes 143 rows/446 references. The current scratch checker passes 143 exact source/title/status rows, 29/11/1 task sets, 1,075 local links and 211 production/test references. The prior audit, baseline and parallel-integration report are unchanged against 4f26d05.
+
+Python dependency auditing found zero known vulnerabilities across **66 third-party distributions**; the editable application itself is explicitly skipped, not claimed as a separately audited package. Both npm audit reports contain zero known vulnerabilities. The uv lock check resolves 69 locked packages without changing the lockfile. These are dated audit observations, not permanent safety guarantees.
+
+At documentation commit `0399ebd88beb8c31a0c7ae7ceb09e34d6876d25d`, `python .github/scripts/secret_scan.py --gitleaks <existing-gitleaks-8.28.0> --repo . --report-dir .tmp-next-wave-checks/secrets-snapshot` passed: **235 independently inventoried text commits**, zero history findings, positive control detected and fully redacted. Later commits and final promotion require a fresh gate. No real credential appears in the report. Automatic approval review rejected the subsequent personal authentication/push attempt because it did not accept relayed authorization for the public destination; direct user approval is pending and that attempt did not run.
+
+## Suppression and exclusion review
+
+Independent Standards review inspected 4f26d05..6d20416: one added `noqa: F401` registers the new instrument ORM model and its history protections through import side effects. Its owner is Task 34A persistence; it follows the existing model-registration convention. No added test skips, TypeScript/ESLint suppression, type-ignore or coverage exclusion was found, and the 80% service-coverage gate is unchanged.
+
+The migration-manifest helper excludes the five new tables only when empty; populated history remains compared. The instrument restore test excludes research tables only from its operational-table equality assertion because the fixture deliberately writes research records; separate complete backup/withdrawal checks cover research persistence. Both are owned by Task 34A/migration maintenance, with no confirmed masking. Existing model-registration suppressions and the worker's cancellation cleanup remain unchanged. This review is bounded to the integrated change; it does not claim an audit of every historical suppression.
+
+## Browser destination-readiness correction
+
+The first worktree-pinned three-engine group completed **92 passed / one failed in 7.3 minutes**. All administrator routes passed. WebKit's assessed-read journey failed the full axe assertion with only `page-has-heading-one` (moderate); the eventual error snapshot already contained the Students heading. After clicking Students, the old test waited for a learner name also visible in the departing dashboard, then an absent Average column that also passes during loading. The Students loading branch has no heading. Independent Standards and Spec review identify a destination-readiness gap, without establishing a product accessibility defect.
+
+The test now waits for `/educator/students` and an exact visible level-one Students heading before the original learner, no-Average and all-violations-empty axe assertions. No rule, severity, timeout, retry or assertion was weakened. The red log/report/runner are preserved under browser-students-readiness-red, with owned artifacts in OS-temp ll-nw-browser-11e2fc61. Focused ESLint and TypeScript passed; the complete 132-case rerun will establish the corrected result. This changes only one browser test; application sources, frontend component tests and the running backend suite retain the frozen 6d20416 content.
