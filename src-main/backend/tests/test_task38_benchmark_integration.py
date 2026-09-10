@@ -66,10 +66,9 @@ def test_worker_cleanup_survives_stalled_process_and_closes_logs(kill_fails):
         log.close.assert_called_once()
 
 
-def _run_observed_worker(receipt_path):
+def _observe_local_providers(receipt_path, process_role):
     """Record actual local-provider inputs; delegate unchanged to shipped methods."""
     from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
-    from app.worker import main
 
     generate = LocalFeedbackGenerator.generate
     evaluate = LocalFeedbackJudge.evaluate
@@ -77,7 +76,13 @@ def _run_observed_worker(receipt_path):
     def record(role, context):
         with Path(receipt_path).open("a", encoding="utf-8") as receipt:
             receipt.write(
-                json.dumps({"role": role, "submission": context.submission.model_dump(mode="json")})
+                json.dumps(
+                    {
+                        "process": process_role,
+                        "role": role,
+                        "submission": context.submission.model_dump(mode="json"),
+                    }
+                )
                 + "\n"
             )
 
@@ -91,7 +96,20 @@ def _run_observed_worker(receipt_path):
 
     LocalFeedbackGenerator.generate = observed_generate
     LocalFeedbackJudge.evaluate = observed_evaluate
+
+
+def _run_observed_worker(receipt_path):
+    from app.worker import main
+
+    _observe_local_providers(receipt_path, "worker")
     return main()
+
+
+def _run_observed_api(receipt_path, port):
+    import uvicorn
+
+    _observe_local_providers(receipt_path, "api")
+    uvicorn.run("app.main:app", host="127.0.0.1", port=int(port), access_log=False)
 
 
 def test_preparer_refuses_existing_directory_without_changing_it(tmp_path):
@@ -194,14 +212,11 @@ def test_preparer_and_real_local_learning_loop(tmp_path):
             (
                 "api",
                 [
-                    "-m",
-                    "uvicorn",
-                    "app.main:app",
-                    "--host",
-                    "127.0.0.1",
-                    "--port",
+                    "-c",
+                    "import runpy, sys; entry = runpy.run_path(sys.argv[1]); entry['_run_observed_api'](sys.argv[2], sys.argv[3])",
+                    str(Path(__file__).resolve()),
+                    str(tmp_path / "api-inputs.jsonl"),
                     str(port),
-                    "--no-access-log",
                 ],
             ),
         ):
@@ -309,7 +324,9 @@ def test_preparer_and_real_local_learning_loop(tmp_path):
         _stop_owned_processes(processes, logs)
     inputs = [
         json.loads(line)
-        for line in (tmp_path / "worker-inputs.jsonl").read_text(encoding="utf-8").splitlines()
+        for receipt in (tmp_path / "api-inputs.jsonl", tmp_path / "worker-inputs.jsonl")
+        if receipt.exists()
+        for line in receipt.read_text(encoding="utf-8").splitlines()
     ]
     assert {item["role"] for item in inputs} == {"generator", "judge"}
     assert all(
