@@ -148,6 +148,15 @@ permission changes are part of this correction.
 Correction validation: **67 passed in 37.56 seconds** across instrument service and
 mounted API tests, without warnings; Ruff check/format and `git diff --check` pass.
 
+Integration-readiness correction: `app/core/readiness.py` now pins
+`MIGRATION_HEAD = "20260910_0046"` to match this branch's Alembic head. Before the
+change, `pytest tests/test_deployment_runtime.py::test_readiness_migration_pin_matches_the_alembic_head -q -p no:cacheprovider --tb=short`
+failed in 1.57 seconds with `20260910_0045 != 20260910_0046`. After the one-line
+correction, `pytest tests/test_deployment_runtime.py tests/test_health.py tests/test_worker_health.py -q`
+passed **16 checks in 22.76 seconds**, without warnings. Ruff check/format and
+`git diff --check` pass. Contracts are unchanged. This receipt is separate from the
+135 original checks and 67 instrument-correction checks; no full suite was run.
+
 Next dependency: human-reviewed instrument content and support manifests, approved
 field/purpose/retention decisions, and an explicit approval workflow for real
 instruments. Follow-up work includes learner/researcher UI, approved redaction and
