@@ -2,18 +2,18 @@
 
 **12 of 41 tasks still need work; 29 are completed implementations.** Partial tasks count as unfinished.
 
-Including today's local next-wave changes on `codex/integrate-next-wave-20260910`, the implementation breakdown is **29 completed, 11 partial and one remaining**. Task 34 now has an instrument foundation, so it becomes partial; none of the other unfinished tasks is fully closed by these changes. That branch's combined validation is still in progress. The inspected main snapshot and numbered ledger below retain **29 completed, 10 partial and two remaining** until the next integration is accepted. Both scopes therefore have **12 unfinished tasks**, not one or two.
+Including today's local next-wave changes on `codex/integrate-next-wave-20260910`, the implementation breakdown is **29 completed, 11 partial and one remaining**. Task 34 now has an instrument foundation, so it becomes partial; none of the other unfinished tasks is fully closed by these changes. **Combined validation: IN_PROGRESS**, frozen application/test source `6d20416c6760d4841828c9e59cc74679d8ca0ae7`. The full frontend suite passed 319 tests across 85 files, lint/types/build and dependency audits passed; backend coverage and all 132 browser cases are still being checked. An administrator-demo browser failure is under investigation. See the [current next-wave receipt](docs/learnlens/next-wave-integration-verification-2026-09-10.md). The prior main receipt below is historical and does not certify this new source.
 
-Current integration status: **10 September 2026**, inspected at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` on `codex/integrate-parallel-20260910`.
-**Combined final validation: PASS for the current delivered scope.** See the coordinator receipt below and the remaining implementation/evidence gaps.
+Prior accepted integration: **10 September 2026**, inspected at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` on `codex/integrate-parallel-20260910`.
+**Prior combined validation: PASS for that earlier scope.** The next-wave source remains IN_PROGRESS.
 
 Coordinator final receipt: The corrected delivery at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` passed 1,475 backend tests with 88.73% service coverage (80% minimum), 306 frontend tests across 84 files, and 132 configured browser checks at `ece4bedd41c36c7c37e89a10ce20fcd96a329f0f`. There were no failed, skipped or flaky cases in these final receipts. Root checks, lint/build, migration and contract checks, dependency audits and the full-history secret gate also pass. The coordinator report records exact commands, source trees, original failures and corrected runs. This verifies the delivered code; it does not close manual, expert, institutional or hosted-release requirements, or include unmerged next-batch branches. A separately reproduced assessor dialog-return focus race remains open in this source and is assigned to the next integration.
 
 | Status | Count | Tasks |
 | --- | --- | --- |
 | Completed implementation | 29 | 1–7, 9–27, 29–31 |
-| Partial: tooling, activation, integration or evidence remains | 10 | 8, 28, 32, 33, 35, 36, 37, 38, 39, 40 |
-| Remaining | 2 | 34, 41 |
+| Partial: tooling, activation, integration or evidence remains | 11 | 8, 28, 32, 33, 34, 35, 36, 37, 38, 39, 40 |
+| Remaining | 1 | 41 |
 
 “Completed implementation” is the delivered numbered task scope; it does not mean all related requirement clauses or release gates have passed. The [current requirement matrix](docs/learnlens/implementation-gap-matrix.md) is authoritative for all 143 FR/PD/BP/NFR/AC/AT rows, with current gaps and acceptance checks. The [baseline Task 36 report](docs/learnlens/task-36-requirements-reconciliation.md) and [historical main audit](docs/learnlens/main-audit-2026-09-10.md) remain immutable evidence at `27a397a`; their former branch-only or missing-control statements do not describe this later integrated tree. Older detailed delivery records retain their original revisions and failures/reruns.
 
@@ -384,9 +384,9 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
     Evidence: [current implementation/delivery](docs/learnlens/task-33-governance-implementation.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
-34. **[Remaining] Build and verify the learning-study instruments and records.**
+34. **[Partial] Build and verify the learning-study instruments and records.**
 
-    Complete approved learning-study instruments and records remain to be built: pre/in-process/post, unaided concept/transfer/retention, learner experience, educator/reviewer evidence, condition allocation where approved, attrition/deviations/missingness and governed full-stage exports. Task 33 supplies governance and technical-pair export only.
+    Task 34A supplies versioned instrument forms, freezes, stage bindings and governed records, with restricted evidence and missingness/attrition/deviation handling on migration 0046. Complete approved content, learner/researcher UI, experience and reviewer workflows/ratings, condition allocation, outcomes and full governed study exports remain due. The original technical-pair export stays separate and production research remains closed. See the [instrument foundation](docs/learnlens/task-34a-governed-instruments.md).
 
     Dependencies: Tasks 25, 29, 32, and 33. Suggested owner: research and analytics.
 

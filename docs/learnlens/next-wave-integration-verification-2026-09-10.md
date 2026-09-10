@@ -1,6 +1,12 @@
 # Next-wave integration and verification — 10 September 2026
 
-Status: **PREPARED_AWAITING_FINAL_SOURCE; full combined validation NOT STARTED**. The coordinator must supply the final promoted-main/browser-correction source and explicitly release full validation before this branch freezes. No current-main promotion is performed here.
+Status: **IN_PROGRESS — combined validation is not yet a pass**. Application/test source froze at `6d20416c6760d4841828c9e59cc74679d8ca0ae7` after integrating coordinator main `4f26d05b05a682e7cd90031ed81fbadb2bb56faa` and the final assessor-focus correction `b0f6f122691b73e74310985c8c701158df258755`. Coordinator documentation commit `1047522b823620e5133c2d53afd8758233c9469c` was merged while tests continued; it changes no application/test source. The coordinator owns root/main promotion and GitHub publication.
+
+**12 of 41 numbered tasks still need work: 29 completed implementations, 11 partial and one remaining (Task 41).** The [master checklist](../../LearnLens_Remaining_Tasks.md#concrete-work-left-after-the-local-changes) gives one concrete action for each unfinished task. Task 34 moves to partial because its instrument foundation is implemented; this is not full study or release approval.
+
+Current executed receipts: **319 frontend tests across 85 files passed in 203.76 seconds**, zero failed/skipped; full ESLint, TypeScript and production build passed. Backend Ruff/format (556 files), generated contract drift, sole migration/readiness head 0046, uv lock check, Python dependency audit and both full/production npm audits passed. Python audit inspected the existing environment through an isolated audit tool. npm audits used an exact copy of all 425 public registry dependency lock entries with only the project root identity replaced by a synthetic name; each dependency entry was verified identical, no installed dependencies or source lockfile changed, both reports contain zero known vulnerabilities. The existing Vite chunk-size advisory remains.
+
+Full backend coverage and all 132 configured browser cases are running on fresh synthetic databases, short OS-temp directories and private API/web ports 4820/4813. The browser run has observed an administrator-demo failure in `person4.e2e.ts`; its evidence is being investigated and retained. No combined browser pass or final secret-scan pass is claimed. Final receipts will be appended after actual execution.
 
 ## Source and scope
 
@@ -43,7 +49,8 @@ All runs use existing Python 3.11.16 and Node 22.13.0. Frontend dependencies wer
 | Canonical OpenAPI and generated TypeScript drift | PASS after combined generation |
 | Task 35 numerical consistency | 12/12 match; all 108 cases remain unapproved drafts |
 | Combined migration/recovery, benchmark probe and post-refresh tooling | 120 passed / 4 migration assertion failures in 353.65 seconds; all seven recovery cases passed (56.35 summed case seconds), benchmark/provenance cases passed; corrected four assertions plus assessment contracts/populated-instrument guards: 18 passed in 59.80 seconds |
-| Full backend coverage, full frontend and browser matrices | NOT STARTED; awaiting coordinator release |
+| Full backend coverage and browser matrices | IN_PROGRESS at frozen source 6d20416; administrator-demo browser failure under investigation |
+| Full frontend suite / lint / types / build | 319 tests across 85 files passed in 203.76 seconds; all checks PASS |
 
 The focused 124-case batch reproduced four older downgrade-history assertions: the only differences were the five empty 0046 instrument tables safely removed before an earlier populated-history guard halted the downgrade. The shared comparison helper already omits explicitly named empty removable extensions. Adding only the five new table names under its unchanged zero-row condition preserves every populated table and digest. Independent Standards review cleared this correction; dedicated populated-instrument refusal tests still compare the full database manifest. Production migration 0046 is unchanged.
 
@@ -59,4 +66,4 @@ The proposed canonical reconciliation moves Task 34 from remaining to partial (2
 
 Task 37's original seven-case synthetic receipt is local recovery evidence, with a 1 ms injected initial API lease and real 30-second worker leases, no second submission, and same-human-review-state backup/restore comparison. Repeating it after migration 0046 is focused integration evidence, not hosted TLS, live-provider recovery, institutional approval or complete Task 37 sign-off. Human accessibility/usability and expert/evaluator approvals remain open. Independent requirements review recommends NFR30/AC18 move MISSING to PARTIAL: substantial governed capture exists, while approved pilot capture and complete experience/reviewer workflows remain due. No pilot acceptance is implied. The canonical ledgers will be reconciled after final-source integration; no full Task 34/38 or release-completion claim is made.
 
-Preparation is complete with the baseline isolated-import limitation retained. Full-source release and the final focus correction are still required before full suites. The retry/provenance correction is committed at `d988a70`; the subsequent preparation receipt also commits the empty-table comparison correction. No full validation pass is claimed.
+Preparation is complete with the baseline isolated-import limitation retained. The final source and focus correction are now integrated, and full suites are in progress. The retry/provenance correction is committed at `d988a70`; preparation commit `071913130ebe3b01d088468fa42dbed7fa007d1f` records the empty-table comparison correction. No full combined validation pass is claimed.
