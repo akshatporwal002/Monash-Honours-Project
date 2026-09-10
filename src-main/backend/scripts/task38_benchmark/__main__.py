@@ -99,9 +99,9 @@ def read_config(args):
 
 
 async def settings_command(config, credentials):
-    if config.max_requests < 20:
+    if config.max_requests < 32:
         raise ValueError(
-            "Settings probe requires a budget of at least 20 requests, including restoration"
+            "Settings probe requires a budget of at least 32 requests, including restoration"
         )
     from dataclasses import replace
 

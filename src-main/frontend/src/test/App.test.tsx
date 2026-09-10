@@ -230,6 +230,8 @@ test('maps the backend administrator role to the Admin workspace', async () => {
       return response({
         llm_provider: '',
         llm_model: '',
+        provider_timeout_seconds: 60,
+        max_infrastructure_attempts: 3,
 
         reminders_enabled: true,
 

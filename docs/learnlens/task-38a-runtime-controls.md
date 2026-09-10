@@ -97,9 +97,81 @@ python -m scripts.generate_frontend_contracts --check --input .tmp-task38a-contr
 Ruff lint/format checks pass on the 11 changed Python files. Branch-local OpenAPI
 and TypeScript generation/checks pass. Compared with the frozen canonical contract,
 only `SettingsRead` and `SettingsUpdate` change; routes and other schemas are identical.
-Generated scratch files are uncommitted. The coordinator owns canonical regeneration
-and master-ledger reconciliation. This slice adds backend controls; administrator UI
-fields and the benchmark's older settings probe need follow-up wiring.
+The initial backend commit used uncommitted scratch contracts. The authorized
+follow-up below commits canonical branch contracts; the coordinator still owns
+combined regeneration and master-ledger reconciliation.
+
+## Retry-transition correction
+
+Independent review found that three queues could strand scheduled retries after
+lowering the limit, and assessment failure handling retained a constant ceiling.
+Separate corrective commit `bb503dbd3122828468506c501cf74ad2e0b40739` fixes these
+transitions. The [correction receipt](task-38a-retry-exhaustion-correction.md)
+records four reproduced failures, seven passing new regressions, and 46 passing
+related queue/fencing checks. One migration/backup subprocess case was excluded.
+
+## Administrator UI and settings-probe follow-up
+
+The existing administrator settings screen now exposes both bounded integer fields
+with associated labels, help, native limits and accessible error descriptions.
+It displays fetched values, locks controls during a save, preserves edits after a
+failed save, and accepts the server's returned values on success. Partial updates
+send only edited settings, preserving an unset model or an unfamiliar fetched
+provider when changing operational limits. Missing or invalid runtime values fail
+visibly instead of inventing defaults. Budget and billing controls remain absent.
+
+The settings probe checks provider, model, timeout and attempt count: learner
+denials, administrator boundary rejection, valid updates/readback, and restoration
+of all four original settings on success or failure. It requires a minimum of 32
+requests and reserves two for restoration. Unrestorable originals (including a
+blank model rejected by PUT) stop before any mutation. Budget remains explicitly
+unsupported. A CRUD receipt still marks actual execution effects as pending;
+the earlier instrumented runtime tests are separate evidence.
+
+Canonical `src-main/contracts/openapi.json` and frontend `src/api/generated.ts`
+are regenerated on this branch as authorized. Frontend settings types now derive
+from that contract. The only changed OpenAPI schemas are `SettingsRead` and
+`SettingsUpdate`.
+
+Follow-up checks:
+
+- **42 harness/probe tests passed**, 0.72 seconds, covering authority, strict inputs,
+  bounds, restoration after response failure/request exhaustion, and preflight guards.
+- **11 admin component tests passed**, 9.88 seconds total Vitest duration. Existing
+  `src/test/App.test.tsx` also passed **21 tests** after updating its settings fixture.
+- TypeScript build checking, targeted ESLint, Ruff and both canonical contract checks pass.
+- Vite production build passes (2,319 modules); its existing large-bundle warning remains.
+- No browser server or manual browser session was started. Component tests exercise
+  labels, descriptions, invalid input, pending controls and failed-save recovery.
+
+Commands, run in this worktree's backend or frontend directory respectively:
+
+```powershell
+$python = 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\src-main\backend\.venv\Scripts\python.exe'
+& $python -m pytest tests/test_task38_benchmark_harness.py tests/test_task38_settings_probe.py -q --tb=short -p no:cacheprovider --basetemp=.tmp-task38a-ui-harness-final
+& $python -m ruff check scripts/task38_benchmark tests/test_task38_settings_probe.py tests/test_task38_benchmark_harness.py
+& $python -m scripts.export_openapi --check
+& $python -m scripts.generate_frontend_contracts --check
+
+$node = 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\.tmp-task23-24\tools\node-v22.13.0-win-x64\node.exe'
+& $node node_modules/vitest/vitest.mjs run src/components/AdminWorkspace.test.tsx
+& $node node_modules/vitest/vitest.mjs run src/components/AdminWorkspace.test.tsx src/test/App.test.tsx
+& $node node_modules/typescript/bin/tsc -b
+& $node node_modules/eslint/bin/eslint.js src/components/AdminWorkspace.tsx src/components/AdminWorkspace.test.tsx src/app/api.ts src/app/types.ts src/test/App.test.tsx
+& $node node_modules/vite/bin/vite.js build
+```
+
+The first combined component run passed App's 21 tests but found a missing brace in
+the new test helper; after that syntax fix, one assertion needed to include the
+existing reminder checkbox's help text in its accessible name. The final isolated
+component run passed all 11 tests. Initial harness assertions treating timeout/retry
+as unsupported were updated for the new contract. Sandboxed Vite process spawning
+reported `EPERM`; approved isolated reruns succeeded. No assertions or gates were removed.
+
+Frontend dependencies were copied into this worktree from the existing project
+dependency directory, whose lockfile matches this branch. Checks used Node 22.13.0;
+no package install, lockfile change, shared dependency mutation or runtime upgrade
+was performed. Shared Python and Node executables were used read-only.
 
 ## Coordination seam and limits
 

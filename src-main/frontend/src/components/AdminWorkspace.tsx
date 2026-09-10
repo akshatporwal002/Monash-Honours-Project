@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
   AlertTriangle,
@@ -45,10 +45,17 @@ const roleOptions = [
    the stored '' (no provider configured). */
 const noProviderValue = 'no-provider'
 
+function runtimeError(value: string, maximum: number) {
+  return value.trim() && Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= maximum
+    ? '' : `Enter a whole number from 1 to ${maximum}.`
+}
+
 export function AdminWorkspace({ section }: { section: AdminSection }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [courses, setCourses] = useState<CourseSummary[] | null>(null)
   const [settings, setSettings] = useState<SystemSettings | null>(null)
+  const [savedSettings, setSavedSettings] = useState<SystemSettings | null>(null)
+  const [runtimeDraft, setRuntimeDraft] = useState({ timeout: '', attempts: '' })
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -63,6 +70,13 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
     role: 'student' as UserRole,
     password: '',
   })
+  const receiveSettings = useCallback((value: SystemSettings) => {
+    setSettings(value)
+    setSavedSettings(value)
+    setRuntimeDraft({ timeout: String(value.provider_timeout_seconds), attempts: String(value.max_infrastructure_attempts) })
+  }, [])
+  const timeoutError = runtimeError(runtimeDraft.timeout, 60)
+  const attemptsError = runtimeError(runtimeDraft.attempts, 3)
 
   const load = async (signal?: AbortSignal) => {
     try {
@@ -73,7 +87,7 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
       ])
       setUsers(userData)
       setCourses(courseData)
-      setSettings(settingData)
+      receiveSettings(settingData)
       setError('')
     } catch (caught) {
       if (!signal?.aborted) setError(caught instanceof Error ? caught.message : 'Admin data could not be loaded.')
@@ -91,7 +105,7 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
         ])
         setUsers(userData)
         setCourses(courseData)
-        setSettings(settingData)
+        receiveSettings(settingData)
         setError('')
       } catch (caught) {
         if (!controller.signal.aborted) {
@@ -101,7 +115,7 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
     }
     void loadInitialData()
     return () => controller.abort()
-  }, [])
+  }, [receiveSettings])
 
   const counts = useMemo(() => ({
     active: users?.filter((user) => user.is_active).length ?? 0,
@@ -186,12 +200,27 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
 
   const saveSettings = async (event: FormEvent) => {
     event.preventDefault()
-    if (!settings) return
+    if (!settings || !savedSettings || busy) return
+    if (timeoutError || attemptsError) {
+      setError('Check the timeout and retry limits before saving.')
+      return
+    }
+    const updates: Partial<SystemSettings> = {}
+    if (settings.llm_provider !== savedSettings.llm_provider) updates.llm_provider = settings.llm_provider
+    if (settings.llm_model !== savedSettings.llm_model) updates.llm_model = settings.llm_model
+    if (settings.points_per_level !== savedSettings.points_per_level) updates.points_per_level = settings.points_per_level
+    if (settings.reminders_enabled !== savedSettings.reminders_enabled) updates.reminders_enabled = settings.reminders_enabled
+    if (Number(runtimeDraft.timeout) !== savedSettings.provider_timeout_seconds) updates.provider_timeout_seconds = Number(runtimeDraft.timeout)
+    if (Number(runtimeDraft.attempts) !== savedSettings.max_infrastructure_attempts) updates.max_infrastructure_attempts = Number(runtimeDraft.attempts)
+    if (!Object.keys(updates).length) {
+      setMessage('No settings changed.')
+      return
+    }
     setBusy(true)
     setError('')
     setMessage('')
     try {
-      setSettings(await api.admin.updateSettings(settings))
+      receiveSettings(await api.admin.updateSettings(updates))
       setMessage('System settings saved.')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Settings could not be saved.')
@@ -391,9 +420,10 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
           <PageHeader
             eyebrow="System configuration"
             title="Settings"
-            description="Choose shared AI defaults and learner-support thresholds for the MVP."
+            description="Manage AI defaults, operational limits and student support."
           />
-          <form className={styles.settingsForm} onSubmit={(event) => void saveSettings(event)}>
+          <form className={styles.settingsForm} aria-label="System settings" aria-busy={busy} onSubmit={(event) => void saveSettings(event)}>
+            <fieldset className={styles.settingsFields} disabled={busy} aria-label="Settings controls">
             <Card className={styles.settingsSection}>
               <div className={styles.sectionHead}>
                 <span className={styles.sectionIcon} aria-hidden="true"><Sparkles size={18} /></span>
@@ -417,6 +447,8 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
                       { value: 'openai', label: 'OpenAI' },
                       { value: 'anthropic', label: 'Anthropic' },
                       { value: 'local', label: 'Local provider' },
+                      ...(settings.llm_provider && !['openai', 'anthropic', 'local'].includes(settings.llm_provider)
+                        ? [{ value: settings.llm_provider, label: settings.llm_provider }] : []),
                     ]}
                   />
                 </Field>
@@ -428,6 +460,17 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
                   />
                 </Field>
               </div>
+              <div className={styles.formGrid}>
+                <Field label="Provider timeout (seconds)" help="1–60 seconds for each new provider operation." error={timeoutError} required>
+                  <Input type="number" min={1} max={60} step={1} required value={runtimeDraft.timeout}
+                    onChange={(event) => setRuntimeDraft({ ...runtimeDraft, timeout: event.target.value })} />
+                </Field>
+                <Field label="Infrastructure attempts" help="1–3 total attempts, including the first. Learner revisions and the feedback quality check are separate." error={attemptsError} required>
+                  <Input type="number" min={1} max={3} step={1} required value={runtimeDraft.attempts}
+                    onChange={(event) => setRuntimeDraft({ ...runtimeDraft, attempts: event.target.value })} />
+                </Field>
+              </div>
+              <p className={styles.sectionText}>Saved limits apply to new work without restarting the service. Work already running keeps its current limits.</p>
               {!settings.llm_provider && (
                 <p className={styles.settingsWarning}>
                   <AlertTriangle size={16} aria-hidden="true" /> AI generation remains unavailable
@@ -462,8 +505,9 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
               />
             </Card>
             <div className={styles.settingsActions}>
-              <Button type="submit" variant="primary" loading={busy}>Save settings</Button>
+              <Button type="submit" variant="primary" loading={busy} disabled={!!timeoutError || !!attemptsError}>Save settings</Button>
             </div>
+            </fieldset>
           </form>
         </>
       )}

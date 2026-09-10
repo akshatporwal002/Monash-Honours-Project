@@ -38,7 +38,12 @@ class FakeTransport:
         self.polls = {}
         self.transferred = False
         self.admin = False
-        self.settings = {"llm_provider": "local", "llm_model": "template"}
+        self.settings = {
+            "llm_provider": "local",
+            "llm_model": "template",
+            "provider_timeout_seconds": 60,
+            "max_infrastructure_attempts": 3,
+        }
 
     def uid(self, suffix):
         return str(uuid5(NAMESPACE_URL, self.identity + suffix))
@@ -69,6 +74,14 @@ class FakeTransport:
             if not self.admin:
                 return reply({}, 403)
             if method == "PUT":
+                for key, maximum in (
+                    ("provider_timeout_seconds", 60),
+                    ("max_infrastructure_attempts", 3),
+                ):
+                    if key in body and (
+                        type(body[key]) is not int or not 1 <= body[key] <= maximum
+                    ):
+                        return reply({"detail": "Runtime setting out of bounds"}, 422)
                 self.settings.update(body)
             return reply(self.settings)
         if path.endswith("/dashboard") or path.startswith("progress/"):

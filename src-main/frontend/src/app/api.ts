@@ -249,14 +249,7 @@ interface RawMaterial {
   processing_attempts?: number
 }
 
-interface RawSettings {
-  llm_provider?: string
-  llm_model?: string
-
-  reminders_enabled?: boolean
-
-  points_per_level?: number
-}
+type RawSettings = ApiSchemas['SettingsRead']
 
 interface RawAuthUser {
   id: number | string
@@ -423,11 +416,15 @@ function normalizeMaterial(raw: RawMaterial): CourseMaterial {
 }
 
 function normalizeSettings(raw: RawSettings): SystemSettings {
+  if (!Number.isInteger(raw.provider_timeout_seconds) || raw.provider_timeout_seconds < 1 || raw.provider_timeout_seconds > 60
+    || !Number.isInteger(raw.max_infrastructure_attempts) || raw.max_infrastructure_attempts < 1 || raw.max_infrastructure_attempts > 3) {
+    throw new Error('Runtime settings could not be read. Reload settings.')
+  }
   return {
     llm_provider: raw.llm_provider ?? '',
     llm_model: raw.llm_model ?? '',
-
-
+    provider_timeout_seconds: raw.provider_timeout_seconds,
+    max_infrastructure_attempts: raw.max_infrastructure_attempts,
     points_per_level: raw.points_per_level ?? 500,
     reminders_enabled: raw.reminders_enabled ?? true,
   }
@@ -829,7 +826,7 @@ export const api = {
       )),
     settings: async (signal?: AbortSignal) =>
       normalizeSettings(await request<RawSettings>('/admin/settings', { signal })),
-    updateSettings: async (payload: SystemSettings) =>
+    updateSettings: async (payload: Partial<SystemSettings>) =>
       normalizeSettings(await request<RawSettings>('/admin/settings', json('PUT', payload))),
     archiveCourse: async (courseId: string) =>
       normalizeCourse(await request<RawCourse>(

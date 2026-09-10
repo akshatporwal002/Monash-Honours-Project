@@ -302,12 +302,41 @@ class LearningLoop:
 
 async def probe_settings(admin: LearningLoop, learner: LearningLoop, desired):
     """Run separately before load; restore original supported values even on failure."""
-    results = {
-        key: {"status": "missing_runtime_interface"} for key in ("timeout", "retry", "budget")
-    }
+    keys = ("llm_provider", "llm_model", "provider_timeout_seconds", "max_infrastructure_attempts")
+    bounds = {"provider_timeout_seconds": 60, "max_infrastructure_attempts": 3}
+    if not isinstance(desired, dict) or set(desired) != set(keys):
+        raise StopRun("settings_probe_requires_four_supported_settings")
+    for key, maximum in bounds.items():
+        if type(desired[key]) is not int or not 1 <= desired[key] <= maximum:
+            raise StopRun("settings_probe_invalid_runtime_value")
+    for key, maximum in (("llm_provider", 100), ("llm_model", 255)):
+        if (
+            not isinstance(desired[key], str)
+            or not desired[key].strip()
+            or desired[key] != desired[key].strip()
+            or len(desired[key]) > maximum
+        ):
+            raise StopRun("settings_probe_invalid_model_value")
+    results = {"budget": {"status": "missing_runtime_interface"}}
     original = await admin.request("GET", "admin/settings")
-    restore = {key: original[key] for key in ("llm_provider", "llm_model")}
+    if any(key not in original for key in keys):
+        raise StopRun("settings_probe_runtime_interface_missing")
+    restore = {key: original[key] for key in keys}
     admin.result["settings_original"] = restore
+    # Reads can expose an unset model, but PUT rejects blank identifiers. Refuse
+    # mutation before entering a probe that cannot restore its starting state.
+    for key, maximum in (("llm_provider", 100), ("llm_model", 255)):
+        value = restore[key]
+        if (
+            not isinstance(value, str)
+            or not value.strip()
+            or value != value.strip()
+            or len(value) > maximum
+        ):
+            raise StopRun("settings_probe_original_values_not_restorable")
+    for key, maximum in bounds.items():
+        if type(restore[key]) is not int or not 1 <= restore[key] <= maximum:
+            raise StopRun("settings_probe_original_values_not_restorable")
     if any(desired[key] == value for key, value in restore.items()):
         raise StopRun("settings_probe_requires_different_values")
     try:
@@ -316,6 +345,12 @@ async def probe_settings(admin: LearningLoop, learner: LearningLoop, desired):
             after_denial = await admin.request("GET", "admin/settings")
             if after_denial[key] != original[key]:
                 raise StopRun("unauthorized_settings_changed")
+            if key in bounds:
+                for invalid in (0, bounds[key] + 1):
+                    await admin.request("PUT", "admin/settings", {key: invalid}, expected=(422,))
+                    after_invalid = await admin.request("GET", "admin/settings")
+                    if after_invalid[key] != original[key]:
+                        raise StopRun("invalid_runtime_setting_changed")
             changed = await admin.request("PUT", "admin/settings", {key: desired[key]})
             observed = await admin.request("GET", "admin/settings")
             if changed[key] != desired[key] or observed[key] != desired[key]:
@@ -326,8 +361,16 @@ async def probe_settings(admin: LearningLoop, learner: LearningLoop, desired):
                 "observed": observed[key],
                 "authorized": "applied_and_read_back",
                 "unauthorized": "denied_403",
-                "runtime_effect": "pending usage receipt from later workflow",
+                "runtime_effect": "pending instrumented execution receipt"
+                if key in bounds
+                else "pending usage receipt from later workflow",
             }
+            if key in bounds:
+                results[key]["bounds"] = {
+                    "minimum": 1,
+                    "maximum": bounds[key],
+                    "out_of_range": "rejected_422",
+                }
     finally:
         # Restoration has its own reserved request allowance, even on cancellation/budget exhaustion.
         saved_limit, stopped = admin.budget.config.max_requests, admin.budget.stopped
