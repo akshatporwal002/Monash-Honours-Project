@@ -17,5 +17,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    // Concurrent jsdom/React workloads can exhaust interaction-test deadlines.
+    // Bound the worker pool while retaining isolation and the existing timeouts.
+    maxWorkers: 2,
   },
 })
