@@ -4,9 +4,7 @@ Status: backend foundation for synthetic validation. **Production research remai
 closed.** This is not completion of Task 34, an approved questionnaire, an approved
 study, recruitment, or permission to process participant data.
 
-Branch: `codex/task34-governed-instruments`, based on frozen
-`0bbf95e25e4124f7484944c9493d1165d7b8023b`, in `.tmp-task34a/worktree`.
-Migration `20260910_0046` follows `20260910_0045`. No changes are merged or pushed.
+Migration `20260910_0046` follows `20260910_0045`.
 
 ## Delivered behaviour
 
@@ -107,10 +105,7 @@ Declared and streamed oversized bodies still fail before routing. Existing mater
 content and technical research export streams use GET and bypass this body replay;
 the new POST instrument export exposed the defect.
 
-Integration overlap: this branch also registers the missing `research-governance`
-rate-limit bucket, needed for actual authenticated Task 33 decision writes at the
-frozen base. The coordinator is extracting that Task 33-only correction separately.
-Preserve one registration when integrating both changes; it does not open research.
+The `research-governance` and `research-instruments` rate-limit buckets each have one 60/minute registration. Neither opens production research.
 
 ## Validation and remaining dependencies
 
@@ -120,7 +115,7 @@ withdrawal during export, re-consent, scopes/grants, raw-data exclusion, technic
 pair isolation, actual authentication/CSRF/rate limiting, CSV/JSON routes, database
 immutability, forward/replayed migration, guarded downgrade, and verified backup
 restore. Related Task 33, assessment-contract, and clean-database migration tests
-are included. Branch-local OpenAPI and TypeScript contracts are regenerated and
+are included. Canonical OpenAPI and TypeScript contracts are regenerated and
 checked; the generated TypeScript compiles independently.
 
 Final receipt (2026-09-10): **135 passed in 99.78 seconds**, without warnings, for
@@ -132,7 +127,7 @@ Final receipt (2026-09-10): **135 passed in 99.78 seconds**, without warnings, f
 `test_request_size_streaming.py`, and `test_security_policies.py`.
 Ruff check and format check pass for all 18 changed Python files. OpenAPI and
 frontend-generation `--check`, generated-TypeScript `tsc --noEmit`, and
-`git diff --check` pass. Commands ran from this branch's backend with
+`git diff --check` pass. Commands ran from `src-main/backend` with
 `PYTHONPATH=.`; the existing Python/TypeScript installations were used read-only.
 
 Post-review correction: the formal-attempt requirement previously also rejected
@@ -149,7 +144,7 @@ Correction validation: **67 passed in 37.56 seconds** across instrument service 
 mounted API tests, without warnings; Ruff check/format and `git diff --check` pass.
 
 Integration-readiness correction: `app/core/readiness.py` now pins
-`MIGRATION_HEAD = "20260910_0046"` to match this branch's Alembic head. Before the
+`MIGRATION_HEAD = "20260910_0046"` to match the Alembic head. Before the
 change, `pytest tests/test_deployment_runtime.py::test_readiness_migration_pin_matches_the_alembic_head -q -p no:cacheprovider --tb=short`
 failed in 1.57 seconds with `20260910_0045 != 20260910_0046`. After the one-line
 correction, `pytest tests/test_deployment_runtime.py tests/test_health.py tests/test_worker_health.py -q`

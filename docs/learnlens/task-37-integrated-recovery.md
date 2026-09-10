@@ -6,10 +6,6 @@ complete Task 37 sign-off.
 
 Application baseline: `4fe8bb8184359e1fae606bc8cdd559fe54bc4760`.
 Tested source: `e795bda6b64be581f9af625978dec49d85e79266`.
-Branch: `codex/task37-integrated-recovery`.
-Only this note and three new Task 37 test/helper files differ from the baseline.
-Production code, migrations, shared configuration and the master ledger are unchanged.
-The delivery commit updates this note after the tested source revision.
 
 ## Verified journey and fault boundary
 
@@ -59,46 +55,14 @@ restore; access still fails with `consent_inactive` and `grant_inactive`. Learni
 proceeds despite withdrawal. The production research gate stays **false**, with
 zero research evaluations or research outbox entries.
 
-## Exact final evidence
+## Verification artifacts
 
-Final private base: `%LOCALAPPDATA%/Temp/ll-t37-210543-7be6ac`.
-Its `recovery0` directory retains the marker, worker logs, database, uploads,
-bundle and restored database. Copied receipts/manifests plus every pytest log
-and JUnit report remain in the worktree's ignored `.tmp-task37-receipts/`
-directory, outside pytest's private base.
+The test writes a receipt containing preserved evidence/action/criterion/view IDs and a bundle manifest containing every table digest and source reference. It compares the complete declared verification state before backup and after restore, including source bytes and the migration head. The original seven-case receipt used head 0045; the same cases subsequently passed with instruments on head 0046. See [integration verification](next-wave-integration-verification-2026-09-10.md) for current combined results.
 
-| Evidence | Final value |
-| --- | --- |
-| Accepted response | `b4f87ee6-957e-4596-ac4d-62385baad765` |
-| Workflow | `731a83ee-d250-40eb-8e17-ca2ef6a5e510` |
-| Learner snapshot | `3bbbe15f-c996-5a91-b110-667e8d3322af` |
-| Human decision | `7c63a564-0d45-48b9-b967-cdf452093bf4` |
-| Migration head | `20260910_0045` |
-| Accepted UTC | `2026-09-10T11:05:52.453893+00:00` |
-| Worker claim UTC | `2026-09-10T11:05:54.342920+00:00` |
-| Replacement claim UTC | `2026-09-10T11:06:27.440742+00:00` |
-| Completed UTC | `2026-09-10T11:06:27.572854+00:00` |
-| Bundled database SHA-256 | `fa4f7c2fbd7832e6d3bf91cd830279394219fd78f606edbc6f2fe4d2bee9737b` |
-| Historical source SHA-256 | `12887ec29208bf86f4553eb060302b6effddf3e99431fda7f12c737f7f85d517` |
-| Current source SHA-256 | `04ca54029cc7823ad0eee178919fbd61034986219298781671c9d49f66f54dd4` |
-
-The [final receipt](../../.tmp-task37-receipts/task37-receipt-final.json) records
-all preserved evidence, action, criterion, learning-view and audit-view IDs.
-The [bundle manifest](../../.tmp-task37-receipts/task37-bundle-manifest-final.json)
-records every table digest and source reference.
-
-| Retained artifact | SHA-256 |
-| --- | --- |
-| [Final log](../../.tmp-task37-receipts/task37-drill-fifth.log) | `665a8ec57521c66195b6d781bf5cba9fe546b3397e6e6c3a2b6167a1ae76fea5` |
-| [Final JUnit](../../.tmp-task37-receipts/task37-drill-fifth.xml) | `ac15c9594b6bcfdec3379d17ad538beac1d79c71c52250765aeec26d4d878a0e` |
-| Final receipt | `1df87f9da7f45778579550ea6a49876aa7228980abfd963790fa3666acbc6f35` |
-| Bundle manifest | `4d8a9ce1f79a79b5c52206db482ceac94c780084189bd0a417fa7c4fa4ec368f` |
-
-## Environment and retained diagnostic runs
+## Environment and diagnostic results
 
 Windows AMD64; Python 3.11.16; pytest 9.1.1; FastAPI 0.140.0; SQLAlchemy 2.0.51;
-Alembic 1.18.5; Qiskit 2.5.1. Execution used the root backend virtual environment
-with this worktree's backend and tests explicitly on `PYTHONPATH`. Ruff lint and
+Alembic 1.18.5; Qiskit 2.5.1. The backend and tests directories were explicitly on `PYTHONPATH`. Ruff lint and
 format checks pass for all three new Python files. Six lightweight isolation
 checks passed before worker execution (`6 passed, 1 deselected in 1.51s`).
 
@@ -110,15 +74,9 @@ checks passed before worker execution (`6 passed, 1 deselected in 1.51s`).
 | 4 / `1497258` | 7 passed; 48.79 s | Complete journey passed; final review then tightened cached audit-factory isolation and added persisted audit-ID assertions. |
 | 5 / `e795bda` | **7 passed; 45.86 s** | Final source, including private audit storage and audit-preservation assertions. |
 
-All runs used fresh short OS-temporary paths. First/second logs and JUnit retain
-their `.tmp-task37-drill-first.*` / `.tmp-task37-drill-second.*` names inside
-the receipts directory; later runs use `task37-drill-third.*`, `-fourth.*`, and
-`-fifth.*`. No production fix was inferred from these fixture failures.
-Initial sandboxed lightweight attempts failed during pytest directory setup
-because of Windows ACL handling; authorised execution outside the sandbox resolved it.
+All runs used fresh short OS-temporary paths. No production fix was inferred from these fixture failures.
 
-Repeat from this worktree's `src-main/backend`, using the root backend virtual
-environment and a scheduled free subprocess slot:
+Repeat from `src-main/backend` with the project Python environment:
 
 ```powershell
 $task37Base = Join-Path ([IO.Path]::GetTempPath()) ('ll-t37-' + (Get-Date -Format HHmmss) + '-' + [guid]::NewGuid().ToString('N').Substring(0,6))
@@ -136,10 +94,9 @@ process-local session/pseudonym secrets. Only owned process handles are stopped.
 Cleanup attempts every process/log, with bounded terminate/kill fallback.
 
 This is one synthetic local crash/restart/restore scenario on the frozen
-application revision, separate from the central full-suite run. It does not
+application revision, separate from complete-suite validation. It does not
 establish live-provider recovery, hosted TLS/availability, workload capacity,
 manual/native browser readiness, institutional approval or release authority.
-This task has not merged or pushed its branch.
 
 A backup created before a later withdrawal cannot know that future event.
 Operational restoration must reconcile authoritative later governance records

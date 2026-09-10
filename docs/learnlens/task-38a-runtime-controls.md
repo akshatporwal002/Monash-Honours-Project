@@ -1,9 +1,5 @@
 # Task 38A — runtime timeout and infrastructure retry controls
 
-Implemented on `codex/task38-runtime-controls`, isolated from frozen commit
-`0bbf95e25e4124f7484944c9493d1165d7b8023b`. The completed benchmark branches and
-the coordinator's validation checkout are preserved.
-
 ## Administrator contract
 
 `GET /api/v1/admin/settings` now returns two operational controls, and the existing
@@ -94,12 +90,10 @@ python -m scripts.generate_frontend_contracts --input .tmp-task38a-contracts/ope
 python -m scripts.generate_frontend_contracts --check --input .tmp-task38a-contracts/openapi.json --output .tmp-task38a-contracts/generated.ts
 ```
 
-Ruff lint/format checks pass on the 11 changed Python files. Branch-local OpenAPI
-and TypeScript generation/checks pass. Compared with the frozen canonical contract,
-only `SettingsRead` and `SettingsUpdate` change; routes and other schemas are identical.
-The initial backend commit used uncommitted scratch contracts. The authorized
-follow-up below commits canonical branch contracts; the coordinator still owns
-combined regeneration and master-ledger reconciliation.
+Ruff lint/format checks pass on the 11 changed Python files. OpenAPI
+and TypeScript generation/checks pass. Within the Task 38A delta, only
+`SettingsRead` and `SettingsUpdate` change; routes and other schemas are identical.
+Canonical OpenAPI and frontend TypeScript contracts include the settings changes.
 
 ## Retry-transition correction
 
@@ -129,9 +123,9 @@ unsupported. A CRUD receipt still marks actual execution effects as pending;
 the earlier instrumented runtime tests are separate evidence.
 
 Canonical `src-main/contracts/openapi.json` and frontend `src/api/generated.ts`
-are regenerated on this branch as authorized. Frontend settings types now derive
-from that contract. The only changed OpenAPI schemas are `SettingsRead` and
-`SettingsUpdate`.
+are regenerated together. Frontend settings types now derive
+from that contract. Within the Task 38A delta, only `SettingsRead` and
+`SettingsUpdate` change; the combined contract also includes Task 34A instruments.
 
 Follow-up checks:
 
@@ -144,42 +138,36 @@ Follow-up checks:
 - No browser server or manual browser session was started. Component tests exercise
   labels, descriptions, invalid input, pending controls and failed-save recovery.
 
-Commands, run in this worktree's backend or frontend directory respectively:
+Commands, run in `src-main/backend` or `src-main/frontend` respectively:
 
 ```powershell
-$python = 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\src-main\backend\.venv\Scripts\python.exe'
-& $python -m pytest tests/test_task38_benchmark_harness.py tests/test_task38_settings_probe.py -q --tb=short -p no:cacheprovider --basetemp=.tmp-task38a-ui-harness-final
-& $python -m ruff check scripts/task38_benchmark tests/test_task38_settings_probe.py tests/test_task38_benchmark_harness.py
-& $python -m scripts.export_openapi --check
-& $python -m scripts.generate_frontend_contracts --check
+python -m pytest tests/test_task38_benchmark_harness.py tests/test_task38_settings_probe.py -q --tb=short -p no:cacheprovider --basetemp=.tmp-task38a-ui-harness-final
+python -m ruff check scripts/task38_benchmark tests/test_task38_settings_probe.py tests/test_task38_benchmark_harness.py
+python -m scripts.export_openapi --check
+python -m scripts.generate_frontend_contracts --check
 
-$node = 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\.tmp-task23-24\tools\node-v22.13.0-win-x64\node.exe'
-& $node node_modules/vitest/vitest.mjs run src/components/AdminWorkspace.test.tsx
-& $node node_modules/vitest/vitest.mjs run src/components/AdminWorkspace.test.tsx src/test/App.test.tsx
-& $node node_modules/typescript/bin/tsc -b
-& $node node_modules/eslint/bin/eslint.js src/components/AdminWorkspace.tsx src/components/AdminWorkspace.test.tsx src/app/api.ts src/app/types.ts src/test/App.test.tsx
-& $node node_modules/vite/bin/vite.js build
+node node_modules/vitest/vitest.mjs run src/components/AdminWorkspace.test.tsx
+node node_modules/vitest/vitest.mjs run src/components/AdminWorkspace.test.tsx src/test/App.test.tsx
+node node_modules/typescript/bin/tsc -b
+node node_modules/eslint/bin/eslint.js src/components/AdminWorkspace.tsx src/components/AdminWorkspace.test.tsx src/app/api.ts src/app/types.ts src/test/App.test.tsx
+node node_modules/vite/bin/vite.js build
 ```
 
 The first combined component run passed App's 21 tests but found a missing brace in
 the new test helper; after that syntax fix, one assertion needed to include the
 existing reminder checkbox's help text in its accessible name. The final isolated
 component run passed all 11 tests. Initial harness assertions treating timeout/retry
-as unsupported were updated for the new contract. Sandboxed Vite process spawning
-reported `EPERM`; approved isolated reruns succeeded. No assertions or gates were removed.
+as unsupported were updated for the new contract. No assertions or gates were removed.
 
-Frontend dependencies were copied into this worktree from the existing project
-dependency directory, whose lockfile matches this branch. Checks used Node 22.13.0;
-no package install, lockfile change, shared dependency mutation or runtime upgrade
-was performed. Shared Python and Node executables were used read-only.
+Checks used Python 3.11.16, Node 22.13.0 and the unchanged dependency lockfiles.
 
-## Coordination seam and limits
+## Budget and billing limitations
 
 Task 38B can extend the runtime-policy/dispatch seam with durable budget reservations
-and complete failed-call/currency metering after the Task 34A migration slot. This
+and complete failed-call/currency metering in a subsequent migration. This
 slice supplies neither budget enforcement nor complete spend accounting. Connection
 retry limits are not spend limits, and existing crash recovery does not establish
 exactly-once external provider execution. No provider billing, currency, performance,
 research-release or pilot-readiness claim follows from these synthetic tests.
 
-No full suite, migration, dependency/runtime modification, merge or push is included.
+Current combined validation is recorded in [integration verification](next-wave-integration-verification-2026-09-10.md).
