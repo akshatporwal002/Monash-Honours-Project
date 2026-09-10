@@ -62,10 +62,14 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
             )
         )
         if attempt is None:
-            if response.task_form_version_id or (response.response_schema_version or "").startswith(
-                "assessment."
+            if (
+                response.assessment_work_start_id
+                or response.task_form_version_id
+                or (response.response_schema_version or "").startswith("assessment.")
             ):
                 return _unresolved(AssessmentContextStatus.MISSING, "ASSESSMENT_ATTEMPT_MISSING")
+            if response.response_schema_version == "practice.response.v1":
+                return self._practice_resolution(response)
             return _unresolved(AssessmentContextStatus.NOT_ASSESSED, "NOT_ASSESSED")
         if (
             attempt.course_id != submission.course_id
@@ -208,6 +212,54 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
         return AssessmentFeedbackContextResolution(
             status=AssessmentContextStatus.RESOLVED, context=context
         )
+
+    def _practice_resolution(self, response):
+        from app.schemas.episode import EpisodePayloadV1, ResponseContent
+        from app.services.episodes import EpisodeService
+        from app.services.feedback.practice_evidence import practice_response_input
+        from app.services.misconception_state import active_fresh_check
+        from app.services.task_review import TaskReviewError, TaskReviewService
+
+        try:
+            practice_response_input(response)
+            task = self._session.get(LearningTask, response.task_id)
+            TaskReviewService(self._session).require_available(task)
+            EpisodeService(self._session).validate_response(
+                None,
+                EpisodePayloadV1.model_validate(response.episode),
+                ResponseContent(
+                    answer=response.answer, code=response.code, circuit=response.circuit
+                ),
+                student_id=response.student_id,
+                task_id=response.task_id,
+            )
+            # Generic practice has no frozen support/release policy. Do not route a reviewed
+            # formal episode plan (including its private transfer solution) through it.
+            if isinstance(task.marking_criteria, dict) and task.marking_criteria.get(
+                "episode_plan"
+            ):
+                return _unresolved(AssessmentContextStatus.INVALID, "PRACTICE_FEEDBACK_RESTRICTED")
+            active = self._session.scalar(
+                select(EpisodeStageStart.id)
+                .where(
+                    EpisodeStageStart.student_id == response.student_id,
+                    EpisodeStageStart.task_id.in_(
+                        select(LearningTask.id).where(LearningTask.course_id == task.course_id)
+                    ),
+                    ~exists(
+                        select(SubmissionAttempt.id).where(
+                            SubmissionAttempt.assessment_work_start_id
+                            == EpisodeStageStart.assessment_work_start_id
+                        )
+                    ),
+                )
+                .limit(1)
+            )
+            if active or active_fresh_check(self._session, response.student_id, response.task_id):
+                return _unresolved(AssessmentContextStatus.INVALID, "PRACTICE_FEEDBACK_RESTRICTED")
+        except (ValueError, TypeError, TaskReviewError):
+            return _unresolved(AssessmentContextStatus.INVALID, "PRACTICE_RESPONSE_INVALID")
+        return _unresolved(AssessmentContextStatus.NOT_ASSESSED, "NOT_ASSESSED")
 
     def _human_decisions(self, attempt):
         decision = self._session.scalar(

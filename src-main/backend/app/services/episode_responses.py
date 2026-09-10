@@ -99,6 +99,13 @@ class SqlAlchemyFrozenResponseReader:
             ) != (response.student_id, response.task_id, form.id, definition.id, bloom.id, rule.id):
                 raise FrozenResponseStale("Frozen work links differ")
         try:
+            if response.response_schema_version not in {
+                "assessment.response.v1",
+                "assessment.response.v2",
+            }:
+                raise FrozenResponseInvalid(
+                    "Frozen assessment requires an assessment response schema"
+                )
             content = ResponseContent(
                 answer=response.answer, code=response.code, circuit=response.circuit
             )

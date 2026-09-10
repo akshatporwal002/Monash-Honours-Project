@@ -14,6 +14,7 @@ from app.schemas.feedback import (
     TokenUsage,
 )
 from app.services.feedback.contracts import StructuredLlmClient, StructuredLlmRequest
+from app.services.feedback.practice_evidence import PRACTICE_GUIDANCE, has_practice_evidence
 from app.services.feedback.prompt import feedback_context_payload
 
 QUALITY_JUDGE_PROMPT_VERSION = "quality-judge-v1"
@@ -44,11 +45,14 @@ class QualityJudgePromptBuilder:
         payload = feedback_context_payload(context)
         payload["proposed_feedback"] = feedback.feedback_content
         return StructuredLlmRequest(
-            system_prompt=JUDGE_SYSTEM_PROMPT,
+            system_prompt=JUDGE_SYSTEM_PROMPT
+            + (PRACTICE_GUIDANCE if has_practice_evidence(context) else ""),
             user_prompt=json.dumps(payload, ensure_ascii=False, sort_keys=True),
             response_schema=JudgeAgentOutput.model_json_schema(),
             schema_name="quality_judge_output",
-            prompt_version=QUALITY_JUDGE_PROMPT_VERSION,
+            prompt_version="quality-judge-practice-episode-v1"
+            if has_practice_evidence(context)
+            else QUALITY_JUDGE_PROMPT_VERSION,
             temperature=0.0,
         )
 

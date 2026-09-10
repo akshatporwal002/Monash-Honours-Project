@@ -7,6 +7,7 @@ from app.schemas.feedback import (
     FeedbackRegenerationContext,
 )
 from app.services.feedback.contracts import StructuredLlmRequest
+from app.services.feedback.practice_evidence import PRACTICE_GUIDANCE, has_practice_evidence
 
 FEEDBACK_PROMPT_VERSION = "feedback-v2"
 
@@ -143,10 +144,13 @@ class FeedbackPromptBuilder:
             }
 
         return StructuredLlmRequest(
-            system_prompt=SYSTEM_PROMPT,
+            system_prompt=SYSTEM_PROMPT
+            + (PRACTICE_GUIDANCE if has_practice_evidence(context) else ""),
             user_prompt=json.dumps(prompt_payload, ensure_ascii=False, sort_keys=True),
             response_schema=FeedbackAgentOutput.model_json_schema(),
             schema_name="feedback_agent_output",
-            prompt_version=FEEDBACK_PROMPT_VERSION,
+            prompt_version="feedback-practice-episode-v1"
+            if has_practice_evidence(context)
+            else FEEDBACK_PROMPT_VERSION,
             temperature=0.0,
         )
