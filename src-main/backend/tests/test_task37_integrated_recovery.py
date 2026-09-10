@@ -29,6 +29,7 @@ from support.task37_fixture import (
 from support.task37_worker import validate_synthetic_config
 from test_task38_benchmark_integration import _stop_owned_processes
 
+from app.api.assessment_dependencies import get_assessment_evaluation_executor
 from app.api.feedback_dependencies import get_feedback_application, get_feedback_executor
 from app.api.security_dependencies import get_request_security_guard
 from app.core.config import Settings, settings
@@ -250,6 +251,7 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
         "session_cookie_secure": False,
         "session_secret_key": SecretStr(secrets.token_urlsafe(48)),
         "learning_event_pseudonym_secret": SecretStr(secrets.token_urlsafe(48)),
+        "feedback_job_lease_seconds": 30,
     }.items():
         monkeypatch.setattr(settings, name, value)
     get_request_security_guard.cache_clear()
@@ -274,6 +276,9 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
     app.dependency_overrides[get_db_session] = storage
     app.dependency_overrides[get_feedback_application] = dispatch
     app.dependency_overrides[get_feedback_executor] = LostApiDispatch
+    # Simulate losing both post-acceptance tasks. In particular, never let the
+    # default assessment executor open its separate module-global database.
+    app.dependency_overrides[get_assessment_evaluation_executor] = LostApiDispatch
     environment = {
         **os.environ,
         "PYTHONPATH": os.pathsep.join([str(BACKEND), str(BACKEND / "tests")]),
