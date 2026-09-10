@@ -1,5 +1,5 @@
 import axe from 'axe-core'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import type { ApiSchemas } from '../../api/generated'
@@ -245,6 +245,51 @@ test('review queue supports keyboard focus containment and axe checks', async ()
   await waitFor(() => expect(action).toHaveFocus())
   expect((await axe.run(container)).violations).toEqual([])
 })
+
+test.each(['Cancel', 'Confirm result'])(
+  'a detail read finishing during the access check preserves focus return after %s',
+  async (closeAction) => {
+    const fetchSpy = installQueueFetch()
+    const defaultFetch = fetchSpy.getMockImplementation()!
+    let finishDetail!: (value: Response) => void
+    const pendingDetail = new Promise<Response>((resolve) => { finishDetail = resolve })
+    let detailRequested = false
+    fetchSpy.mockImplementation(async (input, init) => {
+      const url = String(input)
+      if (url.includes('/review-requests')) return response([{
+        id: 'appeal-1', decision_id: 'decision-1', decision_revision: 2,
+        request_kind: 'REVIEW', reason: 'Please review this evidence.',
+        requested_at: '2026-08-16T00:00:00Z',
+      }])
+      if (url.includes('/decisions/decision-1/review') && init?.method !== 'POST' && !detailRequested) {
+        detailRequested = true
+        return pendingDetail
+      }
+      return defaultFetch(input, init)
+    })
+    let finishAccess!: (value: boolean) => void
+    const pendingAccess = new Promise<boolean>((resolve) => { finishAccess = resolve })
+    let holdAccess = false
+    const user = userEvent.setup()
+    renderQueue({ onCheckAccess: async () => holdAccess ? pendingAccess : true })
+    await user.click(await screen.findByRole('button', { name: 'Open decision and evidence' }))
+    expect(detailRequested).toBe(true)
+    holdAccess = true
+    await user.click(await screen.findByRole('button', { name: 'Confirm result' }))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    // The first evidence read settles while the action's access check is pending.
+    await act(async () => { finishDetail(response({ ...review })) })
+    holdAccess = false
+    await act(async () => { finishAccess(true) })
+    const dialog = await screen.findByRole('alertdialog')
+    if (closeAction === 'Confirm result') {
+      await user.type(within(dialog).getByLabelText(/Reason/), 'Checked the frozen evidence.')
+    }
+    await user.click(within(dialog).getByRole('button', { name: closeAction }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Confirm result' })).toHaveFocus())
+  },
+)
 
 test('network failure retains the typed reason and active filters', async () => {
   const fetchSpy = installQueueFetch({ actionError: new Error('offline') })
