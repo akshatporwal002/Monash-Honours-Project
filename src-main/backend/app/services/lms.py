@@ -1001,7 +1001,11 @@ class LmsService:
             response_schema_version=(
                 schema_version if frozen_versions or payload.episode else None
             ),
-            content_digest=(payload_digest if payload.idempotency_key else None),
+            content_digest=(
+                payload_digest
+                if payload.idempotency_key or schema_version == "practice.response.v1"
+                else None
+            ),
             idempotency_key=payload.idempotency_key,
             declared_conditions=conditions,
         )

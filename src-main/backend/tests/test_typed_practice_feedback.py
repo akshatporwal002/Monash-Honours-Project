@@ -155,6 +155,7 @@ def test_api_typed_practice_feedback_continuation_and_retry(db_session, monkeypa
         stored = db_session.get(SubmissionAttempt, identity)
         assert stored.episode == payload.episode.model_dump(mode="json")
         assert stored.response_schema_version == "practice.response.v1"
+        assert stored.content_digest and stored.content_digest.startswith("sha256:")
         assert stored.assessment_work_start_id is None and stored.task_form_version_id is None
         if payload.idempotency_key:
             original_digest = stored.content_digest
@@ -242,7 +243,8 @@ def test_typed_retry_preserves_stored_version_digest_and_exact_content(db_sessio
     if legacy:
         assert resolved.reason_code == "ASSESSMENT_ATTEMPT_MISSING"
     else:
-        assert resolved.status == AssessmentContextStatus.NOT_ASSESSED
+        # Retry identity is stable, but unreviewed task edits cannot release model feedback.
+        assert resolved.reason_code == "PRACTICE_RESPONSE_INVALID"
     assert db_session.scalar(select(func.count()).select_from(SubmissionAttempt)) == 1
 
 

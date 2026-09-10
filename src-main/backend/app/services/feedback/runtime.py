@@ -28,6 +28,10 @@ from app.services.feedback.assessed import AssessedFeedbackGenerator, AssessedFe
 from app.services.feedback.context import DefaultFeedbackContextCollector
 from app.services.feedback.judge import LlmFeedbackJudge
 from app.services.feedback.pipeline import FeedbackPipeline
+from app.services.feedback.practice_evidence import (
+    UNAVAILABLE_PRACTICE_EVIDENCE,
+    practice_response_input,
+)
 from app.services.feedback.providers import (
     SqlAlchemyTaskProvider,
 )
@@ -95,6 +99,13 @@ class LmsSubmissionProvider:
             or _circuit_answer(attempt.circuit)
             or ("Frozen multipart response" if attempt.episode else "")
         )
+        if attempt.response_schema_version == "practice.response.v1":
+            try:
+                submitted_answer = practice_response_input(attempt)
+            except (ValueError, TypeError):
+                # The context resolver must reject this record before any model call.
+                # Keep a bounded identity-bearing context for cached-feedback release checks.
+                submitted_answer = UNAVAILABLE_PRACTICE_EVIDENCE
         if not submitted_answer:
             return None
         return SubmissionContext(
