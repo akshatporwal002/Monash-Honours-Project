@@ -49,17 +49,23 @@ export function AssessorReviewQueue({
      queue has settled rather than held as a (by then detached) node. */
   const screenRef = useRef<HTMLDivElement | null>(null)
   const returnFocusAction = useRef<string | null>(null)
-  const dialogOpen = queue.pendingAction !== null
+  const dialogAction = queue.pendingAction?.action ?? null
 
   useEffect(() => {
+    // Access checks can overlap evidence reads. Record the return target only
+    // after the dialog opens so an earlier detail refresh cannot consume it.
+    if (dialogAction !== null) {
+      returnFocusAction.current = dialogAction
+      return
+    }
     const action = returnFocusAction.current
-    if (dialogOpen || action === null || queue.loading) return
+    if (action === null || queue.loading) return
     const trigger = screenRef.current?.querySelector<HTMLButtonElement>(
       `[data-review-action="${action}"]`,
     )
     returnFocusAction.current = null
     trigger?.focus()
-  }, [dialogOpen, queue.loading, queue.selected])
+  }, [dialogAction, queue.loading, queue.selected])
 
   return (
     <div className={styles.screen} ref={screenRef}>
@@ -114,7 +120,6 @@ export function AssessorReviewQueue({
           accessActive={queue.accessActive}
           onSelect={queue.setSelected}
           onOpenAction={(action) => {
-            returnFocusAction.current = action
             void queue.openAction(action)
           }}
         />
