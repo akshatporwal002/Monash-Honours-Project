@@ -78,7 +78,7 @@ def test_actual_generator_and_judge_receive_lossless_practice_evidence(
     payload = payload.model_copy(update={"answer": answer, "code": code, "episode": episode})
     submitted = lms.submit(student, task.id, payload)
     client = RecordingModel()
-    monkeypatch.setattr(runtime, "_configured_model_client", lambda session: client)
+    monkeypatch.setattr(runtime, "_configured_model_client", lambda session, policy=None: client)
     run_worker(db_session, monkeypatch)
     workflow = db_session.scalar(
         select(WorkflowRun).where(WorkflowRun.submission_id == submitted.id)
@@ -124,7 +124,7 @@ def test_model_input_bound_is_exact_and_never_truncates(db_session, monkeypatch,
     row = db_session.get(SubmissionAttempt, large.id)
     original = (row.content_digest, row.episode)
     client = RecordingModel()
-    monkeypatch.setattr(runtime, "_configured_model_client", lambda session: client)
+    monkeypatch.setattr(runtime, "_configured_model_client", lambda session, policy=None: client)
     run_worker(db_session, monkeypatch)
     workflow = db_session.scalar(select(WorkflowRun).where(WorkflowRun.submission_id == large.id))
     if excess:
@@ -209,9 +209,13 @@ def test_untrusted_or_unapproved_practice_never_reaches_models(db_session, monke
         )
     db_session.commit()
     client = RecordingModel()
-    monkeypatch.setattr(runtime, "_configured_model_client", lambda session: client)
+    monkeypatch.setattr(runtime, "_configured_model_client", lambda session, policy=None: client)
     run_worker(db_session, monkeypatch)
     assert client.requests == []
+    workflow = db_session.scalar(
+        select(WorkflowRun).where(WorkflowRun.submission_id == submitted.id)
+    )
+    assert workflow.failure_category == "context_integrity_error"
     assert resolution(db_session, submitted.id).reason_code == (
         "PRACTICE_FEEDBACK_RESTRICTED" if damage == "plan" else "PRACTICE_RESPONSE_INVALID"
     )
@@ -233,7 +237,7 @@ def test_revision_reference_and_reason_reach_both_models(db_session, monkeypatch
         payload.model_copy(update={"episode": episode, "idempotency_key": "revised"}),
     )
     client = RecordingModel()
-    monkeypatch.setattr(runtime, "_configured_model_client", lambda session: client)
+    monkeypatch.setattr(runtime, "_configured_model_client", lambda session, policy=None: client)
     run_worker(db_session, monkeypatch)
     revisions = [
         json.loads(json.loads(request.user_prompt)["submission"]["submitted_answer"])["episode"][
@@ -269,7 +273,7 @@ def test_active_course_transfer_withholds_practice_and_cached_feedback(db_sessio
     )
     first = lms.submit(student, task.id, payload)
     client = RecordingModel()
-    monkeypatch.setattr(runtime, "_configured_model_client", lambda session: client)
+    monkeypatch.setattr(runtime, "_configured_model_client", lambda session, policy=None: client)
     worker = run_worker(db_session, monkeypatch)
     assert len(client.requests) == 2
     complete(
