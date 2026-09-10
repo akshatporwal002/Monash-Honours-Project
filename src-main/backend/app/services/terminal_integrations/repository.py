@@ -373,9 +373,18 @@ class SqlAlchemyTerminalIntegrationRepository:
                     (TerminalIntegrationOutbox.integration_type == integration_type)
                     if integration_type is not None
                     else True,
-                    TerminalIntegrationOutbox.state == TerminalIntegrationState.RUNNING,
-                    TerminalIntegrationOutbox.lease_expires_at <= observed,
                     TerminalIntegrationOutbox.processing_attempts >= maximum_attempts,
+                    or_(
+                        and_(
+                            TerminalIntegrationOutbox.state == TerminalIntegrationState.RUNNING,
+                            TerminalIntegrationOutbox.lease_expires_at <= observed,
+                        ),
+                        and_(
+                            TerminalIntegrationOutbox.state
+                            == TerminalIntegrationState.RETRY_SCHEDULED,
+                            TerminalIntegrationOutbox.next_retry_at <= observed,
+                        ),
+                    ),
                 )
                 .order_by(
                     TerminalIntegrationOutbox.created_at,
@@ -389,16 +398,21 @@ class SqlAlchemyTerminalIntegrationRepository:
                 update(TerminalIntegrationOutbox)
                 .where(
                     TerminalIntegrationOutbox.id == candidate.id,
-                    TerminalIntegrationOutbox.state == TerminalIntegrationState.RUNNING,
+                    TerminalIntegrationOutbox.state == candidate.state,
                     TerminalIntegrationOutbox.execution_token == candidate.execution_token,
                     TerminalIntegrationOutbox.processing_attempts == candidate.processing_attempts,
                     TerminalIntegrationOutbox.lease_expires_at == candidate.lease_expires_at,
+                    TerminalIntegrationOutbox.next_retry_at == candidate.next_retry_at,
                 )
                 .values(
                     state=TerminalIntegrationState.FAILED,
                     execution_token=None,
                     lease_expires_at=None,
-                    failure_category=(TerminalIntegrationFailureCategory.INTEGRATION_UNAVAILABLE),
+                    next_retry_at=None,
+                    failure_category=(
+                        candidate.failure_category
+                        or TerminalIntegrationFailureCategory.INTEGRATION_UNAVAILABLE
+                    ),
                     completed_at=observed,
                     updated_at=observed,
                 )

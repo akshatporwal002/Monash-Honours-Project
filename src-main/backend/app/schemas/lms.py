@@ -747,6 +747,11 @@ class AdminUserRead(LmsSchema):
 
 
 class SettingsUpdate(LmsSchema):
+    # Defaults mark omission in a partial update; explicit JSON null is invalid.
+    provider_timeout_seconds: Annotated[int, Field(strict=True, ge=1, le=60)] = Field(default=None)
+    max_infrastructure_attempts: Annotated[int, Field(strict=True, ge=1, le=3)] = Field(
+        default=None
+    )
     points_per_level: Annotated[int, Field(gt=0, le=100_000)] | None = None
     llm_provider: (
         Annotated[
@@ -772,6 +777,8 @@ class SettingsUpdate(LmsSchema):
 
 
 class SettingsRead(LmsSchema):
+    provider_timeout_seconds: Annotated[int, Field(strict=True, ge=1, le=60)]
+    max_infrastructure_attempts: Annotated[int, Field(strict=True, ge=1, le=3)]
     points_per_level: int
     llm_provider: str
     llm_model: str

@@ -200,14 +200,18 @@ def test_duplicate_learners_rejected_before_io():
         asyncio.run(campaign(Config(users=(2,), warmup_rounds=0), rows, factory, "duplicate"))
 
 
-@pytest.mark.parametrize(
-    "field", ["provider_timeout_seconds", "max_infrastructure_attempts", "budget_aud"]
-)
-def test_runtime_timeout_retry_budget_are_not_supported_by_existing_admin_contract(field):
+@pytest.mark.parametrize("field", ["provider_timeout_seconds", "max_infrastructure_attempts"])
+def test_runtime_controls_are_supported_by_admin_contract(field):
+    from app.schemas.lms import SettingsUpdate
+
+    assert SettingsUpdate.model_validate({field: 1}).model_dump(exclude_unset=True) == {field: 1}
+
+
+def test_budget_control_is_not_supported_by_admin_contract():
     from app.schemas.lms import SettingsUpdate
 
     with pytest.raises(ValueError):
-        SettingsUpdate.model_validate({field: 1})
+        SettingsUpdate.model_validate({"budget_aud": 1})
 
 
 def test_aliases_for_one_authenticated_actor_stop_before_second_work_start():
@@ -300,7 +304,13 @@ def test_settings_authority_and_restoration_with_supported_http_interfaces():
     async def exercise():
         config = Config(users=(1,))
         budget, samples = Budget(config), []
-        shared = {"llm_provider": "old-provider", "llm_model": "old-model"}
+        shared = {
+            "llm_provider": "old-provider",
+            "llm_model": "old-model",
+            "provider_timeout_seconds": 60,
+            "max_infrastructure_attempts": 3,
+        }
+        original = dict(shared)
         admin_fake, learner_fake = FakeTransport(), FakeTransport()
         admin_fake.settings = learner_fake.settings = shared
         result = {"loop_id": "settings", "phase": "preflight", "users": 1}
@@ -314,12 +324,30 @@ def test_settings_authority_and_restoration_with_supported_http_interfaces():
                 "POST", "auth/login", {"email": "student@example.invalid", "password": "fake"}
             )
             receipt = await probe_settings(
-                admin, learner, {"llm_provider": "new-provider", "llm_model": "new-model"}
+                admin,
+                learner,
+                {
+                    "llm_provider": "new-provider",
+                    "llm_model": "new-model",
+                    "provider_timeout_seconds": 15,
+                    "max_infrastructure_attempts": 2,
+                },
             )
             assert receipt["restored"]
             assert receipt["llm_model"]["unauthorized"] == "denied_403"
             assert receipt["budget"]["status"] == "missing_runtime_interface"
-            assert shared == {"llm_provider": "old-provider", "llm_model": "old-model"}
+            for key, maximum in (
+                ("provider_timeout_seconds", 60),
+                ("max_infrastructure_attempts", 3),
+            ):
+                assert receipt[key]["unauthorized"] == "denied_403"
+                assert receipt[key]["bounds"] == {
+                    "minimum": 1,
+                    "maximum": maximum,
+                    "out_of_range": "rejected_422",
+                }
+                assert receipt[key]["runtime_effect"] == "pending instrumented execution receipt"
+            assert shared == original
         finally:
             await admin.close()
             await learner.close()
@@ -365,12 +393,22 @@ def test_settings_restores_when_unauthorized_actor_is_unexpectedly_allowed():
     async def exercise():
         c, result = Config(users=(1,)), {"loop_id": "test", "phase": "preflight", "users": 1}
         fake = FakeTransport()
+        original = dict(fake.settings)
         admin = LearningLoop(c, Budget(c), [], result, lambda: 0, fake.session())
         try:
             await admin.request("POST", "auth/login", {"email": "admin", "password": "fake"})
             with pytest.raises(StopRun, match="http_200"):
-                await probe_settings(admin, admin, {"llm_provider": "new", "llm_model": "new"})
-            assert fake.settings == {"llm_provider": "local", "llm_model": "template"}
+                await probe_settings(
+                    admin,
+                    admin,
+                    {
+                        "llm_provider": "new",
+                        "llm_model": "new",
+                        "provider_timeout_seconds": 15,
+                        "max_infrastructure_attempts": 2,
+                    },
+                )
+            assert fake.settings == original
         finally:
             await admin.close()
 

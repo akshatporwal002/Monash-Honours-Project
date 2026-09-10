@@ -264,14 +264,7 @@ export interface AdminUser {
   created_at?: string
 }
 
-export interface SystemSettings {
-  llm_provider: string
-  llm_model: string
-
-
-  points_per_level: number
-  reminders_enabled: boolean
-}
+export type SystemSettings = ApiSchemas['SettingsRead']
 
 export type AsyncState = 'idle' | 'loading' | 'success' | 'error'
 

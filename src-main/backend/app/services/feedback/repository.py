@@ -40,13 +40,12 @@ from app.services.feedback.errors import (
     PipelinePersistenceError,
 )
 from app.services.rag.source_history import bind_sources
+from app.services.runtime_policy import RuntimePolicy, read_runtime_policy
 from app.services.terminal_integrations.repository import (
     SqlAlchemyTerminalIntegrationRepository,
     TerminalIntegrationPayloadError,
     outbox_record,
 )
-
-MAX_EXECUTION_ATTEMPTS = 3
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -68,8 +67,15 @@ def _new_execution_token() -> str:
 
 
 class SqlAlchemyFeedbackWorkflowRepository:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, runtime_policy: RuntimePolicy | None = None) -> None:
         self._session = session
+        self._runtime_policy = runtime_policy
+
+    @property
+    def runtime_policy(self) -> RuntimePolicy:
+        if self._runtime_policy is None:
+            self._runtime_policy = read_runtime_policy(self._session)
+        return self._runtime_policy
 
     @property
     def session(self) -> Session:
@@ -253,7 +259,8 @@ class SqlAlchemyFeedbackWorkflowRepository:
             candidate = self._session.scalar(
                 select(WorkflowRun)
                 .where(
-                    WorkflowRun.execution_attempt_count < MAX_EXECUTION_ATTEMPTS,
+                    WorkflowRun.execution_attempt_count
+                    < self.runtime_policy.max_infrastructure_attempts,
                     or_(
                         and_(
                             WorkflowRun.current_stage.not_in(
@@ -287,19 +294,29 @@ class SqlAlchemyFeedbackWorkflowRepository:
         return claim if claim.should_start else None
 
     def finalize_next_exhausted(self, *, observed_at: datetime) -> str | None:
-        """Persist a terminal failure for a crashed third execution attempt."""
+        """Finalize exhausted stale claims and due retries under the current ceiling."""
         timestamp = _as_utc(observed_at)
         try:
             candidate = self._session.scalar(
                 select(WorkflowRun)
                 .where(
-                    WorkflowRun.execution_attempt_count >= MAX_EXECUTION_ATTEMPTS,
-                    WorkflowRun.current_stage.not_in(
-                        [WorkflowStage.COMPLETED, WorkflowStage.FAILED]
-                    ),
+                    WorkflowRun.execution_attempt_count
+                    >= self.runtime_policy.max_infrastructure_attempts,
                     or_(
-                        WorkflowRun.lease_expires_at.is_(None),
-                        WorkflowRun.lease_expires_at <= timestamp,
+                        and_(
+                            WorkflowRun.current_stage.not_in(
+                                [WorkflowStage.COMPLETED, WorkflowStage.FAILED]
+                            ),
+                            or_(
+                                WorkflowRun.lease_expires_at.is_(None),
+                                WorkflowRun.lease_expires_at <= timestamp,
+                            ),
+                        ),
+                        and_(
+                            WorkflowRun.current_stage == WorkflowStage.FAILED,
+                            WorkflowRun.next_retry_at.is_not(None),
+                            WorkflowRun.next_retry_at <= timestamp,
+                        ),
                     ),
                 )
                 .order_by(WorkflowRun.started_at, WorkflowRun.id)
@@ -349,7 +366,9 @@ class SqlAlchemyFeedbackWorkflowRepository:
             and workflow.next_retry_at is not None
             and _as_utc(workflow.next_retry_at) <= _as_utc(started_at)
         )
-        has_attempt = workflow.execution_attempt_count < MAX_EXECUTION_ATTEMPTS
+        has_attempt = (
+            workflow.execution_attempt_count < self.runtime_policy.max_infrastructure_attempts
+        )
         should_start = has_attempt and (retry_is_due or lease_is_stale)
         if should_start:
             previous_stage = workflow.current_stage
@@ -393,7 +412,7 @@ class SqlAlchemyFeedbackWorkflowRepository:
             workflow = self._session.get(WorkflowRun, workflow.id)
             if workflow is None:
                 raise PipelinePersistenceError(submission_id)
-        if not should_start and lease_is_stale and not has_attempt:
+        if not should_start and (lease_is_stale or retry_is_due) and not has_attempt:
             self._finalize_exhausted_workflow(workflow, _as_utc(started_at))
             self._session.expire_all()
             persisted = self._session.get(WorkflowRun, workflow.id)
@@ -416,7 +435,7 @@ class SqlAlchemyFeedbackWorkflowRepository:
         statement = update(WorkflowRun).where(
             WorkflowRun.id == workflow.id,
             WorkflowRun.current_stage == previous_stage,
-            WorkflowRun.execution_attempt_count >= MAX_EXECUTION_ATTEMPTS,
+            WorkflowRun.execution_attempt_count >= self.runtime_policy.max_infrastructure_attempts,
         )
         if previous_token is None:
             statement = statement.where(WorkflowRun.execution_token.is_(None))
@@ -482,7 +501,8 @@ class SqlAlchemyFeedbackWorkflowRepository:
                 should_start=False,
                 stage=WorkflowStage.FAILED,
                 failure_category="workflow_interrupted",
-                retryable=workflow.execution_attempt_count < MAX_EXECUTION_ATTEMPTS,
+                retryable=workflow.execution_attempt_count
+                < self.runtime_policy.max_infrastructure_attempts,
             )
         return self._workflow_claim(
             workflow,
@@ -600,7 +620,10 @@ class SqlAlchemyFeedbackWorkflowRepository:
             if execution_token is not None:
                 raise LostWorkflowLeaseError(workflow_run_id)
             return
-        can_retry = retryable and workflow.execution_attempt_count < MAX_EXECUTION_ATTEMPTS
+        can_retry = (
+            retryable
+            and workflow.execution_attempt_count < self.runtime_policy.max_infrastructure_attempts
+        )
         retry_at = (next_retry_at or completed_at) if can_retry else None
         latency_ms = max(
             0,

@@ -126,8 +126,9 @@ if needed; do not reuse institutional learner/admin credentials.
    target/API prefix, browser Origin, provider/model, actual runtime metadata and
    exact source/prompt/rule/model/deployment/fixture versions. Empty approval,
    version or budget values must be resolved before real execution. The runtime
-   snapshot is **operator-declared**, not a measured admin read; timeout/retry
-   values are currently environment-only. Config contains no API key, passwords
+   snapshot is **operator-declared**, not a measured admin read. Task 38A exposes
+   timeout/retry controls through administrator settings; retain the separate
+   settings-probe receipt and actual execution evidence. Config contains no API key, passwords
    or connection strings. The roster is read separately and only its digest is
    saved in the report.
 5. Set a finite integer `max_requests`, positive decimal `max_cost_aud`, and a
@@ -156,7 +157,12 @@ Create private `settings-credentials.json`:
 {
   "admin": {"email": "SYNTHETIC ADMIN EMAIL", "password": "PRIVATE PASSWORD"},
   "learner": {"email": "SYNTHETIC LEARNER EMAIL", "password": "PRIVATE PASSWORD"},
-  "desired": {"llm_provider": "APPROVED DIFFERENT PROVIDER", "llm_model": "APPROVED DIFFERENT MODEL"}
+  "desired": {
+    "llm_provider": "APPROVED DIFFERENT PROVIDER",
+    "llm_model": "APPROVED DIFFERENT MODEL",
+    "provider_timeout_seconds": 15,
+    "max_infrastructure_attempts": 2
+  }
 }
 ```
 
@@ -165,14 +171,20 @@ python -m scripts.task38_benchmark settings --config .tmp-task38/config.json --c
 ```
 
 Run this while no load is active and no other operator edits settings. The probe
-requires both new values to differ from originals, expects learner PUTs to be
-403, checks unchanged values after denial, applies each value as administrator,
-and reads it back. It restores the original provider/model in `finally` and
-verifies restoration. Two requests are reserved for restoration; a failed
-restoration requires operator action before any campaign. It never sends the
-unsupported fields. Timeout, retry and budget are explicitly reported as missing
-runtime interfaces, not passed checks. Actual provider/model effect remains
-pending until later workflow usage confirms it. For each approved configuration
+requires all four new values to differ from originals. Timeout must be an integer
+from 1 to 60 seconds; infrastructure attempts must be an integer from 1 to 3,
+including the first attempt. Configure at least **32 requests** for this command.
+The probe expects learner PUTs to be 403, checks unchanged values after denial,
+rejects out-of-range administrator writes with 422, applies each valid value as
+administrator, and reads it back. It restores all four original values in
+`finally` and verifies restoration. Two requests are reserved for restoration;
+a failed restoration requires operator action before any campaign. Blank or
+otherwise unrestorable original values stop the probe before mutation. Provider
+and model identifiers must be nonblank and have no surrounding whitespace.
+Budget remains an explicitly missing runtime interface and is never sent.
+CRUD/readback does not prove provider execution or enforcement: timeout/retry
+effect remains pending an instrumented execution receipt, and provider/model
+effect remains pending later workflow usage. For each approved configuration
 variant, the operator sets the values through the existing admin settings UI,
 records its audit event, then runs with a fresh roster and matching config.
 
@@ -242,7 +254,7 @@ record them separately, without silently amortizing them into its denominator.
 ## Checks and integration verification
 
 ```powershell
-python -m pytest tests/test_task38_benchmark_harness.py tests/test_task38_benchmark_usage.py -q -p no:cacheprovider --basetemp=.tmp-task38-tests
+python -m pytest tests/test_task38_benchmark_harness.py tests/test_task38_benchmark_usage.py tests/test_task38_settings_probe.py -q -p no:cacheprovider --basetemp=.tmp-task38-tests
 python -m ruff check scripts/task38_benchmark tests/test_task38_benchmark_harness.py tests/test_task38_benchmark_usage.py
 python -m ruff format --check scripts/task38_benchmark tests/test_task38_benchmark_harness.py tests/test_task38_benchmark_usage.py
 ```

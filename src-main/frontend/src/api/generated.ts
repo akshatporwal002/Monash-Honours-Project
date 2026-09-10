@@ -2093,13 +2093,17 @@ export type ApiSchemas = {
   "SettingsRead": {
     "llm_model": string
     "llm_provider": string
+    "max_infrastructure_attempts": number
     "points_per_level": number
+    "provider_timeout_seconds": number
     "reminders_enabled": boolean
   }
   "SettingsUpdate": {
     "llm_model"?: (string) | (null)
     "llm_provider"?: (string) | (null)
+    "max_infrastructure_attempts"?: number
     "points_per_level"?: (number) | (null)
+    "provider_timeout_seconds"?: number
     "reminders_enabled"?: (boolean) | (null)
   }
   "SimulationProvenance": {

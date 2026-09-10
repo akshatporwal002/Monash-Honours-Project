@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.services.audit_events import FeedbackAuditEvents
 from app.services.feedback.application import FeedbackBackgroundExecutor
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
+from app.services.runtime_policy import RuntimePolicy, read_runtime_policy
 
 
 def _utc_now() -> datetime:
@@ -25,6 +26,7 @@ class FeedbackRecoveryWorker:
         now: Callable[[], datetime] = _utc_now,
         lease_duration: timedelta = timedelta(minutes=5),
         audit_events: FeedbackAuditEvents | None = None,
+        policy_loader: Callable[[Session], RuntimePolicy] = read_runtime_policy,
     ) -> None:
         if lease_duration <= timedelta(0):
             raise ValueError("lease_duration must be positive")
@@ -33,11 +35,14 @@ class FeedbackRecoveryWorker:
         self._now = now
         self._lease_duration = lease_duration
         self._audit_events = audit_events
+        self._policy_loader = policy_loader
 
     async def run_once(self) -> bool:
         observed_at = self._now()
         with self._session_factory() as session:
-            repository = SqlAlchemyFeedbackWorkflowRepository(session)
+            repository = SqlAlchemyFeedbackWorkflowRepository(
+                session, runtime_policy=self._policy_loader(session)
+            )
             exhausted_workflow_id = repository.finalize_next_exhausted(observed_at=observed_at)
             claim = (
                 None

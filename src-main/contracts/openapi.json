@@ -14107,8 +14107,20 @@
             "title": "Llm Provider",
             "type": "string"
           },
+          "max_infrastructure_attempts": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Max Infrastructure Attempts",
+            "type": "integer"
+          },
           "points_per_level": {
             "title": "Points Per Level",
+            "type": "integer"
+          },
+          "provider_timeout_seconds": {
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Provider Timeout Seconds",
             "type": "integer"
           },
           "reminders_enabled": {
@@ -14117,6 +14129,8 @@
           }
         },
         "required": [
+          "provider_timeout_seconds",
+          "max_infrastructure_attempts",
           "points_per_level",
           "llm_provider",
           "llm_model",
@@ -14154,6 +14168,12 @@
             ],
             "title": "Llm Provider"
           },
+          "max_infrastructure_attempts": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Max Infrastructure Attempts",
+            "type": "integer"
+          },
           "points_per_level": {
             "anyOf": [
               {
@@ -14166,6 +14186,12 @@
               }
             ],
             "title": "Points Per Level"
+          },
+          "provider_timeout_seconds": {
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Provider Timeout Seconds",
+            "type": "integer"
           },
           "reminders_enabled": {
             "anyOf": [
