@@ -109,6 +109,10 @@ class FakeTransport:
         if path.endswith("/submissions") and path.startswith("students/"):
             if method == "GET":
                 return reply(self.submissions)
+            if "/task38-next/" in path and not (body.get("episode") or {}).get("supported", {}).get(
+                "explanation"
+            ):
+                return reply({"detail": "This response type requires typed episode evidence"}, 422)
             value = {"id": self.uid(":response:" + str(len(self.submissions)))}
             self.submissions.append(value)
             return reply(value, 201)
@@ -147,7 +151,16 @@ class FakeTransport:
                 }
             )
         if path.startswith("students/me/tasks/") and method == "GET":
-            return reply({"id": path.split("/")[-1]})
+            return reply(
+                {
+                    "id": path.split("/")[-1],
+                    "task_type": "explanation"
+                    if path.endswith("/task38-next")
+                    else "quantum_circuit",
+                    "assessment": None,
+                    "episode_plan": None,
+                }
+            )
         return reply({}, 404)
 
     def session(self):

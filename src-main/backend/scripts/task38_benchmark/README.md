@@ -84,10 +84,11 @@ The deterministic `httpx.MockTransport` never opens a socket. Its 50 ms per-call
 clock and two-poll feedback delay are invented. The CLI limits fake runs to two
 VUs, one warm-up round and one measurement round. Smoke outcomes remain
 `awaiting_human`; actual external cost is null. A new output path is required for
-each invocation. The checked-in Task 38 smoke summary is reproducible from this
-command; wall timestamps/durations and source digest naturally vary.
+each invocation. The checked-in Task 38 smoke summary records the original
+delivery. The current adapter adds formative draft save/readback calls, so a new
+smoke has additional requests; wall timestamps/durations and source digest also vary.
 
-## Later preparation (coordinator only; not run in this delivery)
+## Later campaign preparation (coordinator only)
 
 1. Record the integrated commit, successful Tasks 35–37 checks, synthetic host
    approval, provider/model permission, workload approval, named operator and
@@ -238,7 +239,7 @@ Agent/feature/provider/model totals and the input ledger are retained. Campaign
 setup/content-generation costs are outside this pre-provisioned learner profile;
 record them separately, without silently amortizing them into its denominator.
 
-## Checks and open integration work
+## Checks and integration verification
 
 ```powershell
 python -m pytest tests/test_task38_benchmark_harness.py tests/test_task38_benchmark_usage.py -q -p no:cacheprovider --basetemp=.tmp-task38-tests
@@ -249,8 +250,23 @@ python -m ruff format --check scripts/task38_benchmark tests/test_task38_benchma
 These unit tests cover the adapter against deterministic HTTP transport,
 production request schemas, scheduling bounds, cancellation, failure accounting,
 hand-calculated percentiles/currency/denominators and a metadata-only synthetic
-SQLite snapshot. No full suite, actual API/server/worker integration, fixture
-preparation command, provider call or 5–100-user load campaign ran here. The
-coordinator must verify those later; existing service coverage gates stay intact.
+SQLite snapshot. The additional bounded integration regression invokes the actual
+preparer and runs one fresh synthetic learner against a loopback API on port
+4690 and a separate durable worker, using local providers with empty API credentials.
+It saves a typed explanation draft, reads it back and submits the formative episode.
+An unexpected next-task type, assessment or episode plan stops the profile.
+
+```powershell
+python -m pytest tests/test_task38_benchmark_integration.py -q -p no:cacheprovider --basetemp=.tmp-task38-integration-check
+```
+
+Reserve port 4690 before running; the regression refuses an occupied port and
+terminates only the processes it starts. It writes private fixtures and logs beneath
+pytest's isolated temporary directory. See the separate
+[integration verification note](../../../../docs/learnlens/task-38-integration-verification.md)
+for prerequisites, observed failures and results. This is adapter compatibility
+evidence, not a load campaign, provider cost measurement or approval record.
+Full suites, external provider verification and 5–100-user campaigns remain separate;
+existing service coverage gates stay intact.
 Provider compatibility, rates and currency should be checked against official
 sources at campaign time; this delivery supplies no purported current prices.

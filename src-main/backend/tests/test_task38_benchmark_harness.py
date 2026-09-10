@@ -69,12 +69,49 @@ def test_adapter_requests_match_existing_production_request_schemas_and_preserve
     assert not any(p.endswith("/episode/help") for _, p, _ in calls[transfer_index + 1 :])
     submissions = [b for m, p, b in calls if m == "POST" and p.endswith("/submissions")]
     assert len(submissions) == 3
+    assert (
+        submissions[2]["episode"]["supported"]["explanation"]
+        == roster(1)[0]["next_activity_answer"]
+    )
+    assert submissions[2].get("assessment_work_start_id") is None
+    assert submissions[2]["episode"].get("transfer") is None
     assert "revision" not in submissions[0]["episode"]["supported"]
     assert (
         submissions[1]["episode"]["supported"]["revision"]["previous_response_version_id"]
         == report["loops"][0]["submission_ids"][0]
     )
     assert not any("assessment/" in p for _, p, _ in calls)
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"task_type": "reflection"},
+        {"assessment": {"task_form_version_id": "changed"}},
+        {"episode_plan": {"prediction_required": True}},
+    ],
+)
+def test_changed_next_activity_conditions_stop_before_draft_or_submission(changed):
+    transports = []
+
+    def build(c, b, samples, result, clock):
+        class ChangedNextTask(FakeTransport):
+            def handle(self, request):
+                response = super().handle(request)
+                if request.method == "GET" and request.url.path.endswith("/tasks/task38-next"):
+                    return httpx.Response(200, json={**response.json(), **changed})
+                return response
+
+        fake = ChangedNextTask(result["loop_id"])
+        transports.append(fake)
+        return LearningLoop(c, b, samples, result, lambda: fake.now, fake.session(), fake.sleep)
+
+    report = run(Config(users=(1,), warmup_rounds=0), build)
+    assert report["loops"][0]["status"] == "next_activity_profile_mismatch"
+    assert not any(
+        method in {"POST", "PUT"} and "/task38-next/" in path
+        for method, path, _ in transports[0].calls
+    )
 
 
 @pytest.mark.parametrize("status", ["failed", "fallback"])

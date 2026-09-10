@@ -177,14 +177,30 @@ class LearningLoop:
         )
         if not chosen["next_task_id"]:
             raise StopRun("choice_unavailable")
-        await self.request(
-            "GET", f"students/me/tasks/{chosen['next_task_id']}", category="ordinary"
-        )
+        next_path = f"students/me/tasks/{chosen['next_task_id']}"
+        next_task = await self.request("GET", next_path, category="ordinary")
+        if (
+            next_task["task_type"] != "explanation"
+            or next_task.get("assessment") is not None
+            or next_task.get("episode_plan") is not None
+        ):
+            raise StopRun("next_activity_profile_mismatch")
+        next_payload = {
+            "answer": fixture["next_activity_answer"],
+            "episode": {
+                "schema_version": "learnlens.episode.v1",
+                "supported": {"explanation": fixture["next_activity_answer"]},
+            },
+        }
+        await self.request("PUT", next_path + "/draft", next_payload)
+        saved_next = await self.request("GET", next_path + "/draft", category="ordinary")
+        if saved_next["episode"]["supported"]["explanation"] != fixture["next_activity_answer"]:
+            raise StopRun("next_activity_draft_mismatch")
         # Assessed feedback deliberately bypasses external LLMs in the shipped service.
         # The approved formative next activity exercises the real configurable provider path.
         await self.submit_and_wait(
-            f"students/me/tasks/{chosen['next_task_id']}",
-            {"answer": fixture["next_activity_answer"]},
+            next_path,
+            next_payload,
             "next",
             "feedback",
         )
