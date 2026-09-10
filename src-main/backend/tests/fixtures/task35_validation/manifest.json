@@ -1,0 +1,88 @@
+{
+  "version": "task35-manifest-v1",
+  "components": {
+    "model": "NOT_RUN-no-provider",
+    "prompt": "feedback-v2/quality-judge-v1",
+    "source": "task35-source-register-v1",
+    "rule": "draft-probe-criteria-v1",
+    "retrieval": "NOT_RUN-offline",
+    "task": "task35-108-drafts-v1",
+    "curriculum": "DRAFT-intro-H-X-CX-v1",
+    "bloom": "DRAFT-APPLY-probes-v1"
+  },
+  "files": {
+    "docs/01-implementation-requirements.md": "45fab30973e24413057155b614475b706ea37ec6133d214d33c8fb8c0d7eda47",
+    "docs/02-pass-incomplete-bloom-assessment-spec.md": "4ac0d1952b7c3f420cc5df8f60d0ee37b8d819267fe2f8324c78eafc3d95a2a7",
+    "docs/learnlens/task-08-approved-selections.md": "03245ee0455cc2be994f5216a9dc315d5ea01bac95673bf60d93ae2dbfe4e8d0",
+    "src-main/backend/app/schemas/feedback.py": "efb3512110b292c74e352e8e3aba21acc3f7a29e34b85a7d7d2cf46b154321ea",
+    "src-main/backend/app/services/assessment/evaluation.py": "01b973b7599b0731e14580e0093e0ebeb3ee97d14c4b9fb163aef3c2b89ec098",
+    "src-main/backend/app/services/assessment/evaluators.py": "b137fb70726bd99c2b32c442271698c1c6194ff0d3190e9259f7f234eb0d4f89",
+    "src-main/backend/app/services/assessment/pass_rules.py": "d26004b92581b3bea9256cb56d15033641979345a21bd60299e19373f38262f5",
+    "src-main/backend/app/services/assessment/rule_settings.py": "d18a108231ac23fa78edc5a141f1281030e2c2de8e9a00c9a68108cd229be6c1",
+    "src-main/backend/app/services/feedback/agent.py": "51909ca58c5fb5d3029c8dec4b7ed60b07a2a251344aa72cf184b0f805664389",
+    "src-main/backend/app/services/feedback/context.py": "121b53aaff3a570663df1fdb742077b8687a318bbf86a8e71fdee3996b03acf3",
+    "src-main/backend/app/services/feedback/judge.py": "3f689b2f22c1cb406927e969100d1deaaaaca37bc630432cdf32e8a0a1548c8e",
+    "src-main/backend/app/services/feedback/pipeline.py": "7a5d00dd7ebf0b7e4f1672e79fa0d4e814cac7e5f4ec4f4bc097a888baaab5cd",
+    "src-main/backend/app/services/feedback/prompt.py": "32b05697678071880d2ceb21f53f571f4521e486df4ba35fb2da67b90c833a57",
+    "src-main/backend/app/services/feedback/runtime.py": "de3518f3d860de4789f5745d9a17b245404f4995d2e5c5ec7a83b2b9560f5776",
+    "src-main/backend/app/services/quantum.py": "100549b807c6587ba3d55bbc28af564bc8f05bdd5fe98f1234075dee8b922254",
+    "src-main/backend/app/services/quantum_runner.py": "0f9fffca970b62052b5558830060db1637c9db575953ca28515a87b0731a65d9",
+    "src-main/backend/scripts/task35_validation/__init__.py": "fa5f2ef0555c718af08ca1ab1818de3ad858b061d4d65b9042646efc8c2e7912",
+    "src-main/backend/scripts/task35_validation/metrics.py": "058e604545b751629b7d96934b97eb8ef0df2561cb5f465ba6204467d1cacc0e",
+    "src-main/backend/scripts/task35_validation/prepare.py": "c7f3537438e80e45630ce50f09da00f417b12d0cc5e0ad49b9a5f0b9a7604016",
+    "src-main/backend/scripts/task35_validation/runner.py": "25f6b67d51607d5b92f85120f6f6f355cc0489a7d2b9a78cb995cdeb6ba9240d",
+    "src-main/backend/scripts/task35_validation/schema.py": "0ddb7990202f8cb5153c14542506f6ba0c3a4a18a272c6ce5094f03650890f08",
+    "src-main/backend/tests/fixtures/task35_validation/scenarios.json": "9aacce7a2d658d92b59b52007187975351068c95f2af7666947292cdd20df825"
+  },
+  "source_references": [
+    {
+      "id": "H23",
+      "url": "https://quantum.cloud.ibm.com/docs/en/api/qiskit/2.3/qiskit.circuit.library.HGate",
+      "version": "Qiskit SDK 2.3 API documentation (pinned; not asserted latest)",
+      "location": "Matrix representation; inverse",
+      "accessed": "2026-09-10",
+      "approval": "PENDING"
+    },
+    {
+      "id": "X23",
+      "url": "https://quantum.cloud.ibm.com/docs/en/api/qiskit/2.3/qiskit.circuit.library.XGate",
+      "version": "Qiskit SDK 2.3 API documentation (pinned; not asserted latest)",
+      "location": "Matrix representation; inverse",
+      "accessed": "2026-09-10",
+      "approval": "PENDING"
+    },
+    {
+      "id": "CX23",
+      "url": "https://quantum.cloud.ibm.com/docs/en/api/qiskit/2.3/qiskit.circuit.library.CXGate",
+      "version": "Qiskit SDK 2.3 API documentation (pinned; not asserted latest)",
+      "location": "Matrix representation; little-endian convention",
+      "accessed": "2026-09-10",
+      "approval": "PENDING"
+    },
+    {
+      "id": "STATE23",
+      "url": "https://quantum.cloud.ibm.com/docs/en/api/qiskit/2.3/qiskit.quantum_info.Statevector",
+      "version": "Qiskit SDK 2.3 API documentation (pinned; not asserted latest)",
+      "location": "from_instruction; probabilities; sample_counts",
+      "accessed": "2026-09-10",
+      "approval": "PENDING"
+    },
+    {
+      "id": "BITS",
+      "url": "https://quantum.cloud.ibm.com/docs/en/guides/bit-ordering",
+      "version": "unversioned guide",
+      "location": "Integers; Strings; Statevector matrices",
+      "accessed": "2026-09-10",
+      "approval": "PENDING; preserve exact approved source revision before expert study"
+    },
+    {
+      "id": "POLICY",
+      "url": "docs/learnlens/task-08-approved-selections.md",
+      "version": "task-08-selections-v1",
+      "location": "D-04, D-05, D-07",
+      "accessed": "2026-09-10",
+      "approval": "policy selections only; case approval pending"
+    }
+  ],
+  "provenance": "DRAFT"
+}

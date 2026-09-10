@@ -1,0 +1,638 @@
+{
+  "status": "NUMERICAL_MATCH",
+  "conceptual_approval": "PENDING",
+  "provenance": "SYNTHETIC_IDEAL_CIRCUITS",
+  "scenario_file_digest": "9aacce7a2d658d92b59b52007187975351068c95f2af7666947292cdd20df825",
+  "manifest_digest": "ea60862c945241b12e8934659f5abd0beb533927bcf816d705a0c9b1acd4da9f",
+  "results": [
+    {
+      "family": "h-zero",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "0": 18,
+          "1": 14
+        },
+        "probabilities": {
+          "0": 0.4999999999999999,
+          "1": 0.4999999999999999
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\n  q: \u2524 H \u251c\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2565\u2518\nc: 1/\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\n           0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "0": 0.5625,
+          "1": 0.4375
+        },
+        "statevector": [
+          [
+            0.7071067811865475,
+            0.0
+          ],
+          [
+            0.7071067811865475,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "h-one",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "0": 18,
+          "1": 14
+        },
+        "probabilities": {
+          "0": 0.4999999999999999,
+          "1": 0.4999999999999999
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\n  q: \u2524 X \u251c\u2524 H \u251c\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u2500\u2518\u2514\u2565\u2518\nc: 1/\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\n                0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "0": 0.5625,
+          "1": 0.4375
+        },
+        "statevector": [
+          [
+            0.7071067811865475,
+            0.0
+          ],
+          [
+            -0.7071067811865475,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "double-h",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "0": 32
+        },
+        "probabilities": {
+          "0": 0.9999999999999996,
+          "1": 0.0
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\n  q: \u2524 H \u251c\u2524 H \u251c\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u2500\u2518\u2514\u2565\u2518\nc: 1/\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\n                0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "0": 1.0
+        },
+        "statevector": [
+          [
+            0.9999999999999998,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "x-zero",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "1": 32
+        },
+        "probabilities": {
+          "0": 0.0,
+          "1": 1.0
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\n  q: \u2524 X \u251c\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2565\u2518\nc: 1/\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\n           0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "1": 1.0
+        },
+        "statevector": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "double-x",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "0": 32
+        },
+        "probabilities": {
+          "0": 1.0,
+          "1": 0.0
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\n  q: \u2524 X \u251c\u2524 X \u251c\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u2500\u2518\u2514\u2565\u2518\nc: 1/\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\n                0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "0": 1.0
+        },
+        "statevector": [
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "h-x",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "0": 18,
+          "1": 14
+        },
+        "probabilities": {
+          "0": 0.4999999999999999,
+          "1": 0.4999999999999999
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\n  q: \u2524 H \u251c\u2524 X \u251c\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u2500\u2518\u2514\u2565\u2518\nc: 1/\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\n                0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "0": 0.5625,
+          "1": 0.4375
+        },
+        "statevector": [
+          [
+            0.7071067811865475,
+            0.0
+          ],
+          [
+            0.7071067811865475,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "h-x-h",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "0": 32
+        },
+        "probabilities": {
+          "0": 0.9999999999999996,
+          "1": 0.0
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\n  q: \u2524 H \u251c\u2524 X \u251c\u2524 H \u251c\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u2500\u2518\u2514\u2565\u2518\nc: 1/\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\n                     0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "0": 1.0
+        },
+        "statevector": [
+          [
+            0.9999999999999998,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "bit-order-low",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "01": 32
+        },
+        "probabilities": {
+          "00": 0.0,
+          "01": 1.0,
+          "10": 0.0,
+          "11": 0.0
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510\nq_0: \u2524 X \u251c\u2524M\u251c\n     \u2514\u252c\u2500\u252c\u2518\u2514\u2565\u2518\nq_1: \u2500\u2524M\u251c\u2500\u2500\u256b\u2500\n      \u2514\u2565\u2518  \u2551 \nc: 2/\u2550\u2550\u2569\u2550\u2550\u2550\u2569\u2550\n       1   0 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "01": 1.0
+        },
+        "statevector": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0,
+          1
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "bit-order-high",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "10": 32
+        },
+        "probabilities": {
+          "00": 0.0,
+          "01": 0.0,
+          "10": 1.0,
+          "11": 0.0
+        },
+        "circuit_text": "          \u250c\u2500\u2510   \nq_0: \u2500\u2500\u2500\u2500\u2500\u2524M\u251c\u2500\u2500\u2500\n     \u250c\u2500\u2500\u2500\u2510\u2514\u2565\u2518\u250c\u2500\u2510\nq_1: \u2524 X \u251c\u2500\u256b\u2500\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518 \u2551 \u2514\u2565\u2518\nc: 2/\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\u2550\u2569\u2550\n           0  1 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "10": 1.0
+        },
+        "statevector": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0,
+          1
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "bell",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "00": 18,
+          "11": 14
+        },
+        "probabilities": {
+          "00": 0.4999999999999999,
+          "01": 0.0,
+          "10": 0.0,
+          "11": 0.4999999999999999
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510     \u250c\u2500\u2510   \nq_0: \u2524 H \u251c\u2500\u2500\u25a0\u2500\u2500\u2524M\u251c\u2500\u2500\u2500\n     \u2514\u2500\u2500\u2500\u2518\u250c\u2500\u2534\u2500\u2510\u2514\u2565\u2518\u250c\u2500\u2510\nq_1: \u2500\u2500\u2500\u2500\u2500\u2524 X \u251c\u2500\u256b\u2500\u2524M\u251c\n          \u2514\u2500\u2500\u2500\u2518 \u2551 \u2514\u2565\u2518\nc: 2/\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\u2550\u2569\u2550\n                0  1 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "00": 0.5625,
+          "11": 0.4375
+        },
+        "statevector": [
+          [
+            0.7071067811865475,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.7071067811865475,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0,
+          1
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "cx-zero-control",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "10": 32
+        },
+        "probabilities": {
+          "00": 0.0,
+          "01": 0.0,
+          "10": 1.0,
+          "11": 0.0
+        },
+        "circuit_text": "               \u250c\u2500\u2510   \nq_0: \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25a0\u2500\u2500\u2524M\u251c\u2500\u2500\u2500\n     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2534\u2500\u2510\u2514\u2565\u2518\u250c\u2500\u2510\nq_1: \u2524 X \u251c\u2524 X \u251c\u2500\u256b\u2500\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u2500\u2518 \u2551 \u2514\u2565\u2518\nc: 2/\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\u2550\u2569\u2550\n                0  1 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "10": 1.0
+        },
+        "statevector": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0,
+          1
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    },
+    {
+      "family": "two-independent-h",
+      "probabilities_match": true,
+      "physical_evidence": {
+        "counts": {
+          "00": 6,
+          "01": 12,
+          "10": 6,
+          "11": 8
+        },
+        "probabilities": {
+          "00": 0.2499999999999999,
+          "01": 0.2499999999999999,
+          "10": 0.2499999999999999,
+          "11": 0.2499999999999999
+        },
+        "circuit_text": "     \u250c\u2500\u2500\u2500\u2510\u250c\u2500\u2510   \nq_0: \u2524 H \u251c\u2524M\u251c\u2500\u2500\u2500\n     \u251c\u2500\u2500\u2500\u2524\u2514\u2565\u2518\u250c\u2500\u2510\nq_1: \u2524 H \u251c\u2500\u256b\u2500\u2524M\u251c\n     \u2514\u2500\u2500\u2500\u2518 \u2551 \u2514\u2565\u2518\nc: 2/\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\u2550\u2569\u2550\n           0  1 ",
+        "engine": "Qiskit AerSimulator",
+        "sampled_frequencies": {
+          "00": 0.1875,
+          "01": 0.375,
+          "10": 0.1875,
+          "11": 0.25
+        },
+        "statevector": [
+          [
+            0.4999999999999999,
+            0.0
+          ],
+          [
+            0.4999999999999999,
+            0.0
+          ],
+          [
+            0.4999999999999999,
+            0.0
+          ],
+          [
+            0.4999999999999999,
+            0.0
+          ]
+        ],
+        "engine_versions": {
+          "qiskit": "2.5.1",
+          "qiskit_aer": "0.17.2"
+        },
+        "qubit_order": [
+          0,
+          1
+        ],
+        "measurement_mapping": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "seed": 35,
+        "shots": 32,
+        "probability_method": "exact_statevector",
+        "policy_version": "ideal-h-x-cx-v1"
+      }
+    }
+  ]
+}
