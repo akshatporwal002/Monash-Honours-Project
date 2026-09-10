@@ -1,8 +1,8 @@
 # Feedback and research integration traceability
 
-Inspected integration: `6d20416c6760d4841828c9e59cc74679d8ca0ae7`, 10 September 2026. **Combined final validation: IN_PROGRESS.**
+Inspected integration: `6d20416c6760d4841828c9e59cc74679d8ca0ae7`, 10 September 2026. **Integration evidence: verified across recorded runs.**
 
-Current next-wave validation: **IN_PROGRESS** at frozen application/test source `6d20416c6760d4841828c9e59cc74679d8ca0ae7`. Full frontend: 319 tests across 85 files passed; lint, types, build, dependency audits, contracts, Ruff and migration-head checks passed. Full backend coverage and all 132 browser cases are still being verified. The first browser run loaded the primary checkout backend through its editable installation; that mixed-source run is diagnostic evidence only and must be repeated with worktree imports pinned. No current combined PASS, expert approval, research activation or hosted-release acceptance is claimed.
+Current integration evidence, checked 11 September 2026: **verified across recorded runs**. The completed backend run had 1,599 passes and eight failures; all 17 cases in the two corrected test files then passed. Matching the JUnit case identities accounts for all **1,607 backend cases**. Application, dependency and test-infrastructure sources are unchanged; the final policy-fingerprint refresh passed all 40 affected validation-runner tests and 12 numerical checks. Service coverage was **88.93%** in the completed full run, above the unchanged 80% gate. The later full rerun was interrupted at 52%; it is not reported as a completed passing run. All **319 frontend tests and 132 browser checks passed**. Existing lint, types, build, contracts, migrations and dependency evidence is retained. Expert, research-activation and hosted-release acceptance remain separate.
 
 The [current implementation gap matrix](../../docs/learnlens/implementation-gap-matrix.md) is the authoritative status ledger for every numbered requirement. Its 143 rows link each controlling definition to precise production/service/route/model/migration/UI paths, named fixture tests, dated evidence, current gap, dependency and acceptance check. This file is a crosswalk, not a second independently maintained status table.
 
@@ -42,6 +42,6 @@ The original fixture harness deliberately replaces provider/security/research bo
 
 ## Release handoff
 
-Full combined validation is **IN_PROGRESS**. The focus correction is integrated; final browser evidence and external acceptance gates remain distinct.
+Integration evidence is **verified across recorded runs**. The focus correction is integrated; passing browser evidence and external acceptance gates remain distinct.
 
-Current source changes, named production/tests and evidence boundaries are in [I-WAVE](../../docs/learnlens/implementation-gap-matrix.md#i-wave). Task 34A instruments, Task 38A runtime controls, Task 37 local recovery and the assessor focus fix are integrated. **12 tasks remain unfinished**; final combined validation is **IN_PROGRESS**.
+Current source changes, named production/tests and evidence boundaries are in [I-WAVE](../../docs/learnlens/implementation-gap-matrix.md#i-wave). Task 34A instruments, Task 38A runtime controls, Task 37 local recovery and the assessor focus fix are integrated. **12 tasks remain unfinished**; integration evidence is **verified across recorded runs**.

@@ -2,10 +2,10 @@
 
 **12 of 41 tasks still need work; 29 are completed implementations.** Partial tasks count as unfinished.
 
-Including today's local next-wave changes on `codex/integrate-next-wave-20260910`, the implementation breakdown is **29 completed, 11 partial and one remaining**. Task 34 now has an instrument foundation, so it becomes partial; none of the other unfinished tasks is fully closed by these changes. **Combined validation: IN_PROGRESS**, frozen application/test source `6d20416c6760d4841828c9e59cc74679d8ca0ae7`. The full frontend suite passed 319 tests across 85 files, lint/types/build and dependency audits passed; backend coverage and all 132 browser cases are still being checked. The initial browser run loaded an older backend through its editable installation and is diagnostic only; the corrected worktree-pinned run is underway. A backend retirement round-trip case has failed and is under investigation. See the [current next-wave receipt](docs/learnlens/next-wave-integration-verification-2026-09-10.md). The prior main receipt below is historical and does not certify this new source.
+The integrated implementation breakdown is **29 completed, 11 partial and one remaining**. Task 34 has an instrument foundation; none of the other unfinished tasks is fully closed. Current integration evidence, checked 11 September 2026: **verified across recorded runs**. The completed backend run had 1,599 passes and eight failures; all 17 cases in the two corrected test files then passed. Matching the JUnit case identities accounts for all **1,607 backend cases**. Application, dependency and test-infrastructure sources are unchanged; the final policy-fingerprint refresh passed all 40 affected validation-runner tests and 12 numerical checks. Service coverage was **88.93%** in the completed full run, above the unchanged 80% gate. The later full rerun was interrupted at 52%; it is not reported as a completed passing run. All **319 frontend tests and 132 browser checks passed**. Existing lint, types, build, contracts, migrations and dependency evidence is retained. Expert, research-activation and hosted-release acceptance remain separate. See the [integration receipt](docs/learnlens/next-wave-integration-verification-2026-09-10.md).
 
 Prior accepted integration: **10 September 2026**, inspected at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` on `codex/integrate-parallel-20260910`.
-**Prior combined validation: PASS for that earlier scope.** The next-wave source remains IN_PROGRESS.
+**Prior combined validation: PASS for that earlier scope.** The newer source is verified across recorded runs as described above.
 
 Coordinator final receipt: The corrected delivery at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` passed 1,475 backend tests with 88.73% service coverage (80% minimum), 306 frontend tests across 84 files, and 132 configured browser checks at `ece4bedd41c36c7c37e89a10ce20fcd96a329f0f`. There were no failed, skipped or flaky cases in these final receipts. Root checks, lint/build, migration and contract checks, dependency audits and the full-history secret gate also pass. The coordinator report records exact commands, source trees, original failures and corrected runs. This verifies the delivered code; it does not close manual, expert, institutional or hosted-release requirements, or include unmerged next-batch branches. A separately reproduced assessor dialog-return focus race remains open in this source and is assigned to the next integration.
 
@@ -28,7 +28,7 @@ The eight original deliveries and subsequent readiness, typed-practice, validati
 - **Task 35:** provenance refreshes 0eaf467 and 0af4873 include the changed practice-input dependencies. Latest reported tooling results are 44 tests and 12/12 numerical checks, with 108 DRAFT cases, zero approved, quality UNVERIFIED and AI release PENDING.
 - **Task 38:** final owner receipt `471f185a089d660f439ab9e21adf0113d01fdb96` verifies one fresh synthetic learner against a real local API, 35 successful HTTP calls, three feedback workflows and both actual local provider inputs; 54 focused checks passed. The owned benchmark changes are integrated as be3e92a, 9239dc1 and 0bbf95e. Six local usage rows have null actual AUD cost and zero human-confirmed loops. It is compatibility evidence, not a representative load/cost campaign or recovery proof. See the [dated receipt summary](docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts).
 - **Final frontend/source receipt:** 306 frontend tests across 84 files passed with zero failed/skipped; lint/build pass and frontend trees at e93842f/0bbf95e match. API/TypeScript contract drift and Ruff (539 files) pass at 0bbf95e per the coordinator.
-- **Current combined evidence:** **IN_PROGRESS** at 6d20416. The prior coordinator receipt above remains dated history; current checks and the mixed-checkout browser diagnosis are in the next-wave receipt.
+- **Current combined evidence:** **verified across recorded runs** at 6d20416. The prior coordinator receipt above remains dated history; current checks and the mixed-checkout browser diagnosis are in the next-wave receipt.
 - **Additional requirement gaps:** recoverable course revisions, upload malware policy, broader generated/accessible task types, integrity review cues, moderation/AI revalidation and fuller model/feedback-effectiveness evidence remain in the matrix.
 
 ## Concrete work left after the local changes
@@ -336,7 +336,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 29. **[Completed] Finish progress views and retire numeric learner-result semantics.**
 
-    Scoped progress separates observations, support, uncertain estimates, adaptations and released binary results. Numeric learner marks were retired after immutable preservation. The integrated timezone repair normalizes known UTC response timestamps after SQLite reload without rewriting stored history; prior combined regressions passed at their recorded source; current next-wave validation is IN_PROGRESS.
+    Scoped progress separates observations, support, uncertain estimates, adaptations and released binary results. Numeric learner marks were retired after immutable preservation. The integrated timezone repair normalizes known UTC response timestamps after SQLite reload without rewriting stored history; prior combined regressions passed at their recorded source; current next-wave validation is verified across recorded runs.
 
     Dependencies: Tasks 3, 18, 19, 22, 24, 26, and 27. Final legacy removal also needs Task 8, D-10. Suggested owner: LMS, analytics, and frontend.
 
@@ -406,7 +406,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 36. **[Partial] Refresh traceability and run the complete automated checks.**
 
-    The immutable baseline and current matrix account for all 143 requirements. The previous batch passed at its recorded source; current source reviews are clear but full next-wave combined checks remain IN_PROGRESS. Task 36 remains partial because its Tasks 1–34 dependency set includes outstanding Task 34 work; repeat the combined checks and reconcile evidence after the next feature integration.
+    The immutable baseline and current matrix account for all 143 requirements. The previous batch passed at its recorded source; current source reviews are clear but full next-wave combined checks remain verified across recorded runs. Task 36 remains partial because its Tasks 1–34 dependency set includes outstanding Task 34 work; repeat the combined checks and reconcile evidence after the next feature integration.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
 

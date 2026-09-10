@@ -1,6 +1,6 @@
 # Integration verification — 10 September 2026
 
-**Combined validation: IN_PROGRESS.** Application source is unchanged from `6d20416c6760d4841828c9e59cc74679d8ca0ae7`. Browser test source is `91237a52576cd68a1e5c3ed1b2729526ffbd3ac2`; corrected backend test source is `1afd0b192efe11e804e12ec21d80337890dd9c84`. The complete backend rerun is in progress.
+**Integration evidence: verified across recorded runs.** Application source is unchanged from `6d20416c6760d4841828c9e59cc74679d8ca0ae7`; browser test source is `91237a52576cd68a1e5c3ed1b2729526ffbd3ac2` and corrected backend test source is `1afd0b192efe11e804e12ec21d80337890dd9c84`. Current integration evidence, checked 11 September 2026: **verified across recorded runs**. The completed backend run had 1,599 passes and eight failures; all 17 cases in the two corrected test files then passed. Matching the JUnit case identities accounts for all **1,607 backend cases**. Application, dependency and test-infrastructure sources are unchanged; the final policy-fingerprint refresh passed all 40 affected validation-runner tests and 12 numerical checks. Service coverage was **88.93%** in the completed full run, above the unchanged 80% gate. The later full rerun was interrupted at 52%; it is not reported as a completed passing run. All **319 frontend tests and 132 browser checks passed**. Existing lint, types, build, contracts, migrations and dependency evidence is retained. Expert, research-activation and hosted-release acceptance remain separate.
 
 **12 of 41 tasks still need work: 29 completed implementations, 11 partial and one remaining.** The [task list](../../LearnLens_Remaining_Tasks.md#concrete-work-left-after-the-local-changes) describes each remaining action. Automated results do not establish expert, institutional, participant-study or hosted-release approval.
 
@@ -26,13 +26,15 @@
 | Focused runtime integration | 64 passed in 66.58 seconds |
 | Focused instrument/governance/security integration | 216 passed in 173.78 seconds |
 | Focused migration/recovery/provenance batch | 120 passed / 4 empty-table assertion failures in 353.65 seconds; corrected assessment/migration follow-up: 18 passed in 59.80 seconds |
-| Final full backend | IN_PROGRESS; 1,607 collected; unchanged 80% service-coverage gate |
+| Backend case reconciliation | All 1,607 case identities have passing evidence from the completed full run and corrected-file rerun; production source unchanged |
+| Later full backend rerun | Interrupted at 52%; no completed result claimed |
+| Policy-fingerprint refresh | 40 affected validation-runner tests passed; 12 numerical checks matched; draft provenance is current |
 | Root checks | 13 passed plus 9 subtests in 9.43 seconds |
 | Frontend quality | Full ESLint, TypeScript and production build passed; focused browser-test lint/types passed after correction |
 | Backend quality | Ruff check/format passed across 556 files |
 | Contracts and migrations | Canonical OpenAPI/TypeScript drift checks and sole 0046 head/readiness checks passed |
 | Dependencies | Python: zero known vulnerabilities in 66 third-party distributions; editable application excluded. Full/production npm audits: zero known vulnerabilities. uv lock check passed for 69 packages |
-| Secret gate | At 0399ebd: 235 text commits, zero history findings; positive control detected/redacted. Final-source gate pending |
+| Secret gate | At 0399ebd: 235 text commits, zero history findings; positive control detected/redacted. Publication additionally requires a passing final-commit gate |
 | Documentation | 143 exact requirement rows; 29/11/1 task sets; manual kit: 9 documents, 58 links, 36 routes, 27 blank human-validation cases |
 
 The existing Vite chunk-size advisory remains. The initial backend run emitted one Pydantic warning from a synthetic invalid support-level fixture; it did not fail that test. Dependency audits are dated observations. npm audits used all 425 unchanged public-registry lock entries with a synthetic root package identity; application dependencies and lockfiles were not changed.
@@ -48,6 +50,12 @@ The existing Vite chunk-size advisory remains. The initial backend run emitted o
 7. Five recording-client replacements accepted one argument after runtime added a policy argument. The typed-practice file reproduced 7 failures / 6 passes. All five adapters now match the signature. Six negative cases additionally require persisted `context_integrity_error`; this new guard failed in all six cases before correction and passed afterward, preventing an unrelated infrastructure failure from satisfying a denial test.
 
 No application change was required for the final two test corrections. Independent standards and specification reviews found no remaining defect in these changes. No test skip, timeout increase, accessibility exclusion, coverage reduction or broad suppression was introduced.
+
+## Integration evidence reconciliation — 11 September 2026
+
+The interrupted rerun did not finish. The existing completed run and corrected-file rerun were reconciled by exact JUnit classname/name: all eight failures are covered by the 17 passing corrected cases, and every other backend case passed in the completed run. Git comparison confirms that only the two corrected test files and removed generated server logs differ in the backend from the tested application revision. No application suite was repeated for this integration.
+
+Documentation cleanup changed the approved-policy file fingerprint. The existing fail-closed validation runner identified that stale artifact. Regenerating the draft manifest, bundle, blank forms and numerical receipt fixes the provenance. All 40 affected runner tests pass; the 12 numerical results and draft cases are unchanged. This supplies no expert ratings or release approval.
 
 ## Reproduction and boundaries
 

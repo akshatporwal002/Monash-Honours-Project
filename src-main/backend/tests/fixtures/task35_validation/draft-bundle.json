@@ -16,7 +16,7 @@
     "files": {
       "docs/01-implementation-requirements.md": "45fab30973e24413057155b614475b706ea37ec6133d214d33c8fb8c0d7eda47",
       "docs/02-pass-incomplete-bloom-assessment-spec.md": "4ac0d1952b7c3f420cc5df8f60d0ee37b8d819267fe2f8324c78eafc3d95a2a7",
-      "docs/learnlens/task-08-approved-selections.md": "03245ee0455cc2be994f5216a9dc315d5ea01bac95673bf60d93ae2dbfe4e8d0",
+      "docs/learnlens/task-08-approved-selections.md": "ac782968854f92a7f646e9f118c1ab14d1d76a7466b65f9be26fd311eb78a460",
       "src-main/backend/app/schemas/episode.py": "8046f2f4d6fdcb4b339d3f5e204287cf898b7a36ec8c3691194f3c002f9290e3",
       "src-main/backend/app/schemas/feedback.py": "efb3512110b292c74e352e8e3aba21acc3f7a29e34b85a7d7d2cf46b154321ea",
       "src-main/backend/app/services/assessment/evaluation.py": "01b973b7599b0731e14580e0093e0ebeb3ee97d14c4b9fb163aef3c2b89ec098",
