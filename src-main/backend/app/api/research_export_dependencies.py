@@ -2,18 +2,16 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from sqlalchemy.orm import Session
 
+from app.api.feedback_dependencies import require_actor
 from app.core.config import settings
-from app.db.session import SessionLocal, get_db_session
+from app.db.session import get_db_session
 from app.schemas.feedback_api import AuthenticatedActor
+from app.schemas.research_governance import FieldPath
 from app.services.access import SqlAlchemyResearchExportAccessPolicy
-from app.services.audit import IndependentAuditRecorder
-from app.services.research_export import ResearchExportService
-from app.services.research_export_repository import (
-    SqlAlchemyResearchExportRepository,
-)
+from app.services.research.governed_export import GovernedResearchExportService
 
 
 class ResearchExportAccessPolicy(Protocol):
@@ -31,10 +29,14 @@ def get_research_export_access_policy(
 
 def get_research_export_service(
     session: Session = Depends(get_db_session),
-) -> ResearchExportService:
-    return ResearchExportService(
-        SqlAlchemyResearchExportRepository(session),
-        IndependentAuditRecorder(SessionLocal),  # type: ignore[arg-type]
+    actor: AuthenticatedActor = Depends(require_actor),
+    study_id: str | None = Query(default=None, min_length=1, max_length=128),
+    fields: list[FieldPath] | None = Query(default=None, max_length=64),
+) -> GovernedResearchExportService:
+    return GovernedResearchExportService(
+        session,
+        int(actor.actor_reference),
+        study_id,
+        fields,
         row_limit=settings.research_export_row_limit,
-        batch_size=settings.research_export_batch_size,
     )

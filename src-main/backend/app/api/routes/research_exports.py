@@ -26,6 +26,7 @@ from app.schemas.research_export import (
 from app.services.analytics import AnalyticsPseudonymizer
 from app.services.audit import AuditError
 from app.services.research.governance import research_processing_approved
+from app.services.research.governed_export import ResearchExportGovernanceError
 from app.services.research_export import (
     ResearchExportError,
     ResearchExportService,
@@ -144,6 +145,10 @@ async def research_export(
             actor_reference=actor_pseudonym,
             correlation_id=correlation_id,
         )
+    except ResearchExportGovernanceError:
+        raise FeedbackApiException(
+            403, "research_export_scope_denied", "The requested research scope is not permitted."
+        ) from None
     except ResearchExportTooLargeError:
         raise FeedbackApiException(
             413,

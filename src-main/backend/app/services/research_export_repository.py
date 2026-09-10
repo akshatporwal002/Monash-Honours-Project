@@ -48,13 +48,14 @@ class SqlAlchemyResearchExportRepository:
         filters: ResearchExportFilters,
         *,
         batch_size: int,
+        include_legacy: bool = False,
     ) -> Iterator[ResearchEvaluation]:
         offset = 0
         while True:
             try:
                 rows = list(
                     self._session.scalars(
-                        self._statement(filters)
+                        self._statement(filters, include_legacy=include_legacy)
                         .order_by(
                             ResearchEvaluation.created_at,
                             ResearchEvaluation.id,
@@ -75,7 +76,9 @@ class SqlAlchemyResearchExportRepository:
             offset += len(rows)
 
     @staticmethod
-    def _statement(filters: ResearchExportFilters) -> Select[tuple[ResearchEvaluation]]:
+    def _statement(
+        filters: ResearchExportFilters, *, include_legacy: bool = False
+    ) -> Select[tuple[ResearchEvaluation]]:
         course_ids = set(filters.course_ids)
         if filters.course_id is not None:
             course_ids = course_ids & {filters.course_id} if course_ids else {filters.course_id}
@@ -86,9 +89,12 @@ class SqlAlchemyResearchExportRepository:
             ResearchEvaluation.created_at >= filters.date_from,
             ResearchEvaluation.created_at < filters.date_to,
             ResearchEvaluation.status.in_([ResearchStatus.COMPLETED, ResearchStatus.FAILED]),
-            _is_v1_pseudonym(ResearchEvaluation.pseudonymous_user_id),
-            _is_v1_pseudonym(ResearchEvaluation.submission_reference),
         )
+        if not include_legacy:
+            statement = statement.where(
+                _is_v1_pseudonym(ResearchEvaluation.pseudonymous_user_id),
+                _is_v1_pseudonym(ResearchEvaluation.submission_reference),
+            )
         if filters.experimental_condition is not None:
             statement = statement.where(
                 ResearchEvaluation.experimental_condition == filters.experimental_condition

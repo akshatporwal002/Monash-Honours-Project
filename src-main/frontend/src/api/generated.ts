@@ -105,6 +105,15 @@ export type ApiSchemas = {
     "learner_notice": string
     "reason": string
   }
+  "ApprovalDecision": {
+    "authority_reference": string
+    "evidence_reference": string
+    "kind"?: "approval"
+    "scope_id": string
+    "state": "approved" | "suspended" | "revoked" | "pending"
+    "valid_from": string
+    "valid_until": string
+  }
   "AssessedFeedbackView": {
     "approved_hints": Array<string>
     "assessment": ApiSchemas["AssessmentVersionReference"]
@@ -460,6 +469,16 @@ export type ApiSchemas = {
     "reason_code": string
     "status"?: "CONFLICT"
   }
+  "ConsentDecision": {
+    "consent_version": string
+    "course_id": string
+    "decision": "consented" | "declined" | "withdrawn"
+    "fields"?: Array<"case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference">
+    "kind"?: "consent"
+    "purposes"?: Array<"technical_pair" | "provider_processing">
+    "scope_id": string
+    "subject_user_id": number
+  }
   "CorrectionTarget": {
     "estimate_id"?: (string) | (null)
     "evidence_id"?: (string) | (null)
@@ -658,6 +677,16 @@ export type ApiSchemas = {
     "transfer": boolean
     "values": ApiSchemas["PreferenceValues"]
     "version": number
+  }
+  "EligibilityDecision": {
+    "course_id": string
+    "eligible": boolean
+    "evidence_reference": string
+    "kind"?: "eligibility"
+    "rule_version": string
+    "scope_id": string
+    "subject_user_id": number
+    "valid_until": string
   }
   "EnrollmentCreate": {
     "student_id": number
@@ -975,6 +1004,30 @@ export type ApiSchemas = {
     "source_references": Array<string>
     "task_type": ApiSchemas["TaskType"]
     "title": string
+  }
+  "GovernanceCommand": {
+    "decision": (ApiSchemas["StudyScope"]) | (ApiSchemas["ApprovalDecision"]) | (ApiSchemas["ConsentDecision"]) | (ApiSchemas["EligibilityDecision"]) | (ApiSchemas["ResearchGrant"]) | (ApiSchemas["RetentionHold"])
+    "expected_revision": number
+    "reason": string
+    "request_key": string
+  }
+  "GovernanceHistoryEntry": {
+    "actor_user_id": number
+    "command": ApiSchemas["GovernanceCommand"]
+    "id": string
+    "kind": string
+    "production_active"?: false
+    "recorded_at": string
+    "revision": number
+    "study_id": string
+  }
+  "GovernanceReceipt": {
+    "id": string
+    "kind": string
+    "production_active"?: false
+    "recorded_at": string
+    "revision": number
+    "study_id": string
   }
   "GroundedSourceClaim": {
     "approval_id": string
@@ -1543,6 +1596,14 @@ export type ApiSchemas = {
     "relevance": ApiSchemas["MetricValue"]
     "total_tokens": ApiSchemas["MetricValue"]
   }
+  "ParticipationRead": {
+    "consent": (ApiSchemas["ConsentDecision"]) | (null)
+    "production_active"?: false
+    "revision": number
+    "scope": ApiSchemas["StudyScope"]
+    "scope_id": string
+    "study_id": string
+  }
   "PathBinding": {
     "assessment": (Partial<Record<string, string>>) | (null)
     "difficulty": string
@@ -1811,6 +1872,18 @@ export type ApiSchemas = {
     "title": string
   }
   "ResearchExportFormat": "csv" | "json"
+  "ResearchGrant": {
+    "authority_reference": string
+    "course_id": string
+    "evidence_reference": string
+    "fields": Array<"case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference">
+    "kind"?: "grant"
+    "revoked"?: boolean
+    "scope_id": string
+    "subject_user_id": number
+    "valid_from": string
+    "valid_until": string
+  }
   "ResearchMetricsResult": {
     "by_condition": Partial<Record<ApiSchemas["ExperimentalCondition"], ApiSchemas["ConditionMetrics"]>>
     "excluded_incomplete_count": number
@@ -1841,6 +1914,23 @@ export type ApiSchemas = {
     "statement": string
   }
   "ResultState": "NOT_ASSESSED" | "PROVISIONAL" | "CONFIRMED" | "OVERRIDDEN" | "VOID"
+  "RetentionClass": {
+    "authority_reference": string
+    "authority_version": string
+    "owner_reference": string
+    "record_class": string
+    "retention_rule": string
+    "review_at": string
+    "trigger": string
+  }
+  "RetentionHold": {
+    "active": boolean
+    "authority_reference": string
+    "hold_reference": string
+    "kind"?: "hold"
+    "record_class": string
+    "scope_id": string
+  }
   "RetrievalHitRead": {
     "chunk_id": string
     "chunk_text": string
@@ -2074,6 +2164,21 @@ export type ApiSchemas = {
     "next_level_points": number
     "points": number
     "total_tasks": number
+  }
+  "StudyScope": {
+    "consent_version": string
+    "course_ids": Array<string>
+    "data_plan_version": string
+    "eligibility_rule_version": string
+    "fields": Array<"case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference">
+    "kind"?: "scope"
+    "processing_researcher_id": number
+    "protocol_version": string
+    "purposes": Array<"technical_pair" | "provider_processing">
+    "retention": Array<ApiSchemas["RetentionClass"]>
+    "valid_from": string
+    "valid_until": string
+    "withdrawal_rule_reference": string
   }
   "SubmissionCreate": {
     "answer"?: string

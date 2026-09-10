@@ -24,7 +24,8 @@ from app.services.research.cases import (
     ResearchCaseSeed,
     RetrievedSourceMeasurement,
 )
-from app.services.research.repository import SqlAlchemyResearchJobRepository
+from app.services.research.governance import GovernanceDenied
+from app.services.research.governed_processing import GovernedResearchJobRepository
 from app.services.terminal_integrations.contracts import (
     ContinuationIntegrationIntent,
     ResearchIntegrationIntent,
@@ -61,6 +62,7 @@ class TerminalIntegrationWorker:
         lease_duration: timedelta = timedelta(minutes=5),
         maximum_attempts: int = 3,
         integration_type: TerminalIntegrationType | None = None,
+        research_repository_factory=GovernedResearchJobRepository,
     ) -> None:
         if not 1 <= maximum_attempts <= 3:
             raise ValueError("maximum_attempts must be between 1 and 3")
@@ -70,6 +72,7 @@ class TerminalIntegrationWorker:
         self._lease_duration = lease_duration
         self._maximum_attempts = maximum_attempts
         self._integration_type = integration_type
+        self._research_repository_factory = research_repository_factory
 
     async def run_once(self) -> TerminalIntegrationWorkerOutcome:
         observed_at = self._now()
@@ -94,6 +97,12 @@ class TerminalIntegrationWorker:
             return TerminalIntegrationWorkerOutcome(processed=False)
         try:
             self._apply(claim)
+        except GovernanceDenied:
+            return self._failure(
+                claim,
+                TerminalIntegrationFailureCategory.INTEGRATION_UNAVAILABLE,
+                retryable=False,
+            )
         except TerminalIntegrationPayloadError:
             return self._failure(
                 claim,
@@ -134,7 +143,7 @@ class TerminalIntegrationWorker:
             return
         if claim.integration_type is TerminalIntegrationType.RESEARCH_PAIR:
             seed = self._research_seed(claim)
-            SqlAlchemyResearchJobRepository(self._session, now=self._now).create_pair(seed)
+            self._research_repository_factory(self._session, now=self._now).create_pair(seed)
             return
         raise TerminalIntegrationPayloadError("terminal integration payload is invalid")
 

@@ -53,11 +53,27 @@ from app.services.terminal_integrations.planner import (
 
 
 class ConfiguredResearchEligibility:
-    """Fail closed until Task 33 supplies approved study and participant controls."""
+    """Gate plus current scoped consent; never influences operational continuation."""
 
-    async def is_eligible(self, _: object) -> bool:
-        # A global switch is not study approval or versioned participant consent.
-        return settings.research_enabled and research_processing_approved()
+    def __init__(self, session: Session | None = None):
+        self._session = session
+
+    async def is_eligible(self, context: object) -> bool:
+        if (
+            not settings.research_enabled
+            or not research_processing_approved()
+            or self._session is None
+        ):
+            return False
+        from app.services.research.governance import GovernanceDenied, ResearchGovernanceService
+
+        try:
+            ResearchGovernanceService(self._session).processing_scope(
+                context.task.course_id, int(context.submission.student_id)
+            )
+        except (GovernanceDenied, ValueError, AttributeError):
+            return False
+        return True
 
 
 class LmsSubmissionProvider:
@@ -202,7 +218,7 @@ def build_feedback_pipeline(
     selection = runtime_model_selection(session)
     integrations = DurableTerminalIntegrationPlanner(
         pseudonymizer,
-        research_eligibility=ConfiguredResearchEligibility(),
+        research_eligibility=ConfiguredResearchEligibility(session),
         fallback_provider=selection.provider,
         fallback_model=selection.model or "local-default",
     )

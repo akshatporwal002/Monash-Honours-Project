@@ -40,6 +40,9 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "research_governance_events",
+    "research_case_governance",
+    "research_export_eligibility",
     "legacy_numeric_history",
     "misconception_hypotheses",
     "misconception_responses",
