@@ -28,6 +28,8 @@ class StructuredLlmRequest:
     schema_name: str
     prompt_version: str
     temperature: float = 0.0
+    metering_key: str | None = None
+    metering_context: dict[str, str] | None = None
 
 
 @dataclass(frozen=True, slots=True)

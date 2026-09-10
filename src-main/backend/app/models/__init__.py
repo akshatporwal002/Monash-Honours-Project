@@ -217,7 +217,10 @@ __all__ = [
     "WorkerHeartbeat",
 ]
 
-from app.models import research_instruments  # noqa: F401
+from app.models import (
+    provider_usage,  # noqa: F401
+    research_instruments,  # noqa: F401
+)
 from app.models.activity_continuation import (  # noqa: F401
     ActivityChoice,
     ActivityProgress,
