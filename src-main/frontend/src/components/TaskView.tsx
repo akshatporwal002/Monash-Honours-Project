@@ -177,6 +177,8 @@ export function TaskView({
   const presentation = effective?.values ?? baselinePreferences
   const hasEpisode = Boolean(task.episode_plan) || episodeTaskTypes.includes(task.task_type)
   const [qubits, setQubits] = useState(task.episode_plan ? 1 : 2)
+  const [gateTarget, setGateTarget] = useState(0)
+  const targetQubit = Math.min(gateTarget, qubits - 1)
   const [circuitExtras, setCircuitExtras] = useState<Record<string, unknown>>({})
   const idempotencyKeyRef = useRef<string | null>(null)
   const restoredDraftTaskRef = useRef<string | null>(null)
@@ -647,6 +649,11 @@ export function TaskView({
                       <strong>Gate palette</strong>
                       <small>Drag a gate to a wire or use its add button.</small>
                     </div>
+                    <Field label="Target qubit for H and X" help={qubits > 1 ? 'CX uses control qubit 0 and target qubit 1.' : undefined}>
+                      <select value={targetQubit} disabled={qubits < 2} onChange={event => setGateTarget(Number(event.target.value))}>
+                        {Array.from({ length: qubits }, (_, qubit) => <option key={qubit} value={qubit}>Qubit {qubit}</option>)}
+                      </select>
+                    </Field>
                     {(['h', 'x', 'cx'] as const).filter(gate => qubits > 1 || gate !== 'cx').map((gate) => (
                       <button
                         key={gate}
@@ -654,7 +661,7 @@ export function TaskView({
                         className={styles.gateButton}
                         draggable
                         onDragStart={(event) => event.dataTransfer.setData('application/x-quantum-gate', gate)}
-                        onClick={() => addGate(gate)}
+                        onClick={() => addGate(gate, targetQubit)}
                         aria-label={`Add ${gate.toUpperCase()} gate`}
                       >
                         {gate.toUpperCase()}
@@ -682,9 +689,12 @@ export function TaskView({
                                   type="button"
                                   className={styles.gateChip}
                                   title="Remove gate"
+                                  aria-label={`Remove gate ${index + 1}: ${operation.gate === 'cx'
+                                    ? `CX, control qubit ${operation.targets[0]}, target qubit ${operation.targets[1]} (${qubit === operation.targets[0] ? 'control' : 'target'} on qubit ${qubit})`
+                                    : `${operation.gate.toUpperCase()} on qubit ${qubit}`}`}
                                   onClick={() => { changeOperations((current) => current.filter((_, itemIndex) => itemIndex !== index)) }}
                                 >
-                                  {operation.gate === 'cx' ? (qubit === 0 ? '●' : '⊕') : operation.gate.toUpperCase()}
+                                  {operation.gate === 'cx' ? (qubit === operation.targets[0] ? '●' : '⊕') : operation.gate.toUpperCase()}
                                 </button>
                               )
                               : <i key={`${operation.gate}-${index}`} className={styles.wireGap} />
