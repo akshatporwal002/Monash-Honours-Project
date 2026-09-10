@@ -1,5 +1,9 @@
 # LearnLens remaining tasks
 
+**12 of 41 tasks still need work; 29 are completed implementations.** Partial tasks count as unfinished.
+
+Including today's local next-wave changes on `codex/integrate-next-wave-20260910`, the implementation breakdown is **29 completed, 11 partial and one remaining**. Task 34 now has an instrument foundation, so it becomes partial; none of the other unfinished tasks is fully closed by these changes. That branch's combined validation is still in progress. The inspected main snapshot and numbered ledger below retain **29 completed, 10 partial and two remaining** until the next integration is accepted. Both scopes therefore have **12 unfinished tasks**, not one or two.
+
 Current integration status: **10 September 2026**, inspected at `4fe8bb8184359e1fae606bc8cdd559fe54bc4760` on `codex/integrate-parallel-20260910`.
 **Combined final validation: PASS for the current delivered scope.** See the coordinator receipt below and the remaining implementation/evidence gaps.
 
@@ -26,6 +30,25 @@ The eight original deliveries and subsequent readiness, typed-practice, validati
 - **Final frontend/source receipt:** 306 frontend tests across 84 files passed with zero failed/skipped; lint/build pass and frontend trees at e93842f/0bbf95e match. API/TypeScript contract drift and Ruff (539 files) pass at 0bbf95e per the coordinator.
 - **Final combined evidence:** **PASS for the current delivered scope.** Exact source identities and results are in the coordinator receipt above; the known focus-return race and external acceptance gates remain open.
 - **Additional requirement gaps:** recoverable course revisions, upload malware policy, broader generated/accessible task types, integrity review cues, moderation/AI revalidation and fuller model/feedback-effectiveness evidence remain in the matrix.
+
+## Concrete work left after the local changes
+
+The next-wave branch contains the instrument foundation, administrator timeout/retry controls, the synthetic crash/restore drill and assessor focus correction. Their branch-level evidence does not replace its still-running combined checks. The following actions remain after those implementations; detailed acceptance criteria and dependencies are preserved in the numbered ledger.
+
+| Task | What still needs to be done | Main dependency |
+| --- | --- | --- |
+| 8 — Activation records | Obtain the actual approved course/source/form, staffing, study, retention, environment and release records; keep settled D-01–D-12 policy choices. | Named institutional, product, assessment and operations owners |
+| 28 — Human escalation | Name operators and backups; approve staffing calendar/timezone, response targets, feedback sampling and activation. | Operations and educators |
+| 32 — Study protocol | Approve protocol, ethics/privacy/data plan, preregistration and instruments; identify remaining authorities. | Research lead and governance |
+| 33 — Research governance | Complete approved activation, retention/disposal rules and release-environment verification; retain consent/withdrawal/export restrictions. | Task 32 and privacy/release records |
+| 34 — Study instruments | Complete user workflows/UI, approved instrument content, reviewer packets/ratings, allocation/outcomes and full stage-linked governed exports. The local foundation already provides versioned records and missingness/attrition/deviation handling. | Research implementation plus approved protocol/content |
+| 35 — Expert validation | Obtain expert ratings and actual system outputs for the 108 draft cases; measure accuracy, hallucination, feedback/judge quality and agreement/fairness, then obtain the separate evaluator-release decision. | Independent experts and approved sources/models |
+| 36 — Final traceability/checks | Finish the next-wave combined validation and reconcile its final source; repeat final checks when the remaining Tasks 1–34 scope is complete. Audit suppression reasons/owners and documented exclusions. | Integration and independent review |
+| 37 — Operational recovery | Repeat recovery/restore checks on the combined schema and complete approved hosted/live-provider/security/rollback drills, including current governance reconciliation. The synthetic local crash/restore drill is implemented. | Integrated features and approved operating environment |
+| 38 — Load, cost and budgets | Implement durable usage metering, reservation/reconciliation and concurrent budget enforcement; run the approved representative scaling/load and measured-cost campaign. Local timeout/retry controls are implemented. | Runtime implementation, provider/model/prices/budget approval |
+| 39 — Accessibility/usability | Integrate and validate the local focus fix; perform native Safari, screen-reader, zoom/contrast and first-time educator/learner trials. Retain and investigate any recurring WebKit empty-reason failure without assuming the focus fix explains it. | Integration, named human testers and the manual kit |
+| 40 — Independent reuse | Supply the approved second-domain source/module and independently verify full engine reuse and contributor effort against the 16 developer-hour target. | Independent verifier and approved module |
+| 41 — Hosted release | Validate the approved hosted package, TLS/storage/worker supervision, backups/rollback and availability evidence; complete the owned release and operating handoff. | Tasks 1–40 and applicable approvals |
 
 ## Numbered task ledger
 
