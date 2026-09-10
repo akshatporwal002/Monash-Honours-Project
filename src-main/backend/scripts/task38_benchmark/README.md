@@ -254,6 +254,8 @@ SQLite snapshot. The additional bounded integration regression invokes the actua
 preparer and runs one fresh synthetic learner against a loopback API on port
 4690 and a separate durable worker, using local providers with empty API credentials.
 It saves a typed explanation draft, reads it back and submits the formative episode.
+Test-only observation of actual local generator/judge inputs verifies that the typed
+explanation reaches both; no duplicate legacy answer can conceal missing episode data.
 An unexpected next-task type, assessment or episode plan stops the profile.
 
 ```powershell
@@ -261,7 +263,8 @@ python -m pytest tests/test_task38_benchmark_integration.py -q -p no:cacheprovid
 ```
 
 Reserve port 4690 before running; the regression refuses an occupied port and
-terminates only the processes it starts. It writes private fixtures and logs beneath
+terminates only the processes it starts, with bounded kill/wait fallback. It writes
+private fixtures, provider-input observations and logs beneath
 pytest's isolated temporary directory. See the separate
 [integration verification note](../../../../docs/learnlens/task-38-integration-verification.md)
 for prerequisites, observed failures and results. This is adapter compatibility

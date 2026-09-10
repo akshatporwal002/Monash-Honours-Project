@@ -10,14 +10,88 @@ import sys
 import time
 from dataclasses import asdict
 from pathlib import Path
+from unittest.mock import Mock
 
 import httpx
+import pytest
 
 from scripts.task38_benchmark.adapter import LearningLoop
 from scripts.task38_benchmark.core import Budget, Config
-from scripts.task38_benchmark.usage import cost_report, extract_snapshot
+from scripts.task38_benchmark.usage import LOCAL, cost_report, extract_snapshot
 
 BACKEND = Path(__file__).resolve().parents[1]
+
+
+def _stop_owned_processes(processes, logs):
+    errors = []
+    for process in reversed(processes):
+        try:
+            if process.poll() is None:
+                process.terminate()
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
+        except Exception as error:
+            errors.append(error)
+    for log in logs:
+        try:
+            log.close()
+        except Exception as error:
+            errors.append(error)
+    if errors:
+        raise ExceptionGroup("Owned integration process cleanup failed", errors)
+
+
+@pytest.mark.parametrize("kill_fails", [False, True])
+def test_worker_cleanup_survives_stalled_process_and_closes_logs(kill_fails):
+    worker, stalled = Mock(), Mock()
+    worker.poll.return_value = stalled.poll.return_value = None
+    stalled.wait.side_effect = [subprocess.TimeoutExpired("owned api", 15), 0]
+    if kill_fails:
+        stalled.kill.side_effect = OSError("synthetic kill failure")
+    logs = [Mock(), Mock()]
+    if kill_fails:
+        with pytest.raises(ExceptionGroup, match="cleanup failed"):
+            _stop_owned_processes([worker, stalled], logs)
+    else:
+        _stop_owned_processes([worker, stalled], logs)
+        assert stalled.wait.call_count == 2
+    stalled.terminate.assert_called_once()
+    stalled.kill.assert_called_once()
+    worker.terminate.assert_called_once()
+    worker.wait.assert_called_once_with(timeout=15)
+    for log in logs:
+        log.close.assert_called_once()
+
+
+def _run_observed_worker(receipt_path):
+    """Record actual local-provider inputs; delegate unchanged to shipped methods."""
+    from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
+    from app.worker import main
+
+    generate = LocalFeedbackGenerator.generate
+    evaluate = LocalFeedbackJudge.evaluate
+
+    def record(role, context):
+        with Path(receipt_path).open("a", encoding="utf-8") as receipt:
+            receipt.write(
+                json.dumps({"role": role, "submission": context.submission.model_dump(mode="json")})
+                + "\n"
+            )
+
+    async def observed_generate(self, context, regeneration=None):
+        record("generator", context)
+        return await generate(self, context, regeneration)
+
+    async def observed_evaluate(self, context, feedback):
+        record("judge", context)
+        return await evaluate(self, context, feedback)
+
+    LocalFeedbackGenerator.generate = observed_generate
+    LocalFeedbackJudge.evaluate = observed_evaluate
+    return main()
 
 
 def test_preparer_refuses_existing_directory_without_changing_it(tmp_path):
@@ -108,7 +182,15 @@ def test_preparer_and_real_local_learning_loop(tmp_path):
     processes, logs = [], []
     try:
         for role, command in (
-            ("worker", ["-c", "from app.worker import main; raise SystemExit(main())"]),
+            (
+                "worker",
+                [
+                    "-c",
+                    "import runpy, sys; entry = runpy.run_path(sys.argv[1]); raise SystemExit(entry['_run_observed_worker'](sys.argv[2]))",
+                    str(Path(__file__).resolve()),
+                    str(tmp_path / "worker-inputs.jsonl"),
+                ],
+            ),
             (
                 "api",
                 [
@@ -222,14 +304,22 @@ def test_preparer_and_real_local_learning_loop(tmp_path):
             providers = db.execute(
                 "SELECT DISTINCT provider FROM feedback_records UNION SELECT DISTINCT provider FROM judge_evaluations"
             ).fetchall()
-            assert providers and all(p[0] == "local" for p in providers)
+            assert providers and all(p[0] in LOCAL for p in providers)
     finally:
-        for process in reversed(processes):
-            if process.poll() is None:
-                process.terminate()
-            process.wait(timeout=15)
-        for log in logs:
-            log.close()
+        _stop_owned_processes(processes, logs)
+    inputs = [
+        json.loads(line)
+        for line in (tmp_path / "worker-inputs.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert {item["role"] for item in inputs} == {"generator", "judge"}
+    assert all(
+        item["submission"]["submission_id"] == result["submission_ids"][2] for item in inputs
+    )
+    for item in inputs:
+        evidence = json.loads(item["submission"]["submitted_answer"])
+        assert evidence["schema_version"] == "practice.feedback-evidence.v1"
+        assert evidence["content"] == {"answer": "", "code": None, "circuit": None}
+        assert evidence["episode"]["supported"]["explanation"] == rows[0]["next_activity_answer"]
     # Back up only the isolated synthetic database after both owned processes stop.
     snapshot = tmp_path / "usage-snapshot.sqlite"
     with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as source:
@@ -243,7 +333,7 @@ def test_preparer_and_real_local_learning_loop(tmp_path):
     }
     ledger = extract_snapshot(report, snapshot)
     assert len(ledger["records"]) >= 6  # Generation and judge for each submission.
-    assert all(row["provider"] == "local" for row in ledger["records"])
+    assert all(row["provider"] in LOCAL for row in ledger["records"])
     assert {row["workflow_run_id"] for row in ledger["records"]} == set(result["workflow_ids"])
     costs = cost_report(report, ledger)
     assert costs["status"] == "unknown_or_incomplete"

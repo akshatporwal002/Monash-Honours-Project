@@ -11,6 +11,8 @@ database. A real loopback API on port 4690 and a separate durable worker exercis
 the production `LearningLoop` transport with cookies, CSRF and rate limits enabled.
 Provider selection is explicitly local, the API key is empty, and research is
 disabled. The worker uses `app.worker.main`, matching its installed entry point.
+Test-only observation wrappers record the actual submission context received by the
+local generator and judge, then delegate unchanged to their shipped methods.
 No workflow leases, formal decisions or feedback rows are injected by the test.
 
 The original adapter reached both assessed feedback workflows, revision,
@@ -18,6 +20,8 @@ continuation and next-task acceptance, then received HTTP 422 when submitting an
 answer-only EXPLANATION. The task requires typed episode evidence. The harness now
 checks that the chosen activity is an unassessed explanation with no episode plan,
 saves and reads back `episode.supported.explanation`, then submits that episode.
+The formative payload has no duplicate legacy answer; both recorded provider inputs
+must contain the typed explanation, not the `Frozen multipart response` placeholder.
 Unexpected conditions stop the profile before draft or submission writes. The fake
 transport now rejects the original answer-only payload, and regression tests cover
 the typed response and each changed-condition stop.
@@ -36,6 +40,9 @@ the typed response and each changed-condition stop.
    a missing assessment attempt. Independent task, retrieval and feedback context
    construction validated. This is a production dependency owned by the
    coordinator, not a fixture approval or harness transport failure.
+3. The coordinator also identified lost typed content at the generic feedback input
+   boundary. A terminal `validated` result alone cannot establish content delivery;
+   the final regression checks the generator and judge's actual received inputs.
 
 ## Verification record
 
@@ -45,7 +52,9 @@ changing its contents. Metadata extraction against the stopped diagnostic databa
 read four local generation/judge records from the two completed assessed workflows
 and retained `unknown_or_incomplete` cost with a null AUD average. Ruff lint and
 format checks cover the harness and its tests. Final real integration verification
-is pending the coordinator's practice-schema correction.
+is pending the coordinator's practice-schema and feedback-input correction. Two
+additional cleanup regressions pass, for **53 passing checks** before the real run.
+Local provider assertions include the shipped `local-deterministic` template alias.
 
 Reproduce from `src-main/backend` with the project's existing Python environment:
 
@@ -57,8 +66,10 @@ python -m ruff format --check scripts/task38_benchmark tests/test_task38_benchma
 ```
 
 The integration test refuses an occupied port and terminates only its own API and
-worker. Its scratch directory contains private synthetic fixtures, SQLite data,
-preparer/API/worker logs and `adapter-result.json`; none are committed. The report
+worker. A shutdown timeout triggers a bounded kill/wait fallback; a failure cleaning
+up one process does not skip the other process or closing the logs. Its scratch
+directory contains private synthetic fixtures, SQLite data, preparer/API/worker logs,
+`worker-inputs.jsonl`, `usage-result.json` and `adapter-result.json`; none are committed. The report
 contains the actual readiness response and adapter observations, not credentials.
 
 This is single-learner adapter compatibility evidence. It supplies no 5–100-user

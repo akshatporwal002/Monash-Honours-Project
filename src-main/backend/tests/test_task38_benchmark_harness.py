@@ -74,6 +74,7 @@ def test_adapter_requests_match_existing_production_request_schemas_and_preserve
         == roster(1)[0]["next_activity_answer"]
     )
     assert submissions[2].get("assessment_work_start_id") is None
+    assert not submissions[2].get("answer")
     assert submissions[2]["episode"].get("transfer") is None
     assert "revision" not in submissions[0]["episode"]["supported"]
     assert (

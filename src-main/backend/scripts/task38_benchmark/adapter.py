@@ -186,7 +186,6 @@ class LearningLoop:
         ):
             raise StopRun("next_activity_profile_mismatch")
         next_payload = {
-            "answer": fixture["next_activity_answer"],
             "episode": {
                 "schema_version": "learnlens.episode.v1",
                 "supported": {"explanation": fixture["next_activity_answer"]},
