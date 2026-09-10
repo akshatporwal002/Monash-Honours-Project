@@ -1,5 +1,16 @@
 # Defects, dependencies and scope of evidence
 
+Integration follow-up, 10 September 2026: commit `065d70a` fixes T39-C1 and the
+related gate-identification portion of T39-C2. The real Chrome regression proves
+matching keyboard/drag placement on q1, persistence/reload, simulation, and named
+removal. It is merged into the coordinator's integration branch. See the
+[fix and verification record](../circuit-keyboard-accessibility-fix.md).
+Follow-up commit `0d6e1b7` also makes live and saved circuit text explicitly name
+the CX control and target, including reversed operands. Its normal/reversed CX,
+H/X order and saved/live text regressions pass. The original findings below
+describe the preparation baseline. Native assistive technology trials remain
+outstanding.
+
 ## T39-C1 — keyboard placement cannot select the second wire
 
 Source-confirmed implementation asymmetry; manual/native reproduction is still
