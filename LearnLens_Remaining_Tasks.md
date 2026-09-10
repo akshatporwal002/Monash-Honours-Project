@@ -1,611 +1,438 @@
 # LearnLens remaining tasks
 
-Status updated on 10 September 2026 from main `34d686f` and the
-Tasks 25, 27 and 29 delivery. The merged baseline includes Task 40 (`b3164a8`) and
-Tasks 36/37/39 (`f1b01eb`) integrated onto `1f39448`.
+Current integration status: **10 September 2026**, inspected at `d30570eb048443bc2ac46a6b420f0153d5904d69` on `codex/integrate-parallel-20260910`.
+**Combined final validation: IN_PROGRESS.** The coordinator will attach final receipts after the pending follow-ups are integrated. No full combined pass, live research activation or pilot readiness is claimed here.
 
-Local Task 25 update, 9 September 2026: the complete learning journey now has
-integration and browser checks. The changes fix missing prediction and transfer
-observations, human-review queue routing and a duplicate response focus target.
-Local verification finished on 10 September. See the [Task 25 evidence](docs/learnlens/task-25-complete-learning-loop.md).
+| Status | Count | Tasks |
+| --- | --- | --- |
+| Completed implementation | 29 | 1–7, 9–27, 29–31 |
+| Partial: tooling, activation, integration or evidence remains | 10 | 8, 28, 32, 33, 35, 36, 37, 38, 39, 40 |
+| Remaining | 2 | 34, 41 |
 
-Local Task 27 update, 10 September 2026: the misconception cycle and Task 28
-queue integration are complete locally. Verification and both independent reviews
-are complete. The full backend run passed 1,252 tests with 87.88% service coverage;
-all eight migration-assertion and documentation failures passed in the corrected
-21-test batch. See the [Task 27 evidence](docs/learnlens/task-27-misconception-cycle.md).
+“Completed implementation” is the delivered numbered task scope; it does not mean all related requirement clauses or release gates have passed. The [current requirement matrix](docs/learnlens/implementation-gap-matrix.md) is authoritative for all 143 FR/PD/BP/NFR/AC/AT rows, with current gaps and acceptance checks. The [baseline Task 36 report](docs/learnlens/task-36-requirements-reconciliation.md) and [historical main audit](docs/learnlens/main-audit-2026-09-10.md) remain immutable evidence at `27a397a`; their former branch-only or missing-control statements do not describe this later integrated tree. Older detailed delivery records retain their original revisions and failures/reruns.
 
-Task 29 adds scoped progress, evidence inspection and separate cohort trends.
-Active learner marks are retired after immutable preservation under D-10.
-See the [Task 29 evidence](docs/learnlens/task-29-progress-and-score-retirement.md)
-for final checks, migration safeguards and release limits.
+Settled [Task 8 selections](docs/learnlens/task-08-approved-selections.md) remain controlling: PASS/INCOMPLETE and human confirmation, hidden provisional verdicts, unrestricted approved conceptual hints during supported work, separate unaided transfer, protected histories, no research participation penalty and the 16 developer-hour reuse target. Missing institutional/expert/content/host approvals must be supplied as actual records, never inferred from fixtures.
 
-| Status | Tasks |
-| --- | --- |
-| Completed implementation | 1-7, 9-27, 29-31 |
-| Partial: approvals or integration remain | 8, 28, 32, 40 |
-| Partial: automated checks or recovery tooling delivered; final evidence remains | 36, 37, 39 |
-| Remaining | 33-35, 38, 41 |
+## Integrated deliveries and pending follow-ups
 
-“Completed” records the delivered implementation scope, not approval to activate a
-live study or release. Tasks 21 and 22 are verified in fetched remote main:
-implementation commits `5a25ae4` and `8602fb3` are ancestors of `1f39448`.
-Their earlier merged migration head is `20260909_0042`. Task 27 adds
-`20260910_0043` and connects unresolved misconception reviews to Task 28's human queue.
-Task 29 adds `20260910_0044` for preserved legacy score retirement.
+The eight deliveries now present are the Task 29 timestamp fix, frontend stability/Vitest update, secret-scan gate repair, Task 33 governance, Task 35 validation tooling, Task 36 reconciliation, Task 38 harness and Task 39 manual kit. Exact delivered SHAs and scoped receipts are in the [integrated matrix evidence register](docs/learnlens/implementation-gap-matrix.md#integrated-evidence-register). The migration graph head is `20260910_0045`, but this inspected snapshot still pins runtime readiness to `0044`. The coordinator reports a later correction at `a38e6af5fad7f475c4b4032492e68db3c9f429ce`; see the [post-baseline receipts](docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts). No migration was run by this documentation reconciliation.
 
-Current integration: Task 40 and the Tasks 36/37/39 validation batch are combined
-with Tasks 21–22. See [integration evidence](docs/learnlens/task-40-validation-integration.md)
-for review, test reuse, affected checks and outstanding acceptance.
+- **Pending integration:** keyboard circuit target-wire placement/semantics follow-up (`codex/fix-circuit-keyboard`), affecting FR14/NFR4/AC17/AT24; the Task 39 kit identifies T39-C1 and T39-C2.
+- **Pending integration:** benchmark typed next-activity submission follow-up (`codex/verify-benchmark-integration`), affecting Task 38 harness readiness. A fake smoke is not authenticated typed follow-on proof or performance evidence.
+- **Coordinator final evidence:** complete combined suites, unchanged coverage/security gates, generated contracts and migrations at the final integrated commit, including any subsequent fixes. Existing branch-level passes remain scoped receipts.
+- **Later coordinator corrections:** readiness fix `a38e6af` has 16 reported focused passes; Task 35 provenance refresh `0eaf467025591e75814dc590c6c35ea936bbc506` has 44 tooling and 12/12 numerical checks reported passing, with all 108 cases still DRAFT and no AI activation. The earlier full backend attempt was deliberately superseded before completion, so it is not a full pass. Later scoped lint/build/audit/root checks reported green are recorded separately from the still-pending full combined suite.
+- **Additional requirement gaps:** recoverable course revisions, upload malware policy, broader generated/accessible task types, integrity review cues, moderation/AI revalidation, and fuller model/feedback-effectiveness evidence are tracked in the matrix. These are not erased by the 29 delivered-task count.
 
-Earlier delivery: Tasks 26, 28 and 31 reached main at `742c28c`; Task 30 and the
-backup/restore portion of Task 37 reached main at `bb5aea6`. Validation covered
-1,168 backend cases with 87% service coverage, frontend tests and build, and
-108 browser journeys across Chrome, Edge, Firefox and WebKit. All 12 initial
-backend failures passed together after test corrections; the one browser timeout
-passed unchanged on rerun. These are local results, not a claim of hosted,
-native Safari, manual accessibility or study validation.
+## Numbered task ledger
 
-The task descriptions below retain the original 6 September audit findings and
-acceptance criteria for traceability. The status labels and dated delivery notes
-supersede old present-tense descriptions of missing features.
-
-Coordinator update, 7 September 2026: Tasks 13 onward are active under the
-[batch progress record](docs/learnlens/coordinator-progress.md).
-The verified starting main is `d5ac7cb335a2b1ccdab674e0cab4c61c950b9b35`, including Task 12 through PR 8.
-Task 13 merged through PR 9 at `865467740c1c122834bd67d3c7f6a7ca77bd381c` after independent review and passing CI.
-Post-merge CI passed 873 backend tests with 86.19% coverage, 31 migration checks, and 72 browser cases.
-Local main was clean and matched origin/main before Tasks 14 and 15 began in isolated worktrees.
-Task 32 has a reviewed protocol and data-plan draft naming Arv Surana as lead. Study approval remains outstanding.
-
-Delivery, 9 September 2026: Tasks 23 and 24 are completed and merged into main
-through `a079563`, from `jordan/tutor-results-governance`. The
-[delivery record](docs/learnlens/task-23-24-tutor-and-results.md) describes the
-behaviour, validation and remaining integration work. Tasks 8 and 32 now have
-manual-fill comments for the team's missing decisions and supporting records.
-Their outstanding human approvals remain open.
-
-This is the recommended work order for completing the proposed LearnLens architecture and the wider repository requirements. Each numbered task states its dependencies, current gap, and completion check. Tasks with no shared dependency can run in parallel. A dependency means the earlier task must supply the needed working contract or behaviour before integration.
-
-The review used [LearnLens_Architecture_and_Sources.md](LearnLens_Architecture_and_Sources.md), the [implementation requirements](docs/01-implementation-requirements.md), the [assessment specification](docs/02-pass-incomplete-bloom-assessment-spec.md), and the [work order](docs/03-codex-implementation-work-order.md). It also inspected backend services, mounted routes, frontend screens, migrations, tests, CI, launch scripts, and existing plans.
-
-Existing foundations include authentication, course setup, material extraction, six task handlers, Qiskit simulation, feedback checking, and durable jobs. Versioned assessment definitions, immutable submitted attempts, provisional binary results, and audited assessor actions also exist. Evidence and learner-model services exist, but their application integration remains incomplete. These foundations should be extended.
-
-This was a code and document audit, with two focused Python probes. Both probes reproduced the defects in Tasks 1 and 2. Full test suites, browser tests, live providers, GitHub CI, hosted environments, and human studies were not run. Other defect findings below are based on current source. The stored learning-intelligence branch was inspected without fetching it. Its remote state may have changed.
-
-The older [gap matrix](docs/learnlens/implementation-gap-matrix.md) dates from 14 August and still marks some existing assessment features as missing. Its status counts are not current. Recent dependency updates and the assessment merge are already on local `main`; repeating those completed changes is not a remaining task.
+Dependencies and acceptance conditions are retained below; current descriptions replace obsolete present-tense findings. Re-run relevant checks after integration without weakening assertions, coverage gates or safeguards.
 
 1. **[Completed] Prevent unknown evidence from satisfying a negated pass rule.**
 
-    Dependencies: none. Suggested owner: assessment backend.
+    Pass rules preserve unknown, missing and conflicting evidence through negation and nested Boolean expressions; they cannot fabricate a mandatory criterion pass.
 
-    The pass-rule engine converts an unknown criterion to false before applying `NOT`. A probe with `ALL_OF(a, NOT(b))`, mandatory `a`, `a=MET`, and `b=NOT_EVALUABLE` returned `PASS`. Preserve uncertainty through nested rules. Unknown, missing, or conflicting evidence must not become positive evidence through negation.
+    Dependencies: none. Suggested owner: assessment backend.
 
     Done when regression tests cover those cases, including nested rules, while retaining explicit review reasons and the mandatory-criterion checks.
 
-    Evidence: [pass_rules.py](src-main/backend/app/services/assessment/pass_rules.py), `PassRuleEngine` and `_evaluate_expression`.
+    Evidence: [current implementation/delivery](docs/learnlens/negated-pass-rule-repair.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 2. **[Completed] Require real evaluator rules before approving an assessment.**
 
-    Dependencies: none. Suggested owner: assessment backend and assessor UI.
+    Typed evaluator settings are validated during authoring, approval and runtime. Empty or unsupported automatic rules are rejected; unsupported criteria route to human assessment.
 
-    The setup UI writes empty `approved_anchors`, and the backend defaults to `RULES`. A probe using the answer `bananas` and Bloom `UNDERSTAND` returned `MET` with empty anchors. An unsupported `met` anchor key produced the same result. Add typed evaluator settings, authoring controls, and approval validation. Route criteria beyond reliable automatic checks to human assessment.
+    Dependencies: none. Suggested owner: assessment backend and assessor UI.
 
     Done when empty, unknown, or contradictory settings block approval and fail safely during evaluation. Test the actual UI-to-API authoring path.
 
-    Evidence: [assessmentDraft.ts](src-main/frontend/src/features/assessment/assessmentDraft.ts), [alignment.py](src-main/backend/app/services/assessment/alignment.py), and [evaluators.py](src-main/backend/app/services/assessment/evaluators.py).
+    Evidence: [current implementation/delivery](docs/learnlens/evaluator-settings-repair.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 3. **[Completed] Repair task and dashboard reads after assessed submissions.**
 
-    Dependencies: none. Suggested owner: LMS backend and frontend contracts.
+    Assessed task reloads, histories and dashboards preserve absent marks and separate activity from formal results. Mixed histories no longer require invented numeric scores.
 
-    Assessed submissions store `score=None`. Recommendations and educator summaries still add every attempt's score. Task reads also construct a summary whose schema requires an integer score. These paths cannot safely handle formal-only or mixed histories. Preserve absent numeric data and return separate activity and formal-result fields.
+    Dependencies: none. Suggested owner: LMS backend and frontend contracts.
 
     Done when task reload, learner dashboard, educator dashboards, recommendations, and history work after formal submissions. Include mixed legacy and assessed records. Do not convert missing scores to zero.
 
-    Evidence: [lms.py](src-main/backend/app/services/lms.py), `submit`, `_task_read`, `_calculate_recommendations`, `educator_students`, and `educator_dashboard`; [LMS schemas](src-main/backend/app/schemas/lms.py), `LatestAttemptSummary`.
+    Evidence: [current implementation/delivery](docs/learnlens/assessed-read-repair.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 4. **[Completed] Close the direct learner evaluation and visibility bypass.**
 
-    Dependencies: none for the immediate restriction; Task 8, decision D-01, for approved learner visibility. Suggested owner: assessment API.
+    Learner evaluation access, duplicate requests and provisional-result visibility are restricted. D-01 keeps pending verdicts hidden until authorized confirmation.
 
-    The mounted learner evaluation route calls the evaluator synchronously and returns the provisional result. It bypasses the normal durable submission job and lacks the pending visibility policy. Restrict this path or route it through the existing job service. Apply ownership, course scope, visibility, and replay controls to any learner retry or status endpoint.
+    Dependencies: none for the immediate restriction; Task 8, decision D-01, for approved learner visibility. Suggested owner: assessment API.
 
     Done when duplicate requests create no duplicate decisions and learners see only policy-approved information.
 
-    Evidence: [assessment_evaluation.py](src-main/backend/app/api/routes/assessment_evaluation.py), [assessment jobs](src-main/backend/app/services/assessment/jobs.py), and [policy register](docs/learnlens/known-limits-and-deferred-decisions.md).
+    Evidence: [current implementation/delivery](docs/learnlens/learner-evaluation-bypass-restriction.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 5. **[Completed] Restrict unapproved research processing and export access now.**
 
-    Dependencies: none for the immediate restriction. Governed activation follows Task 33. Suggested owner: access controls and research backend.
+    Research access is separate from analytics and teaching permissions. Integrated Task 33 adds study/field/consent controls, while the production release gate stays closed.
 
-    The export policy currently grants access through ordinary educator/admin analytics permissions. Runtime eligibility checks only the global research setting. Enforce the existing separate research permission and deny unapproved processing while consent and study controls are incomplete. Do not wait for the full learning-study implementation to close these paths.
+    Dependencies: none for the immediate restriction. Governed activation follows Task 33. Suggested owner: access controls and research backend.
 
     Done when ordinary analytics access cannot authorise research exports. Missing approval, revoked permission, and disabled participation must prevent research processing without restricting course access or changing results.
 
-    Evidence: [research export access policy](src-main/backend/app/services/access.py), [runtime eligibility](src-main/backend/app/services/feedback/runtime.py), and [policy register](docs/learnlens/known-limits-and-deferred-decisions.md).
+    Evidence: [current implementation/delivery](docs/learnlens/research-access-restriction.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 6. **[Completed] Give every browser test its own assessment records.**
 
-    Dependencies: none. Suggested owner: test infrastructure.
+    Assessor browser actions use independent synthetic assessment fixtures. Confirm, override, withhold and return scenarios no longer depend on another test's state.
 
-    Assessor browser tests perform different actions against one seeded decision. The file explicitly allows its lifecycle to depend on run order. Create isolated attempts for each test, browser project, and retry. Keep the real confirmation and override rules intact.
+    Dependencies: none. Suggested owner: test infrastructure.
 
     Done when each action passes alone, in the complete browser run, and on retry without relying on another test. This audit did not reproduce a current browser launch failure.
 
-    Evidence: [assessment-review.e2e.ts](src-main/frontend/e2e/assessment-review.e2e.ts), [browser_e2e_server.py](src-main/backend/tests/browser_e2e_server.py), and [E2E runner](src-main/frontend/e2e/run.mjs).
+    Evidence: [current implementation/delivery](docs/learnlens/browser-assessment-isolation.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 7. **[Completed] Start the durable worker and check actual readiness.**
 
-    Dependencies: none for local template mode. Suggested owner: platform.
+    The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. Recovery is implemented; the assigned snapshot has a readiness-pin mismatch subsequently fixed by coordinator commit a38e6af. Final corrected runtime validation remains pending; the coordinator owns shared setup.
 
-    The PowerShell launcher starts only the API and frontend, then checks `/health`. The existing readiness probe also checks the worker heartbeat and required runtime state. Start and manage the worker, wait for `/ready`, and show useful startup errors. Shut down only processes owned by the launcher.
+    Dependencies: none for local template mode. Suggested owner: platform.
 
     Done when an accepted submission finishes after a worker restart without another submission request. Local mode and research settings must match the chosen adapters. Task 22 supplies the complete adaptive worker path.
 
-    Evidence: [start-quantumlearn.ps1](start-quantumlearn.ps1), [readiness.py](src-main/backend/app/core/readiness.py), and [worker operations](src-main/docs/worker-operations.md).
+    Evidence: [current implementation/delivery](docs/learnlens/durable-worker-startup.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 8. **[Partial] Record the decisions needed to activate each feature.**
 
+    Policy selections are settled in D-01–D-12. Concrete course/source/form/staff/study/retention/environment and release records remain due; fixture approvals and user policy choices do not supply institutional or expert approval.
+
     Dependencies: none. Suggested owners: product owner, assessors, privacy, research, and operations.
-
-    The user selected D-05 B, D-07 C, and A for every other offered decision. D-10 retains its immediate legacy-retirement approval. Record named owners, remaining detailed values, versions, dates, and affected scope. Start with one quantum outcome and its real criteria, tools, help rules, and learner result policy. Also finish the scoped records for reassessment, role assignment, evaluator release, retention, escalation, reuse, and release environments.
-
-    Task 8 progress, 7 September 2026: [approved selections](docs/learnlens/task-08-approved-selections.md) record the user's choices. D-05 allows unrestricted approved conceptual hints during supported assessment, with separate unaided transfer. D-07 allows AI criterion suggestions only after validation, with human confirmation. The [decision package](docs/learnlens/task-08-decision-package.md) retains outstanding details and activation evidence. Task 8 is partial; the selected options do not need to be chosen again.
 
     Done when each dependent feature has the specific approval it needs. Unrelated implementation can continue while a decision remains pending. Test fixture settings do not approve live policy.
 
-    Evidence: [known-limits-and-deferred-decisions.md](docs/learnlens/known-limits-and-deferred-decisions.md), D-01 through D-12.
+    Evidence: [current implementation/delivery](docs/learnlens/task-08-approved-selections.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 9. **[Completed] Preserve the exact approved sources used by each output.**
 
+    Versioned approved material and exact source passages remain recoverable after reprocessing, replacement and retirement; source scope and review bindings are retained.
+
     Dependencies: none for versioned storage; Task 8, D-08, for retention and destructive deletion rules. Suggested owner: retrieval and data.
-
-    Task 9 progress, 7 September 2026: implemented and locally verified. The [source-history handoff](docs/learnlens/task-09-source-history.md) records immutable revisions, approval events, preserved output citations, reviewer routes, retirement, and migration evidence. The full backend suite passed 741 tests with 85.31% service coverage; 178 frontend tests passed. Publication approval enforcement remains Task 12, and processing recovery remains Task 10.
-
-    Material reprocessing deletes and recreates chunks. Current task references and hashes do not preserve a complete immutable source revision and passage. Add durable source versions, locations, approval state, and output links. Reprocessing, replacement, or retirement must preserve evidence already used by a task, feedback item, or assessment.
 
     Done when an authorised reviewer can recover the exact cited passage after a source changes. Keep course scope and page, slide, or heading locations intact.
 
-    Evidence: [ingestion.py](src-main/backend/app/services/rag/ingestion.py), [material_indexing.py](src-main/backend/app/services/material_indexing.py), [persistence models](src-main/backend/app/models/persistence.py), and [material routes](src-main/backend/app/api/routes/materials.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-09-source-history.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 10. **[Completed] Recover interrupted material processing.**
 
+    Interrupted extraction/indexing can resume without duplicate or partially published source revisions. Original resources and processing state are preserved.
+
     Dependencies: Task 9. Suggested owner: retrieval and worker.
-
-    Task 10 progress, 7 September 2026: implemented and locally verified. The [processing-recovery handoff](docs/learnlens/task-10-material-processing-recovery.md) records durable claims, restart recovery, bounded retries, publication checks, educator controls, and migration evidence. The final backend suite passed 754 tests with 85.69% service coverage; 179 frontend tests passed.
-
-    Processing saves `PROCESSING` before extraction. Later requests reject material already in that state, and the worker has no material recovery pass. Add durable processing claims, stale-claim recovery, bounded retries, and clear terminal errors.
 
     Done when a saved upload finishes or reports a recoverable failure after interruption. Concurrent workers must not publish duplicate or partial source revisions. Retain the original upload and useful processing status.
 
-    Evidence: [MaterialProcessor](src-main/backend/app/services/rag/ingestion.py), [offline material processing](src-main/backend/app/services/material_indexing.py), and [worker.py](src-main/backend/app/worker.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-10-material-processing-recovery.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 11. **[Completed] Store trustworthy simulation evidence and enforce execution limits.**
 
+    Bounded Qiskit/Aer simulation retains settings, counts, exact probabilities, bit order and equivalent text evidence, with controlled errors. Expert validity and the pending keyboard circuit follow-up remain separate acceptance work.
+
     Dependencies: none. Suggested owner: quantum services.
-
-    Task 11 progress, 7 September 2026: implemented and locally verified. The [simulation-evidence handoff](docs/learnlens/task-11-simulation-evidence.md) records process timeouts, immutable circuit and run history, exact probabilities, saved feedback references, scoped reads, replay, interrupted-run recovery, and migration protection. The final backend suite passed 782 tests with 85.52% service coverage; 180 frontend tests passed. Supported capabilities are ready for Task 12 publication checks.
-
-    Simulation supports H, X, and CX, with qubit and shot limits. It lacks an operation limit and process-level timeout. Its probabilities are sampled frequencies. Feedback reruns circuits without saving a durable run there. Persist circuit versions, digest, qubit order, measurement mapping, seed, shots, engine versions, counts, and run status. Expose the supported capabilities for publication checks in Task 12.
 
     Done when runs are bounded and reproducible from saved settings. Use exact probabilities or sampling tolerances where justified. Gate presence or distribution agreement must not stand in for every state property or conceptual claim.
 
-    Evidence: [quantum.py](src-main/backend/app/services/quantum.py), [SubmittedCircuitSimulationProvider](src-main/backend/app/services/feedback/runtime.py), and [QuantumCircuitHandler](src-main/backend/app/services/task_types.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-11-simulation-evidence.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 12. **[Completed] Finish educator approval, assessor setup, and publication controls.**
 
+    Explicit educator review, current source approval, assessor eligibility and publication validation block unreviewed or invalid assessed tasks. A real course still needs its named content approvals.
+
     Dependencies: Tasks 2 and 9; Task 8, D-02, D-04, and D-05. Circuit publication also needs Task 11. Suggested owner: course and assessment teams.
-
-    Task 12 progress, 7 September 2026: implemented, independently reviewed, tested, and merged through [PR 8](https://github.com/akshatporwal002/Monash-Honours-Project/pull/8). GitHub post-merge run `34072852835` passed for `d5ac7cb`. The [publication-controls handoff](docs/learnlens/task-12-publication-controls.md) records staff eligibility and grants, source and task review, immutable history, formal publication bindings, and learner access checks. Chrome verified an authorised assessor publishing a valid form without policy overrides.
-
-    Generated tasks become ordinary task rows without a general review lifecycle. Course publication checks do not prove individual task approval. Formal definition approval exists, but runtime publication policy remains closed. Add review, edit, approve, reject, and history controls. Connect approved role policies and require complete outcome, criterion, source, support, access, and task-form versions.
 
     Done when an authorised assessor can publish a valid form without test overrides. Unreviewed generated tasks and unsupported circuits must remain unavailable to learners.
 
-    Evidence: [task_generation.py](src-main/backend/app/services/rag/task_generation.py), [LmsService._validate_publishable](src-main/backend/app/services/lms.py), [assessment dependencies](src-main/backend/app/api/assessment_dependencies.py), and [assessment definitions](src-main/backend/app/services/assessment/definitions.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-12-publication-controls.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 13. **[Completed] Freeze assessment versions when the learner starts work.**
 
-    Completed through PR 9. See the [Task 13 handoff](docs/learnlens/task-13-start-freeze.md) and [verified delivery record](docs/learnlens/coordinator-progress.md).
+    Starting assessed work freezes the approved task/outcome/criteria/rule and declared conditions. Later changes preserve the original bundle or return a conflict; completed practice is not rebound to assessment.
 
     Dependencies: Tasks 8 and 12. Suggested owner: assessment and task workspace.
 
-    Current submission code selects the assessment bundle when the learner submits. Immutable submitted attempts do not freeze the conditions at task opening or draft creation. Save the approved task, rules, sources, and conditions when assessed work begins. Carry that reference through draft saves and submission.
-
     Done when a rule change during an open draft preserves the original approved bundle or returns an explicit conflict. A later version must never silently replace the declared standard.
 
-    Evidence: [LmsService.submit](src-main/backend/app/services/lms.py), [AssessmentSubmissionService](src-main/backend/app/services/assessment/submissions.py), and assessment specification AT21.
+    Evidence: [current implementation/delivery](docs/learnlens/task-13-start-freeze.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 14. **[Completed] Complete the learning episode inside the task workspace.**
 
-    Task 14 progress, 7 September 2026: implemented and independently reviewed at `f2ed1f6`.
-    The [episode handoff](docs/learnlens/task-14-learning-episode.md) records typed responses, immutable predictions,
-    private transfer, simulation evidence, durable support requests, migration protection, and real browser checks.
-    Integrated into Batch B with a separate merge commit. Final batch delivery remains under the [coordinator record](docs/learnlens/coordinator-progress.md).
+    Typed prediction, reasoning, code/circuit, revision, reflection and unaided transfer survive saved drafts, submission and reload. The two-qubit keyboard placement/semantics follow-up is pending integration under Task 39; full manual equivalence is not yet established.
 
     Dependencies: Tasks 11 and 13; Task 8, D-04 and D-05, for approved assessed stages. Suggested owner: task engine and frontend.
 
-    Six task handlers exist, but answer, code, and circuit fields do not capture the full learning sequence. Add typed prediction, reasoning, explanation, revision, reflection, and transfer responses. Stage matching, sequencing, and other required extensions explicitly. Keep instructions, circuit editing, results, explanations, and feedback together. Save predictions before revealing results where required.
-
     Done when each supported response survives draft, submit, reload, revision, and controlled simulation failure. Every type needs accessible controls, evidence extraction, evaluator support, and export representation.
 
-    Evidence: [task_types.py](src-main/backend/app/services/task_types.py), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR9, FR12-FR14, PD4-PD5, and PD11.
+    Evidence: [current implementation/delivery](docs/learnlens/task-14-learning-episode.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 15. **[Completed] Make unsupported assessment criteria reachable by a human assessor.**
 
-    Task 15 progress, 7 September 2026: implemented and independently reviewed through dependency merge `d5d6e88`.
-    The [human-assessment handoff](docs/learnlens/task-15-human-assessment.md) records unresolved review, frozen evidence,
-    human criterion decisions, deterministic circuit checks, and audited confirmation. AI suggestions remain disabled.
-    Correction `0b0f5b3` preserves validated history when approved context is missing and replaces old browser fixtures
-    through ordinary approval controls. Both independent reviews cleared it. Final batch CI and main delivery remain due.
+    Eligible course assessors inspect frozen evidence and evaluate HUMAN criteria, then confirm, override, withhold, return or void with retained reasons/history. Operational AI criterion suggestions remain disabled pending the separate D-07 gate.
 
     Dependencies: Tasks 1, 2, 11, 12, and 13. Suggested owner: assessment backend and review UI.
 
-    Production evaluation supports only the rule adapter. Unsupported evaluators leave jobs `REVIEW_REQUIRED` without a decision. The current review queue selects decisions, so those attempts miss the queue. Add a queue for unresolved attempts and a criterion-entry workflow. Connect suitable deterministic circuit checks and approved human or mixed evaluation paths.
-
     Done when an assessor can inspect evidence, record criterion decisions and reasons, apply the pass rule, and finalise the result. Keep operational AI assessment suggestions disabled until Task 35 passes its separate approved gate. After that gate, suggestions remain advisory and humans confirm results.
 
-    Evidence: [assessment runtime](src-main/backend/app/services/assessment/runtime.py), [review.py](src-main/backend/app/services/assessment/review.py), and [evaluation job tests](src-main/backend/tests/test_assessment_evaluation_jobs.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-15-human-assessment.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 16. **[Completed] Deliver grounded assessed feedback under the approved help policy.**
 
-    Dependencies: Tasks 9, 11, 12, and 15; Task 8, D-05. Suggested owner: feedback and retrieval.
+    Grounded feedback enforces current source/help/release conditions, records quality decisions, allows one regeneration and preserves a fixed safe fallback. Feedback approval cannot confirm a formal result.
 
-    Implemented and independently reviewed in [PR 11](https://github.com/akshatporwal002/Monash-Honours-Project/pull/11). Delivery receipts are linked in the handoff. The existing workflow now supplies bounded criterion-linked feedback from exact frozen responses, reviewed sources, and current human history. Retrieval checks scope, approval, availability, and relevance. Deterministic checks protect passage support, learner claims, help timing, and reflection. See the [Task 16 handoff](docs/learnlens/task-16-grounded-feedback.md) for interfaces, evidence, and limits.
+    Dependencies: Tasks 9, 11, 12, and 15; Task 8, D-05. Suggested owner: feedback and retrieval.
 
     Done when approved feedback states missing evidence without exceeding allowed help. Preserve one regeneration, fixed fallback, rejection reasons, and source/model/prompt/rule versions. Feedback approval must not confirm an assessment result.
 
-    Evidence: [PendingAssessmentFeedbackGenerator](src-main/backend/app/services/feedback/agent.py), [feedback runtime](src-main/backend/app/services/feedback/runtime.py), [judge.py](src-main/backend/app/services/feedback/judge.py), and [assessment feedback tests](src-main/backend/tests/test_assessment_feedback_context.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-16-grounded-feedback.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 17. **[Completed] Capture learning evidence through the live application.**
 
+    Live interactions append ordered, scoped and replay-safe evidence linked to immutable response, task, source and support history.
+
     Dependencies: Tasks 9, 11, and 14. Suggested owner: evidence services.
-
-    Task 17 progress, 8 September 2026: delivered in merge commit `06aa01a`.
-    See the [live-evidence handoff](docs/learnlens/task-17-live-evidence.md).
-
-    Append-only evidence services, trusted adapters, privacy checks, and replay controls exist. They are not connected to the mounted learner workflow. Record predictions, reasoning, hints, simulation, responses, revisions, feedback use, reflection, and transfer. Link each item to its task, response, conditions, source, and earlier evidence where relevant.
 
     Done when a real learner journey creates an authorised, ordered evidence timeline. Replays and partial failures must preserve originals without duplicate accepted observations.
 
-    Evidence: [evidence service](src-main/backend/app/services/evidence/service.py), [evidence adapters](src-main/backend/app/services/evidence/adapters.py), [API router](src-main/backend/app/api/router.py), and [adapter tests](src-main/backend/tests/test_evidence_capture_adapters.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-17-live-evidence.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 18. **[Completed] Update the shared learner model from real evidence.**
 
+    Evidence produces versioned cumulative learner estimates with uncertainty, provenance and concurrency/replay controls. These rule-based estimates remain unvalidated teaching estimates, not mastery measurements or grades.
+
     Dependencies: Task 17. Suggested owner: learner services.
-
-    Task 18 progress, 8 September 2026: the controlled, deterministic update
-    path consumes scoped persisted evidence, writes cumulative append-only
-    snapshots, and returns structurally validated teaching views. The final
-    verification record is in the [learner-model handoff](docs/learnlens/task-18-shared-learner-model.md).
-
-    The versioned model builder and repository exist without application consumers. Define how observations support or contradict an estimate, then connect one controlled update path. Keep understanding, possible misconceptions, assistance, response to feedback, and transfer distinct. Preserve prior snapshots, uncertainty, recency, rule versions, and evidence links.
 
     Done when concurrent or repeated processing creates consistent snapshots. Produce validated snapshots for teaching services. Tasks 22 and 23 must demonstrate decisions that change because of an estimate. Rule-based uncertainty must remain labelled as an unvalidated estimate until tested.
 
-    Evidence: [builder.py](src-main/backend/app/services/learner_model/builder.py), [learner-model repository](src-main/backend/app/services/learner_model/repository.py), and [learner-model tests](src-main/backend/tests/test_learner_model.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-18-shared-learner-model.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 19. **[Completed] Integrate learner corrections and expose scoped evidence and model views.**
 
+    Learners annotate/challenge evidence and model information; scoped educator review and later model updates retain the original records and correction history.
+
     Dependencies: Tasks 17 and 18. Suggested owner: learner services and frontend.
 
-    Completed, 8 September 2026: learner annotations and authorised educator
-    corrections are append-only, history-protected records. The mounted API
-    exposes authorised, cursor-paginated correction/evidence/model-history
-    streams, while legacy grouped payloads remain bounded to their existing
-    contract. Learner and educator workspaces include accessible validation,
-    stale-review refresh/resubmit handling, and learner selection from the
-    educator workspace. Browser journeys cover authenticated learner
-    corrections and educator stale-review recovery.
+    Done when learner corrections and scoped reviews preserve originals and are consumed by later snapshots without replacing history.
 
-    The migration is `20260908_0032_learner_model_corrections.py`, with a
-    single current head and protected-history downgrade recovery. A post-merge
-    CI repair updated legacy protected-downgrade assertions to that head in
-    commit `704283a`.
-
-    Evidence: [learner-model services](src-main/backend/app/services/learner_model), [API router](src-main/backend/app/api/router.py), [correction migration](src-main/backend/migrations/versions/20260908_0032_learner_model_corrections.py), and [browser journeys](src-main/frontend/e2e/learner-model.e2e.ts).
+    Evidence: [current implementation/delivery](docs/learnlens/task-19-corrections.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 20. **[Completed] Add learner preferences and control over non-essential support.**
 
-    Task 20 progress, 8 September 2026: implemented and locally verified. The
-    [learner-preferences handoff](src-main/docs/learnlens/task-20-learner-preferences.md)
-    records immutable learner-owned preference revisions, learner-self routes,
-    settings and TaskView controls, immediate personalisation changes,
-    formal-result isolation, and privacy-bounded audit events. The final local
-    backend suite passed 1,098 tests; the frontend suite passed 238 tests, lint,
-    and the production build.
+    Learner-owned preference revisions, access support and optional personalization controls persist. Opt-out, corrections, slower pace and help do not change frozen assessment standards; full equivalent-content breadth remains in the requirement matrix.
 
     Dependencies: Tasks 14 and 17; Task 8, D-05, for assessed conditions. Suggested owner: learner experience.
 
-    Implemented and locally verified in the Task 20 worktree: server-owned preference revisions, a mounted learner editor, effective workspace controls, correction/reset history, and personalisation opt-out. The original local gates passed; the implementation is committed in the Task 22 integration. Access support stays separate from instructional help.
+    Done when preferences and opt-out persist, support remains separate from access, and no choice changes formal results or essential access.
 
-    Completed: preferences persist and learners can disable non-essential personalisation. Choices, help use, access support, and slower pace do not lower formal results. The feature stores no diagnosis or fixed learning style.
-
-    Evidence: [Task 20 implementation and verification](docs/learnlens/task-20-learner-preferences.md), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and requirements FR35-FR37 and NFR31.
+    Evidence: [current implementation/delivery](docs/learnlens/task-20-learner-preferences.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 21. **[Completed] Build the curriculum links and approved diagnostic paths.**
 
+    Approved curriculum graphs link outcomes, sources, forms, prerequisites and exit guidance. Diagnostics record learning evidence and require eligible assessor confirmation before practice bypass; they cannot replace formal assessment.
+
     Dependencies: Tasks 12, 18, and 20. Suggested owner: learning pathway services.
 
-    Implemented in `.tmp-coordinator/task21`; Task 20 and Task 21 are now committed and merged into remote main through `1f39448`.
-    Versioned graphs link approved tasks, concepts, source approvals, task forms, assessment rules, and exit guidance.
-    Learners can save initial or prior-mastery diagnostics as protected learning evidence.
-    A current course assessor must confirm independent conditions and give a reason before practice prerequisites can be bypassed.
-    Optional guidance can fade after confirmed diagnostic success; opt-out preserves baseline guidance.
-    Diagnostics cannot unlock or replace formal assessment.
+    Done when approved graphs and diagnostics enforce scope, independent conditions and human-confirmed practice bypass without granting formal credit.
 
-    Local validation is recorded in [the Task 21 handoff](docs/learnlens/task-21-curriculum-diagnostics.md).
-    Task 21 and Task 22 are committed together through the verified dependency chain. See the [main integration record](docs/learnlens/task-22-main-integration.md) for their combined migration order.
+    Evidence: [current implementation/delivery](docs/learnlens/task-21-curriculum-diagnostics.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 22. **[Completed] Connect learner evidence to the next approved activity.**
 
-    Implemented and locally verified in `.tmp-coordinator/task22`; Tasks 20–22 are now committed and merged into remote main through `1f39448`.
+    The shipped worker connects eligible checked feedback to one model update and approved next-activity suggestion. Accept/defer/replace, opt-out, stale approvals, educator overrides and recovery preserve reasons and history. Task 23 is already delivered.
 
-    The shipped worker now records one durable model update after eligible checked feedback and selects approved activities.
-    Protected decisions retain evidence, uncertainty, model/rule/pathway versions, learner choices, and educator override reasons.
-    Mounted controls support inspect, accept, defer, replace, refresh, and scoped overrides. Dashboard suggestions honor saved choices and opt-out.
-    Retries, restarts, expired claims, concurrent writes, failed saves, changed approvals, and no-activity states have persistence tests.
-    Formal assessment conditions and Task 21 diagnostic authority remain unchanged. Task 23 has not started.
+    Dependencies: None; coordinator verifies the integrated release.
 
-    Verification covers 1,141 backend tests through the full run and corrective rerun, with 87.23% service coverage.
-    Frontend tests passed 249 checks, existing browser tests passed 84, and authenticated Task 22 journeys passed in all four browsers.
-    Migration, contracts, lint, build, secret scan, and required dependency audit gates pass. Exact run history and limits are in the handoff.
+    Done when accepted evidence causes exactly one model update and approved suggestion; choices, override, restart and stale-approval behavior preserve the standard.
 
-    Evidence: [Task 22 implementation and verification](docs/learnlens/task-22-approved-activity-continuation.md),
-    [dependency hashes](docs/learnlens/task-22-dependency-baseline.json), and [Task 22 delta](docs/learnlens/task-22-change-manifest.json).
-    The user authorized merge and push. See the [main integration record](docs/learnlens/task-22-main-integration.md) for current delivery evidence.
+    Evidence: [current implementation/delivery](docs/learnlens/task-22-approved-activity-continuation.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 23. **[Completed] Add tutor dialogue and a controlled sequence of hints.**
 
-    Completed and merged, 9 September 2026: persisted, scoped tutor dialogue and reviewed hints follow assessed help conditions, record assistance evidence, survive reload, and remain unavailable during unaided transfer. See the [delivery record](docs/learnlens/task-23-24-tutor-and-results.md).
+    Persisted grounded tutor dialogue and reviewed conceptual hints survive reload, record help and stop instructional help during separate unaided transfer. D-05 has no instructional hint-count cap; answer-seeking redirects make no automatic misconduct finding.
 
     Dependencies: Tasks 16, 17, 18, and 20. Suggested owner: teaching services and task workspace.
 
-    The current task view has submission and feedback, but no complete tutor conversation or hint progression. Begin with a probing question or conceptual hint. Ask learners to explain their reasoning before further help when the task requires it. Ground replies in the current course and task, and record assistance as evidence.
-
     Done when conversation state survives reload, help follows assessed conditions, and outputs pass the feedback checks. Answer-seeking cues should redirect to reasoning without making an automatic misconduct finding.
 
-    Evidence: [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), [API router](src-main/backend/app/api/router.py), [feedback pipeline](src-main/backend/app/services/feedback/pipeline.py), and the architecture's Tutor Agent responsibilities.
+    Evidence: [current implementation/delivery](docs/learnlens/task-23-24-tutor-and-results.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 24. **[Completed] Complete learner results, review requests, and appeal resolution.**
 
-    Completed and merged, 9 September 2026: learner result views, review requests, assessor resolutions and learner notices preserve scope, reasons and decision history. See the [delivery record](docs/learnlens/task-23-24-tutor-and-results.md).
+    Learner result views, review requests, assessor resolutions and notices preserve scope, reasons and decision history. Pending verdicts stay hidden; released results expose evidence and the next permitted action.
 
     Dependencies: Tasks 3, 4, 13, and 15; Task 8, D-01. Suggested owner: assessment experience.
 
-    Assessor actions exist, but the learner loop is incomplete. Show the permitted result, lifecycle, Bloom target, met and missing criteria, evidence, reasons, and next action. Connect learner-owned review requests to an assessor workflow. The existing appeal model is not a complete route or screen.
-
     Done when requests and resolutions preserve scope, reasons, notices, and decision history. Learners must distinguish pending review from a confirmed result and reach every action without relying on colour.
 
-    Evidence: [assessment models](src-main/backend/app/models/assessment.py), `AppealOrCorrection`; [review service](src-main/backend/app/services/assessment/review.py), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and AT15-AT17, AT19, AT24.
+    Evidence: [current implementation/delivery](docs/learnlens/task-23-24-tutor-and-results.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
-25. **[Completed locally] Prove one complete quantum learning loop before expanding coverage.**
+25. **[Completed] Prove one complete quantum learning loop before expanding coverage.**
 
-    Implemented locally, 9 September 2026. Real service and browser journeys now
-    cover prediction, circuit simulation, checked feedback, revision, reflection,
-    transfer, model updates, approved next activities and assessor confirmation.
-    A worker process is killed after its model receipt commits; restart completes
-    one suggestion using that same snapshot. Local verification finished on 10 September:
-    1,243 backend tests, 87.91% service coverage, 273 frontend tests and four new
-    browser journeys passed. Existing browser regression passed 119 of 120 cases;
-    the WebKit timeout passed unchanged in a two-case corrective run.
-    Changes remain uncommitted. See [the verification record](docs/learnlens/task-25-complete-learning-loop.md).
+    The complete quantum learning loop is committed and merged: prediction, simulation, checked feedback, revision, reflection, transfer, model update, approved next activity and human confirmation use real persisted services with synthetic approvals. Worker-kill recovery reuses the committed model receipt. This milestone is no longer uncommitted or awaiting initial implementation.
 
     Dependencies: Tasks 10, 14, 16, 18, 22, 23, and 24, including their prerequisites. Suggested owner: integrated feature team.
 
-    This is the architecture's first delivery milestone. Use one approved introductory outcome. Exercise task selection, prediction, reasoning, circuit work, saved evidence, checked feedback, revision, reflection, learner-model update, and an unaided transfer activity. Include assessor review when the task is assessed.
-
     Done when one browser journey and backend integration test traverse the real services. Interrupt processing and prove recovery. A returned task ID or passing component test alone does not complete this milestone.
 
-    Evidence: [architecture](LearnLens_Architecture_and_Sources.md), [existing MVP loop test](src-main/backend/tests/test_mvp_learning_loop.py), and [continuation service](src-main/backend/app/services/continuation/service.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-25-complete-learning-loop.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 26. **[Completed] Implement reassessment and outcome-level result selection.**
 
-    Dependencies: Tasks 12, 13, 15, and 24; Task 8, D-06. Suggested owner: assessment.
+    Authorized reassessment uses a fresh equivalent form under the same standard, preserving earlier decisions. Published whole-decision outcome policies never average attempts or replace confirmed evidence with a pending attempt.
 
-    Implemented 9 September 2026: scoped assessor authorisation, fresh equivalent forms under the unchanged standard, linked attempts, preserved decision history, and published whole-attempt outcome selection. Stale authorisations can be superseded without removing their history. Pending work cannot replace confirmed evidence. Course binary aggregation remains conditional on an explicitly approved course rule.
+    Dependencies: Tasks 12, 13, 15, and 24; Task 8, D-06. Suggested owner: assessment.
 
     Done when every earlier decision remains readable, the same standard applies, and attempts are never averaged. Review, return, withholding, reassessment, and result replacement must have distinct effects.
 
-    Evidence: [ReassessmentLink](src-main/backend/app/models/assessment.py), [LmsService.submit](src-main/backend/app/services/lms.py), and [assessment specification](docs/02-pass-incomplete-bloom-assessment-spec.md), sections 4 and reassessment rules.
+    Evidence: [current implementation/delivery](src-main/backend/tests/test_reassessment.py); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
-27. **[Completed locally, uncommitted] Complete the misconception check and recovery cycle.**
+27. **[Completed] Complete the misconception check and recovery cycle.**
+
+    The committed, merged misconception cycle supplies reviewed probes, teaching, revision, fresh evidence, uncertain/persisted/weakened/corrected states, educator corrections and preserved exit/recovery. Unresolved reviews already feed Task 28's assessor queue.
 
     Dependencies: Tasks 18, 19, 21, 22, and 23. Suggested owner: learner and teaching services.
 
-    Local delivery, 10 September 2026: reviewed probes, alternate explanations, revisions,
-    fresh checks, evidence-linked states, educator corrections and preserved exits are implemented.
-    Support history reaches practice and formal review. Focused backend checks and independent
-    reviews pass. The final browser run passed all four projects with saved screenshots.
-    Combined verification and passing corrective checks are recorded in the
-    [delivery record](docs/learnlens/task-27-misconception-cycle.md).
-
-    The model can store a possible misconception. It does not complete the question, alternate explanation, revision, and transfer cycle. Add supporting and contradicting evidence, a suitable probe, targeted help, and a fresh check. Preserve state changes and educator corrections.
-
     Done when evidence can leave a hypothesis uncertain, persisted, weakened, or corrected. A single wrong response must not create a certain label. Show why the next intervention was selected.
 
-    Evidence: [learner-model builder](src-main/backend/app/services/learner_model/builder.py), [learner-model contracts](src-main/backend/app/services/learner_model/contracts.py), and requirements FR34 and AC13.
+    Evidence: [current implementation/delivery](docs/learnlens/task-27-misconception-cycle.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 28. **[Partial] Add a human escalation and AI-output reporting workflow.**
 
+    Separate assessor/technical queues, ownership, triage, acknowledgement/action/resolution/closure, notices and feedback sampling exist, including Task 27 misconception escalation. Remaining work is D-09 named operators/backups, staffed calendar/timezone, approved targets/sampling and activation records.
+
     Dependencies: Tasks 15, 16, 19, 23, and 27; Task 8, D-09. Suggested owner: educator experience and operations.
-
-    Implemented 9 September 2026: feedback and tutor reporting, separate assessor and technical queues, primary and backup ownership, triage and overdue indicators, immutable human responses, learner notices, and accepted-feedback sampling. Existing repeated-rejection, failed-evaluation and conflicting-evidence producers route to these queues. Owners enter targets using the approved staffing and severity rules; operational names and schedules still require D-09 activation details.
-
-    Local integration, 10 September 2026: uncertain and persisted misconception reviews now create
-    one assessor case with the cycle's evidence and review history. Task 28 remains partial for
-    the D-09 operational names, schedules and activation records.
 
     Done when a report moves through acknowledgement, action, resolution, and closure with an audit trail. Accepted AI feedback must also be available for human sampling.
 
-    Evidence: [FeedbackReportButton.tsx](src-main/frontend/src/features/feedback/FeedbackReportButton.tsx), [feedback routes](src-main/backend/app/api/routes/feedback.py), [feedback repository](src-main/backend/app/services/feedback/repository.py), and requirements PD7, PD12, FR38, and NFR20-NFR21.
+    Evidence: [current implementation/delivery](src-main/backend/app/services/escalation.py); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 29. **[Completed] Finish progress views and retire numeric learner-result semantics.**
 
+    Scoped progress separates observations, support, uncertain estimates, adaptations and released binary results. Numeric learner marks were retired after immutable preservation. The integrated timezone repair normalizes known UTC response timestamps after SQLite reload without rewriting stored history; final combined regression is IN_PROGRESS.
+
     Dependencies: Tasks 3, 18, 19, 22, 24, 26, and 27. Final legacy removal also needs Task 8, D-10. Suggested owner: LMS, analytics, and frontend.
 
-    Implemented 10 September 2026: learner and educator progress separates observations, support, uncertain estimates, misconception reviews, adaptation choices and released binary results. Counts and trends open scoped evidence. Active marks and thresholds are removed after full-row preservation in an immutable archive. D-10 approves the immediate retirement. See the [delivery and migration record](docs/learnlens/task-29-progress-and-score-retirement.md).
+    Done when each important indicator links to scoped evidence, UTC instants survive reload/display, and protected legacy history stays intact under immediate D-10 retirement. Quantum probabilities and technical quality measures remain separate.
 
-    Learner and educator screens still expose scores and averages. Replace these with clearly separated activity, evidence, uncertain estimates, and formal binary results. Add individual and cohort views for revision, independence, transfer, misconceptions, feedback use, and adaptation history. Remove score-driven learner progress, recommendations, averages, and misleading result wording. Current formal submissions already skip numeric grading.
-
-    Done when each important indicator links to scoped evidence. Preserve protected legacy history through the approved retirement window. Quantum probabilities and technical quality measures remain valid within their own context.
-
-    Evidence: [StudentDashboard.tsx](src-main/frontend/src/components/StudentDashboard.tsx), [EducatorDashboard.tsx](src-main/frontend/src/components/EducatorDashboard.tsx), [TaskView.tsx](src-main/frontend/src/components/TaskView.tsx), and [analytics services](src-main/backend/app/services/analytics).
+    Evidence: [current implementation/delivery](docs/learnlens/task-29-progress-timezones.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 30. **[Completed] Move reminder writes out of dashboard reads and finish reminder rules.**
 
+    Reminder writes run outside dashboard reads. Course timezones/DST, extensions, access plans, opt-out, completion and rolling 24-hour delivery guards preserve prior records.
+
     Dependencies: Tasks 20, 22, and 24. Suggested owner: LMS and worker.
-
-    Implemented 9 September 2026: dashboard reads no longer create reminders or persist recommendations. The database worker delivers reminders with a rolling 24-hour guard, current access/submission checks, learner notification preferences, course time zones and owner-recorded individual deadline/access arrangements. Task 22's adaptation remains separate; the existing recommendation projection is retained. Operation and restoration guidance: [reminders and backups](src-main/docs/reminders-and-backups.md).
-
-    `student_dashboard` creates reminders, stores recommendations, and commits during a GET. Move these changes to explicit commands or scheduled jobs. Add course time zones, extensions, access plans, notification preferences, and current completion checks. Enforce at most one reminder per task in 24 hours with a concurrency-safe rule.
 
     Done when repeated dashboard reads make no state changes. Test simultaneous processing, time-zone boundaries, extensions, completed work, and disabled notifications.
 
-    Evidence: [lms.py](src-main/backend/app/services/lms.py), `student_dashboard`, `_create_overdue_reminders`, and `_create_reminder`; [behaviour findings](docs/plans/009-lms-behaviour-findings.md).
+    Evidence: [current implementation/delivery](src-main/docs/reminders-and-backups.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 31. **[Completed] Make gamification optional and remove learner rankings.**
 
-    Dependencies: Tasks 20 and 29. Suggested owner: learner experience and LMS.
+    Optional private participation rewards recognize learning activity without public ranking, score-driven awards or assessment/access penalties. Replays and retries cannot duplicate awards.
 
-    Implemented 9 September 2026: persisted opt-out hides rewards and stops new awards; participation, reflection, revision and feedback use receive replay-safe recognition. New perfect-score awards and learner rankings are removed while protected legacy records remain. Assessment, task access and pathway standards do not use reward preferences. The wider numeric-view retirement remains Task 29.
+    Dependencies: Tasks 20 and 29. Suggested owner: learner experience and LMS.
 
     Done when points never alter assessment, pathway standards, or essential access. Replays, retries, slower pace, breaks, and approved support must not create penalties or duplicate rewards.
 
-    Evidence: [gamification.py](src-main/backend/app/services/gamification.py), [StudentDashboard.tsx](src-main/frontend/src/components/StudentDashboard.tsx), and [educator dashboard projection](src-main/backend/app/services/lms.py).
+    Evidence: [current implementation/delivery](src-main/backend/tests/test_gamification_preferences.py); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 32. **[Partial] Approve the learning-study protocol and data plan.**
 
+    Protocol and data-plan drafts exist; Arv Surana is the user-named research lead. Protocol/ethics/privacy/retention decisions, preregistration, approved instruments and other named authorities remain outstanding.
+
     Dependencies: Task 8, especially D-03, D-07, and D-08. Planning can run alongside implementation. Suggested owner: research lead and governance.
-
-    Task 32 progress, 7 September 2026: the [protocol draft](docs/learnlens/task-32-study-protocol.md) and [data-plan draft](docs/learnlens/task-32-data-plan.md) passed separate Standards and Spec reviews and merged through PR 9. Arv Surana is the user-named research lead. The task remains partial pending protocol approval, institutional records, preregistration, and the other named review gates.
-
-    Existing research documentation focuses on technical feedback comparisons. Define the learning question, comparator, allocation, outcomes, sample-size basis, exclusions, missing-data rules, withdrawal, retention, and reviewer blinding. Obtain the required ethics decision and preregister the approved study before recruitment. Separate research consent from course access.
 
     Done when an approved protocol covers unaided conceptual understanding, transfer, and any delayed-retention claims. Technical judge performance must not be presented as proof of learning improvement.
 
-    Evidence: [research-methodology.md](src-main/docs/research-methodology.md), the [architecture](LearnLens_Architecture_and_Sources.md), and requirements BP12-BP14 and NFR25.
+    Evidence: [current implementation/delivery](docs/learnlens/task-32-study-protocol.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
-33. **[Remaining] Enforce research permission, consent, and governed exports.**
+33. **[Partial] Enforce research permission, consent, and governed exports.**
+
+    Technical governance controls are delivered and integrated: append-only study scopes/approvals, learner-self consent/refusal/withdrawal, eligibility, additional study/course/field grants, retention holds, governed processing and restricted technical-pair CSV/JSON v2 exports. Production research remains closed even with settings/fixture approvals. Actual approval/activation, retention disposal policy and release-environment validation remain due; full learning-study instruments belong to Task 34.
 
     Dependencies: Tasks 5, 9, 17, 18, 22, 24, and 32; Task 8, D-03 and D-08. Suggested owner: research backend and privacy.
 
-    Export access currently delegates to ordinary analytics access. Runtime research eligibility checks only the global setting. Require explicit course-scoped research permission and an approved study. Add versioned consent, withdrawal, field approvals, missing-data reasons, retention, and participant eligibility. Extend the pseudonymous export with evidence, model, adaptation, and result references.
-
     Done when unapproved processing and exports fail closed. Revoked access, withdrawal, and missing consent must be tested. Research condition and participation must not change teaching access, adaptation, or formal results.
 
-    Evidence: [access.py](src-main/backend/app/services/access.py), `SqlAlchemyResearchExportAccessPolicy`; [feedback runtime](src-main/backend/app/services/feedback/runtime.py), `ConfiguredResearchEligibility`; [research exports](src-main/backend/app/services/research_export.py).
+    Evidence: [current implementation/delivery](docs/learnlens/task-33-governance-implementation.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 34. **[Remaining] Build and verify the learning-study instruments and records.**
 
-    Dependencies: Tasks 25, 29, 32, and 33. Suggested owner: research and analytics.
+    Complete approved learning-study instruments and records remain to be built: pre/in-process/post, unaided concept/transfer/retention, learner experience, educator/reviewer evidence, condition allocation where approved, attrition/deviations/missingness and governed full-stage exports. Task 33 supplies governance and technical-pair export only.
 
-    Paired technical evaluation records and export v1 exist. Add the approved pre-task, in-process, post-task, learner-experience, and educator-review records. Implement unaided conceptual, fresh transfer, and delayed-retention activities where required. Record help conditions, deviations, attrition, missingness, and actual provider/model/prompt/rule versions.
+    Dependencies: Tasks 25, 29, 32, and 33. Suggested owner: research and analytics.
 
     Done when a complete approved sample exports in CSV or JSON with linked learning stages and no direct identity fields. Keep learning outcomes separate from feedback correctness and judge metrics. Label local template generation accurately.
 
-    Evidence: [research export schema](src-main/backend/app/schemas/research_export.py), [research services](src-main/backend/app/services/research), and requirements NFR25 and NFR30.
+    Evidence: [current implementation/delivery](docs/learnlens/task-32-data-plan.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
-35. **[Remaining] Validate quantum content, feedback, and assessment against expert judgements.**
+35. **[Partial] Validate quantum content, feedback, and assessment against expert judgements.**
+
+    Offline review/import/metrics tooling and 108 DRAFT probes across 12 families are integrated. There are zero approved cases, expert ratings or recorded system outputs; 540 channel outputs are missing. The 12/12 numerical simulation checks establish fixture consistency only. Expert review, actual outputs, agreement/fairness/error thresholds, revalidation and signed D-07 release remain outstanding; no operational AI suggestion gate was activated.
 
     Dependencies: Tasks 11, 15, 16, 23, and 25; Task 8, D-07 and D-12. Suggested owner: assessors and evaluation reviewers.
 
-    Automated evaluator classes and fake-provider tests do not establish educational validity. Build at least 100 educator-approved quantum cases. Measure factual accuracy, hallucinations, useful feedback, flawed-output rejection, false rejection, false pass, and false incomplete. Include alternate response forms and unusual valid approaches. Repeat validation after material model, prompt, source, or rule changes.
-
     Done when the approved evaluator gate passes. Required content targets include at least 80% factual accuracy, at most 5% hallucinations, and feedback review averaging 4/5. Judge rejection must reach 80%, with false rejection at most 20%. Establish a trained-human agreement baseline and report criterion agreement by task type with uncertainty. Test answer length, writing style, and approved access modes. Feedback and judge thresholds cannot clear the separate AI assessment release gate.
 
-    Evidence: [requirements NFR12-NFR14 and NFR28](docs/01-implementation-requirements.md), [evaluator services](src-main/backend/app/services/assessment/evaluators.py), and [research methodology](src-main/docs/research-methodology.md).
+    Evidence: [current implementation/delivery](docs/learnlens/task-35-validation-tooling.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 36. **[Partial] Refresh traceability and run the complete automated checks.**
 
-    Independent validation batch, 9 September 2026: refreshed the verified recovery/accessibility rows and expanded-requirement crosswalk in [requirements traceability](src-main/docs/requirements-traceability.md). [Batch evidence](docs/learnlens/task-36-37-39-validation.md) records exact checks and limits. Full row-by-row traceability and final combined validation remain outstanding.
-
-    Partial progress, 9 September 2026: the current delivery passed local backend, frontend, browser, formatting, lint, contract and secret checks, with 87% backend service coverage. Python and production npm audits found no known vulnerabilities; two moderate development npm advisories remain. Full requirements traceability and final combined validation after the outstanding features remain open.
+    The immutable baseline Task 36 report accounts for all 143 requirements. The current matrix now reconciles integrated changes and preserves exact source/evidence crosswalks. Full combined backend/frontend/browser/security/contract/migration checks are IN_PROGRESS, owned by the coordinator; final receipts and independent review still need attachment at the final integrated SHA.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
 
-    Update every FR, PD, BP, NFR, AC, and AT row against current code and evidence. Replace obsolete missing-feature claims and broken references to retired plans. Run configured formatting, lint, contracts, migration, backend, frontend, browser, dependency, and secret checks. Maintain at least 80% backend service statement coverage.
-
     Done when evidence and independent review apply to the final commit. Keep manual and external checks separate. New dependency audits are required; the previously updated packages are not assumed to remain vulnerable or permanently safe.
 
-    Evidence: [quality.yml](.github/workflows/quality.yml), [implementation-gap-matrix.md](docs/learnlens/implementation-gap-matrix.md), and [work order](docs/03-codex-implementation-work-order.md).
+    Evidence: [current implementation/delivery](docs/learnlens/task-36-requirements-reconciliation.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 37. **[Partial] Prove security, migration safety, restart recovery, and restore completeness.**
 
-    Independent validation batch, 9 September 2026: added formal-assessment process-kill recovery, deterministic timeout/malformed-evidence retries, real SQLite contention before claim and after decision commit, and migrated assessment backup/restore checks. Tests assert one decision and preserved frozen response/history. This extends delivered workflows only; full adaptation/research, live-provider and release drills remain outstanding. See [batch evidence](docs/learnlens/task-36-37-39-validation.md).
+    Local migration, scope/security, durable worker, contention and verified database/source restore coverage exists; Task 33 adds governance-history/withdrawal/revocation restore fixtures and the secret-scan repair is integrated. Full-system/research/live-provider, hosted TLS and operational recovery/rollback drills remain incomplete.
 
     Dependencies: Tasks 9, 10, 19, 25, 26, 28, 33, and 36. Suggested owner: platform and security reviewers.
 
-    Partial progress, 9 September 2026: a verified bundle now captures a consistent SQLite snapshot and every referenced uploaded source, including historical revisions, and restores only into a new isolated directory. Checks cover table contents, schema/history guards, migration head, foreign keys and source-file hashes. Reminder concurrency/restart and migration rollback guards have focused tests. Complete-system termination, provider-fault, research/export and release drills remain outstanding.
-
-    Existing migration and worker tests cover useful parts. Exercise the complete system with concurrent submissions, process termination, provider timeout, malformed output, simulation failure, and database contention. Check cross-user/course access, costly-route limits, upload handling, secret protection, and safe logs. Restore the database and uploaded files into an isolated environment.
-
     Done when zero accepted records are lost or duplicated, all verification records restore, and one migration head matches readiness. Preserve protected histories during rollback. No open critical or high security finding may remain.
 
-    Evidence: [worker operations](src-main/docs/worker-operations.md), [assessment migration guide](docs/learnlens/person-a-assessment-migration.md), [deployment guide](src-main/docs/deployment.md), and requirements NFR5, NFR15-NFR17, NFR23.
+    Evidence: [current implementation/delivery](docs/learnlens/task-36-37-39-validation.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
-38. **[Remaining] Measure load, provider cost, and runtime configuration changes.**
+38. **[Partial] Measure load, provider cost, and runtime configuration changes.**
+
+    Opt-in load/cost/runtime-configuration harness and 47 focused fake/fixture tests are integrated; the tiny smoke is synthetic with null actual external cost. Typed next-activity submission follow-up is pending integration. No representative 50-user latency, 5–100 scaling, real provider-switch/budget propagation or <=AUD 0.10 complete-loop cost evidence has been produced.
 
     Dependencies: Tasks 25, 35, 36, and 37; Task 8, D-12. Suggested owner: platform and operations.
 
-    Run representative full learning loops with actual approved providers. At 50 concurrent users, ordinary requests must reach p95 at most 2 seconds, progress at most 3 seconds, and feedback at most 10 seconds. Test 5 to 100 users with errors below 1% and ordinary-request p95 growth at most 25%. Set a separate assessment-evaluation target.
-
     Done when average external LLM cost is at most AUD 0.10 per loop. Save usage, prices, currency assumptions, and configuration. Verify authorised provider, model, timeout, retry, and budget changes without source edits. Let measurements decide whether SQLite or worker concurrency needs changing.
 
-    Evidence: [configuration](src-main/backend/app/core/config.py), [LLM service](src-main/backend/app/services/llm.py), [deployment configuration](src-main/deploy), and requirements NFR7-NFR8 and NFR22.
+    Evidence: [current implementation/delivery](docs/learnlens/task-38-load-cost-harness.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 39. **[Partial] Complete browser, accessibility, and first-time usability checks.**
 
-    Independent validation batch, 9 September 2026: added login keyboard validation/error and enlarged-text reflow, and preference error/retry/focus/save coverage. Fixed hidden preference-load errors, rejected save payloads and login overflow. [Batch evidence](docs/learnlens/task-36-37-39-validation.md) separates automated browser results from outstanding native Safari, manual screen-reader/zoom and first-time usability trials.
-
-    Partial progress, 9 September 2026: 108 automated browser journeys have passing results across Chrome, Edge, Firefox and Playwright WebKit, including reminder/deadline flows, keyboard and automated accessibility checks. Native Safari, manual screen-reader/zoom checks and the specified first-time usability trials remain open.
+    Automated browser/keyboard/reflow/axe coverage and a manual-validation kit with 27 blank role cases are integrated. Native Safari, actual screen-reader/native zoom/contrast checks and first-time usability trials remain undone. T39-C1 keyboard target-wire placement and circuit semantics/accessibility follow-up is pending integration; T39-C2 still needs human speech verification. The inherited timestamp fix is now integrated.
 
     Dependencies: Tasks 24-31 and 36; Task 8, D-12. Suggested owner: accessibility reviewers and product testing.
 
-    Test complete student, educator, assessor, and administrator paths on current Chrome, Edge, Firefox, and native Safari. Record keyboard, focus, screen-reader, contrast, zoom, reflow, error, and circuit-text checks. Automated access checks and Playwright WebKit do not replace the missing manual or native evidence.
-
     Done when key paths meet WCAG 2.2 AA with no critical access fault. Record usability averaging at least 7/10. Five first-time educator setup trials must finish within 20 minutes. At least 80% of first-time students must complete the required journey unaided within 15 minutes.
 
-    Evidence: [browser tests](src-main/frontend/e2e), [frontend components](src-main/frontend/src/components), and requirements NFR1-NFR4 and NFR18.
+    Evidence: [current implementation/delivery](docs/learnlens/task-39-manual-validation-kit.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 40. **[Partial] Demonstrate the approved reuse target.**
 
+    Conditional-programming draft factories and 13 reuse fixtures are merged. Tasks 21/22/25 are delivered, so their old not-yet-integrated wording is obsolete. Exact approved sources/module, independently observed full evidence/model/adaptation/assessment reuse, named verifier and measured per-contributor effort against the selected 16 developer-hour target remain due.
+
     Dependencies: Tasks 25 and 36; Task 8, D-11. Suggested owner: a developer outside the main feature implementation.
-
-    Independent implementation, 9 September 2026: [conditional-programming delivery](docs/learnlens/task-40-conditional-programming.md)
-    supplies a separate draft course/module/outcome, two conditional tracing/correction
-    choice activities, and a prediction/explanation/reflection episode with corrected code,
-    revision links and a fresh delivery-fee example. Existing authoring, task handlers,
-    frozen evidence, human criterion evaluation and pass-rule capabilities are exercised
-    by automated checks. No existing core runtime changes were required. Tasks 21 and 22
-    were neither modified nor required by this implementation. Actual work and limits
-    are recorded; no approved sources, hours or independent validation are claimed.
-    Validation includes 13 focused cases, backend regression with 85% service coverage,
-    frontend/browser regression and the configured quality checks; the delivery record
-    distinguishes initial environment failures from successful unchanged targeted reruns.
-
-    Remaining: approved sources and exact scope, named independent verifier, measured
-    effort against the 16 developer-hour target, practical verification evidence, and
-    Tasks 25/36 completion including full model/adaptation reuse. Task 40 remains partial.
-    <!-- MANUAL FILL Task 40: Attach approved source versions and approval records;
-    name the independent verifier; link per-contributor effort accounting and actual
-    verification evidence for the final commit and complete integrated journey. -->
-
-    D-11 approves a simple conditional-programming module and the 16 developer-hour target. Exact sources, a named verifier, and practical evidence remain due. Configure that module using the existing extension points. Record setup, coding, debugging, tests, documentation, and any core changes. Keep this exercise separate from claims that learning results generalise to that subject.
 
     Done when the approved 16 developer-hour target is met and independently verified. Verify that core evidence, model, adaptation, and assessment engines remain reusable.
 
-    Evidence: [task-type extension guide](src-main/docs/task-type-extension.md), requirements NFR9, NFR11, NFR24, and [decision D-11](docs/learnlens/known-limits-and-deferred-decisions.md).
+    Evidence: [current implementation/delivery](docs/learnlens/task-40-conditional-programming.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
 41. **[Remaining] Complete hosted validation and the release handoff.**
 
-    Dependencies: Tasks 1-40, with all applicable decisions and evidence resolved. Suggested owner: release owner, operations, and product owner.
+    Hosted deployment validation and reviewed release handoff remain outstanding. Package/configuration existence does not prove hosted TLS, persistent storage, worker supervision, backup/restore/rollback, named ownership or 99.5% calendar-month availability.
 
-    Deployment packages and guides exist, but this audit did not verify a hosted installation. Prove the same package works locally and in the approved hosted environment. Check TLS, persistent files, database state, worker supervision, readiness, monitoring, backup, and rollback. Collect hosted availability evidence against the 99.5% monthly target; configuration alone cannot prove it.
+    Dependencies: Tasks 1-40, with all applicable decisions and evidence resolved. Suggested owner: release owner, operations, and product owner.
 
     Done when the tested commit, deployment settings, evidence, owners, open limits, and rollback steps form a reviewed handoff. Update architecture, setup, assessor, learner review, privacy, export, and operations guides. Pilot activation follows the recorded release decision.
 
-    Evidence: [compose.yaml](src-main/deploy/compose.yaml), [compose.hosted.yaml](src-main/deploy/compose.hosted.yaml), [deployment.md](src-main/docs/deployment.md), and [implementation work order](docs/03-codex-implementation-work-order.md).
-
-Tasks 1–7 are complete. Owners can resolve the remaining Task 8 activation records alongside independent implementation. Source, quantum, and test work can run in parallel. Task 25 is the first complete learning-loop milestone. Tasks 26-41 extend the remaining product flows and establish the evidence needed for a pilot. The architecture does not require separate servers for each named agent, a new database by default, or Self-RAG reflection-token training.
+    Evidence: [current implementation/delivery](src-main/docs/deployment.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).

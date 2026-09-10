@@ -1,154 +1,32 @@
-# QuantumLearn MVP requirements traceability
+# LearnLens requirements traceability
 
-This historical MVP matrix maps FR1–FR28 and NFR1–NFR25 from the root
-`Software Requirements Specification.txt` to application surfaces and verification evidence.
-The dated LearnLens batch crosswalk below identifies the rows refreshed against delivered code
-and the wider requirements still awaiting reconciliation. Code existence does not prove a
-measured target has been achieved.
+Inspected integration: `d30570eb048443bc2ac46a6b420f0153d5904d69`, 10 September 2026. **Combined final validation: IN_PROGRESS.**
 
-## Evidence labels
+The [current implementation gap matrix](../../docs/learnlens/implementation-gap-matrix.md) is the authoritative status ledger for every numbered requirement. Its 143 rows link each controlling definition to precise production/service/route/model/migration/UI paths, named fixture tests, dated evidence, current gap, dependency and acceptance check. This file is a crosswalk, not a second independently maintained status table.
 
-- **Automated** — the requirement is directly exercised by a committed automated test.
-- **Implemented — manual** — the implementation exists, but the complete acceptance condition
-  still needs an integrated or human check.
-- **Externally measurable** — the SRS defines a user-study, operational, load, review, or
-  deployment target that cannot be established by repository inspection alone.
-- **Gap** — a material part of the requirement is absent or is not connected in the live path.
+Definitions and settled policy remain in [implementation requirements](../../docs/01-implementation-requirements.md), [assessment specification](../../docs/02-pass-incomplete-bloom-assessment-spec.md), [work order](../../docs/03-codex-implementation-work-order.md) and [Task 8 selections](../../docs/learnlens/task-08-approved-selections.md). The [baseline report](../../docs/learnlens/task-36-requirements-reconciliation.md) and [main audit](../../docs/learnlens/main-audit-2026-09-10.md) remain evidence at `27a397a`, not an audit of the later integrated tree.
 
-All API routes below are relative to `/api/v1`.
+## Complete requirement crosswalk
 
-## Audit verification snapshot
-
-Local verification on 2026-07-26 passed all 383 backend tests with 83.29% service coverage, all
-59 frontend tests across eight files, the TypeScript production build, Ruff lint/format, migration
-head/check, OpenAPI and generated-contract drift checks, and 10 Playwright scenarios across Edge
-Stable and WebKit. The locked CI gate remains the release authority for NFR10; native Safari and
-the other external measurements identified below are not implied by these local results.
-
-## Functional requirements
-
-| ID | Evidence | Concrete implementation | Verification and honest scope |
-| --- | --- | --- | --- |
-| FR1 | **Automated** | `UserRole`, signed session cookies, `require_roles`, and the role-scoped LMS router. | `test_authentication_routes.py`, `test_session_tokens.py`, and `test_lms_core_api.py::test_role_scoping_and_explicit_bootstrap`. The unauthenticated legacy arbitrary-student router is no longer mounted. |
-| FR2 | **Automated** | `POST /auth/login`, `GET /auth/me`, `GET /educator/dashboard`; `LoginScreen`, `App`, and `EducatorDashboard`. | Authentication route/service tests cover valid, invalid, inactive, and tampered sessions; LMS role tests deny non-educators. |
-| FR3 | **Automated** | `GET /students/me/dashboard`, `/students/me/tasks/{task_id}`, draft/submission history routes, `Enrollment`, and course-read scoping. | LMS API tests cover authentication, enrolment-scoped task access, prerequisite access, and role denial. Student routes derive identity from the session rather than a caller-supplied student ID. |
-| FR4 | **Automated** | `Course`, `CourseModule`, `Enrollment`; create/list/get/patch/publish/archive course routes plus module and enrolment routes. `CourseEditor` reloads saved courses and supports course, module, outcome, and enrolment edits. | LMS API tests cover persistence and educator scope; `CourseEditor.test.tsx` covers creation, reload, edits, and enrolment. |
-| FR5 | **Automated** | Canonical upload/fetch/list and authenticated content routes, `LearningMaterial`, `LocalFileStorage`, PDF/DOCX/PPTX extractors, safe HTTPS validation, a 20 MB file limit, and a larger 21 MB request/proxy envelope. Only successfully indexed sources become usable grounding. | Storage/material lifecycle tests cover type, size, request boundaries, traversal, duplicate, fetch safety, indexing failure, and course scope. The canonical learning-loop test covers byte-for-byte educator/enrolled-student access and denial for an unenrolled student. |
-| FR6 | **Automated** | `LearningOutcome` belongs to `CourseModule`; create/list/patch/delete routes and editor controls validate weekly/topic shape. | LMS tests cover all CRUD paths and ownership; Course Editor tests exercise weekly/topic creation and editing. Schema/database integrity rules enforce module association. |
-| FR7 | **Automated** | Upload/fetch processing calls `index_material_offline`; generation retrieves chunk text from the selected module with a course-source fallback, binds authorised chunk IDs, and reports a typed no-result when evidence is absent. `POST /courses/{course_id}/retrieval/search` returns source-labelled passages. | RAG tests cover authorised hits, labels, no-result behavior, and privacy-safe audit. The canonical learning-loop proves upload → chunk retrieval → generated task source → grounded feedback alignment. The minimal deployment uses a deterministic SQLite-backed lexical index rather than a separate vector service. |
-| FR8 | **Automated** | `POST /courses/{course_id}/tasks/generate` uses indexed passage text, the selected outcome, and the administrator-selected provider/model through one runtime factory; the offline adapter remains usable without credentials. Stored tasks include prompt, type, difficulty, answer/criteria, outcome, authorised source, generation metadata, and a prerequisite sequence. | Generation API/LMS tests assert evidence appears in the provider prompt, exact requested count, type-appropriate scaffolds, provider metadata, module/outcome ownership, and strict citation allow-listing. The Course Editor sends one explicitly selected outcome and blocks generation without an indexed source. |
-| FR9 | **Automated** | Six `TaskType` values; type-specific generation/grading in `LmsService`; MCQ, multiple-answer, text, editable code, and circuit modes in `TaskView`. | `test_lms_core_api.py::test_all_six_task_types_accept_and_mark_correct_responses` and frontend `App.test.tsx` cover multiple-answer and code-completion interaction. |
-| FR10 | **Automated** | `position`, difficulty, and `prerequisite_task_ids`; the live grounded generator creates beginner→intermediate→advanced scaffolding with an explicit prerequisite chain. | Generation/LMS tests and the canonical MVP loop assert three ordered tasks, stable positions, and prerequisite links. |
-| FR11 | **Automated** | `_require_unlocked`, ordered task queries, and `TaskRead.access_status`; locked UI actions are disabled. | LMS API test receives 423 for a locked draft and observes the next task unlock after prerequisite completion. |
-| FR12 | **Automated** | Student task GET, nullable draft GET, draft PUT, submission POST, and attempt-history GET; `SubmissionDraft` and immutable `SubmissionAttempt`. `TaskView` restores saved text, selections, code, and circuits and displays prior attempts/latest feedback when reopened. | LMS API and frontend tests cover open/save/reload/submit/resubmit, answer preservation, latest state, history count, and points awarded once. |
-| FR13 | **Automated** | `starter_code`, preserved `code` text, Qiskit `<pre><code>` rendering, code explanation textarea, editable code-completion editor, and code draft/attempt restoration. | Six-type backend and frontend task tests verify code explanation/completion payloads and reload behavior; database text columns retain formatting. |
-| FR14 | **Automated** | `POST /students/me/simulate`, bounded `simulate_circuit`, Qiskit `QuantumCircuit`, `transpile`, and Aer `AerSimulator`; circuit/results UI. Circuit-task grading reuses the same validation/simulation boundary. | `test_quantum_simulation.py`, student simulation tests, and the six-type LMS test cover Aer execution and controlled invalid-input errors. |
-| FR15 | **Automated** | Every accepted LMS submission atomically creates/queues its feedback workflow and starts it in the interactive path; the idempotent feedback route supports recovery/replay. Attempts expose the durable feedback reference, and `TaskView` restores the latest released feedback. | Feedback pipeline/API tests prove automatic creation, persistence, recovery, and idempotency. The canonical MVP loop proves submission → validated grounded feedback without a separate manual trigger. |
-| FR16 | **Automated** | Strict feedback schema, `LocalFeedbackGenerator`/`LlmFeedbackGenerator`, and rendered summary/error/explanation/actions/next step. | Feedback agent/pipeline tests cover correct, partial, incorrect, actionable, and sanitized fallback shapes. |
-| FR17 | **Automated** | `LlmFeedbackJudge`, quality policy, `JudgeEvaluation`, and optional Responses structured-model adapter. | Quality-judge and persistence tests record correctness, relevance, grounding, pass/fail, and reason. Without configured credentials/model, the runnable MVP deliberately uses the deterministic local judge rather than an external LLM. |
-| FR18 | **Automated** | `FeedbackPipeline` releases only accepted feedback, regenerates once, then stores/releases a safe fallback. | Pipeline scenario tests cover first-pass success, rejection→success, two failures→fallback, malformed judge output, and exact replay. |
-| FR19 | **Automated** | Immutable `SubmissionAttempt` stores student/task/attempt/status/score/feedback reference/submitted timestamp; unique attempt sequence and point-award constraints. | LMS attempt-history/immutability tests and persistence constraints verify prior attempts are retained. `test_data_integrity.py` also verifies an exact `1..8` attempt sequence across concurrent database sessions. |
-| FR20 | **Automated** | `LearningEvent` and typed services record task view, draft save, submission, feedback view, and completion with HMAC pseudonym, course/task/type/time/correlation. The browser opens a task through `GET /students/me/tasks/{task_id}`, so the live UI records `task_view`. | Learning-event unit/API tests, LMS event assertions, App task-open tests, feedback-view tracker tests, and privacy tests. |
-| FR21 | **Automated** | Student dashboard summary/task states/scores plus per-task attempt history; all identity comes from `CurrentStudent`. | LMS tests cover private dashboard/progress/history and role scoping; `StudentDashboard` renders pathways, rings, scores, XP, and achievements, while `TaskView` renders retained attempt number/time/score/status records. |
-| FR22 | **Automated** | `GET /educator/students`, `GET /educator/dashboard`, `at_risk_threshold` setting, overdue calculation, and educator-owned course filters. | LMS monitoring/admin test covers “not started” versus at-risk and threshold-backed dashboard data. |
-| FR23 | **Automated** | Recommendation calculation prioritizes missing prerequisites, then the lowest-scoring outcome; `Recommendation` rows persist rank/priority/reason. | LMS prerequisite test asserts the unlock reason and persisted active recommendation. |
-| FR24 | **Automated** | `Reminder`, 24-hour overdue threshold, rolling 24-hour duplicate check, dashboard display/read action, and educator bulk reminders. | LMS reminder test checks the overdue threshold path, repeat dashboard deduplication, and read state. |
-| FR25 | **Automated** | `TaskPointAward`, profile points, configured points-per-level calculation, `Achievement`/`StudentAchievement`, production achievement seed migration `20260726_0013`, and XP/achievement UI. | Migration and LMS tests assert default achievements and one point award across resubmissions; dashboard tests exercise levels and achievements. |
-| FR26 | **Automated** | SQLAlchemy/Alembic models persist users, courses, modules, enrolments, materials/chunks, outcomes, tasks, drafts/attempts, feedback/judging, events, recommendations, reminders, gamification, settings, and audits. | Migration round-trip, persistence-model, LMS, feedback, research, event, and audit tests. Some historical legacy tables remain for migration compatibility but are not routed. |
-| FR27 | **Automated** | Admin user list/create/patch/deactivate/reactivate, course archive, and settings GET/PUT routes guarded by `CurrentAdministrator`. | LMS admin lifecycle/role tests. The local demo bootstrap is loopback-only, absent in production, and treated as a development fixture rather than an administrative operation. |
-| FR28 | **Automated** | The React shell connects course authoring, indexed-source task generation, student tasks, automatic feedback, dashboards, and recommendation APIs. | `test_mvp_learning_loop.py::test_canonical_mvp_learning_loop` uses the real `/generate-tasks` path and exercises authenticated course/module/outcome/material authoring, enrolment/publish, locked→available progression, draft, submit/resubmit/history, grounded validated feedback, points, recommendations, monitoring, and role isolation without swapping APIs or database models. Frontend component tests exercise the same contracts. |
-
-## Non-functional requirements
-
-| ID | Evidence | Concrete implementation | Verification and honest scope |
-| --- | --- | --- | --- |
-| NFR1 | **Externally measurable** | Minimal role-specific UI, empty/error/loading states, and a four-step educator wizard. | No educator/student review dataset currently proves an average usability score ≥7/10. |
-| NFR2 | **Externally measurable** | `CourseEditor` joins details, material, outcome, generation, review, and publish actions. | Five first-time educator timed trials are still required to prove ≤20 minutes. |
-| NFR3 | **Externally measurable** | Login, dashboard, task dialog, submit, and feedback polling are connected in the role app. | A first-time student study is required to prove ≥80% complete the workflow unaided within 15 minutes. |
-| NFR4 | **Implemented — manual** | Semantic controls, focus styles, keyboard alternatives and accessible feedback/analytics; login reflows at 320 CSS pixels with 200% text enlargement; preference-load failures announce an error and support keyboard retry with restored focus. | `e2e/accessibility-interactions.e2e.ts` covers login validation, accessible names, real preference save, error/retry, focus and reflow. Existing `a11y-routes.e2e.ts` covers delivered role routes. Automated checks do not establish complete WCAG 2.2 AA conformance; manual screen-reader and native zoom evidence remain open. |
-| NFR5 | **Implemented — manual** | Durable acceptance, fenced claims, idempotent decisions, immutable response history and database worker recovery. | Existing `test_task7_worker_recovery.py` kills a feedback worker after an API-accepted submission; `test_material_processing_recovery.py` covers material interruption. Added `test_assessment_evaluation_jobs.py` kills a process after a persisted formal-assessment claim, then recovers exactly one decision. This formal fixture is service-level acceptance, not a full API/worker/adaptation termination drill. Complete-system validation remains open. |
-| NFR6 | **Externally measurable** | Health/readiness endpoints support monitoring. | No hosted monthly telemetry proves 99.5% availability. |
-| NFR7 | **Externally measurable** | Provider timeouts, indexed queries, pagination/limits, and bounded circuit execution exist. | No 50-user load result proves the three p95 thresholds and <1% error rate. |
-| NFR8 | **Externally measurable** | Stateless API services plus SQLite’s documented single-worker boundary. | No 5→100-user comparative load test proves the required scaling curve; SQLite may be the limiting architecture. |
-| NFR9 | **Automated** | Retrieval, task generation, feedback, judging, gamification, and analytics have separate services/contracts; `GamificationService` owns the completion-to-reward policy. | Independent RAG, feedback, judge, analytics, and `test_gamification.py` tests exercise these boundaries. Architecture/runbook documents describe the major interfaces. |
-| NFR10 | **Automated** | Locked Python/npm dependencies and CI gates for Ruff, pytest service coverage ≥80%, migration checks, OpenAPI drift, TypeScript lint/unit/build/E2E, audits, and secret scan. | `.github/workflows/quality.yml` is the release evidence; this row is complete only when the current full gate is green. |
-| NFR11 | **Automated** | `TaskTypeRegistry` dispatches scaffolding and grading through independent handlers for all six production task types; `LmsService` has no task-specific generation or grading branches and accepts an injected registry. | `test_task_type_registry.py` registers and executes a demonstration `true_false` handler without changing any existing handler. `task-type-extension.md` documents registration plus the explicit API/persistence/UI allow-list work needed to expose a new production identifier. |
-| NFR12 | **Externally measurable** | Research schemas, paired agentic/baseline records, correctness/grounding metrics, and exports exist. | A dataset of ≥100 educator-approved cases is required to prove ≥80% factual correctness and ≤5% hallucination. |
-| NFR13 | **Externally measurable** | Incorrect-feedback schema requires an identified error and action; tests enforce actionable shapes. | Educator review is still required to prove ≥4/5 and the 80% sampled rate. |
-| NFR14 | **Externally measurable** | Judge thresholds and deliberately flawed unit/scenario cases are automated. | The approved validation dataset is required to establish ≥80% flawed rejection and ≤20% false rejection. |
-| NFR15 | **Externally measurable** | Argon2id passwords, signed/expiring cookies, role guards, CSRF/rate-limit policies, secure-cookie production guard, CORS, security headers, dependency audits, and secret scan. | Authorization/hashing controls are automated. Hosted TLS and a release-time report with zero unresolved critical/high findings remain external evidence. |
-| NFR16 | **Automated** | Route-template logging and recursive redaction; HMAC-separated pseudonyms; allow-listed event/export schemas; no answer text in learning events. | Privacy/security, learning-event, audit, analytics, and export sentinel tests. |
-| NFR17 | **Automated** | Foreign keys, scope guards, immutable attempts/decisions, idempotent jobs and verified SQLite database/upload bundles. | `test_data_integrity.py` covers concurrent attempt sequences; migrations exercise scope and history guards. Added assessment tests hold real SQLite writer locks before claim and after decision commit, then recover one decision and criterion history. A migrated assessment database is bundled/restored with preserved response digest, decision ID, foreign keys and a working immutable-decision guard. `test_learning_backup.py` separately restores current and historical source bytes. |
-| NFR18 | **Implemented — manual** | Current delivered role routes run through Playwright Chrome, Edge, Firefox and WebKit projects. Test fixtures, proxy and runner share configurable API/web ports for isolated worktrees. | See the dated batch delivery record below for exact local results. Playwright WebKit is not native Safari; native Safari and hosted browser evidence remain open. |
-| NFR19 | **Implemented — manual** | A Compose package runs nginx/React, FastAPI, and a recovery worker with one persistent data volume; a hosted overlay changes environment configuration only. It includes hardened containers, readiness, migration startup, first-admin provisioning, and a smoke script. | Local and hosted Compose configurations validate and deployment-runtime tests pass. An actual Docker-engine local run plus a hosted DNS/TLS deployment running the same suite remain release-environment evidence. |
-| NFR20 | **Automated** | Append-only `AuditEvent` covers feedback/research; correlated `PlatformAuditEvent` covers successful/failed login, logout, course/module/outcome/task/submission/progress/admin actions. Unknown login subjects are hashed rather than stored directly. | Authentication, LMS, feedback audit mapping, append-only, privacy, and research-export audit tests. |
-| NFR21 | **Automated** | Feedback UI displays the AI notice, source labels, simulation references, and an accessible reporting control; safe fallback is fixed content. | Feedback UI/API/pipeline, report, safety-policy, and accessibility tests. |
-| NFR22 | **Externally measurable** | Token/cost metadata, configurable per-token rates, and administrator-managed provider/model values are resolved by both live feedback and task-generation factories without source edits. | Runtime-selection and metadata tests exist. A measured AUD-denominated completed-loop average is still required to prove ≤AUD 0.10. |
-| NFR23 | **Automated** | Typed failures, bounded retries, safe fallback, rollback, readiness against the current Alembic head and durable worker recovery. | Added assessment timeout and malformed-evidence cases assert scheduled retry, no partial decision, unchanged frozen response, then one completed decision after recovery. Existing feedback, simulation and material tests cover their fault paths. Head for this batch baseline: `20260909_0039`; complete-system/live-provider drills remain open. |
-| NFR24 | **Externally measurable** | Course/module/outcome/task domain and most RAG/feedback services are subject-neutral at their boundaries. | No documented second-subject demonstration and elapsed implementation evidence proves the “within a few days” target. |
-| NFR25 | **Automated** | Versioned CSV/JSON research export includes case/condition/input references/sources/outputs/judge results/latency/tokens/cost. The live feedback factory wires `DurableTerminalIntegrationPlanner`, HMAC pseudonymisation, configured eligibility, and provider/model metadata into the durable outbox. | Terminal-outbox eligibility/integration tests cover the handoff; research repository/export golden-file and privacy tests cover the exact export schema. The canonical learning-loop test also exercises this live feedback factory rather than a test-only pipeline. |
-
-## Written frontend brief
-
-The frontend was implemented from the user’s written QuantumLearn description. **Figma was not
-used, inspected, copied, or treated as a design source.**
-
-| Brief item | Coverage | Primary files |
+| Family | Exact inventory | Authoritative row/evidence location |
 | --- | --- | --- |
-| Role-selecting login, animated circuit background, statistics | Implemented | `components/LoginScreen.tsx`, `styles.css` |
-| Educator engagement, at-risk alerts, activity, course progress | Implemented | `components/EducatorDashboard.tsx`, `services/lms.py::educator_dashboard` |
-| Four-step course editor, indexed-source validation, selected outcome, and grounded scaffold preview | Implemented | `components/CourseEditor.tsx`, `app/api.ts`, LMS course/material/outcome/task routes |
-| Student pathway states, XP, achievements, rings, recommendations | Implemented | `components/StudentDashboard.tsx`, student dashboard service/routes |
-| MCQ/multiple-answer, Qiskit code explanation/completion, drag/drop circuit and validated feedback | Implemented | `components/TaskView.tsx`, `features/feedback`, quantum/feedback services |
-| Search/filter students, progress/risk, bulk notification, distribution | Implemented | `components/StudentsView.tsx`, educator student/notification routes |
-| Cohort trends, task performance, mastery radar, leaderboard | Implemented | `components/AnalyticsView.tsx`, `components/EducatorDashboard.tsx`, educator dashboard service |
-| Deep-space kinetic-minimal style; Outfit/Inter/JetBrains Mono; violet/cyan | Implemented | `styles.css` |
-| Administrator users/courses/settings workspace | Implemented to satisfy SRS role requirements | `components/AdminWorkspace.tsx`, admin routes |
+| FR | FR1–FR39 — 39 rows | Matrix: each exact ID once; same ID in baseline wording/evidence ledger; integrated I-* overrides where listed |
+| PD | PD1–PD12 — 12 rows | Matrix: each exact ID once, including integrity cues, curriculum, learner corrections and escalation |
+| BP | BP1–BP15 — 15 rows | Matrix: each exact ID once, including moderation, validated AI release, purpose/retention/withdrawal and version control |
+| NFR | NFR1–NFR31 — 31 rows | Matrix: each exact ID once, with actual measurements separated from preparation/fixture proof |
+| AC | AC1–AC22 — 22 rows | Matrix: each exact ID once, with complete-loop evidence and remaining study/access/release acceptance |
+| AT | AT1–AT24 — 24 rows | Matrix: each exact ID once, including binary result, frozen standard, human control and research neutrality |
 
-## Release interpretation
+Total **143**, no duplicated definitions. The former MVP table covered only FR1–FR28/NFR1–NFR25. FR29–39, NFR26–31 and all PD/BP/AC/AT rows are part of the controlling expanded inventory; repeated IDs in old SRS/Person 4 text are aliases to the current definitions, not extra requirements. The full original wording is retained in the baseline ledger, so replacing this stale status table removes no authoritative requirement.
 
-Task 27's [delivery record](../../docs/learnlens/task-27-misconception-cycle.md)
-adds direct evidence for FR34 and AC13: reviewed hypotheses, probes, targeted help,
-revision, fresh checks, state history and educator corrections. BP5 support
-records now include misconception teaching in later practice and formal work.
-Answer-revealing help remains outside formal result evidence. Task 28 receives
-unresolved-cycle signals, extending PD7, FR38 and NFR20 evidence. The focused
-backend batch passed 51 checks; both independent reviews have no open findings.
-Combined verification remains recorded in that delivery record.
+## Current reconciliation
 
-Task 25's local [connected-loop record](../../docs/learnlens/task-25-complete-learning-loop.md)
-adds direct service and browser evidence for FR12, FR14-FR19, FR23 and FR28.
-The saved prediction and transfer observations now reach the learner model without
-changing formal results. A real worker-kill test reuses one committed model snapshot
-after restart, adding scoped NFR23 evidence. The complete-loop browser check also
-exercises human confirmation, assessor queue routing and result visibility.
-Final local checks passed 1,243 backend tests with 87.91% service coverage,
-273 frontend tests and all four new browser journeys. Existing browser regression
-passed 119 of 120 cases; the WebKit timeout passed unchanged in a focused rerun.
-manual accessibility, live-provider and study evidence remain separate.
+- Tasks 25/27/29 are committed and integrated. Task 27 already supplies misconception escalation to Task 28; only staffing/activation remains for that task. The timezone fix is now in integrated source, with fresh-session UTC regression coverage and scoped delivery receipts.
+- Task 33 adds real versioned governance/consent/withdrawal and restricted technical-pair v2 export controls. Production remains closed; full Task 34 learning-study instruments/exports and actual approvals remain absent.
+- Task 35 has 108 draft cases and offline metrics/import tooling, zero expert approvals or ratings. Its numerical fixture check cannot validate AI assessment. The D-07 operational suggestion gate stays disabled and humans confirm formal results.
+- Task 38 supplies a fake/fixture-tested harness, not real performance/cost evidence; typed follow-on submission is pending integration. Task 39 supplies blank human-test procedures, not actual trials; circuit keyboard placement/semantics is pending integration and native/assistive-technology checks remain due.
+- Task 40's dependence on an unfinished Task 25 is stale. It still needs approved sources, full second-subject model/adaptation reuse, independently observed practice and measured developer effort.
+- Former score/average/mastery-radar/leaderboard descriptions are superseded by protected numeric-history retirement and separate evidence/uncertain-estimate/binary-result projections. Game points, quantum probabilities and technical quality measures remain distinct permitted values.
+- Frontend stability/Vitest and secret-scan repairs are integrated; their passing branch receipts do not make final combined validation green. The migration graph head is 0045, with the baseline runtime pin still 0044. The [post-baseline register](../../docs/learnlens/implementation-gap-matrix.md#post-baseline-coordinator-receipts) records coordinator readiness fix `a38e6af` and Task 35 provenance refresh `0eaf467`, their focused receipts and the superseded unfinished backend run. Earlier suite totals/head versions remain historical; final combined validation is pending.
 
-“Automated” means a directly relevant test exists; it does not waive a stricter external
-measurement stated by another NFR. This historical MVP matrix is not a complete audit of the expanded LearnLens requirements.
-Tasks 36, 37 and 39 remain partial; a complete release claim still requires:
-
-1. a green locked backend/frontend/contract/audit CI gate;
-2. completing the usability, timing, availability, load, review-dataset, hosted-security,
-   native-browser, deployment, restart-recovery, and reusability measurements labelled
-   **Externally measurable** or identified as remaining manual evidence.
-
-## Independent validation batch - 9 September 2026
-
-Scope and exact run evidence: [Tasks 36/37/39 delivery](../../docs/learnlens/task-36-37-39-validation.md).
-This update applies to delivered `origin/main` at `e3ce194`; it excludes Tasks 21, 22 and 40.
-The expanded [implementation requirements](../../docs/01-implementation-requirements.md) and
-[assessment specification](../../docs/02-pass-incomplete-bloom-assessment-spec.md) remain authoritative.
-Older untouched MVP rows and the written-frontend-brief snapshot are historical, not new validation claims.
-
-| Requirement | Evidence added or rechecked in this batch | Outstanding acceptance |
-| --- | --- | --- |
-| FR12, FR19, FR26; BP8; AT22 | Assessment interruption, provider-fault and real-contention tests preserve the frozen response and one immutable decision; migrated restore preserves those records and guards. | Full learning-loop, adaptation and governed-research integration; operational restore drill with the final release dataset. |
-| NFR4; AC17 | Login keyboard validation/error, 320px reflow and 200% CSS text enlargement; preferences error announcement, keyboard retry, focus and successful real API write; strict WCAG-tagged axe scans of these states. | Complete key-path WCAG 2.2 AA assessment, native browser zoom and manual assistive technology review. |
-| NFR5, NFR17, NFR23 | Existing feedback/material recovery plus new assessment recovery and contention coverage; exact tests and results in the delivery record. | Combined process-termination and live-provider drills after outstanding features merge. |
-| NFR15, NFR16; AT17 | Existing authentication, scoped assessment/source/research access, privacy, upload and audit coverage is retained in regression. | Hosted TLS, live permission/approval drills and release-time security sign-off. No new research authorisation is granted. |
-| AT24 | Existing result/review keyboard and automated accessibility tests remain relevant. The new preference/login tests do not verify result screen-reader use. | Manual learner result, criteria, next-action and review-control screen-reader evidence. |
-| PD1-PD12; BP1-BP7, BP9-BP15 | No new complete-system, construct-equivalence, adaptation, research or human-approval evidence is claimed by this batch. | Row-by-row expanded traceability and final combined validation remain Task 36 work. |
+The [master task list](../../LearnLens_Remaining_Tasks.md) records **29 completed implementation, 10 partial and 2 remaining**. Requirement-level statuses are more granular and are listed only in the matrix. Final runtime receipts, manual/expert approval and hosted evidence remain coordinator/human obligations. No fixture approval or agent review establishes pilot readiness.
