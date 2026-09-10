@@ -546,6 +546,8 @@ def test_person4_deterministic_end_to_end(
         reconciliation = TerminalIntegrationWorker(
             session,
             now=lambda: NOW + timedelta(seconds=1),
+            # This isolated legacy-mechanics fixture has no live study or participant records.
+            research_repository_factory=SqlAlchemyResearchJobRepository,
         )
         assert asyncio.run(reconciliation.run_once()).processed is True
         assert asyncio.run(reconciliation.run_once()).processed is True
