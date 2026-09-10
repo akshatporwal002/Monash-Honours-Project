@@ -1,11 +1,28 @@
 """Progress keeps observed activity, uncertain estimates and released results separate."""
 
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from app.domain.assessment import AssessmentResult
 from app.schemas.activity_continuation import ActivityHistory
+
+
+def _utc_instant(value: datetime) -> datetime:
+    # These progress sources store UTC. SQLite reloads their DateTime columns
+    # without tzinfo; restore that meaning without changing the recorded instant.
+    # Aware values must be converted, not relabelled (including non-UTC offsets).
+    if value.utcoffset() is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+ProgressTimestamp = Annotated[
+    datetime,
+    AfterValidator(_utc_instant),
+    Field(description="Recorded instant serialized with an explicit UTC offset."),
+]
 
 
 class ProgressContract(BaseModel):
@@ -18,7 +35,7 @@ class ProgressObservation(ProgressContract):
     response_id: str | None
     kind: str
     support_level: int
-    occurred_at: datetime
+    occurred_at: ProgressTimestamp
     confidence: float | str | None = None
 
 
@@ -35,7 +52,7 @@ class ProgressEstimate(ProgressContract):
     status: str
     uncertainty: float
     reason: str
-    occurred_at: datetime
+    occurred_at: ProgressTimestamp
     evidence: list[ProgressEvidenceLink]
 
 
@@ -44,7 +61,11 @@ class ProgressResult(ProgressContract):
     task_id: str
     result: AssessmentResult | None
     status: str
-    occurred_at: datetime
+    occurred_at: ProgressTimestamp
+
+
+class ProgressChoice(ActivityHistory):
+    created_at: ProgressTimestamp
 
 
 class ProgressAdaptation(ProgressContract):
@@ -54,8 +75,8 @@ class ProgressAdaptation(ProgressContract):
     uncertainty: float
     snapshot_id: str | None
     evidence_ids: list[str]
-    occurred_at: datetime
-    choices: list[ActivityHistory]
+    occurred_at: ProgressTimestamp
+    choices: list[ProgressChoice]
 
 
 class ProgressOutcome(ProgressContract):
@@ -87,7 +108,7 @@ class ProgressScopeRead(ProgressContract):
 class LearningProgressPage(ProgressContract):
     course_id: str
     course_title: str
-    generated_at: datetime
+    generated_at: ProgressTimestamp
     cohort_observations: dict[str, int]
     cohort_weekly_observations: dict[str, dict[str, int]]
     cohort_weekly_trends: dict[str, dict[str, int]]
@@ -115,7 +136,7 @@ class ProgressTrendRecord(ProgressContract):
     learner_id: int
     learner_name: str
     outcome_id: str
-    occurred_at: datetime
+    occurred_at: ProgressTimestamp
     kind: str
     evidence_id: str | None
     task_id: str | None

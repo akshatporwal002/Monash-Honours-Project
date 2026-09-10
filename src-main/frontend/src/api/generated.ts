@@ -1619,7 +1619,7 @@ export type ApiSchemas = {
     "support_amount"?: "standard" | "on_request"
   }
   "ProgressAdaptation": {
-    "choices": Array<ApiSchemas["ActivityHistory"]>
+    "choices": Array<ApiSchemas["ProgressChoice"]>
     "evidence_ids": Array<string>
     "occurred_at": string
     "reason": string
@@ -1627,6 +1627,14 @@ export type ApiSchemas = {
     "state": string
     "uncertainty": number
     "workflow_id": string
+  }
+  "ProgressChoice": {
+    "action": string
+    "created_at": string
+    "educator": boolean
+    "reason": string
+    "task_id": (string) | (null)
+    "version": number
   }
   "ProgressEstimate": {
     "dimension": string
