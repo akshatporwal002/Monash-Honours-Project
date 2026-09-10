@@ -1,22 +1,79 @@
-import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
+import { randomUUID } from 'node:crypto'
 
-test('keyboard and drag place the same gates on q1 with named removal and preserved simulation', async ({ page }, testInfo) => {
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test, type APIRequestContext } from '@playwright/test'
+
+import { apiUrl, webUrl } from './urls'
+
+type CircuitTask = {
+  id: string
+  course_id: string
+  task_type: string
+  position: number
+  access_status: string
+  attempt_count: number
+}
+
+async function loginDemo(request: APIRequestContext, role: 'admin' | 'educator' | 'student') {
+  const response = await request.post(`${apiUrl}/api/v1/auth/login`, {
+    data: { email: `${role}@quantumlearn.demo`, password: 'quantumlearn-demo' },
+  })
+  expect(response.status()).toBe(200)
+  expect((await response.json()).role).toBe(role === 'admin' ? 'administrator' : role)
+  const csrf = (await request.storageState()).cookies.find(cookie => cookie.name === 'ql_csrf')?.value
+  expect(csrf).toBeTruthy()
+  return { Origin: webUrl, 'X-CSRF-Token': csrf! }
+}
+
+async function demoProgress(request: APIRequestContext) {
+  await loginDemo(request, 'student')
+  const response = await request.get(`${apiUrl}/api/v1/students/me/dashboard`)
+  expect(response.ok()).toBeTruthy()
+  const { tasks }: { tasks: CircuitTask[] } = await response.json()
+  const circuit = tasks.find(task => task.task_type === 'quantum_circuit')!
+  expect(circuit).toBeTruthy()
+  return {
+    courseId: circuit.course_id,
+    tasks: tasks.map(({ id, access_status, attempt_count }) => ({ id, access_status, attempt_count })),
+  }
+}
+
+test('keyboard and drag place the same gates on q1 with named removal and preserved simulation', async ({ page, request }, testInfo) => {
   test.setTimeout(90_000)
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
+  const demoBefore = await demoProgress(request)
+  // Each project/retry gets a separate learner through the real account and
+  // owning-educator enrolment routes. Shared demo progress stays untouched.
+  const email = `circuit-${randomUUID()}@example.com`
+  const password = randomUUID()
+  const created = await request.post(`${apiUrl}/api/v1/admin/users`, {
+    headers: await loginDemo(request, 'admin'),
+    data: { email, password, full_name: 'Circuit browser learner', role: 'student' },
+  })
+  expect(created.status(), await created.text()).toBe(201)
+  const learner = await created.json()
+  const enrolled = await request.post(`${apiUrl}/api/v1/courses/${demoBefore.courseId}/enrollments`, {
+    headers: await loginDemo(request, 'educator'), data: { student_id: learner.id },
+  })
+  expect(enrolled.status(), await enrolled.text()).toBe(201)
   await page.goto('/login')
   await page.getByRole('radio', { name: 'Student', exact: true }).check()
-  await page.getByRole('button', { name: 'Load demo workspace' }).click()
+  await page.getByLabel('Email address').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/student$/)
   const dashboardResponse = await page.request.get('/api/v1/students/me/dashboard')
   expect(dashboardResponse.ok()).toBeTruthy()
   const dashboard = await dashboardResponse.json()
-  const tasks: Array<{ id: string; task_type: string; position: number; access_status: string }> = dashboard.tasks
+  const tasks: CircuitTask[] = dashboard.tasks
+  expect(tasks.every(task => task.attempt_count === 0)).toBeTruthy()
   const circuit = tasks.find(task => task.task_type === 'quantum_circuit')!
   expect(circuit).toBeTruthy()
+  expect(circuit.course_id).toBe(demoBefore.courseId)
+  expect(circuit.access_status).toBe('locked')
   // Supported API submissions unlock the existing demo pathway; no fixture or
-  // production access rule is overridden. Each runner launch has its own database.
+  // production access rule is overridden for this test's learner.
   const answers: Record<string, { answer: string; code?: string }> = {
     multiple_choice: { answer: 'b' },
     multiple_answer: { answer: '["a","c"]' },
@@ -28,7 +85,7 @@ test('keyboard and drag place the same gates on q1 with named removal and preser
   for (const task of tasks.filter(task => task.position < circuit.position).sort((a, b) => a.position - b.position)) {
     if (task.access_status === 'completed') continue
     const response = await page.request.post(`/api/v1/students/me/tasks/${task.id}/submissions`, {
-      headers: { 'X-CSRF-Token': csrf }, data: answers[task.task_type],
+      headers: { Origin: webUrl, 'X-CSRF-Token': csrf }, data: answers[task.task_type],
     })
     expect(response.status(), `Prerequisite ${task.task_type}: ${await response.text()}`).toBe(201)
   }
@@ -93,4 +150,5 @@ test('keyboard and drag place the same gates on q1 with named removal and preser
   expect((await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('circuit-keyboard.png'), fullPage: true })
   expect(errors).toEqual([])
+  expect((await demoProgress(request)).tasks).toEqual(demoBefore.tasks)
 })
