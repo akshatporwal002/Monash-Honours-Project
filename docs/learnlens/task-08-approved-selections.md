@@ -135,8 +135,37 @@ Implementation checks: correct routing, visible status, reassignment, overdue ca
 
 ## D-10
 
-No new choice was offered. Keep [legacy-retirement-v1](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer).
-Retire numeric grading immediately with no compatibility window, while preserving protected history.
+Policy version: `legacy-retirement-v1`.
+
+Recorded: 2026-09-06. Approver: Requesting user, through this conversation.
+
+The user selected immediate retirement: "you can remove all the old stuff immediately".
+Effective immediately for implementation, with no grace period or old-client support requirement.
+No new choice was offered in the later Task 8 selections; this approval remains in force.
+
+### Retirement rule
+
+Retire the old numeric-grading interfaces and supporting behaviour through a coordinated frontend and backend update.
+The compatibility window is zero days. Older consumers must update; they do not justify keeping a compatibility adapter.
+Document the removal with the implementation. No advance-notice period delays the change.
+
+The known scope includes numeric learner-result fields, score-based dashboard summaries and recommendations,
+passing-score settings, score-linked rewards, and related frontend types, API readers, exports, and tests.
+Remove obsolete active database columns after preserving their original values and updating all active readers and writers.
+Apply this across the application; the decision is not limited to one course or client version.
+
+### Preservation and validation
+
+Keep original attempts, protected assessment history, and migration audit records readable.
+Their retention or deletion belongs to the separate data-lifecycle policy.
+An old percentage does not become a formal PASS. Simulation probabilities and technical quality measures keep their own meanings.
+
+Use a forward migration where schema changes are needed. Verify history preservation, record counts, and one migration head.
+Cover fresh and populated databases, formal-only and mixed histories, updated API contracts, and learner and educator views.
+Preserve a verified recovery path through backups and the prior package; do not reopen old score behaviour as a permanent adapter.
+
+Known consumers include the current browser frontend and internal LMS projections.
+No claim is made about live external integrations or live record counts. Any later-discovered old consumer must update under this policy.
 
 ## D-11
 

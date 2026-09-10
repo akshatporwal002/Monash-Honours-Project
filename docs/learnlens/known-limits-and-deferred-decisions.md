@@ -7,8 +7,7 @@ Last reviewed: 2026-09-07
 ## Purpose
 
 This register records policy and evidence decisions that cannot be inferred from code, prompts,
-fixtures, or defaults. It supports Step 1 of
-[`005-remaining-feature-roadmap.md`](../plans/005-remaining-feature-roadmap.md).
+fixtures, or defaults.
 
 This register indexes recorded policy approvals and their remaining limits. It does not itself enable a feature or claim pilot readiness.
 A `PENDING` entry blocks dependent behaviour where an explicit decision is required.
@@ -37,7 +36,7 @@ Sources: `docs/01-implementation-requirements.md:17-32`,
 
 | ID | Decision | Status | Required owner | Evidence or approval required | Dependent work blocked |
 | --- | --- | --- | --- | --- | --- |
-| D-01 | Whether learners can see a provisional formal result before assessor action | `SELECTION_APPROVED` | Product owner and assessors | [Approved selection](task-08-approved-selections.md#d-01); remaining detail: Named policy, learner wording, effective version, and approval date | Learner result visibility and final wording in Plan 005 Step 2; AT19 and AT24 completion |
+| D-01 | Whether learners can see a provisional formal result before assessor action | `SELECTION_APPROVED` | Product owner and assessors | [Approved selection](task-08-approved-selections.md#d-01); remaining detail: Named policy, learner wording, effective version, and approval date | Learner result visibility and final wording; AT19 and AT24 completion |
 | D-02 | Which users may receive course-scoped assessor permission | `SELECTION_APPROVED` | Product owner | [Approved selection](task-08-approved-selections.md#d-02); remaining detail: Role-assignment policy, approver, course-scope rule, and effective version | Production assessor assignment and pilot-ready role claim; FR1, FR38, AT17 |
 | D-03 | Which users may receive separately approved research permission | `SELECTION_APPROVED` | Product owner and research governance | [Approved selection](task-08-approved-selections.md#d-03); remaining detail: Research-access policy, authorised roles, scope, and effective version | Production research assignment; FR20 and research-governance activation |
 | D-04 | Outcome-specific mandatory criteria and evidence-sufficiency rules | `SELECTION_APPROVED` | Assigned assessors | [Approved selection](task-08-approved-selections.md#d-04); remaining detail: Approved outcome, criteria, pass rule, evidence-sufficiency rule, and version | Publication of real assessed outcomes and task forms; FR6, FR8, BP2-BP3, AT4-AT9 |
@@ -46,7 +45,7 @@ Sources: `docs/01-implementation-requirements.md:17-32`,
 | D-07 | AI evaluator dataset, agreement statistic, fairness review, and release thresholds | `SELECTION_APPROVED` | Assessment governance | [Approved selection](task-08-approved-selections.md#d-07); remaining detail: Approved evaluation protocol, dataset definition, statistic, threshold, and release decision | Automated evaluator release; BP10-BP11 and NFR12-NFR14 |
 | D-08 | Assessment, audit, and research retention, withdrawal, deletion, and missing-data rules | `SELECTION_APPROVED` | Privacy owner and research governance | [Approved selection](task-08-approved-selections.md#d-08); remaining detail: Approved data plan, consent version, retention schedule, withdrawal handling, and effective version | Destructive lifecycle actions, live participant enrolment, and final privacy/pilot claim; BP12-BP14, NFR16, NFR25, NFR30 |
 | D-09 | Human escalation owner, severity mapping, and response/service target | `SELECTION_APPROVED` | Product owner and operations | [Approved selection](task-08-approved-selections.md#d-09); remaining detail: Approved escalation policy, assignment queue, target, and effective version | Escalation service-level claim; PD7 and NFR20 |
-| D-10 | Legacy numeric-score compatibility window and client-version shutdown plan | `APPROVED_FOR_IMPLEMENTATION` | Requesting user, through this conversation | [Recorded retirement decision](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer), including scope, version, effective date, and verification requirements | Policy choice settled; final legacy-column removal and old-client shutdown still require implementation and validation |
+| D-10 | Legacy numeric-score compatibility window and client-version shutdown plan | `APPROVED_FOR_IMPLEMENTATION` | Requesting user, through this conversation | [Recorded retirement decision](task-08-approved-selections.md#d-10), including scope, version, effective date, and verification requirements | Policy choice settled; final legacy-column removal and old-client shutdown still require implementation and validation |
 | D-11 | Approved NFR24 reuse target | `SELECTION_APPROVED` | Product owner | [Approved selection](task-08-approved-selections.md#d-11); remaining detail: Approved second-subject reuse measure and threshold | NFR24 completion claim |
 | D-12 | Approved environments and reviewers for native Safari, screen-reader, manual zoom, hosted availability, load, cost, and usability evidence | `SELECTION_APPROVED` | Accessibility, operations, and product owners | [Approved selection](task-08-approved-selections.md#d-12); remaining detail: Named environment, reviewer, schedule, and evidence location | NFR1-NFR8, NFR18, NFR22, AC17, AC18, and pilot-ready claim |
 
@@ -73,8 +72,8 @@ document.
 
 ## Implementation guardrails
 
-The [legacy retirement decision](../../.scratch/learnlens-pilot-readiness/issues/11-legacy-score-retirement.md#answer) records the user's explicit implementation approval.
-Its full policy and scope live in that ticket. It does not approve deletion of protected history or replace migration evidence.
+The [legacy retirement decision](task-08-approved-selections.md#d-10) records the user's explicit implementation approval,
+full policy and scope. It does not approve deletion of protected history or replace migration evidence.
 
 - An unset decision remains visible and blocks only the feature that depends on it.
 - Test fixtures may exercise policy machinery using explicit test values, but they do not approve
@@ -96,8 +95,5 @@ Its full policy and scope live in that ticket. It does not approve deletion of p
 
 ## Source references
 
-- `docs/plans/004-remaining-work-and-merge-readiness.md:102-132`
-- `docs/plans/002-person-a-assessment-implementation.md:1516-1534`
-- `docs/plans/001-person-b-platform-implementation.md:1775-1792`
 - `docs/01-implementation-requirements.md:17-32`
 - `docs/02-pass-incomplete-bloom-assessment-spec.md:11-24`

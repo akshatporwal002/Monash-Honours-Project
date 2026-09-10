@@ -1,20 +1,14 @@
 # Task 22: approved activity continuation
 
-Task 22 is implemented and locally verified in `.tmp-coordinator/task22`.
-Changes are uncommitted in a detached worktree. Nothing has been staged, pushed, merged, or deployed.
-Task 23 has not started. Task 35 operational AI assessment remains disabled.
+This records the original implementation and local verification of Task 22.
+The [integration record](task-22-main-integration.md) describes the later combined storage and migration sequence.
+Task 35 operational AI assessment remains disabled.
 
-## Dependency provenance
+## Technical dependencies
 
-The base is `65a9457d27e849465e7f227471336552bb22b8b4`.
-Main does not contain the uncommitted Task 20 and Task 21 dependencies.
-The [dependency receipt](task-22-dependency-baseline.json) records SHA256 hashes for all 60 inherited files.
-The Task 21 receipt identifies its 38 inherited Task 20 files. Both source worktrees were preserved.
-Available disk at the start was 74,720,645,120 bytes.
-
-Use this worktree to inspect the complete behavior. Comparing its Git diff to main includes both dependencies.
-The [Task 22 change manifest](task-22-change-manifest.json) separates changes from the verified Task 21 source.
-No sub-agents or independent reviewers were used. The user required work and reviews to remain local.
+Continuation consumes the [Task 20 preference interface](task-20-learner-preferences.md)
+and the [Task 21 approved pathway graph](task-21-curriculum-diagnostics.md).
+The shared learner model also preserves Task 19 correction history.
 
 ## Behavior and eligibility
 
@@ -105,7 +99,7 @@ The full run included all 19 Task 22 tests and all 31 migration checks.
 - Final authenticated Task 22 journey: passed in all four browsers, with zero page errors and Axe violations.
 - The journey uses ordinary sign-in, real API writes, migrated SQLite, the checked-feedback pipeline, and shipped worker wiring.
   It verifies accept, reload, defer, replace, educator override reason, learner history, activity navigation, and 390px reflow.
-- Gitleaks scanned all 85 final changed/inherited files and found no leaks. No new commit range exists.
+- Gitleaks scanned all 85 implementation and dependency files and found no leaks.
 - Ruff check and format pass across 423 Python files. OpenAPI and generated frontend contracts are current.
 - Frontend lint and production build pass. The existing large-chunk warning remains.
 - Frozen Python lock/install and dependency audit pass after patching only `httpcore2` and `httpx2` from 2.9.1 to 2.12.0.
@@ -120,7 +114,7 @@ transaction rollback, opt-out, correction consumption, null activity, migration 
 
 ### Standards self-review
 
-Reviewed the Task 22 delta against dependency hashes, repository contracts, security boundaries, and quality workflow.
+Reviewed the Task 22 delta against repository contracts, security boundaries, and quality workflow.
 Found and fixed transaction ownership, stale-worker fencing, strict action fields, and migration preflight ordering.
 The additive migration rejects populated downgrade before any DDL. Shared standalone model behavior remains covered.
 The dashboard retains the existing recommendation projection while using durable Task 22 decisions as authority.
@@ -128,7 +122,7 @@ No independent review is claimed.
 
 ### Spec self-review
 
-Checked every requested Task 22 behavior and boundary against the attached request and the pre-edit plan.
+Checked Task 22 behavior and boundaries against the implementation requirements.
 Found and fixed two integration gaps: practice unlocking still read numeric grades, and the dashboard still ranked scores.
 Practice navigation now uses the already-approved exit rule. The dashboard respects saved deferrals and opt-out.
 Checked feedback does not establish mastery; uncertainty and existing correction review requirements remain explicit.
@@ -146,14 +140,14 @@ Independent review, remote CI, deployment, and pilot effectiveness are not claim
 
 ### Reproducible commands and local evidence
 
-Run from `src-main/backend` in this worktree with Python 3.11 and the project environment.
-Set `APP_ENV=test`, a test-only pseudonym secret, and a task-owned SQLite `DATABASE_URL`.
-When using another worktree's Python environment, set `PYTHONPATH` to this backend.
+Run from `src-main/backend` with Python 3.11 and the project environment.
+Set `APP_ENV=test`, a test-only pseudonym secret, and an isolated SQLite `DATABASE_URL`.
+Set `PYTHONPATH` to the backend being tested if using a separate Python environment.
 
 ```text
 uv lock --check
 uv sync --frozen --all-extras
-python -m pytest --cov=app.services --cov-report=term-missing --cov-fail-under=80 -o tmp_path_retention_policy=failed --basetemp=.tmp-task22/backend-full3
+python -m pytest --cov=app.services --cov-report=term-missing --cov-fail-under=80 -o tmp_path_retention_policy=failed
 ruff check .
 ruff format --check .
 python scripts/export_openapi.py --check
@@ -177,26 +171,16 @@ node e2e/task22-activity.local.mjs
 The journey requires `QUANTUMLEARN_BACKEND_PYTHON` and accepts `TASK22_BROWSER` values
 `chrome`, `edge`, `firefox`, and `webkit`. It owns ports 8172 and 5272, and stops its own helper processes.
 Each run creates a fresh database, `result.json`, logs, and a mobile screenshot under backend `.tmp-task22`.
-Final browser receipts are `browser-1788911151968`, `browser-1788911167567`, `browser-1788911183798`,
-and `browser-1788911204792`. The settled Chrome mobile capture is `browser-1788911518005/activity-mobile.png`.
-These ignored files are local evidence, not committed artifacts. All 18 recorded helper PIDs are stopped,
-and ports 8172 and 5272 have no listeners.
-
-Other backend `.tmp-task22` evidence includes `final-focused.log`, `frontend2.log`, `browser-regression.log`,
-`backend-full3.log`, `backend-final-rerun.log`, `matrix-fixed.log`, `preference-migration-final.log`, `python-audit-final.log`, and `gitleaks.log`.
-Frontend `.tmp-task22` contains `lint-final.log`, `build-final.log`, `audit-full.log`, and `audit-production.log`.
 PowerShell may wrap native stderr as `NativeCommandError`; exit status and actual test/audit output determine success.
 
-## Recovery and delivery
+## Recovery
 
-1. Keep Task 20 and Task 21 worktrees intact. Integrate their changes before Task 22 when the user authorizes delivery.
-2. Back up the target SQLite database before applying migrations. Run Alembic upgrade to head in the normal release process.
-3. Start API and worker with the same database and approved provider configuration. The offline factory is for local mode.
-4. If a continuation claim expires, use the existing bounded worker retry path. Do not delete receipts or repeat submission.
-5. For a failed choice save, retry its original key. For version conflict, refresh before making a new choice.
-6. If approval changes, the educator must review and publish the pathway again. A new response can trigger a new decision.
-7. Populated protected history cannot be downgraded in place. Use a forward fix or restore the pre-migration backup.
+1. Back up the target SQLite database before applying migrations. Run Alembic upgrade to head in the normal release process.
+2. Start API and worker with the same database and approved provider configuration. The offline factory is for local mode.
+3. If a continuation claim expires, use the existing bounded worker retry path. Do not delete receipts or repeat submission.
+4. For a failed choice save, retry its original key. For version conflict, refresh before making a new choice.
+5. If approval changes, the educator must review and publish the pathway again. A new response can trigger a new decision.
+6. Populated protected history cannot be downgraded in place. Use a forward fix or restore the pre-migration backup.
 
 This is SQLite local verification. Other database engines, production provider behavior, pilot outcomes, and remote CI remain unverified.
 History is retained for scoped reads; large-history performance has not been load-tested.
-Final delivery requires explicit user authorization. Leave all changes uncommitted and do not merge to main.

@@ -86,7 +86,7 @@ This record describes completed work, not measured developer-hours:
 
 | Category | Actual work |
 | --- | --- |
-| Setup and inspection | Fetched main; verified effective Jordan Tran author/committer identity and authenticated `jordann-trann` repository push permission; inspected D-11, task extension guide, authoring, episode, evidence, assessment and quality gates. Following the coordination update, moved only the five Task 40 files into an isolated worktree on `jordan/task40-conditional-reuse-isolated`, verified copies by hash and left the shared checkout clean. |
+| Setup and inspection | Inspected D-11, the task extension guide, authoring, episode, evidence, assessment and quality gates. |
 | Source preparation | Authored small temperature and delivery examples. No external source selected or approved. |
 | Coding | Added draft factories and proposed human criteria using existing interfaces. |
 | Debugging | Corrected the test's publication-helper import, enum comparison, required synthetic approval timestamp and expected missing-transfer message. Checked the existing renderer and made the activity prompts self-contained, using the response textarea for corrected code. Diagnosed 32 regression failures/errors caused by Windows path length in nested temporary directories; all passed unchanged in shorter isolated directories. Cleared frontend failures with focused reruns after bulk jobs finished. No production constraints, assertions or timeouts were relaxed. |

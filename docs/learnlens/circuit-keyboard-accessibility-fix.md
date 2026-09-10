@@ -1,13 +1,7 @@
 # Circuit keyboard placement and gate identification fix
 
-Date: 10 September 2026. Branch: `codex/fix-circuit-keyboard`.
-Clean starting commit: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4` from local main.
-Worktree: `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-circuit/worktree`.
-The completed `codex/task39-manual-validation-kit` branch at `1b9fe624` is preserved.
-The coordinator's active integration checkout was not edited. No merge, push or
-GitHub access was performed. Author/committer use the personal Jordan Tran identity
-`226841807+jordann-trann@users.noreply.github.com`, verified before commit; global
-Git settings are unchanged.
+Date: 10 September 2026.
+Tested baseline: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`.
 
 ## Outcome and cause
 
@@ -64,33 +58,19 @@ automated evidence; it is not a WCAG conformance or manual screen-reader claim.
 
 ## Runtime and isolation
 
-Coordinator-supplied Node: `.tmp-task23-24/tools/node-v22.13.0-win-x64/node.exe`
-under the original checkout, version **22.13.0**. Python read-only reuse:
-`src-main/backend/.venv/Scripts/python.exe`, version **3.11.16**. Chrome channel:
-installed Chrome **152.0.7977.83** (executable product version read after the run).
-The frontend dependency source is the coordinator-approved stable tree at
-`.tmp-stabilise-frontend/worktree/src-main/frontend/node_modules`, Vitest **4.1.11**.
-It was copied into this worktree so Vite/Vitest caches cannot modify the shared
-tree. This is not a fresh baseline-lock `npm ci` claim; both red and green used
-the same approved snapshot. Integration's locked install remains coordinator work.
+Runtime versions: Node **22.13.0**, Python **3.11.16**, Chrome **152.0.7977.83**,
+and Vitest **4.1.11**. Frontend dependencies were copied into an isolated directory
+so Vite/Vitest caches could not modify the dependency source. Both failing and
+passing runs used the same snapshot; these checks do not establish a fresh
+baseline-lock `npm ci` result.
 
-Copy command from the original checkout (robocopy exit 1 means files copied):
-
-```powershell
-robocopy 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\.tmp-stabilise-frontend\worktree\src-main\frontend\node_modules' 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\.tmp-circuit\worktree\src-main\frontend\node_modules' /E /NFL /NDL /NJH /NJS /R:0 /W:0
-```
-
-All following commands run from this worktree's `src-main/frontend` with its own
-build outputs. Before Node commands:
-
-```powershell
-$env:PATH = 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\.tmp-task23-24\tools\node-v22.13.0-win-x64;' + $env:PATH
-```
+All following commands run from `src-main/frontend` with separate build outputs
+and Node 22.13.0 on `PATH`.
 
 For browser commands, also set:
 
 ```powershell
-$env:QUANTUMLEARN_BACKEND_PYTHON = 'C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\src-main\backend\.venv\Scripts\python.exe'
+$env:QUANTUMLEARN_BACKEND_PYTHON = (Resolve-Path '../backend/.venv/Scripts/python.exe').Path
 $env:PYTHONPATH = (Resolve-Path ../backend).Path
 $env:QUANTUMLEARN_E2E_API_PORT = '4590'
 $env:QUANTUMLEARN_E2E_WEB_PORT = '4591'
@@ -137,26 +117,14 @@ this is not evidence of production security or live provider behaviour.
    component tests; string names already match exactly. Build, four tests and lint
    then passed. No production code changed in response to that typing issue.
 
-### Retained local artifacts
+### Visual verification
 
-Logs reside in the worktree's parent `.tmp-circuit/`:
-`.tmp-circuit-component-red.log`, `.tmp-circuit-browser-red.log` (initial harness),
-`.tmp-circuit-browser-red2.log` (absent control), `.tmp-circuit-browser-red3.log`
-(exact payload mismatch), `.tmp-circuit-component-green.log` (empty-save test
-error), `.tmp-circuit-component-green2.log`, `.tmp-circuit-browser-green.log`,
-`.tmp-circuit-existing.log`, `.tmp-circuit-focused-final.log`,
-`.tmp-circuit-components-final.log`, `.tmp-circuit-build.log` (initial typing
-failure), `.tmp-circuit-build-final.log` and `.tmp-circuit-lint-final.log`.
-Failed browser screenshots/video/error context were copied to sibling directories
-`browser-initial-harness`, `browser-red-missing-control`, `browser-red-payload`
-before the next runner invocation. Final screenshot:
-`src-main/frontend/test-results/playwright/circuit-keyboard.e2e.ts-ke-ab093-al-and-preserved-simulation-chrome-stable/circuit-keyboard.png`.
 The final screenshot was visually inspected: target field, gate controls and clear
 state are visible without overlap at the tested desktop viewport. Synthetic demo
 identity may appear; no live credentials/learner data are used. No debug logging
 or throwaway production instrumentation remains.
 
-## Limits and handoff
+## Limits
 
 Only Chrome was run for this change; no full frontend/backend/multi-browser suite,
 load campaign, native Safari or manual assistive-technology trial. HTML5 drag is
@@ -165,15 +133,13 @@ Accessible names and axe do not establish actual screen-reader speech or all AA
 criteria. The broader T39-C2 question about all saved circuit text remains for
 the human circuit-equivalence procedures; no protected snapshot was rewritten.
 
-The coordinator should integrate this commit and rerun its combined gates against
-the final dependency lock. The earlier Task 39 kit is retained as historical
+The earlier Task 39 kit is retained as historical
 preparation; its source-only C1/C2 descriptions are superseded for these controls
 by this reproduction/fix evidence, not retroactively edited. No institutional,
 expert or first-time participant evidence is claimed.
 
 ## T39-C2 circuit text follow-up (after `065d70a`)
 
-The coordinator requested the remaining text-semantic change before integration.
 `EpisodeSnapshot.tsx` now uses one operation description for both the live
 `EpisodeCircuitText` and saved episode `Content` renderers. The duplicated generic
 formatting was the cause: it listed CX qubits without naming their roles.
@@ -195,15 +161,12 @@ node node_modules/eslint/bin/eslint.js src/components/EpisodeSnapshot.tsx src/te
 ```
 
 The initial sandboxed test launch could not start Vite subprocesses (`spawn
-EPERM`); it did not execute tests. The authorized retry before the fix produced
+EPERM`); it did not execute tests. The retry before the fix produced
 two expected failures for ambiguous ordinary/reversed CX text and one passing
 empty-circuit check (2.86 s). After the fix, all nine tests in the three focused
-files passed (16.99 s). Changed-file ESLint passed with no output. Receipts in the
-worktree parent `.tmp-circuit/`: `.tmp-circuit-text-red.log` (startup limitation),
-`.tmp-circuit-text-red-retry.log`, `.tmp-circuit-text-green.log`, and
-`.tmp-circuit-text-lint.log`.
+files passed (16.99 s). Changed-file ESLint passed with no output.
 
 This supersedes the earlier deferral of the two text renderers' CX role wording.
 Manual screen-reader speech, native-browser and human usability trials remain
-pending; these component checks do not establish those outcomes. The coordinator
-will rerun the full frontend and browser suite centrally after integration.
+pending; these component checks do not establish those outcomes or a complete
+frontend and browser regression result.

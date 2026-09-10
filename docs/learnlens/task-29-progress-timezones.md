@@ -8,15 +8,8 @@ Progress responses now serialize explicit UTC instants after SQLite reload.
 `2026-09-10T03:33:21.486860Z` displays as 1:33 pm in Sydney, preserving the
 original recorded instant. Previously the offset-free value displayed as 3:33 am.
 
-Branch: `codex/fix-progress-timezones`.
-Actual starting commit: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`, matching the
-audited main commit. The isolated worktree is
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-progress-timezones/worktree`.
-
-The uncommitted audit was read from its original absolute path:
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/docs/learnlens/main-audit-2026-09-10.md`.
-The remaining task list, implementation requirements, controlling assessment
-specification, work order, Task 29 plan and delivery record were also read.
+Tested baseline: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`, matching the
+[baseline audit](main-audit-2026-09-10.md).
 
 ## Requirements completed
 
@@ -56,16 +49,12 @@ naive while its separate response value carries UTC.
 
 ## Verification
 
-The commands below use PowerShell. Runtime aliases expand to the exact existing
-executables used; dependencies were reused without installation or lock changes.
-The frontend worktree has an ignored junction to the existing `node_modules`.
+The commands below use PowerShell, starting at the repository root with Node
+22.13.0 on `PATH`. Verification reused installed dependencies without lock changes.
 
 ```powershell
-$repo = 'C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project'
-$worktree = "$repo/.tmp-progress-timezones/worktree"
-$python = "$repo/src-main/backend/.venv/Scripts/python.exe"
-$nodeDir = "$repo/.tmp-task23-24/tools/node-v22.13.0-win-x64"
-$env:PATH = "$nodeDir;" + $env:PATH
+$repo = (Get-Location).Path
+$python = (Resolve-Path 'src-main/backend/.venv/Scripts/python.exe').Path
 $env:APP_ENV = 'test'
 $env:PYTHONPATH = '.'
 $env:LEARNING_EVENT_PSEUDONYM_SECRET = 'timezone-tests-synthetic-secret-32-bytes-minimum'
@@ -75,14 +64,7 @@ Python 3.11.16, Node 22.13.0, Vitest 4.1.10 and Vite 8.1.3 were used.
 
 ### Reproduction before the fix
 
-The audit's `probe_progress_time.py` was copied unchanged into the ignored
-worktree `.tmp-probes` directory. From the worktree root:
-
-```powershell
-& $python .tmp-probes/probe_progress_time.py
-```
-
-It failed its timezone assertion. The recorded interval was
+The original audit probe failed its timezone assertion. The recorded interval was
 `2026-09-10T05:37:13.828846+00:00` to `2026-09-10T05:37:14.485383+00:00`;
 both the service and JSON returned `2026-09-10T05:37:14.239488` without an offset.
 
@@ -143,14 +125,8 @@ A separate unmocked Node check, with `TZ=Australia/Sydney`, printed
 Initial sandbox attempts could not access pytest temporary directories or spawn
 Vite's helper; those were environment failures, not passing test evidence. The
 successful reruns used normal process/filesystem permissions. Ruff initially
-panicked while traversing those inaccessible scratch directories; after removing
-only this worktree's failed-test scratch, both full backend Ruff checks passed.
-
-## Open items
-
-The coordinator owns merging and the combined full suite. Package dependencies,
-lockfiles, shared test configuration, the master task list and historical audit
-were not edited. This note is the separate delivery record.
+panicked while traversing inaccessible scratch directories; both full backend
+Ruff checks passed after those temporary directories were cleared.
 
 ## Limits
 
@@ -159,9 +135,3 @@ suite was exercised. This scoped correction assumes the existing progress source
 columns contain UTC, as their writers specify. It cannot recover a timezone from
 arbitrary externally imported local-wall-clock data. Other APIs' timestamp
 semantics and reporting-week policy are outside this correction.
-
-Git author and committer were both verified with `git var` as
-`Jordan Tran <226841807+jordann-trann@users.noreply.github.com>` before committing.
-Identity is command-scoped; global Git configuration was not changed. No remote
-authentication or GitHub write was needed; the requested GitHub identity is
-`jordann-trann`.

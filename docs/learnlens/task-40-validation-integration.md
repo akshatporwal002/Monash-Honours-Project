@@ -1,16 +1,10 @@
 # Task 40 and Tasks 36/37/39 integration
 
-9 September 2026. Integrated sequentially onto fetched `origin/main` at
-`1f39448e022fc6e37d062950e7dd99e0faf40809`:
+9 September 2026. Tested integration baseline:
+`1f39448e022fc6e37d062950e7dd99e0faf40809`.
 
-- `jordan/task40-conditional-reuse-isolated`, delivery `b3164a8`, merge `ecd6a1d`.
-- `jordan/validation-36-37-39-20260909`, nine commits from `7427a1e` to `f1b01eb`.
-
-All three worktrees were clean before integration. Existing ignored scratch files,
-environments and other worktrees were preserved. No stash, reset, clean or force push
-was used. Authentication verified `jordann-trann` and repository push permission;
-author and committer were Jordan Tran, `226841807+jordann-trann@users.noreply.github.com`.
-Global Git settings were unchanged.
+- Task 40 source: `b3164a8`, integrated as `ecd6a1d`.
+- Tasks 36/37/39 source: nine commits from `7427a1e` to `f1b01eb`.
 
 ## Review and compatibility
 
@@ -20,12 +14,12 @@ to `api.ts`. The preference write allowlist matches the published closed schema;
 the newer support-preference endpoint still shares the protected revision history.
 Task 40 remains a draft content factory using existing authoring/evidence/assessment
 contracts. Neither feature changes migrations, dependencies or generated contracts.
-Migration head remains `20260909_0042`.
+The migration head for these integration checks was `20260909_0042`.
 
-Tasks 21 and 22 were already merged on the fetched remote: `5a25ae4` and `8602fb3`
+Tasks 21 and 22 were already included in the baseline: `5a25ae4` and `8602fb3`
 are ancestors of `1f39448`. Their earlier implementation handoffs are historical;
-[the main integration record](task-22-main-integration.md) describes current storage
-and migration compatibility. The remaining-task summary now reflects that state.
+[the main integration record](task-22-main-integration.md) describes the combined storage
+and migration compatibility.
 
 ## Validation scope
 
@@ -40,8 +34,6 @@ audit results are reused. Two moderate development advisories remain, with no
 production or high/critical findings in those audit receipts.
 
 New integration checks target changed dependencies rather than repeating full suites.
-Raw local logs are under `src-main/backend/.tmp-i/`, excluded from commits.
-
 - Task 40: all 13 cases passed against current main. Two earlier launches failed
   on temporary-directory setup/access; creating the parent and running outside the
   Windows sandbox resolved them. All 13 were rerun, with no test changes.

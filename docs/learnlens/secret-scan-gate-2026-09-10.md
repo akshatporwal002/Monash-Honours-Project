@@ -1,11 +1,7 @@
 # Full-history secret-scan gate delivery — 10 September 2026
 
-Owner: Jordan Tran (`jordann-trann`).
 
-Branch: `codex/fix-secret-scan-gate`.
-Starting `main` commit: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`, exactly the
-audited baseline. Worktree:
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-secret-scan-gate/worktree`.
+Tested baseline: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`.
 
 The gate now disposes of six verified synthetic findings using exact historical
 fingerprints and runs a complete reachable-history scan on every configured CI
@@ -14,16 +10,13 @@ secret-detection rules remain enabled, including `generic-api-key`.
 
 ## Evidence and scope
 
-Read the original `docs/learnlens/main-audit-2026-09-10.md` in the coordinator
-checkout, its retained redacted history reports, `CONTEXT.md`, the implementation
-requirements, the work order, the controlling assessment rules, and the existing
-quality workflow. This delivery addresses NFR10's reason/owner requirement for
+The [baseline audit](main-audit-2026-09-10.md) records the original scan findings.
+This delivery addresses NFR10's reason/owner requirement for
 suppressions, NFR15's secret protection, and the work order's security gate.
 
 The original audit and master task list are unchanged. Application code,
 frontend dependencies/tests, other CI jobs, and shared runtime setup are unchanged.
-No history was rewritten. Integration and the combined full suite belong to the
-coordinator.
+No history was rewritten by this scanner change.
 
 Changed files:
 
@@ -59,9 +52,9 @@ The complete commit hashes are retained in `.gitleaksignore`.
 No additional findings appeared in the complete baseline or all-ref scans.
 The fresh fingerprint sets exactly equal the original six-finding redacted report.
 There are no path, directory, whole-commit, field-name, or value-wide exclusions.
-The same value reintroduced at a new commit still requires review. Jordan Tran
-owns these dispositions; scanner upgrades or new findings require revalidation,
-not automatic extension of the ignore list.
+The same value reintroduced at a new commit still requires review. Repository
+maintainers must revalidate dispositions after scanner upgrades or new findings;
+the ignore list must not be extended automatically.
 
 ## CI behavior and scanner provenance
 
@@ -101,22 +94,22 @@ fixture is removed; only redacted reports are retained. This runs in CI as well.
 
 ## Commands and results
 
-Run from the worktree root with Python 3.11+ and Gitleaks 8.28.0:
+Run from the repository root with Python 3.11+ and Gitleaks 8.28.0 on `PATH`:
 
-```sh
-python .github/scripts/secret_scan.py --gitleaks /absolute/path/to/gitleaks --report-dir /absolute/path/to/evidence
+```powershell
+python .github/scripts/secret_scan.py --gitleaks (Get-Command gitleaks).Source --report-dir .tmp-security-evidence
 ```
 
-The gate invokes the equivalent of:
+The gate invokes the equivalent of the commands below, where `GITLEAKS_FIXTURE_DIR`
+identifies the isolated positive-control directory:
 
 ```sh
 gitleaks git . --log-opts="--all --full-history --no-ext-diff --no-textconv" --redact=100 --no-banner --no-color --log-level=info --gitleaks-ignore-path=.gitleaksignore --report-format=json --report-path=history.json
-gitleaks dir /isolated/fixture --redact=100 --no-banner --no-color --log-level=info --gitleaks-ignore-path=/worktree/.gitleaksignore --report-format=json --report-path=positive-control.json
+gitleaks dir "$GITLEAKS_FIXTURE_DIR" --redact=100 --no-banner --no-color --log-level=info --gitleaks-ignore-path="$PWD/.gitleaksignore" --report-format=json --report-path=positive-control.json
 ```
 
-Local execution used the already available `src-main/backend/.venv/Scripts/python.exe`
-and `.tmp-task23-24/tools/gitleaks/gitleaks.exe` from the coordinator checkout;
-neither runtime was modified. Local Git: `2.55.0.windows.4`.
+Local execution used the existing backend Python environment and the verified
+Gitleaks binary. Git version: `2.55.0.windows.4`.
 
 | Verification | Result |
 | --- | --- |
@@ -136,21 +129,9 @@ retain a ref inventory, so its exact extra-ref set cannot be reconstructed from
 the report alone. This delivery does not use 181 as an artificial success threshold:
 the new gate independently inventories the actual refs and checks the count.
 
-Local evidence is under the coordinator checkout's ignored
-`.tmp-secret-scan-gate/evidence/`: `baseline-before.*`, `all-before.*`,
-`raw-history-before.*`, `historical-context-redacted.txt`, `official-checksums.txt`,
-`gate-complete/`, and `regression/verification.txt`. The committed-head gate is
-repeated after creating the delivery commit, with its final receipt under
-`committed-gate/` and its exact result in the handoff. CI uploads only the report
-files as `secret-scan-evidence`.
+CI uploads only the report files as `secret-scan-evidence`.
 
-## Identity and remaining limits
-
-Author and committer are verified with `git var GIT_AUTHOR_IDENT` and
-`git var GIT_COMMITTER_IDENT` before committing. Both must be
-`Jordan Tran <226841807+jordann-trann@users.noreply.github.com>`.
-The existing repository-local identity already matches; global Git configuration
-is unchanged. No Kogan account or authenticated GitHub operation is used.
+## Remaining limits
 
 This is Gitleaks' default text-patch history coverage: binary contents, recursive
 archive/encoding inspection, unreachable objects, unfetched refs, and changes
@@ -158,4 +139,3 @@ introduced only in merge resolutions are not separately scanned. A clean heurist
 scan does not establish that every possible credential format is absent.
 Fingerprint semantics and commit counting must be rechecked when upgrading the
 pinned scanner. The hosted Ubuntu job itself has not been run in this local task.
-The coordinator owns hosted CI execution, integration, and the combined full suite.

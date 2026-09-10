@@ -1,17 +1,11 @@
 # Task 36 — requirements reconciliation and delivery note
 
-This is a separate coordinator integration input, dated 10 September 2026. It does not update the master checklist, either canonical traceability document or the historical audit. Statuses describe the inspected **main baseline**, not unmerged branches or release readiness.
+Baseline requirement evidence, dated 10 September 2026. Statuses describe the inspected revision; the [current matrix](implementation-gap-matrix.md) records subsequent implementation and validation.
 
-## Revision, isolation and authority
+## Inspected revision
 
-- Branch: `codex/task36-requirements-reconciliation`.
-- Actual starting and inspected production revision: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`; it equals local main and contains the requested audited commit.
-- Worktree: `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-task36/worktree`. Initial status was empty before editing. Original checkout had the untracked audit and parallel-assignment folder; they were not edited, staged or committed by this task.
-- Only this report and the optional standard-library checker/tests under `scripts/task36_traceability/` are deliverables. No production changes, shared tests, configuration, dependencies, migration history or generated contracts changed.
-- No GitHub/network access was needed or performed. No Kogan account, integration or credential was used. The repository-local identity is personal; command-scoped author and committer identity is verified before commit. Global Git configuration is unchanged.
-- The external uncommitted audit was read first at `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/docs/learnlens/main-audit-2026-09-10.md`. It is deliberately not copied into this worktree.
-
-The implementation and assessment specifications control wording. `docs/03-codex-implementation-work-order.md` supplies integration/release obligations. `docs/learnlens/task-08-approved-selections.md` supersedes earlier proposals: D-01 hides provisional verdicts; D-05 allows unlimited approved conceptual hints during supported work with a separate unaided transfer; D-07 requires a separately validated AI suggestion gate and human confirmation; D-10 preserves protected legacy history during immediate mark retirement. D-11 approves 16 developer-hours. No institutional approval, source approval, staff assignment or expert measurement is inferred from those selections.
+Production source: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`.
+The requirement rows and source references below describe that revision.
 
 ## Inventory method and status meanings
 
@@ -68,7 +62,7 @@ The unnumbered requirements also constrain interpretation: section 7 research co
 
 Each E reference resolves to this section's paths and named tests. All paths are relative to the repository root. Named backend cases below have passing retained audit XML instances, including parameterized variants. Frontend paths are implementation or fixture references; their presence is not a new passing execution claim. Missing behaviors use nearby foundation cases explicitly, not invented tests for absent features.
 
-Audit SHA-256: `2a8359c48d38b521f01a949cace5f568dca6f942e09c11232463cdc7d9a54615`. Retained backend XML SHA-256: `752f4b35c811090668e4d00680c4752fd1043e2dd11e313eb60e10b3f21c815c`. XML suite timestamp: `2026-09-10T12:37:35.570346+10:00`. Raw receipt remains outside this worktree at `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-audit-20260910/backend-tests.xml`.
+Retained backend XML SHA-256: `752f4b35c811090668e4d00680c4752fd1043e2dd11e313eb60e10b3f21c815c`. XML suite timestamp: `2026-09-10T12:37:35.570346+10:00`. This receipt describes the pinned baseline test run.
 
 <a id="e-auth"></a>
 
@@ -671,7 +665,7 @@ The checker discovers the actual authoritative definitions, rejects duplicate/mi
 Exact PowerShell verification commands from this worktree root:
 
 ```powershell
-$task36Python = 'C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/src-main/backend/.venv/Scripts/python.exe'
+$task36Python = './src-main/backend/.venv/Scripts/python.exe'
 & $task36Python scripts/task36_traceability/check.py
 & $task36Python -m unittest discover -s scripts/task36_traceability -p 'test_*.py' -v
 & $task36Python -m ruff check --isolated scripts/task36_traceability
@@ -684,9 +678,3 @@ git merge-base --is-ancestor f1b01eb HEAD
 Results: checker **PASS**, 143 definitions exactly once, **446 valid repository references**; six focused tests **PASS**, no skips; focused Ruff check/format and whitespace checks **PASS**; both historical integration commits are ancestors (exit 0). Tests cover additions/duplicate source definitions, missing/extra/duplicate rows, changed wording, wrong statuses/totals, missing files/cases and unresolved evidence. No application coverage result is claimed for these six checker tests. Python is the existing 3.11 runtime; no shared runtime or package was changed.
 
 Initial checker runs rejected inconsistent “None in mapped …” wording on AC2 and AT6; those cells were normalized without changing their status or hiding gaps. The first five-test run had four passes and one temporary-directory permission error under the Windows sandbox. Source-discovery negative fixtures were moved to in-memory strings, preserving all assertions and real-path validation in the positive report test; all tests then passed. A sixth negative test now also rejects omitted/changed controlling wording. Initial focused lint identified import ordering, the abbreviated regex flag and nested context managers; these were corrected. Ruff formatted only the two checker files. The first staged whitespace check found an extra trailing blank line in this report; it was removed.
-
-Commit scope: this report, `scripts/task36_traceability/check.py` and `scripts/task36_traceability/test_check.py`. The report's evidence revision is deliberately the fixed starting production SHA; the delivery commit contains documentation/checker changes only. Staged-diff review checks that exact ownership set before committing. Personal author/committer are checked using `git var GIT_AUTHOR_IDENT` and `git var GIT_COMMITTER_IDENT`, then the commit is made with command/process-scoped Jordan Tran identity and no global configuration change.
-
-Initial environment/discovery failures: sandbox Git metadata writes denied the first worktree creation; approved escalation created the requested worktree successfully. The default `python` command resolved to the unavailable Windows Store alias; an explicit existing Python 3.11 executable was used for this standard-library-only task, without environment installation. PowerShell rejected a Bash brace-list search, a literal wildcard path search and an assumed Alembic directory; separate `rg -g` filters and the actual `migrations/versions` directory resolved discovery. An initially guessed timezone-note filename was absent; `git show --stat` identified the actual branch note. These attempts produced no application-test results.
-
-No merge or push is part of this delivery. Final branch commit is supplied in the task response and is directly retrievable with `git log -1` on this branch; the production tested revision remains the pinned baseline above.

@@ -2,9 +2,7 @@
 
 ## Outcome
 
-Branch: `codex/stabilise-frontend-tests`.
-Actual starting commit: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`, identical to the audited main commit.
-Worktree: `C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/.tmp-stabilise-frontend/worktree`.
+Tested baseline: `27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4`, identical to the audited main commit.
 
 Both final complete frontend runs passed all 272 tests across 81 files with zero
 skips. Lint, TypeScript/production build, full and production dependency audits,
@@ -26,17 +24,13 @@ including optional platform packages, are preserved.
 
 ## Requirements and existing behaviour preserved
 
-This is the assigned frontend portion of Task 36 / NFR10 (reliable configured checks)
+This addresses the frontend portion of Task 36 / NFR10 (reliable configured checks)
 and NFR15 (development dependency findings). It preserves FR10 pathway ordering,
 publication approval, NFR23 draft recovery, and existing NFR4 / AC17 keyboard and
 accessibility coverage. It does not declare the broader release requirements complete.
 
-Read the controlling requirements, assessment specification, implementation work order,
-`LearnLens_Remaining_Tasks.md`, `CONTEXT.md`, existing scripts/configuration and relevant
-implementation decisions. Read the uncommitted audit directly from
-`C:/Users/Jordan.Tran/Downloads/Honours Project/Monash-Honours-Project/docs/learnlens/main-audit-2026-09-10.md`.
-It was not copied into or edited in this worktree. The earlier implementation decision
-also recommends bounded local test concurrency.
+The [baseline audit](main-audit-2026-09-10.md) records the original suite failures.
+The [implementation decisions](implementation-decisions.md) also recommend bounded local test concurrency.
 
 Owned changes are the pathway test, `vite.config.ts`, frontend `package.json` and
 `package-lock.json`, and this note. Progress feature code/tests, backend source,
@@ -59,8 +53,8 @@ and retry assertions intact. The title still used `user.type`; other inputs used
 pathway form and step arrays; hundreds of simulated key events were unnecessary for
 the publication/retry behaviour under test.
 
-This machine exposes 12 logical processors. The audit's concurrency comparison and
-fresh suite timings support limiting concurrent jsdom/React workloads. Two workers
+The audit's concurrency comparison and fresh suite timings support limiting
+concurrent jsdom/React workloads. Two workers
 retain file isolation and useful parallel execution. Other audited cases keep all
 their keyboard, focus, axe, failed-save and state-transition assertions unchanged.
 There is no evidence here of a broken publication endpoint or unresolved request leak.
@@ -91,11 +85,11 @@ The application does not gain a production runtime dependency from this update.
 
 Two npm 10.9.2 update attempts failed internally in Arborist's peer resolution with
 `Cannot read properties of null (reading 'edgesOut')`; neither changed the manifests.
-Task-local npm 11.6.2 successfully generated patched package records. Its unrelated
+npm 11.6.2 successfully generated patched package records. Its unrelated
 peer metadata changes, tinyrainbow update and platform-package pruning were excluded:
 only its eight registry-generated Vitest package records were retained in the original
 lockfile, and the direct range was set to `^4.1.11`. No integrity value was invented,
-peer dependency bypass used, or global npm/Git setting changed.
+or peer dependency bypass used.
 
 A clean `npm ci` using the original npm 10.9.2 installed 394 packages, audited 395,
 and reported zero vulnerabilities. The lockfile SHA-256 before and after installation
@@ -103,17 +97,14 @@ was `51be622c882805056cf296f1a4878c77ccb15552b8fba68882d16f855d534e48`.
 
 ## Verification
 
-All commands run from this worktree's `src-main/frontend`, with this process-local
-PowerShell setup (the default system Node 26 was not used):
+All commands run from `src-main/frontend`, with Node 22.13.0 on `PATH`:
 
 ```powershell
-$env:PATH='C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\.tmp-task23-24\tools\node-v22.13.0-win-x64;'+$env:PATH
 node --version   # v22.13.0
 npm.cmd --version # 10.9.2
 ```
 
-Receipts are under the worktree's ignored `.tmp-validation/` directory. Output was
-captured with `2>&1 | Tee-Object <log>` and the native exit code preserved. Reporter
+Output was captured with `2>&1 | Tee-Object <log>` and the native exit code preserved. Reporter
 options only save evidence; full runs do not override the committed worker limit.
 
 | Attempt / exact command (excluding output capture) | Result |
@@ -141,11 +132,11 @@ full-suite elapsed time for interaction deadline margin; two runs demonstrate lo
 stability rather than guaranteeing timing on every host or under arbitrary load.
 
 Browser checks used the existing locked Python environment for dependencies, with
-`PYTHONPATH` pointing to this worktree's backend so the isolated fixtures exercised
-its source. All browsers were headless. Setup, after the Node PATH above:
+`PYTHONPATH` pointing to the backend being tested so the isolated fixtures exercised
+its source. All browsers were headless. Setup:
 
 ```powershell
-$env:QUANTUMLEARN_BACKEND_PYTHON='C:\Users\Jordan.Tran\Downloads\Honours Project\Monash-Honours-Project\src-main\backend\.venv\Scripts\python.exe'
+$env:QUANTUMLEARN_BACKEND_PYTHON=(Resolve-Path '../backend/.venv/Scripts/python.exe').Path
 $env:PYTHONPATH=(Resolve-Path '..\backend').Path
 $env:QUANTUMLEARN_E2E_API_PORT='4280'
 $env:QUANTUMLEARN_E2E_WEB_PORT='4273'
@@ -158,7 +149,6 @@ Result: **16 passed, zero failed, flaky or skipped**, 79.11 seconds. This covers
 rules/human assessment publication, confirm/override/withhold/return review actions,
 keyboard focus, axe, reflow, login validation and preference-load recovery. The runner
 also rebuilt the E2E bundle and migrated a fresh synthetic database to `20260910_0044`.
-Receipts: `.tmp-validation/browser-smoke.log` and `browser-smoke.json`.
 
 The separate existing pathway smoke script used its own fixture ports 8171/5271:
 
@@ -172,14 +162,11 @@ Result: **passed**, including educator UI publication, diagnostic save/reload,
 assessor confirmation, approved practice access and optional guidance fading;
 zero axe violations and zero page errors. The 390px screenshot was inspected and
 shows the pathway and saved diagnostic in a contained single-column layout.
-Receipts: `.tmp-validation/pathway-browser.log` and
-`src-main/backend/.tmp-task21/browser-1789019335183/result.json`, with
-`diagnostic-mobile.png` beside it. Neither browser attempt failed or needed a retry.
+Neither browser attempt failed or needed a retry.
 
 ## Open items and limits
 
-Merging and the combined full suite belong to the coordinator. This work does not
-validate the separate progress timestamp repair, backend regression, live providers,
+These checks do not validate the separate progress timestamp repair, backend regression, live providers,
 hosted deployment, native Safari, manual screen readers or user trials.
 The full browser matrix, including Edge and Firefox, was not rerun in this batch;
 the smoke selection is appropriate to a development-only Vitest patch and test changes.
@@ -187,12 +174,3 @@ the smoke selection is appropriate to a development-only Vitest patch and test c
 The existing unit suite emits jsdom canvas-not-implemented messages, React `act`
 warnings, and controlled/uncontrolled Select warnings. They are retained rather than
 suppressed. The build's existing chunk-size advisory is recorded with the final checks.
-
-Initial sandboxed worktree creation failed because `.git` is read-only; the same
-authorized operation succeeded with process permissions. Test/dependency commands
-used the necessary process/network permissions. No test was skipped to obtain a pass.
-Effective `GIT_AUTHOR_IDENT` and `GIT_COMMITTER_IDENT` were verified as
-`Jordan Tran <226841807+jordann-trann@users.noreply.github.com>` using command-local
-identity configuration and process-local identity variables. The same checks run
-immediately before committing. No global Git configuration was changed; no GitHub
-account, remote write, push or merge was needed.

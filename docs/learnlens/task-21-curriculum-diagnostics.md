@@ -1,7 +1,7 @@
 # Task 21: curriculum and approved diagnostics
 
-Implemented and verified locally on 9 September 2026. Changes remain uncommitted.
-No sub-agents, remote writes, merges, or deployments were used.
+This records the original implementation and local verification on 9 September 2026.
+The [Task 22 integration record](task-22-main-integration.md) describes the later combined storage and migration sequence.
 
 ## Delivered behavior
 
@@ -73,24 +73,22 @@ Generated OpenAPI and frontend contracts include these interfaces.
 
 ## Validation
 
-All evidence below is local. Logs are under `src-main/backend/.tmp-task21/`.
+All evidence below is from the original local implementation checks.
 
 | Check | Result and evidence |
 | --- | --- |
-| Full backend suite | 1,121 passed; 86.94% service coverage; `backend-full1.log` |
-| Final Task 21 and requirement matrix tests | 19 passed (16 Task 21 and 3 matrix checks), including concurrent replay and migrated populated-history checks; `curriculum-final2.log` |
-| Task 20 and Task 21 focused integration | 32 passed before the final concurrency case; `focused3.log` |
-| Full frontend suite | 246 passed in 69 files; `frontend-tests-final2.log` |
-| Existing browser regression suite | 84 passed across Chrome, Edge, Firefox, and WebKit; `browser-regression.log` |
-| Task 21 authenticated journeys | Passed in all four browsers; `journey-chrome.log`, `journey-edge.log`, `journey-firefox.log`, `journey-webkit.log` |
-| Final educator-to-learner journey | UI publication, diagnostic save/reload, assessor confirmation, approved practice link, and guidance fading passed; `journey-publish-final.log` |
+| Full backend suite | 1,121 passed; 86.94% service coverage |
+| Final Task 21 and requirement matrix tests | 19 passed (16 Task 21 and 3 matrix checks), including concurrent replay and migrated populated-history checks |
+| Task 20 and Task 21 focused integration | 32 passed before the final concurrency case |
+| Full frontend suite | 246 passed in 69 files |
+| Existing browser regression suite | 84 passed across Chrome, Edge, Firefox, and WebKit |
+| Task 21 authenticated journeys | Passed in all four browsers |
+| Final educator-to-learner journey | UI publication, diagnostic save/reload, assessor confirmation, approved practice link, and guidance fading passed |
 | Accessibility | Task 21 browser Axe found zero violations; 390px reflow and keyboard controls passed |
 | Build and lint | Production build, frontend lint, Ruff check and format passed |
 | Migration and contracts | Migration suite included in full backend run; head 0034; OpenAPI and generated-contract drift checks passed |
 | Dependencies | Python audit and full/production npm audits found no known vulnerabilities; lock check passed |
 
-The final publication journey is recorded in
-`.tmp-task21/browser-1788881336910/result.json`, with a mobile screenshot.
 Browser helpers used synthetic data and ordinary authentication. No service or role
 authorization overrides were used in those journeys.
 
@@ -120,27 +118,13 @@ Task 22's automatic activity selection remains outside this change.
 Test Judge review: checked full-suite logs, real persistence, authenticated UI/API
 journeys, current contracts, migration recovery, and the exact local limitations.
 The final checks pass. These are separate self-review passes, not independent reviews.
-The user explicitly prohibited sub-agents.
 
-## Delivery and remaining scope
+## Recovery and remaining scope
 
-Worktree: `.tmp-coordinator/task21`. Branch: `feat/task-21-curriculum-diagnostics`.
-Base: `65a9457d27e849465e7f227471336552bb22b8b4`, plus the uncommitted Task 20 dependency.
-The original `.tmp-coordinator/task20` worktree was preserved.
-[The dependency receipt](task-21-dependency-baseline.json) records the 38 inherited files.
-This branch currently contains both dependencies and Task 21 changes. It must not be
-presented as a standalone Task 21 diff against main.
-
-Commit and publish only after explicit authorization. Deliver Task 20 first, then
-place the Task 21 delta on its committed base. Preserve the original worktrees until
-that transfer is verified. Run the required exact-commit review and CI gates before merge.
-There are no new commits, so commit-range Gitleaks is not applicable yet.
-
-Task 22 still needs automatic approved-activity selection and durable continuation.
+Task 22 provides the separate automatic approved-activity selection and durable continuation.
 Task 35's operational AI assessment remains disabled. Hosted operation, native Safari,
 screen-reader use, and human study acceptance were not established by these local checks.
 This implementation does not supply live course approvals or institutional study records.
 
-For rollback, discard only an authorised task-owned worktree when no data must be kept.
-An empty 0034 migration can be downgraded. For populated history, restore a verified
+At this original revision, an empty 0034 migration can be downgraded. For populated history, restore a verified
 backup instead of deleting learning or approval records.

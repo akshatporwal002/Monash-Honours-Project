@@ -1,6 +1,6 @@
 # LearnLens implementation decisions
 
-This log records key implementation choices for later user review.
+This log records key implementation choices and their technical rationale.
 It complements the [approved policy selections](task-08-approved-selections.md) and the [remaining task list](../../LearnLens_Remaining_Tasks.md).
 It does not claim that missing institutional approvals or release measurements exist.
 
@@ -19,25 +19,21 @@ Approved access support, required feedback, and reflection remain available.
 Repeat practice starts only a local draft for permitted ordinary practice; existing submission rules still apply.
 
 Only text and stepwise support presentation are offered. No alternate response form or generated explanation is promised.
-The detailed interface, defaults, recovery rules, and tests are recorded in the [Task 20 handoff](task-20-learner-preferences.md).
-The current instruction permits implementation without sub-agents. Reviews are separate coordinator self-reviews, not independent agent verdicts.
-No remote delivery or work beyond Task 20 is included.
+The detailed interface, defaults, recovery rules, and tests are recorded in the [Task 20 implementation record](task-20-learner-preferences.md).
 
-## 2026-09-07: continue engineering under the selected policies
+## 2026-09-07: selected policy boundaries
 
 The user selected D-05 B, D-07 C, and the recommended A options elsewhere.
 D-10 retains its earlier immediate-retirement approval.
 Those selections are settled and recorded in versioned approval records.
 
-Integrate the Task 8 decision records before starting the next implementation branch.
 Task 8's remaining scoped activation records stay visible; their absence does not block unrelated source storage or recovery work.
 Each later task must distinguish completed software from missing live approval or external evidence.
 Do not enable AI assessment suggestions before the separate validation gate passes.
 Do not impose the superseded two-hint cap during supported assessment.
 
-Rationale: the task list permits unrelated implementation while specific policy records remain pending.
-The user asked to continue and record key decisions for later review.
-This preserves that direction without inventing approval owners, research consent, or a hosted environment.
+Rationale: unrelated implementation can proceed while specific policy records remain pending,
+without inventing approval owners, research consent, or a hosted environment.
 
 ## Task 9: immutable sources and passage references
 
@@ -63,16 +59,7 @@ The first frontend suite run had one timeout while backend and build checks ran 
 The complete frontend suite passed with two workers and unchanged test deadlines.
 Use bounded local test concurrency when running these suites together.
 
-## Task boundaries and context
-
-Use a separate branch and merge commit for each task's integrated work.
-Keep exact test results, outstanding scope, and resume instructions in the task's handoff document.
-Manual context clearing is unavailable through the current tools. Do not claim it has occurred.
-
 ## Task 10: recover material processing through the existing worker
-
-Task 9 merged into local main at `3f0ce614855957a5e28003a6664c48d6494e9013`.
-Task 10 branches from that merge as `feat/task-10-material-processing-recovery`.
 
 Store the processing claim on the material row, alongside its existing lifecycle state and revision counter.
 Both processors use one claim service for ownership, expiry, retries, and publication.
@@ -95,9 +82,6 @@ Add status refresh and manual retry controls to the course editor.
 The [Task 10 handoff](task-10-material-processing-recovery.md) records validation and operational limits.
 
 ## Task 11: bound simulation and preserve the distinction between state and sampling
-
-Task 10 merged into local main at `7fe68f77776018b972441f0988a39b68e3fb1cb9`.
-Task 11 branches from that merge as `feat/task-11-durable-simulation-evidence`.
 
 Run Qiskit in a child process so the parent can enforce and clean up a timed-out execution.
 Keep the existing HTTP limit of 30 operations and apply it to every core caller.
@@ -126,9 +110,6 @@ Migration, contract, lint, format, and production-build checks passed.
 
 
 ## Task 12: separate staff eligibility from assessor access
-
-Task 11 merged into local main at `42ffe03b06a47468ecc3dd41975dcee3e9dd7895`.
-Task 12 branches from that merge as `feat/task-12-educator-publication-controls`.
 
 Use the course owner as the course lead who approves teaching staff eligibility under D-02.
 Only active educator accounts qualify through this initial teaching-staff policy.
@@ -202,8 +183,7 @@ This checkpoint passed 839 backend tests with 85.96% service coverage and 193 fr
 The final task-review placement change passed seven targeted frontend tests and a fresh lint and build check.
 The Chrome fixture verified source approval, circuit correction, task approval, course publication rejection,
 and the separate course-lead and administrator appointment steps through ordinary application policies.
-The user explicitly approved staff permission testing within this synthetic localhost fixture.
-The user approved all fixture appointment changes. Browser revocation and regrant then passed.
+Browser revocation and regrant also passed in the synthetic localhost fixture.
 
 This was an intermediate checkpoint. The formal publication completion below supersedes its remaining-work note.
 
@@ -228,32 +208,17 @@ The assessor task picker reads saved identities and sources. Current assigned as
 Human teaching approval and the administrator's appointment remain separate decisions.
 The browser fixture proved publication without policy overrides and without live accounts.
 
-The user's latest instruction limits this run to completing Task 12, then committing, pushing, and merging into main.
-Stop after that integration. Tasks 13 onward remain on the task list.
-
-## 2026-09-07: resume remaining tasks with isolated workers
-
-The new coordinator request supersedes the previous Task 12 stopping instruction.
-The user authorises task-owned commits, pushes, pull requests, verified batch merges, and local main synchronization.
-Keep a separate branch and integration merge commit for each numbered task.
-No live institutional approval follows from this engineering authority.
-
-Fetched origin/main remains `d5ac7cb335a2b1ccdab674e0cab4c61c950b9b35`.
-GitHub confirms PR 8 merged at that commit and post-merge run `34072852835` passed.
-Task 13 starts there. Task 32 protocol drafting runs in a separate worktree alongside it.
-The coordinator owns shared contracts, migration ordering, integration, and progress records.
+## Task 13: bind learner work to the published form
 
 Task 13 uses an explicit learner start action instead of creating assessment starts during task GET requests.
 Existing task-view telemetry is unchanged by that interface choice.
 The action binds the declared published form before workspace edits begin.
 Drafts and submissions carry the saved work reference. Changed approval or publication returns an explicit conflict.
 Do not silently adopt a newer standard or expose marking guidance through the learner reference.
-Historical drafts receive no invented start-time approval. Migration 0029 is reserved for this task.
+Historical drafts receive no invented start-time approval. Migration 0029 adds the saved work reference.
 
-The [coordinator record](coordinator-progress.md) tracks dependencies, ownership, review, tests, delivery, and external gates.
 Task 32 remains partial until the required research review, approval, and preregistration records exist.
 
-The user named Arv Surana as research lead. This records ownership without inferring study approval.
 Task 13's migration requires runtime readiness to expect revision `20260907_0029`.
 The combined suite caught the stale pin; the correction passed the affected runtime and launcher checks.
 WebKit authoring checks reproduced an offscreen dropdown after programmatic focus moved between distant form fields.
@@ -261,25 +226,15 @@ The helper now scrolls the trigger into view and checks visibility before openin
 Ten repeated real authoring journeys passed with ordinary pointer clicks and unchanged approval assertions.
 No product permissions, assessment rules, or test timeouts changed for this correction.
 
-## 2026-09-07: conclude the current batch
-
-The user now asks to finish the tasks in progress, commit and merge into main, then provide an update.
-This narrows the earlier continuous delivery instruction to current Tasks 14 and 15.
-Complete their remaining correction, independent review, combined checks, PR, and post-merge verification.
-Synchronize local main and stop before starting Tasks 16, 17, or 24.
-The reviewed Task 32 draft remains partial, with Arv Surana named as research lead and external approvals outstanding.
-
-## 2026-09-07: Batch A delivered, episode and human review work begins
+## Tasks 14 and 15: frozen episodes and human review
 
 PR 9 merged as `865467740c1c122834bd67d3c7f6a7ca77bd381c` after all final-head gates passed.
 Post-merge CI `34078012664` passed 873 backend tests, 31 migrations, 72 browser cases, and all other configured checks.
-Service coverage was 86.19%. Local main was clean and matched origin/main before the next worktrees were created.
+Service coverage was 86.19%.
 Task 13 is complete. Task 32 remains partial despite its reviewed drafts being merged.
 
-Tasks 14 and 15 use separate worktrees and file ownership from that verified main.
-Task 14 owns the canonical episode payload and immutable response-reader contract.
+Task 14 provides the canonical episode payload and immutable response-reader contract.
 Task 15 consumes that contract for complete evidence inspection and human criterion decisions.
-The coordinator owns shared authoring, publication, generated contracts, migration ordering, and integration.
 
 The private fresh-transfer plan belongs in educator-reviewed task content and a matching frozen task-form snapshot.
 Learner reads expose stage metadata and permitted support. Transfer content is released only through authorised stage entry.
@@ -291,9 +246,7 @@ They make structural claims only. Unsupported conceptual criteria remain reachab
 Human decisions use append-only action and criterion records, current scoped access, worker fencing, and an exact state token.
 No operational AI assessment suggestions are enabled by this work.
 
-The deleted learner-correction branch was recovered at `fda2459fdb6f529f933e48494f9f39787d420d2e`.
-A local archive reference preserves its existing history for Task 19 reuse. The remote branch was not restored.
-Task 19 must still reconcile its migration, preserve corrections across later snapshots, and add scoped application routes and screens.
+Learner corrections must survive later snapshots and remain available through scoped application routes and screens.
 
 Publication now distinguishes the strict circuit-plus-human path from AI-assisted mixed evaluation.
 Only MIXED criteria with validated `circuit_v1` settings may use that human review path.
@@ -323,8 +276,8 @@ of mastery. Optional guidance fades only after a confirmed diagnostic bypass sat
 step's prerequisite. Personalisation opt-out stops this optional change. Approved help
 and access support remain available. Formal task conditions stay authoritative.
 
-Task 22 will connect the graph to durable automatic activity selection. Task 21 does not
-change the existing continuation adapters or activate AI assessment suggestions.
+Task 22 connects the graph to durable automatic activity selection. Task 21's graph and diagnostics do not
+activate AI assessment suggestions.
 
 
 ## Task 22: checked feedback and approved activity continuation

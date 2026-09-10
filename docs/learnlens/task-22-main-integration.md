@@ -1,10 +1,8 @@
-# Task 22 integration with current main
+# Task 22 integration verification
 
-The user authorized merging Task 22 and then pushing main on 9 September 2026.
-The first push was rejected because GitHub had advanced to `e3ce194ce8fda49a37d2c0f11ac5f08228ef2096`.
-That remote revision passed GitHub CI run `34312645000`.
-This integration preserves both remote history and local merge `24833c4`.
-Original Task 20, 21, and 22 worktrees and their recorded hashes remain unchanged.
+This records the 9 September 2026 integration of Task 22 with the published application.
+The published baseline `e3ce194ce8fda49a37d2c0f11ac5f08228ef2096` passed GitHub CI run `34312645000`.
+The verification below covers the combined preference, curriculum, and activity-continuation behavior.
 
 ## Combined behavior
 
@@ -17,8 +15,8 @@ The support API keeps its existing conflict checks, reset history, and task-effe
 
 The shared service is now a package, exposing the existing support service alongside the published service modules.
 The API, model imports, educator controls, learner workspace, and generated contracts include both implementations.
-The remote dashboard remains read-only while projecting Task 22's durable choices.
-Tutor, learner results, reassessment, human review, optional rewards, reminder controls, and backups from remote main remain present.
+The dashboard remains read-only while projecting Task 22's durable choices.
+Tutor, learner results, reassessment, human review, optional rewards, reminder controls, and backups remain present.
 This integration does not add new numbered-task scope or enable Task 35 operational AI assessment.
 
 ## Migration order and data protection
@@ -28,13 +26,12 @@ Unpublished Task 21 and 22 migrations move after that chain:
 
 - `20260909_0040` adds support display fields with defaults to the published preference history and restores immutable guards.
 - `20260909_0041` adds the Task 21 curriculum and diagnostic records.
-- `20260909_0042` adds Task 22 activity receipts and choices. This is the sole current head.
+- `20260909_0042` adds Task 22 activity receipts and choices. This was the sole head for these integration checks.
 
 The upgrade test creates preference history at published revision 0039, upgrades to head, and checks every original field.
 It also checks schema drift and foreign keys. The cross-interface test proves shared opt-out, revision order, and retained support choices.
 Downgrade preflight checks later-task protected history before any Task 22 DDL.
 No application database was migrated during this integration. Tests use isolated disposable databases.
-Databases created only in the original unpublished worktrees remain with those preserved worktrees and their original migration chain.
 
 ## Verification record
 
@@ -54,26 +51,18 @@ Focused persistence tests found and fixed a new-column length mismatch and an ol
 The new published-data upgrade and shared-history tests pass.
 The frozen combined Python dependency audit reports no known vulnerabilities.
 
-Full backend checks use separate processes and task-owned databases, caches, and coverage files.
-The current frozen environment includes `tzdata`, required by the newer remote reminder implementation on Windows.
-All browser helpers use task-owned ports and hidden processes.
+Full backend checks use separate processes and isolated databases, caches, and coverage files.
+The frozen environment includes `tzdata`, required by the reminder implementation on Windows.
+All browser helpers use isolated ports and hidden processes.
 
-Historical Task 20/21/22 handoffs record the original implementation receipts. This integration record supersedes their
-uncommitted delivery status, preference storage shape, and current migration-head claims.
-The original Task 22 hash manifest remains a receipt for that original implementation, not the combined integration tree.
-
-
-Local evidence is under delivery-worktree `src-main/backend/.tmp-task22`:
-`merge-full-a.log`, `merge-full-b.log`, `merge-current-env.log`, `merge-reminders-final.log`,
-`merge-last-assertions.log`, `merge-coverage-final.log`, `merge-frontend-tests.log`, `merge-build.log`,
-`merge-browser-final.log`, `merge-python-audit.log`, and `merge-journey-*.log`.
+The Task 20/21/22 implementation records describe their original verification.
+This integration record describes the combined preference storage and revised migration sequence.
 The package lock and generated contracts are checked against this combined tree.
 The npm dependency tree is unchanged from the verified Task 22 tree; its required high-severity audit gate passed,
 with two moderate development-only advisories and no production findings.
 
-Separate merge self-review passes checked standards, specification boundaries, and test evidence.
-No independent reviewer or sub-agent was used. No remote database migration, deployment, or force push is authorized or performed.
+Separate self-review passes checked standards, specification boundaries, and test evidence.
+Independent review, deployment, and remote database migration are not established by these local checks.
 
 The final authenticated Task 22 journey passed in Chrome, Edge, Firefox, and WebKit, with zero page errors and Axe violations.
 It exercised checked feedback, model update, approved suggestion, accept/defer/replace, educator override, and reload history.
-Receipts: `browser-1788931379410`, `browser-1788931396290`, `browser-1788931411863`, and `browser-1788931434245`.
