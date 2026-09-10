@@ -187,7 +187,8 @@ class RequestSizeLimitMiddleware:
             try:
                 return next(message_iterator)
             except StopIteration:
-                return {"type": "http.request", "body": b"", "more_body": False}
+                # Streaming responses must await the real disconnect after replay.
+                return await receive()
 
         await self._app(scope, replay, send)
 
