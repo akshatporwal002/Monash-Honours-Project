@@ -107,6 +107,16 @@ Combined and corrective logs are `q29-full.log` and
 `q29-combined-corrective.log`. Final browser logs are `q29-browser-final.log`
 and `q29-learning-loop-final.log`.
 
+The first PR CI run passed 112 existing browser cases. Eight cases failed because
+two older tests expected the retired analytics heading. Both now expect the
+current progress heading. All eight corrected cases passed locally in 18.4 seconds.
+The correction retained their route and accessibility checks. Separate Spec and
+Standards reviews passed again with zero findings.
+
+The backend CI limit is now 45 minutes. The previous main run had been cancelled
+after 20 minutes during backend tests; successful earlier runs took 17-19 minutes.
+The longer allowance retains every test, migration, contract and coverage gate.
+
 ## Remaining work
 
 Tasks 33-35, 38 and 41 remain separate. Existing partial tasks still need their
