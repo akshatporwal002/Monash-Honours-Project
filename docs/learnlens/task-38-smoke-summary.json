@@ -1,0 +1,379 @@
+{
+  "artifact_note": "Summary of tiny fake-transport smoke. Full raw samples are reproducible via the documented command; no real performance or provider cost evidence.",
+  "assessment_evaluation_target": "pending separate approved target; human wait is separate",
+  "cost": {
+    "external_aud_per_complete_loop": null,
+    "status": "unknown_missing_usage",
+    "threshold_aud": "0.10"
+  },
+  "definitions": {
+    "assessed_feedback": "Two locally generated assessed feedback operations; retained separately from external feedback evidence",
+    "complete_loop": "Supported prediction/simulation, unaided transfer, assessed feedback, revision, model/suggestion, choice, formative next-activity feedback and human-confirmed result",
+    "cost": "All measured-loop external spend including failed/incomplete loops divided by complete measured loops; warm-up separate",
+    "feedback": "Formative next-activity submission dispatch through terminal receipt, including queue/worker wait; provider use must be confirmed by usage",
+    "learning_loop": "Same journey before human confirmation; not the formal complete-loop cost denominator",
+    "load": "Closed-loop VUs; one session per fresh synthetic learner-loop; no think time; rounds separated by phase barriers",
+    "ordinary": "Dashboard/task/draft reads only; auth, simulation, mutations and polling separate",
+    "p95": "Nearest rank over all started operations including errors; deadlines are right-censored lower bounds",
+    "progress": "Authenticated progress API response, excluding browser render"
+  },
+  "evidence_class": "SYNTHETIC DRY RUN",
+  "external_provider_execution": "pending_usage_reconciliation",
+  "loops": [
+    {
+      "activity_rule_version": "approved-activity.v1",
+      "assessment_attempt_id": "a9881f88-7b20-5d33-8d96-ed8e884b8185",
+      "feedback_states": [
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "b9cef623-8540-5fbb-8c6e-aa7f6c501b25"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "b9cef623-8540-5fbb-8c6e-aa7f6c501b25"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "47d6e0d4-aa9e-5580-b442-2547913455e7"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "47d6e0d4-aa9e-5580-b442-2547913455e7"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "32679b3f-6749-5b9b-8e96-0bc1fb40f0ca"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "32679b3f-6749-5b9b-8e96-0bc1fb40f0ca"
+        }
+      ],
+      "formal_result": null,
+      "learning_complete": true,
+      "loop_id": "task38-smoke-v1:2:warmup:0:0",
+      "phase": "warmup",
+      "seconds": 0.03347259998554364,
+      "status": "awaiting_human",
+      "submission_ids": [
+        "05536516-bd2e-5324-b640-7a7317c9da54",
+        "fe0258ed-e81a-50a0-85fe-7de10f1d18fa",
+        "7165fec4-f0e6-5399-b0d9-aa1babf5c218"
+      ],
+      "users": 2,
+      "workflow_ids": [
+        "b9cef623-8540-5fbb-8c6e-aa7f6c501b25",
+        "47d6e0d4-aa9e-5580-b442-2547913455e7",
+        "32679b3f-6749-5b9b-8e96-0bc1fb40f0ca"
+      ]
+    },
+    {
+      "activity_rule_version": "approved-activity.v1",
+      "assessment_attempt_id": "f0eaec5b-4f3f-57d7-bbfd-e9395c003c10",
+      "feedback_states": [
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "6f2f2eee-3e23-58fc-9a17-b888050648c8"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "6f2f2eee-3e23-58fc-9a17-b888050648c8"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "d506d197-b8b2-5196-82ba-cc207ce4999b"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "d506d197-b8b2-5196-82ba-cc207ce4999b"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "e9111d6a-8e33-569d-b2a0-cded1a77ef6c"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "e9111d6a-8e33-569d-b2a0-cded1a77ef6c"
+        }
+      ],
+      "formal_result": null,
+      "learning_complete": true,
+      "loop_id": "task38-smoke-v1:2:warmup:1:0",
+      "phase": "warmup",
+      "seconds": 0.0246033999719657,
+      "status": "awaiting_human",
+      "submission_ids": [
+        "137acceb-0a19-5717-8c49-52a0aeca1164",
+        "1c53abe0-296b-5ac8-ad19-1b27333df227",
+        "86e5de47-52ad-554b-bde8-2c0398f65a2c"
+      ],
+      "users": 2,
+      "workflow_ids": [
+        "6f2f2eee-3e23-58fc-9a17-b888050648c8",
+        "d506d197-b8b2-5196-82ba-cc207ce4999b",
+        "e9111d6a-8e33-569d-b2a0-cded1a77ef6c"
+      ]
+    },
+    {
+      "activity_rule_version": "approved-activity.v1",
+      "assessment_attempt_id": "160696f2-acfa-5318-960e-356d00480a50",
+      "feedback_states": [
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "35d493d0-efc7-5d02-9853-a4bba8a5ed73"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "35d493d0-efc7-5d02-9853-a4bba8a5ed73"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "e71cc7c9-35d4-5911-8eb7-f088940edbe6"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "e71cc7c9-35d4-5911-8eb7-f088940edbe6"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "3a846ed5-5550-5ebb-a307-be382aec36cf"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "3a846ed5-5550-5ebb-a307-be382aec36cf"
+        }
+      ],
+      "formal_result": null,
+      "learning_complete": true,
+      "loop_id": "task38-smoke-v1:2:measurement:0:0",
+      "phase": "measurement",
+      "seconds": 0.03888130001723766,
+      "status": "awaiting_human",
+      "submission_ids": [
+        "a006283f-6e47-555a-a1e4-4709766398ee",
+        "9bbc078a-a7ba-519e-8dd1-5a6029496d04",
+        "9695e05c-8b06-52f5-801e-473059ab1684"
+      ],
+      "users": 2,
+      "workflow_ids": [
+        "35d493d0-efc7-5d02-9853-a4bba8a5ed73",
+        "e71cc7c9-35d4-5911-8eb7-f088940edbe6",
+        "3a846ed5-5550-5ebb-a307-be382aec36cf"
+      ]
+    },
+    {
+      "activity_rule_version": "approved-activity.v1",
+      "assessment_attempt_id": "c141f806-746a-5aa5-9ec0-edaec2786e4c",
+      "feedback_states": [
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "ee0eb8ff-8dac-521f-bd32-4806b90aa74c"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "ee0eb8ff-8dac-521f-bd32-4806b90aa74c"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "aaa55643-3903-571b-a690-6833a234b58f"
+        },
+        {
+          "category": "assessed_feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "aaa55643-3903-571b-a690-6833a234b58f"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "processing",
+          "workflow_id": "880a9f80-057e-5dec-b5d0-beaf3869117a"
+        },
+        {
+          "category": "feedback",
+          "processing_stage": null,
+          "status": "validated",
+          "workflow_id": "880a9f80-057e-5dec-b5d0-beaf3869117a"
+        }
+      ],
+      "formal_result": null,
+      "learning_complete": true,
+      "loop_id": "task38-smoke-v1:2:measurement:1:0",
+      "phase": "measurement",
+      "seconds": 0.03308979998109862,
+      "status": "awaiting_human",
+      "submission_ids": [
+        "a3e6ce03-b25c-54a3-b121-558e6dfdad16",
+        "8ad34070-8b4d-5d80-bac2-e69c31176827",
+        "092a280a-668a-566e-ab2d-a75f33c8f16f"
+      ],
+      "users": 2,
+      "workflow_ids": [
+        "ee0eb8ff-8dac-521f-bd32-4806b90aa74c",
+        "aaa55643-3903-571b-a690-6833a234b58f",
+        "880a9f80-057e-5dec-b5d0-beaf3869117a"
+      ]
+    }
+  ],
+  "manifest": {
+    "cancelled": false,
+    "config": {
+      "csrf_cookie": "ql_csrf",
+      "csrf_header": "X-CSRF-Token",
+      "fake": true,
+      "human_timeout": 0,
+      "loop_cost_ceiling_aud": "0.10",
+      "max_cost_aud": "1",
+      "max_requests": 300,
+      "measurement_rounds": 1,
+      "model": "",
+      "origin": "",
+      "phase_timeout": 600,
+      "poll_seconds": 2,
+      "provider": "",
+      "provider_budget_record": "",
+      "request_timeout": 15,
+      "runtime": {},
+      "synthetic_environment_record": "",
+      "target": "",
+      "users": [
+        2
+      ],
+      "versions": {},
+      "warmup_rounds": 1,
+      "worker_timeout": 90
+    },
+    "periods": [
+      {
+        "peak_active_loops": 2,
+        "phase": "warmup",
+        "rounds": 1,
+        "users": 2,
+        "wall_seconds": 0.03543899999931455
+      },
+      {
+        "peak_active_loops": 2,
+        "phase": "measurement",
+        "rounds": 1,
+        "users": 2,
+        "wall_seconds": 0.041662100004032254
+      }
+    ],
+    "planned_loops": 4,
+    "requests": 132,
+    "reserved_cost_ceiling_aud": "0.40",
+    "roster_sha256": "6d0941130275bf01eb9bb45265788577536aa56b5e71b8dc02ebe99e2e3dd144",
+    "run_id": "task38-smoke-v1",
+    "schema": "task38.manifest.v1",
+    "source": {
+      "branch": "codex/task38-load-cost-harness",
+      "commit": "27a397a66b5fb6544ba08d9c8950fbbc8c6b4ca4",
+      "dirty": true,
+      "harness_sha256": "45bb596d88c9f9b70b3527ee463e590801b893f52e32fda2c474e8b77d733f1c"
+    },
+    "started_at_utc": "2026-09-10T06:08:32.052691+00:00",
+    "unstarted_loops": 0
+  },
+  "production_compliance": "not_established",
+  "scaling": {
+    "baseline_users": 5,
+    "comparisons": [],
+    "maximum_growth": 0.25,
+    "status": "pending_5_and_100"
+  },
+  "scenarios": [
+    {
+      "complete_loops": 0,
+      "error_threshold_exclusive": 0.01,
+      "http_attempts": 66,
+      "http_error_rate": 0.0,
+      "http_errors": 0,
+      "http_errors_within_threshold": true,
+      "learning_loops": 2,
+      "loop_count": 2,
+      "loop_error_rate": 0.0,
+      "loop_outcomes": {
+        "awaiting_human": 2
+      },
+      "metrics": {
+        "assessed_feedback": {
+          "censored": 0,
+          "count": 4,
+          "errors": 0,
+          "p95_seconds": 2.15,
+          "threshold_seconds": null,
+          "within_threshold_observed": null
+        },
+        "feedback": {
+          "censored": 0,
+          "count": 2,
+          "errors": 0,
+          "p95_seconds": 2.1499999999999995,
+          "threshold_seconds": 10,
+          "within_threshold_observed": true
+        },
+        "ordinary": {
+          "censored": 0,
+          "count": 12,
+          "errors": 0,
+          "p95_seconds": 0.050000000000000044,
+          "threshold_seconds": 2,
+          "within_threshold_observed": true
+        },
+        "progress": {
+          "censored": 0,
+          "count": 4,
+          "errors": 0,
+          "p95_seconds": 0.04999999999999999,
+          "threshold_seconds": 3,
+          "within_threshold_observed": true
+        }
+      },
+      "report_mode": "scaling",
+      "users": 2
+    }
+  ],
+  "schema": "task38.report.v1"
+}

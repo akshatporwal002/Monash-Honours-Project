@@ -1,0 +1,32 @@
+{
+  "fixture_version": "task38-single-qubit-v1-synthetic-only",
+  "response": {
+    "answer": "Equal amplitudes give equal measurement probabilities.",
+    "circuit": {"qubits": 1, "operations": [{"gate": "h", "targets": [0]}]},
+    "episode": {
+      "schema_version": "learnlens.episode.v1",
+      "supported": {
+        "prediction": {"answer": "Zero and one each have probability one half."},
+        "reasoning": "H creates equal amplitudes from the zero input.",
+        "explanation": "Equal amplitudes give equal probabilities; sampled counts can differ.",
+        "reflection": "The exact probabilities matched my prediction."
+      }
+    }
+  },
+  "transfer": {
+    "content": {
+      "answer": "The fresh circuit ends in state one.",
+      "circuit": {"qubits": 1, "operations": [
+        {"gate": "x", "targets": [0]}, {"gate": "h", "targets": [0]}, {"gate": "h", "targets": [0]}
+      ]}
+    },
+    "process": {
+      "prediction": {"answer": "One with probability one."},
+      "reasoning": "X prepares one, then two H gates restore that input.",
+      "explanation": "The output is one after applying all three gates.",
+      "reflection": "This differs from a single H."
+    }
+  },
+  "revision_reflection": "The simulation count varies; the exact probability does not.",
+  "next_activity_answer": "Starting from zero, X prepares one. Applying H gives equal measurement probabilities for zero and one. The relative phase differs from H on zero."
+}
