@@ -35,6 +35,7 @@ from app.services.continuation.contracts import TerminalFeedbackNotice
 from app.services.continuation.repository import SqlAlchemyContinuationRepository
 from app.services.feedback.contracts import PipelinePersistenceRequest
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
+from app.services.research.repository import SqlAlchemyResearchJobRepository
 from app.services.terminal_integrations.contracts import (
     ContinuationIntegrationIntent,
     TerminalIntegrationIntent,
@@ -383,6 +384,8 @@ def test_worker_reconciles_eligible_research_pair_only_after_terminal_commit(
     worker = TerminalIntegrationWorker(
         db_session,
         now=lambda: NOW + timedelta(seconds=2),
+        # This legacy mechanics fixture has no live study or participant records.
+        research_repository_factory=SqlAlchemyResearchJobRepository,
     )
     asyncio.run(worker.run_once())
     asyncio.run(worker.run_once())
@@ -450,6 +453,7 @@ def test_production_worker_preserves_research_backlog_and_continues_learning(
         db_session,
         now=lambda: NOW + timedelta(seconds=2),
         integration_type=TerminalIntegrationType.RESEARCH_PAIR,
+        research_repository_factory=SqlAlchemyResearchJobRepository,
     )
     assert asyncio.run(legacy_worker.run_once()).processed
     legacy_rows = list(db_session.execute(select(ResearchEvaluation.__table__)))

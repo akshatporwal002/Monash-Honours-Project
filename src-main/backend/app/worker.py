@@ -139,11 +139,32 @@ def build_offline_worker_adapters(configured_settings: Settings) -> WorkerAdapte
     )
 
 
-class _DisabledResearchPass:
-    """Preserve queued research without claiming it while governance is incomplete."""
+class _GovernedResearchPass:
+    """Preserve the backlog while closed; recheck every participant when released."""
+
+    def __init__(self, session_factory, adapters, configured_settings, now):
+        self._session_factory = session_factory
+        self._adapters = adapters
+        self._settings = configured_settings
+        self._now = now
 
     async def run_once(self) -> bool:
-        return False
+        from app.services.research.governance import research_processing_approved
+        from app.services.research.governed_processing import governed_baseline_executor
+
+        if not self._settings.research_enabled or not research_processing_approved():
+            return False
+        with self._session_factory() as session:
+            executor = governed_baseline_executor(
+                session,
+                self._adapters.baseline_context_provider,
+                self._adapters.baseline_generator,
+                self._adapters.baseline_judge,
+                now=self._now,
+                provider_timeout_seconds=self._settings.provider_timeout_seconds,
+                maximum_attempts=self._settings.max_infrastructure_attempts,
+            )
+            return await executor.run_once()
 
 
 class _ContinuationDatabasePass:
@@ -191,22 +212,29 @@ class _TerminalIntegrationDatabasePass:
         lease_duration: timedelta,
         maximum_attempts: int,
         additional_pass: WorkerPass | None = None,
+        research_enabled: bool = False,
     ) -> None:
         self._session_factory = session_factory
         self._now = now
         self._lease_duration = lease_duration
         self._maximum_attempts = maximum_attempts
         self._additional_pass = additional_pass
+        self._research_enabled = research_enabled
 
     async def run_once(self) -> bool:
+        from app.services.research.governance import research_processing_approved
+
         with self._session_factory() as session:
             outcome = await TerminalIntegrationWorker(
                 session,
                 now=self._now,
                 lease_duration=self._lease_duration,
                 maximum_attempts=self._maximum_attempts,
-                # Do not consume research intents created before the restriction.
-                integration_type=TerminalIntegrationType.CONTINUATION,
+                integration_type=(
+                    None
+                    if self._research_enabled and research_processing_approved()
+                    else TerminalIntegrationType.CONTINUATION
+                ),
             ).run_once()
         processed = outcome.processed
         if self._additional_pass is not None:
@@ -380,7 +408,7 @@ def build_database_worker(
         lease_duration=lease_duration,
         maximum_attempts=configured_settings.max_infrastructure_attempts,
     )
-    baseline_pass = _DisabledResearchPass()
+    baseline_pass = _GovernedResearchPass(session_factory, adapters, configured_settings, now)
     continuation_pass = _ContinuationDatabasePass(
         session_factory,
         adapters,
@@ -395,6 +423,7 @@ def build_database_worker(
         lease_duration=lease_duration,
         maximum_attempts=configured_settings.max_infrastructure_attempts,
         additional_pass=adapters.terminal_reconciliation,
+        research_enabled=configured_settings.research_enabled,
     )
     ownership = WorkerHealthRegistry(
         now=now,

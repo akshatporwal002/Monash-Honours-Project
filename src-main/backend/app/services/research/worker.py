@@ -16,6 +16,7 @@ from app.schemas.feedback import (
     JudgeEvaluationOutcome,
     TokenUsage,
 )
+from app.services.research.governance import GovernanceDenied
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,6 +114,7 @@ class BaselineJobExecutor:
         now: Callable[[], datetime] = lambda: datetime.now(UTC),
         clock: Callable[[], float] = perf_counter,
         maximum_attempts: int = 3,
+        check_eligibility: Callable[[ResearchJobClaim], object] | None = None,
     ) -> None:
         if not 0 < provider_timeout_seconds <= 60:
             raise ValueError("provider_timeout_seconds must be between 0 and 60")
@@ -126,6 +128,7 @@ class BaselineJobExecutor:
         self._now = now
         self._clock = clock
         self._maximum_attempts = maximum_attempts
+        self._check_eligibility = check_eligibility
 
     async def run_once(self) -> bool:
         observed_at = self._now()
@@ -142,6 +145,8 @@ class BaselineJobExecutor:
         if claim is None:
             return False
         try:
+            if self._check_eligibility is not None:
+                self._check_eligibility(claim)
             context = await asyncio.wait_for(
                 self._context_provider.get_context(claim.workflow_run_id),
                 timeout=self._provider_timeout_seconds,
@@ -165,6 +170,8 @@ class BaselineJobExecutor:
                 }
             )
             generation_started = self._clock()
+            if self._check_eligibility is not None:
+                self._check_eligibility(claim)
             feedback = await asyncio.wait_for(
                 self._generator.generate(
                     isolated_context,
@@ -178,6 +185,8 @@ class BaselineJobExecutor:
                 int((self._clock() - generation_started) * 1000),
             )
             evaluation_started = self._clock()
+            if self._check_eligibility is not None:
+                self._check_eligibility(claim)
             evaluation = await asyncio.wait_for(
                 self._judge.evaluate(isolated_context, feedback),
                 timeout=self._provider_timeout_seconds,
@@ -186,6 +195,8 @@ class BaselineJobExecutor:
                 0,
                 int((self._clock() - evaluation_started) * 1000),
             )
+            if self._check_eligibility is not None:
+                self._check_eligibility(claim)
             self._repository.complete(
                 claim,
                 BaselineCompletion(
@@ -206,6 +217,8 @@ class BaselineJobExecutor:
                 ),
                 completed_at=self._now(),
             )
+        except GovernanceDenied:
+            self._repository.fail(claim, "research_governance_denied", completed_at=self._now())
         except TimeoutError:
             self._repository.fail(
                 claim,

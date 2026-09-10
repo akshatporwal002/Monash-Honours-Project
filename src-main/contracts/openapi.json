@@ -675,6 +675,65 @@
         "title": "AppealResolutionWrite",
         "type": "object"
       },
+      "ApprovalDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "kind": {
+            "const": "approval",
+            "default": "approval",
+            "title": "Kind",
+            "type": "string"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "approved",
+              "suspended",
+              "revoked",
+              "pending"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "state",
+          "authority_reference",
+          "evidence_reference",
+          "valid_from",
+          "valid_until"
+        ],
+        "title": "ApprovalDecision",
+        "type": "object"
+      },
       "AssessedFeedbackView": {
         "additionalProperties": false,
         "properties": {
@@ -3230,6 +3289,113 @@
         "title": "ConflictingEvidenceReference",
         "type": "object"
       },
+      "ConsentDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "course_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Course Id",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "consented",
+              "declined",
+              "withdrawn"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "enum": [
+                "case_id",
+                "pseudonymous_user_id",
+                "course_id",
+                "task_id",
+                "task_type",
+                "submission_reference",
+                "experimental_condition",
+                "judge_decision",
+                "correctness_score",
+                "relevance_score",
+                "grounding_score",
+                "actionability_score",
+                "safety_score",
+                "unsupported_claim_count",
+                "latency_ms",
+                "input_tokens",
+                "output_tokens",
+                "total_tokens",
+                "estimated_cost",
+                "regeneration_count",
+                "fallback_used",
+                "status",
+                "comparable",
+                "usage_complete",
+                "measurement_schema_version",
+                "created_at",
+                "completed_at",
+                "processing.technical_pair",
+                "processing.provider_input",
+                "processing.generated_output",
+                "processing.judge_result",
+                "processing.input_references",
+                "processing.retrieved_sources",
+                "processing.simulation_reference"
+              ],
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Fields",
+            "type": "array"
+          },
+          "kind": {
+            "const": "consent",
+            "default": "consent",
+            "title": "Kind",
+            "type": "string"
+          },
+          "purposes": {
+            "items": {
+              "enum": [
+                "technical_pair",
+                "provider_processing"
+              ],
+              "type": "string"
+            },
+            "title": "Purposes",
+            "type": "array"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "subject_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Subject User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "scope_id",
+          "course_id",
+          "subject_user_id",
+          "decision",
+          "consent_version"
+        ],
+        "title": "ConsentDecision",
+        "type": "object"
+      },
       "CorrectionTarget": {
         "additionalProperties": false,
         "description": "Explicitly identify one immutable evidence record or estimate.",
@@ -4557,6 +4723,66 @@
           "limitations"
         ],
         "title": "EffectivePreferences",
+        "type": "object"
+      },
+      "EligibilityDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "course_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Course Id",
+            "type": "string"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "kind": {
+            "const": "eligibility",
+            "default": "eligibility",
+            "title": "Kind",
+            "type": "string"
+          },
+          "rule_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "subject_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Subject User Id",
+            "type": "integer"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "course_id",
+          "subject_user_id",
+          "eligible",
+          "rule_version",
+          "evidence_reference",
+          "valid_until"
+        ],
+        "title": "EligibilityDecision",
         "type": "object"
       },
       "EnrollmentCreate": {
@@ -6753,6 +6979,161 @@
           "source_references"
         ],
         "title": "GeneratedTaskRead",
+        "type": "object"
+      },
+      "GovernanceCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "discriminator": {
+              "mapping": {
+                "approval": "#/components/schemas/ApprovalDecision",
+                "consent": "#/components/schemas/ConsentDecision",
+                "eligibility": "#/components/schemas/EligibilityDecision",
+                "grant": "#/components/schemas/ResearchGrant",
+                "hold": "#/components/schemas/RetentionHold",
+                "scope": "#/components/schemas/StudyScope"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StudyScope"
+              },
+              {
+                "$ref": "#/components/schemas/ApprovalDecision"
+              },
+              {
+                "$ref": "#/components/schemas/ConsentDecision"
+              },
+              {
+                "$ref": "#/components/schemas/EligibilityDecision"
+              },
+              {
+                "$ref": "#/components/schemas/ResearchGrant"
+              },
+              {
+                "$ref": "#/components/schemas/RetentionHold"
+              }
+            ],
+            "title": "Decision"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "expected_revision",
+          "reason",
+          "decision"
+        ],
+        "title": "GovernanceCommand",
+        "type": "object"
+      },
+      "GovernanceHistoryEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_user_id": {
+            "title": "Actor User Id",
+            "type": "integer"
+          },
+          "command": {
+            "$ref": "#/components/schemas/GovernanceCommand"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "study_id": {
+            "title": "Study Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "study_id",
+          "revision",
+          "kind",
+          "recorded_at",
+          "actor_user_id",
+          "command"
+        ],
+        "title": "GovernanceHistoryEntry",
+        "type": "object"
+      },
+      "GovernanceReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "study_id": {
+            "title": "Study Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "study_id",
+          "revision",
+          "kind",
+          "recorded_at"
+        ],
+        "title": "GovernanceReceipt",
         "type": "object"
       },
       "GroundedSourceClaim": {
@@ -10354,6 +10735,51 @@
         "title": "PairedDifferences",
         "type": "object"
       },
+      "ParticipationRead": {
+        "additionalProperties": false,
+        "properties": {
+          "consent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConsentDecision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/StudyScope"
+          },
+          "scope_id": {
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "study_id": {
+            "title": "Study Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "study_id",
+          "scope_id",
+          "revision",
+          "scope",
+          "consent"
+        ],
+        "title": "ParticipationRead",
+        "type": "object"
+      },
       "PathBinding": {
         "properties": {
           "assessment": {
@@ -12100,6 +12526,118 @@
         "title": "ResearchExportFormat",
         "type": "string"
       },
+      "ResearchGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "course_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Course Id",
+            "type": "string"
+          },
+          "evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "enum": [
+                "case_id",
+                "pseudonymous_user_id",
+                "course_id",
+                "task_id",
+                "task_type",
+                "submission_reference",
+                "experimental_condition",
+                "judge_decision",
+                "correctness_score",
+                "relevance_score",
+                "grounding_score",
+                "actionability_score",
+                "safety_score",
+                "unsupported_claim_count",
+                "latency_ms",
+                "input_tokens",
+                "output_tokens",
+                "total_tokens",
+                "estimated_cost",
+                "regeneration_count",
+                "fallback_used",
+                "status",
+                "comparable",
+                "usage_complete",
+                "measurement_schema_version",
+                "created_at",
+                "completed_at",
+                "processing.technical_pair",
+                "processing.provider_input",
+                "processing.generated_output",
+                "processing.judge_result",
+                "processing.input_references",
+                "processing.retrieved_sources",
+                "processing.simulation_reference"
+              ],
+              "type": "string"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "kind": {
+            "const": "grant",
+            "default": "grant",
+            "title": "Kind",
+            "type": "string"
+          },
+          "revoked": {
+            "default": false,
+            "title": "Revoked",
+            "type": "boolean"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "subject_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Subject User Id",
+            "type": "integer"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "course_id",
+          "subject_user_id",
+          "fields",
+          "valid_from",
+          "valid_until",
+          "authority_reference",
+          "evidence_reference"
+        ],
+        "title": "ResearchGrant",
+        "type": "object"
+      },
       "ResearchMetricsResult": {
         "additionalProperties": false,
         "properties": {
@@ -12268,6 +12806,111 @@
         ],
         "title": "ResultState",
         "type": "string"
+      },
+      "RetentionClass": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "authority_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Version",
+            "type": "string"
+          },
+          "owner_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Owner Reference",
+            "type": "string"
+          },
+          "record_class": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Record Class",
+            "type": "string"
+          },
+          "retention_rule": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Retention Rule",
+            "type": "string"
+          },
+          "review_at": {
+            "format": "date-time",
+            "title": "Review At",
+            "type": "string"
+          },
+          "trigger": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_class",
+          "authority_reference",
+          "authority_version",
+          "owner_reference",
+          "trigger",
+          "retention_rule",
+          "review_at"
+        ],
+        "title": "RetentionClass",
+        "type": "object"
+      },
+      "RetentionHold": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "hold_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Hold Reference",
+            "type": "string"
+          },
+          "kind": {
+            "const": "hold",
+            "default": "hold",
+            "title": "Kind",
+            "type": "string"
+          },
+          "record_class": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Record Class",
+            "type": "string"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "record_class",
+          "hold_reference",
+          "authority_reference",
+          "active"
+        ],
+        "title": "RetentionHold",
+        "type": "object"
       },
       "RetrievalHitRead": {
         "additionalProperties": false,
@@ -13811,6 +14454,155 @@
           "next_level_points"
         ],
         "title": "StudentSummaryRead",
+        "type": "object"
+      },
+      "StudyScope": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Consent Version",
+            "type": "string"
+          },
+          "course_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Course Ids",
+            "type": "array"
+          },
+          "data_plan_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Data Plan Version",
+            "type": "string"
+          },
+          "eligibility_rule_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Eligibility Rule Version",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "enum": [
+                "case_id",
+                "pseudonymous_user_id",
+                "course_id",
+                "task_id",
+                "task_type",
+                "submission_reference",
+                "experimental_condition",
+                "judge_decision",
+                "correctness_score",
+                "relevance_score",
+                "grounding_score",
+                "actionability_score",
+                "safety_score",
+                "unsupported_claim_count",
+                "latency_ms",
+                "input_tokens",
+                "output_tokens",
+                "total_tokens",
+                "estimated_cost",
+                "regeneration_count",
+                "fallback_used",
+                "status",
+                "comparable",
+                "usage_complete",
+                "measurement_schema_version",
+                "created_at",
+                "completed_at",
+                "processing.technical_pair",
+                "processing.provider_input",
+                "processing.generated_output",
+                "processing.judge_result",
+                "processing.input_references",
+                "processing.retrieved_sources",
+                "processing.simulation_reference"
+              ],
+              "type": "string"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "kind": {
+            "const": "scope",
+            "default": "scope",
+            "title": "Kind",
+            "type": "string"
+          },
+          "processing_researcher_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Processing Researcher Id",
+            "type": "integer"
+          },
+          "protocol_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Protocol Version",
+            "type": "string"
+          },
+          "purposes": {
+            "items": {
+              "enum": [
+                "technical_pair",
+                "provider_processing"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Purposes",
+            "type": "array"
+          },
+          "retention": {
+            "items": {
+              "$ref": "#/components/schemas/RetentionClass"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Retention",
+            "type": "array"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "withdrawal_rule_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Withdrawal Rule Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "protocol_version",
+          "data_plan_version",
+          "consent_version",
+          "eligibility_rule_version",
+          "withdrawal_rule_reference",
+          "processing_researcher_id",
+          "course_ids",
+          "fields",
+          "purposes",
+          "valid_from",
+          "valid_until",
+          "retention"
+        ],
+        "title": "StudyScope",
         "type": "object"
       },
       "SubmissionCreate": {
@@ -24489,6 +25281,80 @@
             }
           },
           {
+            "in": "query",
+            "name": "study_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Study Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fields",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "case_id",
+                      "pseudonymous_user_id",
+                      "course_id",
+                      "task_id",
+                      "task_type",
+                      "submission_reference",
+                      "experimental_condition",
+                      "judge_decision",
+                      "correctness_score",
+                      "relevance_score",
+                      "grounding_score",
+                      "actionability_score",
+                      "safety_score",
+                      "unsupported_claim_count",
+                      "latency_ms",
+                      "input_tokens",
+                      "output_tokens",
+                      "total_tokens",
+                      "estimated_cost",
+                      "regeneration_count",
+                      "fallback_used",
+                      "status",
+                      "comparable",
+                      "usage_complete",
+                      "measurement_schema_version",
+                      "created_at",
+                      "completed_at",
+                      "processing.technical_pair",
+                      "processing.provider_input",
+                      "processing.generated_output",
+                      "processing.judge_result",
+                      "processing.input_references",
+                      "processing.retrieved_sources",
+                      "processing.simulation_reference"
+                    ],
+                    "type": "string"
+                  },
+                  "maxItems": 64,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields"
+            }
+          },
+          {
             "in": "cookie",
             "name": "quantumlearn_session",
             "required": false,
@@ -24585,6 +25451,209 @@
           }
         },
         "summary": "Research Export",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/v1/research/governance/{study_id}/decisions": {
+      "get": {
+        "operationId": "read_decisions_api_v1_research_governance__study_id__decisions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GovernanceHistoryEntry"
+                  },
+                  "title": "Response Read Decisions Api V1 Research Governance  Study Id  Decisions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Decisions",
+        "tags": [
+          "research"
+        ]
+      },
+      "post": {
+        "operationId": "record_decision_api_v1_research_governance__study_id__decisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Decision",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/v1/research/governance/{study_id}/participation/{course_id}": {
+      "get": {
+        "operationId": "read_participation_api_v1_research_governance__study_id__participation__course_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Participation",
         "tags": [
           "research"
         ]

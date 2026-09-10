@@ -9,6 +9,7 @@ from app.models import (  # noqa: F401
     legacy_retirement,
     reassessment,
     reminders,
+    research_governance,
     simulation,
     source_history,
     task_review,

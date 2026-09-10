@@ -10,6 +10,7 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session
 from support.assessment import build_assessment_attempt
+from support.migration_assertions import protected_history_manifest
 from test_migrations import _prepare_legacy_assessment_database, migration_config
 
 from scripts.verify_sqlite_backup import database_manifest
@@ -104,8 +105,13 @@ def test_populated_retirement_preserves_every_original_row_and_guards_history(tm
     command.stamp(config, "20260910_0043")
     command.upgrade(config, "head")
     assert database_manifest(path) == snapshot
+    protected_snapshot = protected_history_manifest(path)
     with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260910_0043")
+    # Additive empty extensions may downgrade before the older protected step refuses.
+    # Verify every retained record immediately, then restore the exact head manifest.
+    assert protected_history_manifest(path) == protected_snapshot
+    command.upgrade(config, "head")
     assert database_manifest(path) == snapshot
     engine.dispose()
 
@@ -158,5 +164,5 @@ def test_empty_retirement_round_trip_keeps_one_head(tmp_path):
     with engine.connect() as connection:
         assert connection.execute(
             text("SELECT version_num FROM alembic_version")
-        ).scalars().all() == ["20260910_0044"]
+        ).scalars().all() == ["20260910_0045"]
     engine.dispose()
