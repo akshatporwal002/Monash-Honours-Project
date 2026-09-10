@@ -46,11 +46,6 @@ def test_migrated_controls_restore_with_history_and_refuse_destructive_rollback(
                     learner_notice="Your deadline has been extended.",
                 ),
             )
-        with pytest.raises(
-            (RuntimeError, ValueError),
-            match="(?i)(preserv|populat|history|records|reminder|arrangement)",
-        ):
-            command.downgrade(config, "20260909_0038")
         # Demo URL materials have no stored upload bytes. The complete database, including
         # assessment/task history and the new controls, must still survive isolated restoration.
         uploads = tmp_path / "uploads"
@@ -66,6 +61,22 @@ def test_migrated_controls_restore_with_history_and_refuse_destructive_rollback(
                     connection.execute(text("UPDATE deadline_arrangements SET reason='changed'"))
         finally:
             restored_engine.dispose()
+        # Probe rollback only after verifying the current-head backup. SQLite may finish
+        # downgrading newer empty revisions before an older populated-history guard refuses.
+        with pytest.raises(
+            (RuntimeError, ValueError),
+            match="(?i)(preserv|populat|history|records|reminder|arrangement)",
+        ):
+            command.downgrade(config, "20260909_0038")
+        command.upgrade(config, "head")
+        command.check(config)
+        with engine.begin() as connection:
+            assert (
+                connection.scalar(text("SELECT version_num FROM alembic_version")) == MIGRATION_HEAD
+            )
+            assert connection.scalar(text("SELECT count(*) FROM deadline_arrangements")) == 1
+            with pytest.raises(IntegrityError, match="immutable"):
+                connection.execute(text("UPDATE deadline_arrangements SET reason='changed'"))
     finally:
         engine.dispose()
 
