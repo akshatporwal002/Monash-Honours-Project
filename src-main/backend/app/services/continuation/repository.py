@@ -240,7 +240,7 @@ class SqlAlchemyContinuationRepository:
         observed_at: datetime,
         maximum_attempts: int,
     ) -> str | None:
-        """Finalize one expired last-attempt claim without reviving its worker."""
+        """Finalize expired claims or due retries exhausted under the current policy."""
         observed = _utc(observed_at)
         if not 1 <= maximum_attempts <= _MAXIMUM_ATTEMPTS:
             raise ContinuationPersistenceError("continuation exhaustion request is invalid")
@@ -248,11 +248,18 @@ class SqlAlchemyContinuationRepository:
             candidate = self._session.scalar(
                 select(ContinuationJob)
                 .where(
-                    ContinuationJob.state == ContinuationState.RUNNING,
                     ContinuationJob.processing_attempts >= maximum_attempts,
-                    ContinuationJob.execution_token.is_not(None),
-                    ContinuationJob.lease_expires_at.is_not(None),
-                    ContinuationJob.lease_expires_at <= observed,
+                    or_(
+                        and_(
+                            ContinuationJob.state == ContinuationState.RUNNING,
+                            ContinuationJob.execution_token.is_not(None),
+                            ContinuationJob.lease_expires_at <= observed,
+                        ),
+                        and_(
+                            ContinuationJob.state == ContinuationState.RETRY_SCHEDULED,
+                            ContinuationJob.next_retry_at <= observed,
+                        ),
+                    ),
                 )
                 .order_by(ContinuationJob.created_at, ContinuationJob.workflow_run_id)
                 .limit(1)
@@ -357,10 +364,11 @@ class SqlAlchemyContinuationRepository:
     ) -> bool:
         statement = update(ContinuationJob).where(
             ContinuationJob.workflow_run_id == job.workflow_run_id,
-            ContinuationJob.state == ContinuationState.RUNNING,
+            ContinuationJob.state == job.state,
             ContinuationJob.execution_token == job.execution_token,
             ContinuationJob.processing_attempts == job.processing_attempts,
             ContinuationJob.lease_expires_at == job.lease_expires_at,
+            ContinuationJob.next_retry_at == job.next_retry_at,
         )
         try:
             result = self._session.execute(
@@ -370,7 +378,9 @@ class SqlAlchemyContinuationRepository:
                     lease_expires_at=None,
                     next_retry_at=None,
                     next_task_reference=None,
-                    failure_category=ContinuationFailureCategory.PERSISTENCE_UNAVAILABLE,
+                    failure_category=(
+                        job.failure_category or ContinuationFailureCategory.PERSISTENCE_UNAVAILABLE
+                    ),
                     completed_at=observed_at,
                     updated_at=observed_at,
                 )

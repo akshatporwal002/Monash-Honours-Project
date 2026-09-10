@@ -58,6 +58,7 @@ class AssessmentEvaluationJobClaim:
     execution_token: str
     processing_attempts: int
     lease_expires_at: datetime
+    maximum_attempts: int = _MAXIMUM_ATTEMPTS
 
 
 class SqlAlchemyAssessmentEvaluationJobRepository:
@@ -154,9 +155,18 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
             candidate = self._session.scalar(
                 select(AssessmentEvaluationJob)
                 .where(
-                    AssessmentEvaluationJob.state == AssessmentEvaluationJobState.RUNNING,
                     AssessmentEvaluationJob.processing_attempts >= maximum_attempts,
-                    AssessmentEvaluationJob.lease_expires_at <= observed,
+                    or_(
+                        and_(
+                            AssessmentEvaluationJob.state == AssessmentEvaluationJobState.RUNNING,
+                            AssessmentEvaluationJob.lease_expires_at <= observed,
+                        ),
+                        and_(
+                            AssessmentEvaluationJob.state
+                            == AssessmentEvaluationJobState.RETRY_SCHEDULED,
+                            AssessmentEvaluationJob.next_retry_at <= observed,
+                        ),
+                    ),
                 )
                 .order_by(
                     AssessmentEvaluationJob.created_at,
@@ -177,17 +187,21 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
                 .where(
                     AssessmentEvaluationJob.assessment_attempt_id
                     == candidate.assessment_attempt_id,
-                    AssessmentEvaluationJob.state == AssessmentEvaluationJobState.RUNNING,
+                    AssessmentEvaluationJob.state == candidate.state,
                     AssessmentEvaluationJob.execution_token == candidate.execution_token,
                     AssessmentEvaluationJob.processing_attempts == candidate.processing_attempts,
                     AssessmentEvaluationJob.lease_expires_at == candidate.lease_expires_at,
+                    AssessmentEvaluationJob.next_retry_at == candidate.next_retry_at,
                 )
                 .values(
                     state=AssessmentEvaluationJobState.REVIEW_REQUIRED,
                     execution_token=None,
                     lease_expires_at=None,
                     next_retry_at=None,
-                    failure_category=AssessmentEvaluationFailureCategory.PERSISTENCE_UNAVAILABLE,
+                    failure_category=(
+                        candidate.failure_category
+                        or AssessmentEvaluationFailureCategory.PERSISTENCE_UNAVAILABLE
+                    ),
                     completed_at=observed,
                     updated_at=observed,
                 )
@@ -201,7 +215,7 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
                     source_id=candidate.assessment_attempt_id,
                     trigger="EVALUATION_FAILED",
                     queue_kind="TECHNICAL",
-                    reason="Assessment evaluation exhausted its worker leases and needs human attention.",
+                    reason="Assessment evaluation exhausted its infrastructure attempts and needs human attention.",
                 )
             self._session.commit()
         except SQLAlchemyError:
@@ -222,7 +236,9 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
     ) -> bool:
         if retry_backoff < timedelta(0):
             raise AssessmentEvaluationJobError("evaluation retry schedule is invalid")
-        if retryable and claim.processing_attempts < _MAXIMUM_ATTEMPTS:
+        if not 1 <= claim.maximum_attempts <= _MAXIMUM_ATTEMPTS:
+            raise AssessmentEvaluationJobError("evaluation retry limit is invalid")
+        if retryable and claim.processing_attempts < claim.maximum_attempts:
             observed = _utc(failed_at)
             return self._fenced_update(
                 claim,
@@ -345,6 +361,7 @@ class SqlAlchemyAssessmentEvaluationJobRepository:
             execution_token=execution_token,
             processing_attempts=previous[1] + 1,
             lease_expires_at=lease,
+            maximum_attempts=maximum_attempts,
         )
 
     def _finish(
