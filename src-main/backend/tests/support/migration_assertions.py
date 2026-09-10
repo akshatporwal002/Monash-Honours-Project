@@ -10,6 +10,11 @@ def protected_history_manifest(database_path: Path) -> dict[str, TableVerificati
     manifest = database_manifest(database_path)
     manifest.pop("alembic_version", None)
     for name in (
+        "research_instrument_forms",
+        "research_instrument_freezes",
+        "research_instrument_bindings",
+        "research_instrument_records",
+        "restricted_instrument_evidence",
         "research_governance_events",
         "research_case_governance",
         "research_export_eligibility",

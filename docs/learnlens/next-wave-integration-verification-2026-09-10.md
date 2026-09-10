@@ -1,6 +1,6 @@
 # Next-wave integration and verification — 10 September 2026
 
-Status: **PREPARATION_IN_PROGRESS; full combined validation NOT STARTED**. The coordinator must supply the final promoted-main/browser-correction source and explicitly release full validation before this branch freezes. No current-main promotion is performed here.
+Status: **PREPARED_AWAITING_FINAL_SOURCE; full combined validation NOT STARTED**. The coordinator must supply the final promoted-main/browser-correction source and explicitly release full validation before this branch freezes. No current-main promotion is performed here.
 
 ## Source and scope
 
@@ -37,13 +37,19 @@ All runs use existing Python 3.11.16 and Node 22.13.0. Frontend dependencies wer
 | Instruments, governance, streaming, security, readiness/health and validation tooling | 216 passed in 173.78 seconds |
 | AdminWorkspace and App components | 32 passed in 22.59 seconds |
 | TypeScript and focused administrator ESLint | PASS |
-| Backend Ruff / formatting | PASS, 504 files formatted |
+| Backend Ruff / formatting | PASS across the full backend tree, 556 files formatted |
 | Root launcher/checker tests | 13 passed plus 9 subtests in 11.65 seconds |
 | Baseline traceability and manual-kit checks | 143 exact rows/446 references; 9 kit documents, 58 links, 36 UI routes and 27 blank cases, no errors |
 | Canonical OpenAPI and generated TypeScript drift | PASS after combined generation |
 | Task 35 numerical consistency | 12/12 match; all 108 cases remain unapproved drafts |
-| Combined migration/recovery, benchmark probe and post-refresh tooling | RUNNING; final receipt pending |
+| Combined migration/recovery, benchmark probe and post-refresh tooling | 120 passed / 4 migration assertion failures in 353.65 seconds; all seven recovery cases passed (56.35 summed case seconds), benchmark/provenance cases passed; corrected four assertions plus assessment contracts/populated-instrument guards: 18 passed in 59.80 seconds |
 | Full backend coverage, full frontend and browser matrices | NOT STARTED; awaiting coordinator release |
+
+The focused 124-case batch reproduced four older downgrade-history assertions: the only differences were the five empty 0046 instrument tables safely removed before an earlier populated-history guard halted the downgrade. The shared comparison helper already omits explicitly named empty removable extensions. Adding only the five new table names under its unchanged zero-row condition preserves every populated table and digest. Independent Standards review cleared this correction; dedicated populated-instrument refusal tests still compare the full database manifest. Production migration 0046 is unchanged.
+
+The first narrow correction rerun passed five cases but one case failed during isolated import, before its assertions: importing task_review first enters assessment/access through the assessment package initializer, which eagerly imports definitions and then the partially initialized TaskReviewService. All four relevant source files are unchanged from ece4bed. The assessment-contract/normal-API-composition rerun passed all 18 cases in 59.80 seconds and is retained separately; it validates integration but does not fix standalone importability. This pre-existing defect is a follow-up outside the owned integration; a minimal later fix can defer the sole definitions-to-TaskReviewService import and test both fresh-process import orders.
+
+The coordinator additionally reported a separate assessor-dialog return-focus race: evidence resolves while the asynchronous Confirm access check remains pending, consuming the return target before the dialog opens. Two deterministic component regressions are red in the coordinator's correction worktree. Do not integrate intermediate f71b9d18 as complete. Await its final reviewed source and all-engine tutor checks. This finding is distinct from the earlier unconfirmed WebKit empty-reason timeout; root's Chrome/Edge/WebKit 93-case run at ece4bed subsequently passed. Firefox/other modes and promoted-main handoff remain coordinator-owned.
 
 The source reviews found no additional confirmed material defect within the assigned slices. Their standards and spec findings were recorded separately and both corrected; source review is not test execution. Full-service coverage, browser counts, dependency/security checks and final-source evidence will be appended only after actual execution.
 
@@ -52,3 +58,5 @@ The source reviews found no additional confirmed material defect within the assi
 The proposed canonical reconciliation moves Task 34 from remaining to partial (29 completed / 11 partial / 1 remaining, Task 41) because versioned synthetic instruments, governed stage records and missingness/deviation/attrition now exist. It still needs approved instruments/support manifests, learner/researcher UI, reviewer packets/ratings, allocation, outcomes and complete approved study exports. Production research remains closed. Task 38 supplies runtime timeout/infrastructure-attempt controls and partial administrator saves; budget reservations/enforcement, full metering, approved pricing/providers and representative load/cost evidence remain later work. The fixed single quality regeneration is separate from infrastructure retries.
 
 Task 37's original seven-case synthetic receipt is local recovery evidence, with a 1 ms injected initial API lease and real 30-second worker leases, no second submission, and same-human-review-state backup/restore comparison. Repeating it after migration 0046 is focused integration evidence, not hosted TLS, live-provider recovery, institutional approval or complete Task 37 sign-off. Human accessibility/usability and expert/evaluator approvals remain open. Independent requirements review recommends NFR30/AC18 move MISSING to PARTIAL: substantial governed capture exists, while approved pilot capture and complete experience/reviewer workflows remain due. No pilot acceptance is implied. The canonical ledgers will be reconciled after final-source integration; no full Task 34/38 or release-completion claim is made.
+
+Preparation is complete with the baseline isolated-import limitation retained. Full-source release and the final focus correction are still required before full suites. The retry/provenance correction is committed at `d988a70`; the subsequent preparation receipt also commits the empty-table comparison correction. No full validation pass is claimed.
