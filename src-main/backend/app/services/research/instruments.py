@@ -258,16 +258,18 @@ class ResearchInstrumentService:
                 raise GovernanceDenied("learning_link_scope_denied")
             if utc(response.submitted_at) < utc(consent_time):
                 raise GovernanceDenied("historical_use_not_approved")
-        if command.stage in {"T1_FORMAL_SUPPORTED", "T1_FORMAL_UNAIDED"} and not links.response_id:
-            raise GovernanceDenied("formal_observation_reference_required")
-        if command.stage in {
+        formal_response = command.kind == "response" and command.stage in {
             "T1_FORMAL_SUPPORTED",
             "T1_FORMAL_UNAIDED",
-        } and not self.session.scalar(
-            select(AssessmentAttempt.id).where(
-                AssessmentAttempt.response_version_id == links.response_id,
-                AssessmentAttempt.course_id == course_id,
-                AssessmentAttempt.student_id == command.subject_user_id,
+        }
+        if formal_response and (
+            not links.response_id
+            or not self.session.scalar(
+                select(AssessmentAttempt.id).where(
+                    AssessmentAttempt.response_version_id == links.response_id,
+                    AssessmentAttempt.course_id == course_id,
+                    AssessmentAttempt.student_id == command.subject_user_id,
+                )
             )
         ):
             raise GovernanceDenied("formal_observation_reference_required")

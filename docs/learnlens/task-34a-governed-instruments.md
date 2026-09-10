@@ -28,7 +28,9 @@ of each series; a scoped read can inspect an earlier revision.
 
 Optional outcome/task/response links are validated against the course and response
 owner. Operational responses predating the bound consent are rejected. Formal-stage
-observations require an existing matching assessment attempt. Links do not write
+response observations require an existing matching assessment attempt. Missingness,
+attrition, and deviation may be recorded without a response or attempt; any optional
+links still undergo ownership, course, and consent-timing checks. Links do not write
 to teaching, formal assessment, learner models, or operational responses. There is
 no allocation, scoring, grade conversion, or computed research outcome.
 
@@ -132,6 +134,19 @@ Ruff check and format check pass for all 18 changed Python files. OpenAPI and
 frontend-generation `--check`, generated-TypeScript `tsc --noEmit`, and
 `git diff --check` pass. Commands ran from this branch's backend with
 `PYTHONPATH=.`; the existing Python/TypeScript installations were used read-only.
+
+Post-review correction: the formal-attempt requirement previously also rejected
+status records for never-submitted formal stages. The regression command
+`pytest tests/test_research_instruments.py -k 'formal_status_records and none' -q`
+reproduced all six failures (two formal stages by three status kinds) with
+`formal_observation_reference_required` before the fix. The requirement now applies
+only to `kind=response`. The expanded matrix covers absent/owned links, nonexistent
+references, other-user responses, other-course outcomes, and the retained attempt
+requirement for response observations. Status projections retain explicit nulls and
+missingness reasons, never a fabricated zero. No schema, migration, gate, or field
+permission changes are part of this correction.
+Correction validation: **67 passed in 37.56 seconds** across instrument service and
+mounted API tests, without warnings; Ruff check/format and `git diff --check` pass.
 
 Next dependency: human-reviewed instrument content and support manifests, approved
 field/purpose/retention decisions, and an explicit approval workflow for real

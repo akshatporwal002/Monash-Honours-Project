@@ -502,8 +502,7 @@ def test_concurrent_collection_replay_and_correction(instruments):
     assert results.count("conflict") == 1
 
 
-@pytest.mark.parametrize("historical", [False, True])
-def test_learning_stage_links_are_owned_read_only_and_pseudonymous(instruments, historical):
+def linked_operational_response(g, *, historical=False, subject_user_id=None):
     from datetime import timedelta
 
     from app.models.enums import TaskType
@@ -517,7 +516,6 @@ def test_learning_stage_links_are_owned_read_only_and_pseudonymous(instruments, 
     )
     from app.models.persistence import LearningTask
 
-    g = instruments
     module = CourseModule(course_id=g.course.id, title="Synthetic", position=1)
     g.session.add(module)
     g.session.flush()
@@ -547,13 +545,15 @@ def test_learning_stage_links_are_owned_read_only_and_pseudonymous(instruments, 
     g.session.add(task)
     g.session.flush()
     draft = SubmissionDraft(
-        student_id=g.student.id, task_id=task.id, answer="Synthetic private operational answer"
+        student_id=subject_user_id or g.student.id,
+        task_id=task.id,
+        answer="Synthetic private operational answer",
     )
     g.session.add(draft)
     g.session.flush()
     response = SubmissionAttempt(
         draft_id=draft.id,
-        student_id=g.student.id,
+        student_id=subject_user_id or g.student.id,
         task_id=task.id,
         attempt_number=1,
         status=AttemptStatus.SUBMITTED,
@@ -563,6 +563,15 @@ def test_learning_stage_links_are_owned_read_only_and_pseudonymous(instruments, 
     )
     g.session.add(response)
     g.session.commit()
+    return outcome, task, draft, response
+
+
+@pytest.mark.parametrize("historical", [False, True])
+def test_learning_stage_links_are_owned_read_only_and_pseudonymous(instruments, historical):
+    from app.models.lms import SubmissionAttempt
+
+    g = instruments
+    outcome, task, draft, response = linked_operational_response(g, historical=historical)
     links = g.command.links.model_copy(
         update={"outcome_id": outcome.id, "task_id": task.id, "response_id": response.id}
     )
@@ -581,3 +590,104 @@ def test_learning_stage_links_are_owned_read_only_and_pseudonymous(instruments, 
     assert g.session.get(SubmissionAttempt, response.id).answer == draft.answer
     with pytest.raises(GovernanceDenied, match="formal_observation_reference_required"):
         collect(g, request_key="no-formal-result", links=links, stage="T1_FORMAL_UNAIDED")
+
+
+@pytest.fixture
+def formal_instruments(instruments):
+    g = instruments
+    definition = g.definition.model_copy(
+        update={"stages": ["T1_FORMAL_SUPPORTED", "T1_FORMAL_UNAIDED"]}
+    )
+    g.form = g.instruments.save_form(
+        g.educator.id,
+        g.study,
+        g.course.id,
+        "synthetic_form",
+        FormWrite(request_key="formal-status-form", expected_version=1, definition=definition),
+    )
+    g.instruments.freeze_form(
+        g.educator.id,
+        g.study,
+        g.course.id,
+        g.form.id,
+        FormFreeze(
+            request_key="formal-status-freeze",
+            content_digest=g.form.content_digest,
+            synthetic_review_reference="synthetic-not-human-approval",
+        ),
+    )
+    g.command = g.command.model_copy(update={"form_version_id": g.form.id})
+    return g
+
+
+@pytest.mark.parametrize("stage", ["T1_FORMAL_SUPPORTED", "T1_FORMAL_UNAIDED"])
+@pytest.mark.parametrize("kind", ["missingness", "attrition", "deviation"])
+@pytest.mark.parametrize(
+    "link_case", ["none", "owned", "unknown", "foreign_user", "foreign_course"]
+)
+def test_formal_status_records_allow_absent_attempt_and_validate_optional_links(
+    formal_instruments, stage, kind, link_case
+):
+    from app.models.lms import Course
+
+    g = formal_instruments
+    links = g.command.links
+    if link_case == "unknown":
+        links = links.model_copy(update={"response_id": "unknown-response"})
+    elif link_case != "none":
+        outcome, task, _, response = linked_operational_response(
+            g, subject_user_id=g.educator.id if link_case == "foreign_user" else None
+        )
+        if link_case == "foreign_course":
+            course = Course(code="FOREIGN", title="Synthetic foreign", educator_id=g.educator.id)
+            g.session.add(course)
+            g.session.flush()
+            # Moving the module makes this an actual other-course outcome reference.
+            outcome.module.course_id = course.id
+            g.session.commit()
+            links = links.model_copy(update={"outcome_id": outcome.id})
+        else:
+            links = links.model_copy(update={"task_id": task.id, "response_id": response.id})
+    command = InstrumentRecordWrite.model_validate(
+        {
+            **g.command.model_dump(),
+            "stage": stage,
+            "kind": kind,
+            "answers": [],
+            "links": links.model_dump(),
+            "reason_code": "synthetic_fault",
+            "missing_reason": "not_collected" if kind == "missingness" else None,
+        }
+    )
+    if link_case in {"unknown", "foreign_user", "foreign_course"}:
+        with pytest.raises(GovernanceDenied, match="learning_link_scope_denied"):
+            g.instruments.collect(g.educator.id, g.study, g.course.id, command)
+        return
+    record = g.instruments.collect(g.educator.id, g.study, g.course.id, command)
+    assert g.instruments.read(
+        g.educator.id,
+        g.study,
+        g.course.id,
+        record.id,
+        ["instrument.event_kind", "instrument.integer_value", "instrument.missing_reason"],
+    ) == [
+        {
+            "instrument.event_kind": kind,
+            "instrument.integer_value": None,
+            "instrument.missing_reason": "not_collected" if kind == "missingness" else None,
+        }
+    ]
+
+
+@pytest.mark.parametrize("stage", ["T1_FORMAL_SUPPORTED", "T1_FORMAL_UNAIDED"])
+@pytest.mark.parametrize("linked", [False, True])
+def test_formal_response_observation_still_requires_assessment_attempt(
+    formal_instruments, stage, linked
+):
+    g = formal_instruments
+    links = g.command.links
+    if linked:
+        _, task, _, response = linked_operational_response(g)
+        links = links.model_copy(update={"task_id": task.id, "response_id": response.id})
+    with pytest.raises(GovernanceDenied, match="formal_observation_reference_required"):
+        collect(g, stage=stage, links=links)
