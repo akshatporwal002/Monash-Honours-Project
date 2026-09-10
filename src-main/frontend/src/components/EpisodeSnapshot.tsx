@@ -1,8 +1,16 @@
 import type { EpisodeContent, EpisodePayload, EpisodeProcess } from '../app/types'
 
+function describeOperation(item: unknown) {
+  const operation = item as { gate?: string; targets?: number[] }
+  const gate = operation.gate?.toUpperCase()
+  return gate === 'CX'
+    ? `${gate}, control qubit ${operation.targets?.[0]}, target qubit ${operation.targets?.[1]}`
+    : `${gate} on qubit ${operation.targets?.join(', ')}`
+}
+
 export function EpisodeCircuitText({ circuit }: { circuit: Record<string, unknown> }) {
   const operations = Array.isArray(circuit.operations) ? circuit.operations : []
-  return <pre style={{ whiteSpace: 'pre-wrap' }} aria-label="Circuit text equivalent">{`${String(circuit.qubits)} qubits\n${operations.length ? operations.map((item, index) => { const operation = item as { gate?: string; targets?: number[] }; return `${index + 1}. ${operation.gate?.toUpperCase()} on qubit ${operation.targets?.join(', ')}` }).join('\n') : 'No gates added.'}`}</pre>
+  return <pre style={{ whiteSpace: 'pre-wrap' }} aria-label="Circuit text equivalent">{`${String(circuit.qubits)} qubits\n${operations.length ? operations.map((item, index) => `${index + 1}. ${describeOperation(item)}`).join('\n') : 'No gates added.'}`}</pre>
 }
 
 function Content({ content }: { content: EpisodeContent }) {
@@ -13,10 +21,7 @@ function Content({ content }: { content: EpisodeContent }) {
     {content.code && <pre aria-label="Saved response code">{content.code}</pre>}
     {circuit && <div aria-label="Saved episode circuit">
       <p>{String(circuit.qubits)} qubits</p>
-      <ol>{operations.map((item, index) => {
-        const operation = item as { gate?: string; targets?: number[] }
-        return <li key={index}>{operation.gate?.toUpperCase()} on qubit {operation.targets?.join(', ')}</li>
-      })}</ol>
+      <ol>{operations.map((item, index) => <li key={index}>{describeOperation(item)}</li>)}</ol>
     </div>}
   </>
 }

@@ -170,3 +170,40 @@ the final dependency lock. The earlier Task 39 kit is retained as historical
 preparation; its source-only C1/C2 descriptions are superseded for these controls
 by this reproduction/fix evidence, not retroactively edited. No institutional,
 expert or first-time participant evidence is claimed.
+
+## T39-C2 circuit text follow-up (after `065d70a`)
+
+The coordinator requested the remaining text-semantic change before integration.
+`EpisodeSnapshot.tsx` now uses one operation description for both the live
+`EpisodeCircuitText` and saved episode `Content` renderers. The duplicated generic
+formatting was the cause: it listed CX qubits without naming their roles.
+Stored CX targets `[0, 1]` now read `CX, control qubit 0, target qubit 1`;
+`[1, 0]` reads `CX, control qubit 1, target qubit 0`. Descriptions retain stored
+operation order and the existing H/X target wording. Rendering does not alter
+stored operations. No schema, backend, configuration or dependency files change.
+
+The new `src/test/EpisodeCircuitText.test.tsx` exercises ordinary and reversed CX
+with H/X before and after it, live text and both supported-prediction and saved
+transfer content. It checks exact text/order, unchanged input and empty live text.
+Commands below ran in `src-main/frontend` with the same Node 22.13.0 and isolated
+Vitest 4.1.11 dependency snapshot described above:
+
+```powershell
+node node_modules/vitest/vitest.mjs run src/test/EpisodeCircuitText.test.tsx --maxWorkers=1
+node node_modules/vitest/vitest.mjs run src/test/EpisodeCircuitText.test.tsx src/test/Task14EpisodeWorkspace.test.tsx src/test/CircuitKeyboard.test.tsx --maxWorkers=1
+node node_modules/eslint/bin/eslint.js src/components/EpisodeSnapshot.tsx src/test/EpisodeCircuitText.test.tsx
+```
+
+The initial sandboxed test launch could not start Vite subprocesses (`spawn
+EPERM`); it did not execute tests. The authorized retry before the fix produced
+two expected failures for ambiguous ordinary/reversed CX text and one passing
+empty-circuit check (2.86 s). After the fix, all nine tests in the three focused
+files passed (16.99 s). Changed-file ESLint passed with no output. Receipts in the
+worktree parent `.tmp-circuit/`: `.tmp-circuit-text-red.log` (startup limitation),
+`.tmp-circuit-text-red-retry.log`, `.tmp-circuit-text-green.log`, and
+`.tmp-circuit-text-lint.log`.
+
+This supersedes the earlier deferral of the two text renderers' CX role wording.
+Manual screen-reader speech, native-browser and human usability trials remain
+pending; these component checks do not establish those outcomes. The coordinator
+will rerun the full frontend and browser suite centrally after integration.
