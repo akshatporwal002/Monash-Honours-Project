@@ -345,6 +345,11 @@ class EscalationService:
         source = source_for(self.session, case.source_kind, case.source_id)
         if source is None:
             raise LmsServiceError(404, "Retained evidence is unavailable")
+        from app.services.integrity_cues import review_evidence
+
+        integrity_evidence = review_evidence(self.session, case, source)
+        if integrity_evidence is not None:
+            return integrity_evidence
         if case.source_kind == "FEEDBACK":
             reviews = list(
                 self.session.scalars(

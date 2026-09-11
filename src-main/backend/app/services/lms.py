@@ -1171,6 +1171,9 @@ class LmsService:
             ),
         )
         LiveEvidenceCapture(self.session).submission(attempt)
+        from app.services.integrity_cues import capture_submission_cue
+
+        capture_submission_cue(self.session, task, attempt)
         self._commit()
         return self._attempt_read(attempt, points_awarded)
 
@@ -2291,6 +2294,11 @@ class LmsService:
         attempt: SubmissionAttempt,
         points_awarded: int | None = None,
     ) -> AttemptRead:
+        from app.services.integrity_cues import REDIRECT, retained_submission_cue
+
+        feedback = attempt.feedback
+        if retained_submission_cue(self.session, attempt):
+            feedback += " " + REDIRECT
         if points_awarded is None:
             award = self.session.scalar(
                 select(TaskPointAward).where(TaskPointAward.attempt_id == attempt.id)
@@ -2307,7 +2315,7 @@ class LmsService:
             code=attempt.code,
             circuit=attempt.circuit,
             episode=attempt.episode,
-            feedback=attempt.feedback,
+            feedback=feedback,
             feedback_reference=attempt.feedback_reference,
             points_awarded=points_awarded,
             submitted_at=attempt.submitted_at,

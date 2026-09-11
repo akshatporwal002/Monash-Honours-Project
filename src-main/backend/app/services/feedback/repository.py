@@ -846,6 +846,14 @@ class SqlAlchemyFeedbackWorkflowRepository:
             from app.services.escalation_sources import record_signal
 
             self._session.flush()
+            from app.services.integrity_cues import route_terminal_submission_cue
+
+            for row in records:
+                if isinstance(row, FeedbackRecord) and row.status in {
+                    FeedbackStatus.ACCEPTED,
+                    FeedbackStatus.SAFE_FALLBACK,
+                }:
+                    route_terminal_submission_cue(self._session, row)
             rejected = [
                 row
                 for row in records
