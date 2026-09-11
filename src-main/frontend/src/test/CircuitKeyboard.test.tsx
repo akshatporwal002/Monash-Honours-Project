@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { GateOperation, LearningTask } from '../app/types'
 import { TaskView } from '../components/TaskView'
+import { emptyPracticeCatalogResponse } from './practiceRepresentationFixtures'
 
 const task: LearningTask = {
   id: 'keyboard-circuit', title: 'Place gates on either wire', module: 'Circuits',
@@ -13,6 +14,8 @@ const task: LearningTask = {
 function setup(operations: GateOperation[] = [], qubits = 2) {
   let saved = { qubits, operations }
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const path = String(input)
     let body: unknown = []
     if (path.endsWith('/draft')) {

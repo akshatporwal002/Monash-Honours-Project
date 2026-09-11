@@ -4,6 +4,7 @@ import axe from 'axe-core'
 import App from '../App'
 import type { LearningTask } from '../app/types'
 import { TaskView } from '../components/TaskView'
+import { emptyPracticeCatalogResponse } from './practiceRepresentationFixtures'
 
 function response(body: unknown, status = 200, headers?: HeadersInit): Response {
   return new Response(body === undefined ? null : JSON.stringify(body), {
@@ -248,6 +249,8 @@ test('maps the backend administrator role to the Admin workspace', async () => {
 
 test('opens dashboard tasks through the event-recording student task endpoint', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     if (url.endsWith('/auth/me')) {
       return response({
@@ -361,6 +364,8 @@ test('uses loopback bootstrap only after the demo credentials return 401', async
 test('submits an MCQ and renders only validated feedback from the feedback workflow', async () => {
   document.cookie = 'ql_csrf=feedback-token'
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     const method = init?.method ?? 'GET'
     if (url.endsWith('/students/me/tasks/task-1/draft')) {
@@ -508,6 +513,8 @@ test('shows formal assessment conditions and saves a response without a numeric 
 
 test('submits multiple-answer choice identifiers as a JSON set', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     if (url.endsWith('/draft')) return response(null)
     if ((init?.method ?? 'GET') === 'GET') return response([])
@@ -551,6 +558,8 @@ test('submits multiple-answer choice identifiers as a JSON set', async () => {
 
 test('allows code-completion tasks to edit and submit Qiskit code', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     if (url.endsWith('/draft')) return response(null)
     if ((init?.method ?? 'GET') === 'GET') return response([])
@@ -595,6 +604,8 @@ test('shows retained student attempt history and the latest existing feedback', 
     timeStyle: 'short',
   })
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     if (url.endsWith('/draft')) return response(null)
     if (url.endsWith('/submissions/attempt-2/feedback')) {
@@ -673,7 +684,7 @@ test('shows retained student attempt history and the latest existing feedback', 
 
 test('restores a saved MCQ selection', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
-    String(input).endsWith('/draft')
+    emptyPracticeCatalogResponse(input) ?? (String(input).endsWith('/draft')
       ? response({
           id: 'draft-mcq',
           task_id: 'task-mcq-draft',
@@ -682,7 +693,7 @@ test('restores a saved MCQ selection', async () => {
           circuit: null,
           updated_at: '2026-07-26T08:00:00Z',
         })
-      : response([]))
+      : response([])))
   const task: LearningTask = {
     id: 'task-mcq-draft',
     title: 'Saved measurement answer',
@@ -709,7 +720,7 @@ test('restores a saved MCQ selection', async () => {
 
 test('restores saved multiple-answer identifiers', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
-    String(input).endsWith('/draft')
+    emptyPracticeCatalogResponse(input) ?? (String(input).endsWith('/draft')
       ? response({
           id: 'draft-multiple',
           task_id: 'task-multiple-draft',
@@ -718,7 +729,7 @@ test('restores saved multiple-answer identifiers', async () => {
           circuit: null,
           updated_at: '2026-07-26T08:00:00Z',
         })
-      : response([]))
+      : response([])))
   const task: LearningTask = {
     id: 'task-multiple-draft',
     title: 'Saved measurement facts',
@@ -765,6 +776,8 @@ test('restores saved text and Qiskit code responses', async () => {
     }],
   ])
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     if (url.endsWith('/draft')) {
       const taskId = url.includes('task-text-draft') ? 'task-text-draft' : 'task-code-draft'
@@ -810,7 +823,7 @@ test('restores saved text and Qiskit code responses', async () => {
 
 test('restores a saved quantum circuit', async () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
-    String(input).endsWith('/draft')
+    emptyPracticeCatalogResponse(input) ?? (String(input).endsWith('/draft')
       ? response({
           id: 'draft-circuit',
           task_id: 'task-circuit-draft',
@@ -825,7 +838,7 @@ test('restores a saved quantum circuit', async () => {
           },
           updated_at: '2026-07-26T08:00:00Z',
         })
-      : response([]))
+      : response([])))
   const task: LearningTask = {
     id: 'task-circuit-draft',
     title: 'Saved Bell circuit',
@@ -849,6 +862,8 @@ test('restores a saved quantum circuit', async () => {
 
 test('saves a circuit draft before a simulation fault', async () => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     if (url.endsWith('/draft') && (init?.method ?? 'GET') === 'GET') return response(null)
     if (url.endsWith('/draft')) return response({
@@ -897,6 +912,8 @@ test('saves a circuit draft before a simulation fault', async () => {
 test('shows saved exact probabilities separately from sampled frequencies and clears stale results after failure', async () => {
   let runs = 0
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const catalog = emptyPracticeCatalogResponse(input)
+    if (catalog) return catalog
     const url = String(input)
     if (url.endsWith('/draft') && (init?.method ?? 'GET') === 'GET') return response(null)
     if (url.endsWith('/draft')) return response({ id: 'draft-run', task_id: 'task-run', answer: '', code: null,
