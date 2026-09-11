@@ -102,7 +102,7 @@ from app.services.assessment.submissions import (
 from app.services.authentication import normalize_email
 from app.services.course_history import FIELDS, preserve_initial, snapshot
 from app.services.episode_contract import learner_episode_plan, validate_reviewed_episode_plan
-from app.services.episode_evidence import canonical_response_digest
+from app.services.episode_evidence import canonical_response_digest, response_digest_matches
 from app.services.episodes import EpisodeService
 from app.services.evidence.live import LiveEvidenceCapture
 from app.services.gamification import GamificationService, ensure_default_achievements
@@ -983,12 +983,14 @@ class LmsService:
                 )
             )
             if existing is not None:
+                payload_matches = existing.content_digest == payload_digest
                 if existing.response_schema_version in {
                     "assessment.response.v2",
                     "practice.response.v1",
                 }:
                     try:
-                        payload_digest = canonical_response_digest(
+                        payload_matches = response_digest_matches(
+                            existing.content_digest,
                             content=ResponseContent(
                                 answer=payload.answer, code=payload.code, circuit=payload.circuit
                             ),
@@ -1002,7 +1004,7 @@ class LmsService:
                         raise _conflict(
                             "This idempotency key was already used for different content"
                         ) from error
-                if existing.content_digest == payload_digest:
+                if payload_matches:
                     if (
                         payload.assessment_work_start_id is not None
                         and payload.assessment_work_start_id != existing.assessment_work_start_id
@@ -1014,8 +1016,7 @@ class LmsService:
                     self.session.rollback()
                     return result
                 raise _conflict("This idempotency key was already used for different content")
-        require_learner_task_available(self.session, task)
-        self._require_unlocked(student, task)
+        self._validate_submission_availability(student, task)
         assessment_submissions = AssessmentSubmissionService(self.session)
         draft = self._get_or_create_draft(student.id, task.id)
         work = assessment_submissions.start_work(
@@ -1174,14 +1175,13 @@ class LmsService:
                 attempt.id,
                 {"task_id": task.id, "basis": "accepted_practice_response"},
             )
-        student_tasks = self._student_tasks(student)
+        # Publish this transaction's pending observations to its own reads before
+        # the pure projection. The scope ends before recommendations/evidence are
+        # written, so no validation result is reused across a mutation or commit.
+        self.session.flush()
         self._persist_recommendations(
             student.id,
-            self._calculate_recommendations(
-                student,
-                student_tasks,
-                [self._task_read(item, student) for item in student_tasks],
-            ),
+            self._submission_recommendations(student),
         )
         LiveEvidenceCapture(self.session).submission(attempt)
         from app.services.integrity_cues import capture_submission_cue
@@ -1241,31 +1241,9 @@ class LmsService:
 
     @validation_read_scope
     def student_dashboard(self, student: User) -> StudentDashboardRead:
-        from app.services.curriculum import PathwayProgressReader
-        from app.services.progress_activity import completed_practice_tasks
-
         profile = self._require_profile(student)
         tasks = self._student_tasks(student)
-        pathway_reader = PathwayProgressReader(self.session, student.id)
-        course_tasks: dict[str, set[str]] = {}
-        for task_id, course_id in self.session.execute(
-            select(LearningTask.id, LearningTask.course_id).where(
-                LearningTask.course_id.in_({task.course_id for task in tasks})
-            )
-        ):
-            course_tasks.setdefault(course_id, set()).add(task_id)
-        completed_ids = completed_practice_tasks(
-            self.session, student.id, [task_id for ids in course_tasks.values() for task_id in ids]
-        )
-        task_reads = [
-            self._task_read(
-                task,
-                student,
-                pathway_reader=pathway_reader,
-                completed_ids=completed_ids & course_tasks.get(task.course_id, set()),
-            )
-            for task in tasks
-        ]
+        task_reads = self._student_task_reads(student, tasks)
         completed = [task for task in task_reads if task.access_status == "completed"]
         # This response uses the current learner's task progress below. Avoid
         # calculating every classmate's course aggregate only to discard it.
@@ -1328,6 +1306,18 @@ class LmsService:
             recommendations=recommendations,
             reminders=[ReminderRead.model_validate(reminder) for reminder in reminders],
             achievements=achievements,
+        )
+
+    @validation_read_scope
+    def _validate_submission_availability(self, student: User, task: LearningTask) -> None:
+        require_learner_task_available(self.session, task)
+        self._require_unlocked(student, task)
+
+    @validation_read_scope
+    def _submission_recommendations(self, student: User) -> list[RecommendationRead]:
+        tasks = self._student_tasks(student)
+        return self._calculate_recommendations(
+            student, tasks, self._student_task_reads(student, tasks)
         )
 
     def _calculate_recommendations(
@@ -2127,6 +2117,32 @@ class LmsService:
             self.session.add(draft)
             self.session.flush()
         return draft
+
+    def _student_task_reads(self, student: User, tasks: list[LearningTask]) -> list[TaskRead]:
+        """Share current progress reads within one uninterrupted task-list projection."""
+        from app.services.curriculum import PathwayProgressReader
+        from app.services.progress_activity import completed_practice_tasks
+
+        pathway_reader = PathwayProgressReader(self.session, student.id)
+        course_tasks: dict[str, set[str]] = {}
+        for task_id, course_id in self.session.execute(
+            select(LearningTask.id, LearningTask.course_id).where(
+                LearningTask.course_id.in_({task.course_id for task in tasks})
+            )
+        ):
+            course_tasks.setdefault(course_id, set()).add(task_id)
+        completed_ids = completed_practice_tasks(
+            self.session, student.id, [task_id for ids in course_tasks.values() for task_id in ids]
+        )
+        return [
+            self._task_read(
+                task,
+                student,
+                pathway_reader=pathway_reader,
+                completed_ids=completed_ids & course_tasks.get(task.course_id, set()),
+            )
+            for task in tasks
+        ]
 
     def _task_read(
         self,

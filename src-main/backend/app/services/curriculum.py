@@ -46,6 +46,7 @@ from app.services.assessment.submissions import AssessmentSubmissionService
 from app.services.evidence.live import serialized
 from app.services.evidence.repository import EvidenceCapture, SqlAlchemyEvidenceRepository
 from app.services.task_review import TaskReviewService
+from app.services.validation_reads import reuse_validation_read
 
 
 class CurriculumService:
@@ -150,6 +151,7 @@ class CurriculumService:
         self._commit()
         return self._path_read(row)
 
+    @reuse_validation_read
     def _current(self, path):
         if self._latest(path.outcome_id).id != path.id:
             raise HTTPException(409, "A newer pathway is available. Start a new diagnostic")

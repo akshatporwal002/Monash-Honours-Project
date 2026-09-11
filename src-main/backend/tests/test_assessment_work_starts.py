@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from support.alignment import next_action_contract
 from support.task_review import bootstrap_reviewed_demo
 from test_assessment_definitions import _draft, _service, _setup
 
@@ -353,6 +354,7 @@ def test_work_migration_replay_scope_and_protected_downgrade(tmp_path):
         extended = replace(
             original,
             criteria=[*original.criteria, extra],
+            next_action_contract=next_action_contract("evidence_to_claim", "fresh_evidence"),
             pass_rule_expression={
                 "operator": "ALL_OF",
                 "clauses": [{"criterion": "evidence_to_claim"}, {"criterion": "fresh_evidence"}],

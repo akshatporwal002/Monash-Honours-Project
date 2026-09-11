@@ -1,6 +1,8 @@
 """Real typed practice submissions must not masquerade as formal assessment."""
 
 import asyncio
+import hashlib
+import json
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -24,10 +26,10 @@ from app.models.lms import SubmissionAttempt
 from app.models.persistence import FeedbackRecord, LearningTask, WorkflowRun
 from app.models.user import UserRole
 from app.schemas.episode import EpisodePayloadV1, ResponseContent
-from app.schemas.feedback import AssessmentContextStatus
+from app.schemas.feedback import AssessmentContextStatus, FeedbackContext, RetrievalContext
 from app.schemas.lms import SubmissionCreate
 from app.services.assessment.feedback_context import SqlAlchemyAssessmentFeedbackContextProvider
-from app.services.episode_evidence import canonical_response_digest
+from app.services.episode_evidence import canonical_response_digest, response_digest_matches
 from app.services.feedback.runtime import LmsSubmissionProvider
 from app.services.lms import DEMO_PASSWORD, LmsService, LmsServiceError
 from app.worker import build_database_worker, build_offline_worker_adapters
@@ -328,6 +330,8 @@ def test_practice_digest_rejects_missing_episode_unknown_version_and_formal_bind
     )
     with pytest.raises(ValueError):
         canonical_response_digest(**{**values, **invalid})
+    with pytest.raises(ValueError):
+        response_digest_matches("sha256:" + "0" * 64, **{**values, **invalid})
 
 
 @pytest.mark.parametrize(
@@ -358,3 +362,238 @@ def test_historical_digest_vectors_are_unchanged(version, expected):
         )
         == expected
     )
+
+
+@pytest.mark.parametrize("version", ["assessment.response.v2", "practice.response.v1"])
+def test_application_content_changes_digest_without_rehashing_absent_defaults(version):
+    def digest(application):
+        return canonical_response_digest(
+            content=ResponseContent(answer="same top-level answer"),
+            episode=EpisodePayloadV1(supported={"application": application}),
+            schema_version=version,
+        )
+
+    assert len({digest(None), digest({"answer": "first"}), digest({"answer": "changed"})}) == 3
+
+
+def intermediate_digest(**values):
+    """Independent fixture for the complete serialization written after ba01754."""
+    content = values.pop("content")
+    episode = values.pop("episode")
+    raw = {
+        **content.model_dump(mode="json"),
+        "episode": episode.model_dump(mode="json"),
+        "assessment_work_start_id": None,
+        "task_form_version_id": None,
+        "declared_conditions": None,
+        **values,
+    }
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            json.dumps(raw, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        ).hexdigest()
+    )
+
+
+def test_original_transfer_process_digest_golden():
+    # Computed with both schema and digest implementation loaded from 0eaf467.
+    episode = EpisodePayloadV1(
+        supported={"explanation": "  supported\n"},
+        transfer={
+            "stage_start_id": "stage",
+            "part_id": "transfer",
+            "content": {"answer": " fresh\n", "code": "h(0)"},
+            "process": {"reasoning": "  reason\n", "reflection": " reflection\n"},
+        },
+    )
+    assert (
+        canonical_response_digest(
+            content=ResponseContent(answer=" original\n"),
+            episode=episode,
+            schema_version="assessment.response.v2",
+            assessment_work_start_id="work",
+            task_form_version_id="form",
+            declared_conditions={"transfer": True},
+        )
+        == "sha256:6781a7f008c15eba14abb45c7f4418d37b96fa71dc136e7c862ba6d16395ea96"
+    )
+
+
+def retain_intermediate_record(session, response):
+    digest = intermediate_digest(
+        content=ResponseContent(
+            answer=response.answer, code=response.code, circuit=response.circuit
+        ),
+        episode=EpisodePayloadV1.model_validate(response.episode),
+        schema_version=response.response_schema_version,
+        assessment_work_start_id=response.assessment_work_start_id,
+        task_form_version_id=response.task_form_version_id,
+        declared_conditions=response.declared_conditions,
+    )
+    # Seed an exact record from the intermediate writer; runtime must never rewrite it.
+    session.execute(
+        update(SubmissionAttempt)
+        .where(SubmissionAttempt.id == response.id)
+        .values(content_digest=digest)
+    )
+    session.commit()
+    session.expire_all()
+    return digest
+
+
+@pytest.mark.parametrize("stage", ["supported", "transfer"])
+@pytest.mark.parametrize("intermediate", [False, True])
+def test_historical_verification_binds_application_content_and_conditions(stage, intermediate):
+    raw = {
+        "supported": {},
+        "transfer": {
+            "stage_start_id": "stage",
+            "part_id": "transfer",
+            "content": {},
+            "process": {},
+        },
+    }
+    target = raw["supported"] if stage == "supported" else raw["transfer"]["process"]
+    target["application"] = {"answer": "original", "code": "h(0)", "circuit": {"gate": "h"}}
+    episode = EpisodePayloadV1.model_validate(raw)
+    values = dict(
+        content=ResponseContent(answer="unchanged"),
+        episode=episode,
+        schema_version="assessment.response.v2",
+    )
+    digest = intermediate_digest(**values) if intermediate else canonical_response_digest(**values)
+    assert response_digest_matches(digest, **values)
+    for field, changed in (("answer", "changed"), ("code", "x(0)"), ("circuit", {"gate": "x"})):
+        changed_raw = episode.model_dump(mode="json")
+        changed_target = (
+            changed_raw["supported"] if stage == "supported" else changed_raw["transfer"]["process"]
+        )
+        changed_target["application"][field] = changed
+        assert not response_digest_matches(
+            digest, **{**values, "episode": EpisodePayloadV1.model_validate(changed_raw)}
+        )
+    for key, value in (
+        ("assessment_work_start_id", "changed"),
+        ("task_form_version_id", "changed"),
+        ("declared_conditions", {"changed": True}),
+    ):
+        assert not response_digest_matches(digest, **{**values, key: value})
+
+
+def test_intermediate_practice_record_replays_and_releases_feedback_without_rewrite(
+    db_session, monkeypatch
+):
+    lms, student, task, payload = practice(db_session)
+    submitted = lms.submit(student, task.id, payload)
+    response = db_session.get(SubmissionAttempt, submitted.id)
+    retained = retain_intermediate_record(db_session, response)
+    assert retained != canonical_response_digest(
+        content=ResponseContent(answer=payload.answer),
+        episode=payload.episode,
+        schema_version="practice.response.v1",
+    )
+    assert lms.submit(student, task.id, payload).id == submitted.id
+    assert resolution(db_session, submitted.id).status == AssessmentContextStatus.NOT_ASSESSED
+    run_worker(db_session, monkeypatch)
+    workflow = db_session.scalar(
+        select(WorkflowRun).where(WorkflowRun.submission_id == submitted.id)
+    )
+    assert workflow.current_stage == WorkflowStage.COMPLETED, workflow.failure_category
+    assert (
+        db_session.scalar(
+            select(FeedbackRecord).where(FeedbackRecord.workflow_run_id == workflow.id)
+        ).status
+        == FeedbackStatus.ACCEPTED
+    )
+    assert db_session.get(SubmissionAttempt, submitted.id).content_digest == retained
+    changed = payload.episode.model_dump(mode="json")
+    changed["supported"]["application"] = {"answer": "injected"}
+    with pytest.raises(LmsServiceError) as error:
+        lms.submit(
+            student,
+            task.id,
+            payload.model_copy(update={"episode": EpisodePayloadV1.model_validate(changed)}),
+        )
+    assert error.value.status_code == 409
+    db_session.rollback()
+    db_session.execute(
+        update(SubmissionAttempt)
+        .where(SubmissionAttempt.id == submitted.id)
+        .values(episode=changed)
+    )
+    db_session.commit()
+    assert resolution(db_session, submitted.id).reason_code == "PRACTICE_RESPONSE_INVALID"
+
+
+def test_intermediate_formal_record_replays_reads_and_releases_exact_feedback(db_session):
+    from test_task14_lifecycle import complete, setup_episode
+    from test_task16_grounding import candidate, decision
+
+    from app.models.enums import JudgeDecision
+
+    lms, student, task, started = setup_episode(db_session)
+    draft = complete(lms, student, task, started)
+    payload = SubmissionCreate(**draft.model_dump(), idempotency_key="intermediate-formal")
+    submitted = lms.submit(student, task.id, payload)
+    response = db_session.get(SubmissionAttempt, submitted.id)
+    retained = retain_intermediate_record(db_session, response)
+    assert lms.submit(student, task.id, payload).id == submitted.id
+    resolved = resolution(db_session, submitted.id)
+    assert resolved.context is not None, resolved.reason_code
+    assessed = resolved.context.model_copy(
+        update={"feedback_release_allowed": True, "active_transfer": False, "context_warnings": []}
+    )
+    assert assessed.frozen_response.reference.content_digest == retained
+    assert assessed.response_content_digest == retained
+    passage = "A Hadamard operation changes the amplitudes of the input state."
+    context = FeedbackContext(
+        correlation_id="11111111-1111-4111-8111-111111111111",
+        task=assessed.task,
+        submission=asyncio.run(LmsSubmissionProvider(db_session).get_submission(submitted.id)),
+        assessment_context=assessed,
+        retrieval_context=[
+            RetrievalContext(
+                source_id="source",
+                document_id="document",
+                chunk_id="chunk",
+                source_revision_id="revision",
+                source_digest="synthetic-source-digest",
+                passage_digest=hashlib.sha256(passage.encode()).hexdigest(),
+                approval_id="approval",
+                retrieval_request_id="retrieval",
+                retrieval_version="v1",
+                task_id=task.id,
+                course_id=task.course_id,
+                chunk_text=passage,
+                relevance_score=0.9,
+                source_label="Approved source",
+            )
+        ],
+    )
+    generated = candidate(context)
+    assert generated.feedback_content["assessed"]["content_digest"] == retained
+    assert decision(context, generated) == JudgeDecision.PASS
+    assert db_session.get(SubmissionAttempt, submitted.id).content_digest == retained
+    changed = response.episode.copy()
+    changed["transfer"] = {
+        **changed["transfer"],
+        "process": {**changed["transfer"]["process"], "application": {"answer": "injected"}},
+    }
+    changed_episode = EpisodePayloadV1.model_validate(changed)
+    frozen = assessed.frozen_response.model_copy(update={"episode": changed_episode})
+    altered = context.model_copy(
+        update={"assessment_context": assessed.model_copy(update={"frozen_response": frozen})}
+    )
+    assert candidate(altered).feedback_content.get("assessed") is None
+    with pytest.raises(LmsServiceError) as error:
+        lms.submit(student, task.id, payload.model_copy(update={"episode": changed_episode}))
+    assert error.value.status_code == 409
+    db_session.rollback()
+    db_session.execute(
+        update(SubmissionAttempt)
+        .where(SubmissionAttempt.id == submitted.id)
+        .values(episode=changed)
+    )
+    db_session.commit()
+    assert resolution(db_session, submitted.id).reason_code == "FROZEN_RESPONSE_INVALID"

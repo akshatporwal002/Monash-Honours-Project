@@ -25,7 +25,7 @@ from app.schemas.feedback import (
     JudgeEvaluationOutcome,
     JudgeResult,
 )
-from app.services.episode_evidence import canonical_response_digest, extract_response_evidence
+from app.services.episode_evidence import extract_response_evidence, response_digest_matches
 from app.services.feedback.contracts import FeedbackGenerator, FeedbackJudge
 from app.services.feedback.quality_review import structural_review
 
@@ -85,7 +85,8 @@ def _trusted_view(context: FeedbackContext) -> AssessedFeedbackView:
         raise GroundingUnavailable("FROZEN_CONTEXT_UNAVAILABLE")
     response = assessed.frozen_response
     reference = assessed.assessment
-    digest = canonical_response_digest(
+    digest_matches = response_digest_matches(
+        response.reference.content_digest,
         content=response.content,
         episode=response.episode,
         schema_version=response.reference.schema_version,
@@ -95,13 +96,14 @@ def _trusted_view(context: FeedbackContext) -> AssessedFeedbackView:
     )
     if (
         response.reference.assessment != reference
-        or digest != response.reference.content_digest
-        or digest != assessed.response_content_digest
+        or not digest_matches
+        or response.reference.content_digest != assessed.response_content_digest
         or context.submission.submission_id != reference.response_version_id
         or context.task.task_id != reference.task_id
         or context.task.course_id != reference.course_id
     ):
         raise GroundingUnavailable("FROZEN_RESPONSE_MISMATCH")
+    digest = response.reference.content_digest
     if not context.retrieval_context:
         raise GroundingUnavailable("APPROVED_SOURCE_MISSING")
     claims = []

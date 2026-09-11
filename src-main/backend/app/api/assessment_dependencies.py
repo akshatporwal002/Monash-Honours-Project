@@ -7,9 +7,11 @@ from datetime import timedelta
 from typing import Annotated
 from uuid import uuid4
 
+from anyio import CapacityLimiter
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.api.background_execution import ThreadedBackgroundExecutor, get_background_limiter
 from app.core.config import settings
 from app.db.session import SessionLocal, get_db
 from app.models.user import ScopedRole, User, UserRole
@@ -139,10 +141,15 @@ def raise_definition_http_error(error: Exception) -> None:
     raise error
 
 
-def get_assessment_evaluation_executor() -> AssessmentEvaluationExecutor:
-    return AssessmentEvaluationExecutor(
-        SessionLocal,
-        build_assessment_evaluation_service,
+def get_assessment_evaluation_executor(
+    limiter: Annotated[CapacityLimiter, Depends(get_background_limiter)],
+) -> ThreadedBackgroundExecutor:
+    return ThreadedBackgroundExecutor(
+        AssessmentEvaluationExecutor(
+            SessionLocal,
+            build_assessment_evaluation_service,
+        ),
+        limiter,
     )
 
 

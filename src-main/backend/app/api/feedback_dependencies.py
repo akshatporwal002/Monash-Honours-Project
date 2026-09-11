@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import NoReturn
+from typing import Annotated, NoReturn
 from uuid import UUID, uuid4
 
+from anyio import CapacityLimiter
 from fastapi import Depends, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
@@ -11,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.audit_dependencies import get_feedback_audit_events
+from app.api.background_execution import ThreadedBackgroundExecutor, get_background_limiter
 from app.api.dependencies.authentication import get_current_user
 from app.core.config import settings
 from app.db.session import SessionLocal, get_db_session
@@ -178,12 +180,16 @@ def get_feedback_access_policy(
 
 
 def get_feedback_executor(
+    limiter: Annotated[CapacityLimiter, Depends(get_background_limiter)],
     audit_events: FeedbackAuditEvents = Depends(get_feedback_audit_events),
 ) -> FeedbackBackgroundExecutor:
-    return InProcessFeedbackExecutor(
-        SessionLocal,
-        build_feedback_pipeline_for_repository,
-        audit_events=audit_events,
+    return ThreadedBackgroundExecutor(
+        InProcessFeedbackExecutor(
+            SessionLocal,
+            build_feedback_pipeline_for_repository,
+            audit_events=audit_events,
+        ),
+        limiter,
     )
 
 

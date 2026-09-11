@@ -22,7 +22,7 @@ from app.services.episode_contract import (
     FrozenResponseMissing,
     FrozenResponseStale,
 )
-from app.services.episode_evidence import canonical_response_digest
+from app.services.episode_evidence import response_digest_matches
 from app.services.misconception_support import response_teaching
 
 
@@ -112,15 +112,15 @@ class SqlAlchemyFrozenResponseReader:
             episode = (
                 EpisodePayloadV1.model_validate(response.episode) if response.episode else None
             )
-            digest = canonical_response_digest(
+            if not response_digest_matches(
+                response.content_digest,
                 content=content,
                 episode=episode,
                 schema_version=response.response_schema_version,
                 assessment_work_start_id=response.assessment_work_start_id,
                 task_form_version_id=response.task_form_version_id,
                 declared_conditions=response.declared_conditions,
-            )
-            if digest != response.content_digest:
+            ):
                 raise FrozenResponseInvalid("Frozen response digest does not match its content")
             if episode is not None:
                 from app.services.episodes import EpisodeService
@@ -143,7 +143,7 @@ class SqlAlchemyFrozenResponseReader:
                     evidence_type="learner_response",
                     schema_version=response.response_schema_version,
                     record_version=1,
-                    content_digest=digest,
+                    content_digest=response.content_digest,
                     source_record_id=response.id,
                     source_record_version=1,
                     occurred_at=response.submitted_at.replace(tzinfo=UTC)

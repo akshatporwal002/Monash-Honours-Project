@@ -109,6 +109,9 @@ test('assessor authorises a fresh equivalent form and learner starts separate wo
     await expect(
       learner.getByRole('button', { name: 'Submit activity' }),
     ).toBeVisible()
+    await expect(learner.getByLabel('Your response', { exact: true })).toBeDisabled()
+    await learner.getByRole('button', { name: 'Start assessed task', exact: true }).click()
+    await expect(learner.getByLabel('Your response', { exact: true })).toBeEnabled()
     await learner
       .getByLabel('Your response', { exact: true })
       .fill(

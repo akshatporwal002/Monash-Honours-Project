@@ -577,7 +577,7 @@ def save_student_draft(
     response_model=AttemptRead,
     status_code=status.HTTP_201_CREATED,
 )
-async def submit_student_task(
+def submit_student_task(
     task_id: str,
     payload: SubmissionCreate,
     background_tasks: BackgroundTasks,

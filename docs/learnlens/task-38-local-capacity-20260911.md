@@ -130,8 +130,53 @@ ignored scratch storage. The public receipt contains bounded metadata and hashes
 not learner credentials or machine/account paths.
 
 External cost evidence still requires an approved provider/model/endpoint,
-attributable prices and token bounds, budget/currency/policy records, billing
+attributable prices and token bounds, records for budget, currency and policy, billing
 receipts and any required FX evidence. A human-confirmed denominator requires
 real assessor confirmation. Hosted and real-participant campaigns require their
 own approved environment and study records. None of those approvals is invented
 by the unpaid launcher.
+
+## Integrated 50-user measurement on clean `f8b7d13`
+
+The integrated campaign started at `2026-09-11T12:47:55.820785+10:00`
+on `f8b7d13a854550b3b1044e516f5f63b69c6ba794`, branch `main`, with
+`dirty: false`. It used the same bounded synthetic local runtime described above,
+one warm-up round and one measurement round: 100 planned journeys, peak measured
+concurrency 50, and 2,845 HTTP attempts across both phases. Earlier failed runs
+remain in this document and the JSON receipt.
+
+The measured round reached `awaiting_human` in **42 of 50 learning journeys**;
+eight ended in `request_timeout`. No human-confirmed loop completed. Measured
+HTTP errors were 8 / 1,414 (0.566%), below the exclusive 1% HTTP threshold;
+the journey error rate was 16%. These are different denominators.
+
+| Metric | Observations | Measured p95 | Errors / censored | Target |
+| --- | --- | --- | --- | --- |
+| Ordinary requests | 322 | 15.866519 s | 2 / 2 | 2 s; not established with censored observations |
+| Progress requests | 90 | 10.770247 s | 0 / 0 | 3 s; not met |
+| Formative feedback | 42 | 39.725035 s | 0 / 0 | 10 s; not met |
+| Assessed feedback | 84 | 47.404997 s | 0 / 0 | No threshold defined by this report |
+
+Measurement wall time was 300.155064 s; warm-up wall time was 296.710905 s.
+The stopped database retained 258 submissions, 172 assessment attempts, zero
+assessment decisions, 258 workflows, 258 learner-model snapshots and zero durable
+provider-usage rows. The usage export contains 516 local metadata records:
+258 feedback-generation and 258 feedback-judge records (344 `local`, 172
+`local-deterministic`). Those records are excluded from external billing evidence.
+External provider execution was disabled; recorded external provider/model
+observations are empty. Actual external AUD subtotal and cost per complete loop
+are null, with cost status `unknown_or_incomplete` and no complete-loop denominator.
+
+The campaign drained all feedback workflows, stopped its owned processes and
+verified the listener closed. Billing coverage remains incomplete, with no
+reconciliation record. This run establishes neither production compliance nor
+external-provider cost/performance, and it performs no human assessment.
+
+Raw artifacts remain in ignored scratch storage. Their sanitized raw counts,
+source clean flag, runtime bounds, warm-up outcomes and exact metrics are retained
+in the JSON receipt, together with these SHA-256 hashes:
+
+- Report: `83f3517cf950aa5b9ea82f772cbc0980732fe49c3f084099e219e780fb93b227`
+- Usage export: `4154990f0c3b7bf7e59bae22233947b597d52c07e38e6ddb9bbafabedd5d9976`
+- Stopped database snapshot: `cacdabd32fef7b37a9f72ed1111bafb36c51dbb45e1da428171ae825705a461c`
+- Harness: `951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75`

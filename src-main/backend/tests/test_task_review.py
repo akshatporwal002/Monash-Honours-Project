@@ -353,6 +353,101 @@ def test_generated_and_formal_tasks_require_external_sources(db_session, review_
         _record(review_context, "APPROVED")
 
 
+def test_source_approval_reads_batch_passages_and_scan_each_revision_once(
+    db_session, review_context
+):
+    from sqlalchemy import event
+
+    service, actors, task = review_context
+    material, revision = _source(db_session, task)
+    approval = record_approval(
+        db_session,
+        course_id=task.course_id,
+        material_id=material.id,
+        revision_id=revision.id,
+        actor_id=str(actors["lead"].id),
+        state="APPROVED",
+        reason="Synthetic source review",
+    )
+    db_session.add(
+        SourcePassage(
+            id="second-review-passage",
+            revision_id=revision.id,
+            course_id=task.course_id,
+            chunk_index=1,
+            chunk_text="A second synthetic passage from the same approved bytes",
+            chunk_hash="c" * 64,
+        )
+    )
+    task.source_references = ["review-passage", "second-review-passage", "review-passage"]
+    db_session.commit()
+    queries = []
+
+    def count(connection, cursor, statement, parameters, context, many):
+        if statement.lstrip().upper().startswith("SELECT"):
+            queries.append(statement)
+
+    engine = db_session.get_bind()
+    event.listen(engine, "before_cursor_execute", count)
+    try:
+        assert service.source_approvals(task, required=True) == {
+            "review-passage": approval.id,
+            "second-review-passage": approval.id,
+        }
+    finally:
+        event.remove(engine, "before_cursor_execute", count)
+    assert len(queries) == 2, "Fetch source bindings once and scan each exact revision once"
+
+
+@pytest.mark.parametrize("invalid", ["missing", "cross_course"])
+def test_source_approval_bulk_read_rejects_incomplete_scope(db_session, review_context, invalid):
+    from types import SimpleNamespace
+
+    service, actors, task = review_context
+    material, revision = _source(db_session, task)
+    record_approval(
+        db_session,
+        course_id=task.course_id,
+        material_id=material.id,
+        revision_id=revision.id,
+        actor_id=str(actors["lead"].id),
+        state="APPROVED",
+        reason="Synthetic source review",
+    )
+    db_session.commit()
+    candidate = SimpleNamespace(
+        course_id="another-course" if invalid == "cross_course" else task.course_id,
+        source_references=["review-passage", "missing"]
+        if invalid == "missing"
+        else ["review-passage"],
+    )
+    with pytest.raises(TaskReviewError, match="current approval"):
+        service.source_approvals(candidate, required=True)
+
+
+def test_source_approval_bulk_read_preserves_pending_history_edits(db_session, review_context):
+    service, actors, task = review_context
+    material, revision = _source(db_session, task)
+    approval = record_approval(
+        db_session,
+        course_id=task.course_id,
+        material_id=material.id,
+        revision_id=revision.id,
+        actor_id=str(actors["lead"].id),
+        state="APPROVED",
+        reason="Synthetic source review",
+    )
+    db_session.commit()
+    approval.state = "REVOKED"
+    with pytest.raises(TaskReviewError, match="current approval"):
+        service.source_approvals(task, required=True)
+    assert approval.state == "REVOKED" and approval in db_session.dirty
+    with pytest.raises(ValueError, match="append-only"):
+        db_session.flush()
+    db_session.rollback()
+    assert service.source_approvals(task, required=True) == {"review-passage": approval.id}
+
+
 @pytest.mark.parametrize(
     "criteria",
     [

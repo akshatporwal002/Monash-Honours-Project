@@ -58,15 +58,49 @@ for (const method of ['rules', 'human'] as const) {
     const created = page.waitForResponse((response) => response.url().endsWith('/definitions') && response.request().method() === 'POST')
     await page.getByRole('button', { name: 'Save assessment draft' }).click()
     const saved = await created
-    expect(saved.status()).toBe(201)
+    expect(saved.status(), await saved.text()).toBe(201)
     expect(saved.request().postDataJSON().criteria[0]).toMatchObject({ evaluator_type: method, approved_anchors: method === 'rules' ? {
       all_of: ['Hadamard'], any_of: [], none_of: ['Pauli'],
     } : {} })
     await page.getByLabel('Approval reason').fill('The fixed recall evidence and exclusions are checked.')
-    const published = page.waitForResponse((response) => response.url().endsWith('/publish'))
+    const incompletePublication = page.waitForResponse((response) => response.url().endsWith('/publish'))
     await page.getByRole('button', { name: 'Approve and publish' }).click()
-    expect((await published).status()).toBe(200)
-    await expect(page.getByRole('button', { name: 'Approve and publish' })).toBeDisabled()
+    const rejected = await incompletePublication
+    expect(rejected.status()).toBe(422)
+    expect(await rejected.text()).toContain('next_action_contract alignment')
+    await page.getByRole('button', { name: 'Complete feedback and adaptation in definition editor' }).click()
+    await page.getByText('Next action and review policy', { exact: true }).click()
+    await page.getByText('Required alignment structure for these criteria', { exact: true }).click()
+    const alignment = JSON.parse(await page.getByLabel('Required alignment JSON').innerText())
+    expect(alignment.criterion_feedback).toEqual([{
+      criterion_key: 'required_evidence', evidence_source_types: ['learner_response'],
+      met: '', not_met: '', not_evaluable: '',
+    }])
+    alignment.criterion_feedback[0] = {
+      ...alignment.criterion_feedback[0],
+      met: 'Explain how the submitted gate name satisfies the criterion.',
+      not_met: 'Identify the missing or contradictory gate name in the response.',
+      not_evaluable: 'Explain why the submitted response cannot establish the required evidence.',
+    }
+    alignment.result_adaptation = {
+      PASS: { feedback: 'Confirm that all mandatory evidence was met.', adaptation: 'No reassessment is needed for this completed outcome.' },
+      INCOMPLETE: { feedback: 'Explain which mandatory evidence remains incomplete.', adaptation: 'Direct the learner to the authorised reassessment path for the missing evidence.' },
+    }
+    const policy = page.getByLabel('Next action and review policy policy', { exact: true })
+    await policy.fill(JSON.stringify({ ...JSON.parse(await policy.inputValue()), alignment }, null, 2))
+    const revised = page.waitForResponse((response) => response.url().includes('/definitions/') && response.request().method() === 'PUT')
+    await page.getByRole('button', { name: 'Save new draft version' }).click()
+    const revision = await revised
+    expect(revision.status(), await revision.text()).toBe(200)
+    expect(revision.request().postDataJSON().criteria[0]).toMatchObject(saved.request().postDataJSON().criteria[0])
+    await page.getByLabel('Version approval reason').fill('The criterion, feedback plan, result explanation and reassessment path are reviewed.')
+    await page.getByLabel('I reviewed every criterion, the pass rule, Bloom elicitation and access preservation for this saved version.').check()
+    const published = page.waitForResponse((response) => response.url().endsWith('/publish'))
+    await page.getByRole('button', { name: 'Approve saved version', exact: true }).click()
+    const approval = await published
+    expect(approval.status(), await approval.text()).toBe(200)
+    await expect(page.getByText('Version 2 approved and published.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Approve saved version', exact: true })).toBeDisabled()
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
   })
 }

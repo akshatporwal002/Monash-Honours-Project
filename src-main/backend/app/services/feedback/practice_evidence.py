@@ -3,7 +3,7 @@
 import json
 
 from app.schemas.episode import EpisodePayloadV1, ResponseContent
-from app.services.episode_evidence import canonical_response_digest
+from app.services.episode_evidence import response_digest_matches
 
 PRACTICE_EVIDENCE_VERSION = "practice.feedback-evidence.v1"
 PRACTICE_INPUT_LIMIT = 20_000
@@ -26,7 +26,8 @@ def practice_response_input(response) -> str:
     episode = EpisodePayloadV1.model_validate(response.episode)
     if episode.transfer is not None:
         raise ValueError("Practice evidence cannot include an unauthorised transfer stage")
-    digest = canonical_response_digest(
+    digest_matches = response_digest_matches(
+        response.content_digest,
         content=content,
         episode=episode,
         schema_version=response.response_schema_version,
@@ -34,10 +35,7 @@ def practice_response_input(response) -> str:
         task_form_version_id=response.task_form_version_id,
         declared_conditions=response.declared_conditions,
     )
-    if (
-        response.response_schema_version != "practice.response.v1"
-        or response.content_digest != digest
-    ):
+    if response.response_schema_version != "practice.response.v1" or not digest_matches:
         raise ValueError("Practice response version or digest is invalid")
     encoded = json.dumps(
         {

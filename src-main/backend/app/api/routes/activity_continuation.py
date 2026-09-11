@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.api.background_execution import run_session_work
 from app.api.dependencies.roles import CurrentEducator, CurrentUser
 from app.api.security_dependencies import RequestSecurityGuard, get_request_security_guard
 from app.db.session import get_db
@@ -90,10 +91,14 @@ async def action(
         "activity_continuation",
         mutating=True,
     )
-    try:
-        return ActivityService(session).act(actor, workflow_id, payload)
-    except SQLAlchemyError:
-        session.rollback()
-        raise HTTPException(
-            503, "The choice could not be saved. Retry the original request"
-        ) from None
+
+    def perform():
+        try:
+            return ActivityService(session).act(actor, workflow_id, payload)
+        except SQLAlchemyError:
+            session.rollback()
+            raise HTTPException(
+                503, "The choice could not be saved. Retry the original request"
+            ) from None
+
+    return await run_session_work(perform)

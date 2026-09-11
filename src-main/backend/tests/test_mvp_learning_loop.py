@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event, func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
+from support.task_review import synthetic_task_quality_review
 
 from app.api.audit_dependencies import (
     get_feedback_audit_events,
@@ -33,6 +34,7 @@ from app.models import (
     JudgeEvaluation,
     JudgeEvaluationStatus,
     LearningMaterial,
+    LearningTask,
     MaterialChunk,
     MaterialIndexStatus,
     Recommendation,
@@ -296,6 +298,14 @@ def test_canonical_mvp_learning_loop(
         review_url = f"/api/v1/tasks/{generated_task['id']}/review"
         for state in ("SUBMITTED", "APPROVED"):
             review = _json(client.get(review_url), 200)
+            with mvp_context.session_factory() as session:
+                quality_review = (
+                    synthetic_task_quality_review(
+                        session, session.get(LearningTask, generated_task["id"])
+                    )
+                    if state == "APPROVED"
+                    else None
+                )
             _json(
                 client.post(
                     review_url,
@@ -305,6 +315,7 @@ def test_canonical_mvp_learning_loop(
                         "expected_review_version": review["review_version"],
                         "state": state,
                         "reason": "Educator verified task content and supported conditions",
+                        "quality_review": quality_review,
                     },
                 ),
                 200,

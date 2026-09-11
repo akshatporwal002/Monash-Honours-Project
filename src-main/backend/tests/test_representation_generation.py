@@ -8,6 +8,7 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
+from support.alignment import next_action_contract
 from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 from test_multipart_generation import generated
 from test_practice_representations import command
@@ -290,6 +291,9 @@ def test_generated_stage_access_is_private_until_entry_and_stays_level_zero(db_s
     raw = proposal.model_dump(mode="json")
     raw.update(
         formal_result_eligible=True,
+        next_action_contract=next_action_contract(
+            *(item["stable_key"] for item in raw["criteria"])
+        ),
         access_conditions={"modes": [{"mode": "text", "preserves_construct": True}]},
     )
     raw["task_forms"][0]["constraints"]["elicited_bloom_processes"] = ["APPLY"]

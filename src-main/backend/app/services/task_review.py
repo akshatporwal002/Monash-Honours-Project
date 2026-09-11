@@ -21,7 +21,7 @@ from app.models import (
     User,
     UserRole,
 )
-from app.models.source_history import SourcePassage, SourceRevision
+from app.models.source_history import SourceApproval, SourcePassage, SourceRevision
 from app.models.task_review import CategoryQualityReview, TaskReviewEvent, TaskRevision
 from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
 from app.services.category_review import request_digest, require_approved
@@ -32,7 +32,6 @@ from app.services.quantum import (
     simulation_capabilities,
     validate_circuit,
 )
-from app.services.rag.source_history import latest_approval
 from app.services.task_category_review import (
     TASK_QUALITY_POLICY,
     authenticated_task_review,
@@ -431,24 +430,53 @@ class TaskReviewService:
     ) -> dict[str, str]:
         if required and not task.source_references:
             raise TaskReviewError("Approved source passages are required for this task", 422)
-        approved = {}
-        for reference in task.source_references or []:
-            passage = self.session.get(SourcePassage, reference)
-            revision = self.session.get(SourceRevision, passage.revision_id) if passage else None
-            material = (
-                self.session.get(LearningMaterial, revision.material_id, populate_existing=True)
-                if revision
-                else None
+        references = list(dict.fromkeys(task.source_references or []))
+        if not references:
+            return {}
+        latest_approval_id = (
+            select(SourceApproval.id)
+            .where(SourceApproval.revision_id == SourceRevision.id)
+            .order_by(SourceApproval.sequence.desc())
+            .limit(1)
+            .correlate(SourceRevision)
+            .scalar_subquery()
+        )
+        # Resolve this invocation's exact passages together. Outer joins preserve
+        # missing-binding rejection; no source state survives this read operation.
+        bindings = {
+            passage.id: (passage, revision, material_id, retired_at, approval)
+            for passage, revision, material_id, retired_at, approval in self.session.execute(
+                select(
+                    SourcePassage,
+                    SourceRevision,
+                    LearningMaterial.id,
+                    LearningMaterial.retired_at,
+                    SourceApproval,
+                )
+                .select_from(SourcePassage)
+                .outerjoin(SourceRevision, SourceRevision.id == SourcePassage.revision_id)
+                .outerjoin(LearningMaterial, LearningMaterial.id == SourceRevision.material_id)
+                .outerjoin(SourceApproval, SourceApproval.id == latest_approval_id)
+                .where(SourcePassage.id.in_(references))
             )
-            approval = latest_approval(self.session, revision.id) if revision else None
+        }
+        approved = {}
+        scanned = set()
+        for reference in references:
+            passage, revision, material_id, retired_at, approval = bindings.get(
+                reference, (None, None, None, None, None)
+            )
             if (
                 passage is None
                 or passage.course_id != task.course_id
                 or revision is None
+                or passage.revision_id != revision.id
                 or revision.course_id != task.course_id
-                or material is None
-                or material.retired_at is not None
+                or material_id is None
+                or revision.material_id != material_id
+                or retired_at is not None
                 or approval is None
+                or approval.revision_id != revision.id
                 or approval.state != "APPROVED"
             ):
                 raise TaskReviewError(
@@ -456,8 +484,10 @@ class TaskReviewService:
                 )
             from app.services.material_scanning import revision_scan_is_clean
 
-            if require_scan and not revision_scan_is_clean(self.session, revision):
-                raise TaskReviewError("Source bytes need a successful malware scan", 422)
+            if require_scan and revision.id not in scanned:
+                if not revision_scan_is_clean(self.session, revision):
+                    raise TaskReviewError("Source bytes need a successful malware scan", 422)
+                scanned.add(revision.id)
             approved[reference] = approval.id
         return approved
 

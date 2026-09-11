@@ -441,6 +441,180 @@
           "within_threshold_observed": null
         }
       ]
+    },
+    {
+      "run": "local-50-f8b7d13",
+      "report_sha256": "83f3517cf950aa5b9ea82f772cbc0980732fe49c3f084099e219e780fb93b227",
+      "usage_sha256": "4154990f0c3b7bf7e59bae22233947b597d52c07e38e6ddb9bbafabedd5d9976",
+      "evidence_class": "SYNTHETIC LOCAL CAPACITY",
+      "source": {
+        "commit": "f8b7d13a854550b3b1044e516f5f63b69c6ba794",
+        "branch": "main",
+        "dirty": false,
+        "harness_sha256": "951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75"
+      },
+      "started_at_utc": "2026-09-11T02:47:55.820785+00:00",
+      "runtime": {
+        "external_provider_disabled": true,
+        "provider_endpoint": "unreachable-loopback",
+        "database_engine": "sqlite",
+        "api_workers": 1,
+        "worker_processes": 1,
+        "rate_limit_enabled": true,
+        "csrf_enabled": true,
+        "research_enabled": false,
+        "material_scanner": "synthetic-test-only; no malware effectiveness evidence",
+        "worker_poll_seconds": 0.1,
+        "worker_heartbeat_seconds": 1,
+        "host": {
+          "os": "Windows",
+          "architecture": "AMD64",
+          "logical_cpus": 12,
+          "python": "3.11.16"
+        }
+      },
+      "bounds": {
+        "users": [
+          50
+        ],
+        "warmup_rounds": 1,
+        "measurement_rounds": 1,
+        "request_timeout": 30,
+        "phase_timeout": 600,
+        "worker_timeout": 90,
+        "human_timeout": 0,
+        "poll_seconds": 1,
+        "max_requests": 15000
+      },
+      "planned_loops": 100,
+      "periods": [
+        {
+          "users": 50,
+          "phase": "warmup",
+          "rounds": 1,
+          "wall_seconds": 296.71090479998384,
+          "peak_active_loops": 50
+        },
+        {
+          "users": 50,
+          "phase": "measurement",
+          "rounds": 1,
+          "wall_seconds": 300.1550642999937,
+          "peak_active_loops": 50
+        }
+      ],
+      "measured_scenarios": [
+        {
+          "users": 50,
+          "report_mode": "50-user",
+          "metrics": {
+            "ordinary": {
+              "count": 322,
+              "p95_seconds": 15.866518599970732,
+              "threshold_seconds": 2,
+              "errors": 2,
+              "censored": 2,
+              "within_threshold_observed": null
+            },
+            "progress": {
+              "count": 90,
+              "p95_seconds": 10.770247099979315,
+              "threshold_seconds": 3,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": false
+            },
+            "feedback": {
+              "count": 42,
+              "p95_seconds": 39.725035000010394,
+              "threshold_seconds": 10,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": false
+            },
+            "assessed_feedback": {
+              "count": 84,
+              "p95_seconds": 47.40499670000281,
+              "threshold_seconds": null,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": null
+            }
+          },
+          "loop_count": 50,
+          "complete_loops": 0,
+          "learning_loops": 42,
+          "loop_outcomes": {
+            "awaiting_human": 42,
+            "request_timeout": 8
+          },
+          "http_attempts": 1414,
+          "http_errors": 8,
+          "http_error_rate": 0.005657708628005658,
+          "http_errors_within_threshold": true,
+          "loop_error_rate": 0.16,
+          "error_threshold_exclusive": 0.01
+        }
+      ],
+      "warmup_outcomes": {
+        "awaiting_human": 44,
+        "request_timeout": 6
+      },
+      "total_http_attempts": 2845,
+      "database_counts": {
+        "submission_attempts": 258,
+        "assessment_attempts": 172,
+        "assessment_decisions": 0,
+        "workflow_runs": 258,
+        "learner_model_snapshots": 258,
+        "provider_usage": 0
+      },
+      "drain": {
+        "remaining_feedback_workflows": 0,
+        "drained": true
+      },
+      "cleanup": {
+        "owned_processes_stopped": true,
+        "listener_closed": true
+      },
+      "production_compliance": "not_established",
+      "external_provider_execution": "disabled_local_campaign",
+      "cost_status": "unknown_or_incomplete",
+      "cost_scenarios": [
+        {
+          "users": 50,
+          "recorded_external_aud_subtotal": null,
+          "complete_loop_denominator": 0,
+          "external_aud_per_complete_loop": null,
+          "within_threshold_observed": null
+        }
+      ],
+      "usage_summary": {
+        "snapshot_sha256": "cacdabd32fef7b37a9f72ed1111bafb36c51dbb45e1da428171ae825705a461c",
+        "durable_metering_available": true,
+        "record_count": 516,
+        "provider_counts": {
+          "local": 344,
+          "local-deterministic": 172
+        },
+        "feature_counts": {
+          "feedback_generation": 258,
+          "feedback_judge": 258
+        },
+        "legacy_generation_metadata_count": 0,
+        "coverage_complete": false,
+        "covered_loop_count": 0,
+        "reconciliation_record_present": false,
+        "local_template_receipts_excluded_from_external_evidence_count": 516,
+        "missing_receipt_count": 0,
+        "recorded_external_provider_models": [],
+        "limitations": [
+          "Durable attempt records preserve currency, pricing and nullable actuals; legacy generation estimates lack this provenance.",
+          "Durable calls are authoritative for metered submissions; legacy generation metadata is retained separately to avoid double counting.",
+          "Unattributed, pre-migration and other-agent spend still requires provider billing coverage reconciliation.",
+          "Learner API does not expose usage. Local records are not zero-cost external evidence."
+        ]
+      }
     }
   ],
   "isolated_dashboard_diagnostics": [

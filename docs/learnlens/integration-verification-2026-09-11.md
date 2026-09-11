@@ -193,3 +193,87 @@ Dashboard correction `2f7007c` removed unused class-wide aggregates and repeated
 The second dashboard correction `54f34af` is integrated at `28d13f9`. It reduces the same populated read to 93 queries and bounds reuse to one exact read/session, invalidated on writes, flush, commit and rollback. Seven owner regressions passed. Its isolated dashboard p95 remains 2.875 seconds, above target. The [sanitized failed-campaign and diagnostic receipt](task-38-local-capacity-20260911.md) preserves failures and hashes. The next full campaign uses the combined clean source. Independent read-only review of the final feedback gate found no blocking issue.
 
 Final candidate fingerprints were refreshed after `28d13f9`: 116 required files and 117 manifest entries, including release-packet tooling. The draft runner reports 108 cases, 108 blank forms, zero approvals and zero included result pairs, with no stale/missing fingerprint blocker; quality remains UNVERIFIED and AI release PENDING. The numerical receipt is unchanged and its exact original manifest from `fbf9ca6` is preserved as numerical-manifest.json. No numerical or provider execution was repeated.
+
+## Combined `f8b7d13` measurement
+
+The clean integrated 50-user campaign reached `awaiting_human` in 42 of 50
+measured journeys; eight timed out. Ordinary-request p95 was 15.866519 seconds
+with two censored observations, progress p95 was 10.770247 seconds and formative
+feedback p95 was 39.725035 seconds. These fail to establish the respective
+2/3/10-second targets. The measured HTTP error rate was 0.566%, while the
+journey error rate was 16%; those denominators must not be conflated.
+
+The campaign drained and stopped its owned processes. No human confirmation or
+external provider billing occurred. Exact counts, runtime bounds and artifact
+hashes are in the [capacity receipt](task-38-local-capacity-20260911.md).
+Follow-up diagnosis reproduced API event-loop blocking during SQLite writer
+contention and substantial repeated reads within submission transactions.
+Remediation and a new measured receipt remain active software work.
+
+[Combined CI run 34555972980](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34555972980)
+targets the same pushed source. Frontend lint, production build and all 395
+unit/accessibility tests in 97 files passed. Browser execution hit the 20-minute
+job timeout after repeated failures in four scenarios: assessed reload/read,
+rules and human assessment setup, and fresh equivalent-form work. The later
+complete-worker-loop and misconception stages did not run. The browser gate is
+incomplete and failed. The backend completed with 1,972 passes and 27 failures
+in 1,446.78 seconds, with 90.01% service coverage against the unchanged 80% gate.
+The workflow is failed, not a passing combined receipt.
+The secret gate identified one historical documentation false positive;
+the [scoped repair receipt](secret-scan-gate-2026-09-10.md) records the exact
+exclusion and passing full-history scan with its retained positive control.
+That local repair does not turn the original failed CI job into a passing result.
+
+## Repairs following the second complete CI run
+
+The 0055 replay repair checks the existing receipt column's shape before reuse
+and restores missing history guards without rewriting values. All 11 affected
+migration replay cases and four new shape/history-protection checks passed in
+144.60 seconds. TEXT, NOT NULL and default-bearing incompatible columns remain
+rejected; protected populated-history downgrade remains blocked.
+
+All four failed browser scenarios now pass their focused headless Firefox runs.
+Assessed reads use the authored short-answer response, fresh equivalent forms
+explicitly start separate work, and both authoring scenarios verify that missing
+alignment is rejected before completing the displayed alignment and publishing.
+Rejection and accessibility checks remain in place. No wider browser suite was
+repeated locally.
+
+Backend fixture repairs supply explicit current source approvals, complete
+quality-review findings and criterion alignment. The generation fixture contains
+the outcome-relevant source and gate material required for its six requested task
+types. Fifteen affected checks passed in the initial focused batch; five upload/
+source checks required a shorter local temporary path on Windows. Four then passed,
+and the remaining generation case passed after its source fixture was corrected.
+These account for 20 distinct checks, including unchanged historical hash vectors
+and new application-content binding checks. The overlapping follow-up typed
+feedback file passed all 24 cases in 24.36 seconds: original supported/transfer
+golden hashes, exact intermediate serialization, real practice/formal replay and
+feedback, and application-content tampering. A shared verifier accepts only the
+canonical digest or the exact intermediate typed serialization. New writes remain
+canonical; stored hashes and evidence references are not rewritten.
+
+API dispatch repairs move blocking submission/background/feedback/activity work
+off the foreground event loop, with bounded background capacity and cancellation
+drain before session cleanup. Focused owner regressions cover contention, claim
+arguments, retries, rollback and security ordering; independent review found no
+blocking issue. Submission reads fell from 1,456 to 348 SELECTs in copied-fixture
+diagnostics, with unchanged three UPDATEs and 17 INSERTs. Concurrent-host timing
+was noisy; these query reductions are not a new load acceptance result.
+
+The final source-approval batching reduces the same submission to 282 SELECTs,
+with unchanged writes. The latest isolated sample measured 0.210 seconds total
+and 0.204 seconds holding the writer lock. Eleven focused source tests passed in
+8.72 seconds. Independent review identified and resolved a pending-history refresh
+issue: the final query reads fresh material scalars while preserving dirty immutable
+entities for rejection by their history guards. Exact scan policy stays in the
+existing helper; there is no reuse across writes. The next complete campaign
+determines whether these changes meet the load targets.
+
+The repaired candidate has 122 required source files and 123 manifest entries,
+with digest `918bb71bc96351faec59ceb6038b0efb3d3a68a09e21a580c03e9c84e868b841`.
+It retains 108 draft cases and blank forms, zero approvals and zero included result
+pairs. Quality remains UNVERIFIED and AI release PENDING. Both the numerical
+receipt and its original manifest remain byte-for-byte unchanged. Canonical API
+contracts remain current; Ruff checks passed and formatting was normalized across
+the five files reported by the final check. No full local suite was duplicated.

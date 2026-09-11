@@ -348,6 +348,16 @@ def test_current_revision_does_not_change_task_feedback_sources(source_context):
     session, _, material, process = source_context
     process("Hadamard old passage about quantum superposition.")
     old_id = session.scalar(select(SourcePassage.id))
+    record_approval(
+        session,
+        course_id=material.course_id,
+        material_id=material.id,
+        revision_id=material.current_source_revision_id,
+        actor_id="educator-1",
+        state="APPROVED",
+        reason="Synthetic reviewer approves the original exact passage before replacement",
+    )
+    session.commit()
     process("Updated source passage about quantum gates.", force=True)
     task = TaskContext(
         task_id="task-1",

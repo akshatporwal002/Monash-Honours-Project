@@ -34,6 +34,7 @@ from app.models import (
     TaskPointAward,
 )
 from app.services.lms import DEMO_PASSWORD
+from app.services.rag.source_history import record_approval, snapshot_source
 from app.services.rag.storage import LocalFileStorage
 
 pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
@@ -294,18 +295,30 @@ def test_course_configuration_scaffolding_and_educator_scope(
             chunk_index=0,
             chunk_text=(
                 "The Deutsch-Jozsa quantum oracle is constant when every input has "
-                "the same output and balanced when half of the outputs differ."
+                "the same output and balanced when half of the outputs differ. "
+                "Distinguish constant and balanced quantum oracles using this output behaviour. "
+                "The Hadamard (H) gate prepares equal superposition before measurement."
             ),
             token_count=22,
             chunk_hash="sha256:deutsch-jozsa",
         )
+    )
+    revision = snapshot_source(session, stored_material, list(stored_material.chunks))
+    record_approval(
+        session,
+        course_id=course["id"],
+        material_id=stored_material.id,
+        revision_id=revision.id,
+        actor_id=str(course["educator_id"]),
+        state="APPROVED",
+        reason="Explicit synthetic source approval for scoped task generation",
     )
     session.commit()
     generated = client.post(
         f"/api/v1/courses/{course['id']}/generate-tasks",
         json={"learning_outcome_id": outcome["id"], "task_count": 6},
     )
-    assert generated.status_code == 201
+    assert generated.status_code == 201, generated.text
     tasks = generated.json()
     assert len(tasks) == 6
     assert {task["task_type"] for task in tasks} == {
@@ -409,6 +422,17 @@ def test_uploaded_and_linked_materials_remain_accessible_to_course_members(
     assert "hadamard-notes.docx" in downloaded.headers["content-disposition"]
     assert downloaded.headers["x-content-type-options"] == "nosniff"
 
+    stored_material = session.get(LearningMaterial, material["id"])
+    record_approval(
+        session,
+        course_id=course["id"],
+        material_id=stored_material.id,
+        revision_id=stored_material.current_source_revision_id,
+        actor_id=str(course["educator_id"]),
+        state="APPROVED",
+        reason="Explicit synthetic source approval for the retrieval fixture",
+    )
+    session.commit()
     retrieval = client.post(
         f"/api/v1/courses/{course['id']}/retrieval/search",
         json={"query": "How does a Hadamard gate prepare superposition?"},

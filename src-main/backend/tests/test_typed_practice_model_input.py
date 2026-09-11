@@ -5,6 +5,7 @@ import json
 
 import pytest
 from sqlalchemy import select, update
+from support.feedback_review import synthetic_model_assessment
 from support.task_review import approve_sourced_fixture_task
 from test_typed_practice_feedback import practice, resolution, run_worker
 
@@ -52,6 +53,7 @@ class RecordingModel:
                 "reason": "Synthetic test candidate is safe.",
                 "unsupported_claims": [],
                 "regeneration_instructions": [],
+                "category_assessment": synthetic_model_assessment(json.loads(request.user_prompt)),
             }
         return StructuredLlmResponse(
             output=output,
@@ -104,7 +106,7 @@ def test_actual_generator_and_judge_receive_lossless_practice_evidence(
         assert "formal grade" in request.system_prompt
         assert request.prompt_version in {
             "feedback-practice-episode-v1",
-            "quality-judge-practice-episode-v1",
+            "quality-judge-practice-episode-fr17-v2",
         }
 
 

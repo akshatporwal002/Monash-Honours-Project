@@ -142,6 +142,33 @@ the new gate independently inventories the actual refs and checks the count.
 
 CI uploads only the report files as `secret-scan-evidence`.
 
+## 2026-09-11 CI follow-up
+
+The secret-scan job for commit `f8b7d13a854550b3b1044e516f5f63b69c6ba794`
+(run `34555972980`, job `103128629314`) reported one `generic-api-key`
+finding. Local execution of the unchanged pinned gate reproduced it. The exact
+historical fingerprint is:
+
+```text
+c71e9bff6bcaf0dbb0c2f0357aaaa9c524d784ae:docs/learnlens/task-38-local-capacity-20260911.md:generic-api-key:133
+```
+
+The match is ordinary future cost-evidence documentation: three slash-separated
+lower-case nouns following the words “token bounds”. The line lists required
+records; it contains no credential assignment, issued credential or test key.
+The inspected scan JSON redacted the matched value. Only this exact historical
+fingerprint was added; all seven previous exclusions and every default rule remain
+unchanged. The current sentence now separates the same nouns with ordinary prose
+punctuation, and an isolated scan of that revised document reports zero findings.
+
+At the same head, the complete local gate passed over **297 text-bearing commits**
+out of **396 reachable commits**, with **21,019,366 bytes** processed, zero history
+findings, and the unchanged positive control detecting and redacting exactly one
+synthetic finding. CI's earlier 291 text commits reflect its smaller fetched ref
+inventory. The local inventory and scanner count agree; no fixed count was used
+to bypass coverage. Evidence is retained in ignored scratch reports. This verifies
+the local correction; a subsequent hosted CI result is separate evidence.
+
 ## Remaining limits
 
 This is Gitleaks' default text-patch history coverage: binary contents, recursive

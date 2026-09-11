@@ -9,6 +9,7 @@ import httpx
 import pytest
 from pydantic import SecretStr, ValidationError
 from sqlalchemy import func, select
+from support.feedback_review import synthetic_model_assessment
 from test_lms_core_api import lms_context as _lms_context
 from test_lms_core_api import login
 from test_typed_practice_feedback import practice
@@ -430,6 +431,7 @@ def test_persistent_worker_uses_updated_policy_in_actual_provider_requests(
                     "actionability_score": 90,
                     "safety_score": 100,
                     "reason": "Synthetic checked feedback",
+                    "category_assessment": synthetic_model_assessment(context),
                     "unsupported_claims": [],
                     "regeneration_instructions": [],
                 }
