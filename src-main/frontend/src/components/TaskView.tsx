@@ -37,6 +37,7 @@ import { LearnerDeadline } from '../features/reminders/LearnerDeadline'
 import { TutorPanel } from '../features/tutor/TutorPanel'
 import styles from './TaskView.module.css'
 import { LearnerPreferencesSummary } from '../features/preferences/LearnerPreferencesSummary'
+import { PracticeRepresentationPanel } from '../features/practice-representations/PracticeRepresentationPanel'
 
 const episodeTaskTypes = ['prediction', 'reasoning', 'explanation', 'revision', 'reflection', 'transfer']
 const emptyEpisode = (): EpisodePayload => ({ schema_version: 'learnlens.episode.v1', supported: {} })
@@ -550,6 +551,7 @@ export function TaskView({
             </Card>
           ) : null}
           <LearnerPreferencesSummary />
+          {!task.assessment && !transferActive && <PracticeRepresentationPanel key={task.id} taskId={task.id} preferenceVersion={preferenceVersion} disabled={busy || draftLoading || workConflict} />}
           <LearnerDeadline key={task.id} taskId={task.id} />
           {task.source_references && task.source_references.length > 0 ? (
             <Card eyebrow="Grounded in">

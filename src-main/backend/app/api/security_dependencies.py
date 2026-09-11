@@ -65,6 +65,7 @@ def get_request_security_guard() -> RequestSecurityGuard:
             "learning-events": RateLimit(300, 60),
             "learner-model-corrections": RateLimit(60, 60),
             "learner-preferences": RateLimit(60, 60),
+            "practice-representations": RateLimit(60, 60),
             "curriculum": RateLimit(60, 60),
             "activity_continuation": RateLimit(60, 60),
             "review-requests": RateLimit(60, 60),
