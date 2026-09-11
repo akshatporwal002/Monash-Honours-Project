@@ -290,7 +290,15 @@ def test_generated_episode_uses_real_runtime_references_and_keeps_transfer_separ
     db_session.add(Enrollment(course_id=task.course_id, student_id=student.id))
     db_session.commit()
     lms = LmsService(db_session)
+    prestart = lms.get_student_task(student, task.id).model_dump_json()
+    assert "|1>" not in prestart
+    assert "both computational basis inputs" not in prestart
     started = lms.start_assessment_work(student, task.id, form.id)
+    import json
+
+    supported_state = json.dumps(lms.episode_state(student, task.id))
+    assert "|1>" not in supported_state
+    assert "|1>" not in lms.get_student_task(student, task.id).model_dump_json()
     with pytest.raises(TaskReviewError, match="prediction"):
         lms.submit(
             student,
@@ -320,6 +328,12 @@ def test_generated_episode_uses_real_runtime_references_and_keeps_transfer_separ
             lms.save_draft(student, task.id, DraftWrite.model_validate(invalid))
         db_session.rollback()
     payload = complete(lms, student, task, started)
+    entered = lms.episode_state(student, task.id)["transfer"]
+    assert "|1>" in entered["prompt"]
+    assert entered["starter_circuit"] == {
+        "qubits": 1,
+        "operations": [{"gate": "x", "targets": [0]}],
+    }
     first = lms.submit(
         student, task.id, SubmissionCreate(**payload.model_dump(), idempotency_key="first")
     )

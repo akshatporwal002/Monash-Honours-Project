@@ -269,6 +269,10 @@ evaluators, unverified access, and no task forms. Never invent learner response,
 checkpoint, simulation, stage or approval IDs. Fail rather than substitute content.
 For multipart tasks, generation_design.assessment_purpose must match the proposed
 assessment_design.purpose; that purpose is a proposal, not an approval.
+Keep the fresh input identity out of learner-facing titles, prompts, instructions,
+claims, criterion learner_descriptions and public assessment conditions. These must
+describe a fresh input generically. Its exact identity belongs only in the private
+transfer plan and private assessor anchors, revealed to learners on transfer entry.
 """
 
     def __init__(self, client: ResponsesStructuredLlmClient) -> None:

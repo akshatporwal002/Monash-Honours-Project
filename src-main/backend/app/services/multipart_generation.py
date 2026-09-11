@@ -19,7 +19,7 @@ def local_multipart(sources, outcome):
         "reasoning": "Explain how the supplied Hadamard transformation produces your prediction.",
         "explanation": "Relate the circuit and exact probabilities to the sampled counts without treating counts as exact.",
         "reflection": "Compare your initial prediction with the result and explain what you would retain or change.",
-        "transfer": "Apply the Hadamard transformation to the fresh |1> input without instructional help.",
+        "transfer": "Apply the Hadamard transformation to the input disclosed at the fresh stage without instructional help.",
     }
     met_anchors = {
         "prediction": "Before the run: I predict P(0)=P(1)=1/2 for H applied to |0>.",
@@ -64,7 +64,7 @@ def local_multipart(sources, outcome):
                 },
             },
             "assessment_design": {
-                "claim": f"Apply the Hadamard transformation to both computational basis inputs in relation to: {outcome[:1000]}",
+                "claim": "Apply the Hadamard transformation and explain its effects in supported and fresh contexts.",
                 "purpose": "SUMMATIVE",
                 "bloom_process": "APPLY",
                 "knowledge_dimension": "PROCEDURAL",
@@ -77,7 +77,7 @@ def local_multipart(sources, outcome):
                 },
                 "task_conditions": {
                     "supported_input": "|0>",
-                    "fresh_input": "|1>",
+                    "transfer_input_disclosure": "The fresh input is disclosed on entry to the transfer stage.",
                     "review_required": True,
                 },
                 "next_action_contract": {

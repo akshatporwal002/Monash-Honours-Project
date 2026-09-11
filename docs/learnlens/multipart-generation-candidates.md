@@ -20,6 +20,8 @@ Generated candidates cannot supply task forms, formal eligibility, access-equiva
 
 Teaching approval alone does not release these generated episodes to learners. They require an approved assessment form so the existing assessed-work and private-transfer contracts are available.
 
+The learner-facing claim, transfer criterion and public conditions describe the fresh input generically. Its exact identity stays in the private transfer plan and assessor anchor until transfer entry. The generated-episode regression checks the whole prestart task projection and supported-stage reads for disclosure, then verifies the correct private input and starter circuit are revealed on entry. Source teaching about Hadamard transformations is distinct from identifying which input will be used in the private stage.
+
 ## Existing-store authoring bridge
 
 Reviewed rows in the assessment task picker expose **Preview generated assessment design** and **Save generated assessment draft** through `GeneratedAssessmentDraft.tsx`.
