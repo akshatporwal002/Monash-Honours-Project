@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from support.task_review import approve_fixture_task, approve_sourced_fixture_task
 from test_assessment_work_starts import setup_work
 from test_conditional_programming import content as content
+from test_task14_lifecycle import complete, setup_episode
 
 from app.api.dependencies.authentication import get_current_user
 from app.core.config import settings
@@ -17,6 +18,7 @@ from app.domain.platform_enums import AccessSupportState
 from app.main import create_app
 from app.models import CourseState, Enrollment, LearningTask, User, UserRole
 from app.models.assessment import AssessmentDecision
+from app.models.enums import TaskType
 from app.models.learner_model import LearnerModelSnapshot
 from app.models.learning_evidence import EvidenceArtifact, LearningEvidence
 from app.schemas.learner_preferences import PreferenceUpdate, PreferenceValues
@@ -277,4 +279,109 @@ def test_api_enforces_identity_csrf_and_delivery_only(db_session, context, monke
         assert client.get(path).status_code == 403
     finally:
         client.close()
+        app.dependency_overrides.clear()
+
+
+def test_course_transfer_blocks_instruction_and_replay_but_preserves_access(db_session, context):
+    _, _, other_learner, other_course_task, _ = context
+    lms, learner, formal_task, started = setup_episode(db_session)
+    task = LearningTask(
+        **{
+            column.name: getattr(formal_task, column.name)
+            for column in LearningTask.__table__.columns
+            if column.name != "id"
+        }
+    )
+    task.slug = "synthetic-practice-during-transfer"
+    task.position += 1
+    task.task_type = TaskType.EXPLANATION
+    task.prerequisite_task_ids = []
+    task.marking_criteria = {
+        "practice_representations": [
+            {
+                **variant("worked", task.source_references),
+                "mode": "worked_example",
+                "instructional_support_level": 4,
+            },
+            {
+                **variant("access", task.source_references),
+                "support_kind": "accessibility",
+                "instructional_support_level": 0,
+            },
+        ]
+    }
+    db_session.add_all(
+        [
+            task,
+            Enrollment(student_id=learner.id, course_id=other_course_task.course_id),
+            Enrollment(student_id=other_learner.id, course_id=formal_task.course_id),
+        ]
+    )
+    db_session.commit()
+    approve_fixture_task(db_session, task)
+    app = create_app()
+    app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_current_user] = lambda: learner
+    path = f"/api/v1/practice-representations/tasks/{task.id}"
+    try:
+        with TestClient(app) as client:
+            catalog = client.get(path).json()
+            instruction = {
+                "revision_id": catalog["revision_id"],
+                "preference_version": catalog["preference_version"],
+                "representation_id": "worked",
+                "selection": "override",
+                "request_key": "before-transfer",
+            }
+            access = {**instruction, "representation_id": "access", "request_key": "access"}
+            prior_access = client.post(path + "/deliver", json=access)
+            assert prior_access.status_code == 200
+            assert client.post(path + "/deliver", json=instruction).status_code == 200
+            transfer_payload = complete(lms, learner, formal_task, started)
+            before_count = db_session.scalar(select(func.count()).select_from(LearningEvidence))
+            # Task B must not expose instruction while task A's transfer remains open.
+            assert (
+                client.post(
+                    path + "/deliver", json={**instruction, "request_key": "during-transfer"}
+                ).status_code
+                == 409
+            )
+            listing = client.get(path)
+            assert listing.status_code == 200
+            assert {item["representation_id"] for item in listing.json()["choices"]} == {"access"}
+            assert listing.json()["selected_id"] == "access"
+            assert client.post(path + "/deliver", json=instruction).status_code == 409
+            assert (
+                db_session.scalar(select(func.count()).select_from(LearningEvidence))
+                == before_count
+            )
+            assert client.post(path + "/deliver", json=access).json() == prior_access.json()
+            fresh_access = client.post(
+                path + "/deliver", json={**access, "request_key": "during-transfer-access"}
+            )
+            assert fresh_access.status_code == 200
+            assert fresh_access.json()["representation"]["instructional_support_level"] == 0
+            # The learner's other course and another learner in this course stay available.
+            other_service = PracticeRepresentationService(db_session)
+            other_catalog = other_service.catalog(learner, other_course_task.id)
+            assert (
+                other_service.deliver(
+                    learner, other_course_task.id, command(other_catalog, key="other-course")
+                ).representation.instructional_support_level
+                == 2
+            )
+            app.dependency_overrides[get_current_user] = lambda: other_learner
+            other_listing = client.get(path).json()
+            assert "worked" in {item["representation_id"] for item in other_listing["choices"]}
+            assert client.post(path + "/deliver", json=instruction).status_code == 200
+            app.dependency_overrides[get_current_user] = lambda: learner
+            lms.submit(
+                learner,
+                formal_task.id,
+                SubmissionCreate(
+                    **transfer_payload.model_dump(), idempotency_key="finish-transfer"
+                ),
+            )
+            assert client.post(path + "/deliver", json=instruction).status_code == 200
+    finally:
         app.dependency_overrides.clear()
