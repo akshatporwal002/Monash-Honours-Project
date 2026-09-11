@@ -43,7 +43,7 @@ const weeklyOutcome = {
   position: 1,
 }
 
-test.each(['matching', 'multipart'])('generation sends the chosen supported response mode: %s', async mode => {
+test.each(['matching', 'multipart', 'multipart_text', 'transfer'])('generation sends the chosen supported response mode: %s', async mode => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
     if (url.endsWith('/courses')) return response([course])
@@ -64,14 +64,45 @@ test.each(['matching', 'multipart'])('generation sends the chosen supported resp
   await user.type(screen.getByLabelText('Learning outcomes · one per line'), 'Interpret source evidence')
   await user.click(screen.getByRole('button', { name: /Save and generate/ }))
   await user.click(await screen.findByRole('combobox', { name: 'Response type' }))
-  expect(screen.queryByRole('option', { name: 'transfer' })).not.toBeInTheDocument()
-  await user.click(screen.getByRole('option', { name: mode === 'multipart' ? 'Multipart Hadamard episode (one draft)' : 'matching' }))
+  expect(screen.getByRole('option', { name: 'transfer' })).toBeInTheDocument()
+  await user.click(screen.getByRole('option', { name: mode === 'multipart' ? 'Multipart circuit episode (one draft)' : mode === 'multipart_text' ? 'Multipart text episode (one draft)' : mode }))
   await user.click(screen.getAllByRole('button', { name: 'Generate tasks' }).at(-1)!)
   await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/generate-tasks'))).toBe(true))
   const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/generate-tasks'))
   const payload = JSON.parse(String(call?.[1]?.body))
-  expect(payload.task_types).toEqual([mode === 'multipart' ? 'quantum_circuit' : 'matching'])
-  if (mode === 'multipart') expect(payload).toMatchObject({ generation_mode: 'multipart', task_count: 1 })
+  expect(payload.task_types).toEqual([mode === 'multipart' ? 'quantum_circuit' : mode === 'multipart_text' ? 'explanation' : mode])
+  if (mode.startsWith('multipart')) expect(payload).toMatchObject({ generation_mode: 'multipart', task_count: 1 })
+})
+
+test.each(['variant', 'feedback'])('generation uses the selected real %s context', async kind => {
+  const context = kind === 'variant' ? { variant_task_id: 'prior-task', variant_revision_id: 'revision-1' } : { response_version_id: 'response-1', feedback_id: 'feedback-1' }
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/courses')) return response([course])
+    if (url.endsWith('/courses/course-1/materials/list')) return response([{ id: 'material', original_filename: 'source.pdf', indexing_status: 'indexed' }])
+    if (url.endsWith('/courses/course-1/modules')) return response([module])
+    if (url.endsWith('/modules/module-1/outcomes')) return response(init?.method === 'POST' ? { ...weeklyOutcome, id: 'outcome-new' } : [weeklyOutcome])
+    if (url.endsWith('/courses/course-1')) return response(course)
+    if (url.endsWith('/modules/module-1')) return response(module)
+    if (url.includes('/generation-options?')) return response([{ label: 'Previous supported work', context }])
+    if (url.endsWith('/generate-tasks')) return response([])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+  render(<CourseEditor />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('combobox', { name: 'Choose a course to edit' }))
+  await user.click(await screen.findByRole('option', { name: /QL-101/ }))
+  await user.click(screen.getByRole('button', { name: /Save and add materials/ }))
+  await user.click(await screen.findByRole('button', { name: /Define outcomes/ }))
+  await user.type(screen.getByLabelText('Learning outcomes · one per line'), 'Interpret source evidence')
+  await user.click(screen.getByRole('button', { name: /Save and generate/ }))
+  await user.click(await screen.findByRole('button', { name: 'Load variant and feedback options' }))
+  await user.click(await screen.findByRole('combobox', { name: 'Generation starting point' }))
+  await user.click(screen.getByRole('option', { name: 'Previous supported work' }))
+  await user.click(screen.getAllByRole('button', { name: 'Generate tasks' }).at(-1)!)
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/generate-tasks'))).toBe(true))
+  const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/generate-tasks'))
+  expect(JSON.parse(String(call?.[1]?.body)).generation_context).toEqual(context)
 })
 
 test('shows scheduled recovery and lets an educator retry after automatic attempts stop', async () => {

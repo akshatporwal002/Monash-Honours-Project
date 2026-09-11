@@ -28,6 +28,7 @@ function Content({ content }: { content: EpisodeContent }) {
 
 function Process({ process }: { process: EpisodeProcess }) {
   return <>
+    {process.application && <><h4>New-context application</h4><Content content={process.application} /></>}
     {process.prediction && <><h4>Original prediction</h4><Content content={process.prediction} /></>}
     {(['reasoning', 'explanation', 'reflection'] as const).map(field => process[field] ? <div key={field}><h4>{field.charAt(0).toUpperCase() + field.slice(1)}</h4><pre style={{ whiteSpace: 'pre-wrap' }}>{process[field]}</pre></div> : null)}
     {process.revision && <><h4>Revision reason</h4><pre style={{ whiteSpace: 'pre-wrap' }}>{process.revision.reason}</pre><p>This response links to an earlier saved version.</p></>}

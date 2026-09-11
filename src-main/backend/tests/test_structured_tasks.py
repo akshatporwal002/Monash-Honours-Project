@@ -229,7 +229,7 @@ def test_grounded_generation_persists_design_and_requires_review_before_release(
         review.validate_ready(generated)
 
 
-def test_local_generator_rejects_unimplemented_generation_paths():
+def test_basic_scaffold_cannot_substitute_for_typed_episode_generation():
     from app.services.local_ai import _task_scaffold
 
     with pytest.raises(UnsupportedTaskTypeError, match="author a reviewed episode"):

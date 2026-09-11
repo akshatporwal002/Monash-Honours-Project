@@ -40,6 +40,7 @@ from app.schemas.episode import (
     EpisodeHelpUseWrite,
     EpisodeStateRead,
 )
+from app.schemas.generation_context import GenerationOption
 from app.schemas.live_evidence import LiveEvidencePage
 from app.schemas.lms import (
     AdminUserCreate,
@@ -346,6 +347,17 @@ def create_task(
     service: Lms,
 ) -> TaskRead:
     return service.create_task(educator, course_id, payload)
+
+
+@router.get(
+    "/courses/{course_id}/generation-options",
+    response_model=list[GenerationOption],
+    response_model_exclude_none=True,
+)
+def task_generation_options(
+    course_id: str, learning_outcome_id: str, educator: CurrentEducator, service: Lms
+):
+    return service.task_generation_options(educator, course_id, learning_outcome_id)
 
 
 @router.post(

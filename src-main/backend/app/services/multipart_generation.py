@@ -7,12 +7,12 @@ SUPPORTED = {"qubits": 1, "operations": []}
 TRANSFER = {"qubits": 1, "operations": [{"gate": "x", "targets": [0]}]}
 
 
-def local_multipart(sources, outcome):
+def local_multipart(sources, outcome, task_type="quantum_circuit"):
     source = next((row for row in sources if SOURCE_FACT in row.get("text", "")), None)
-    if source is None:
-        raise ValueError(
-            "This local multipart family requires a source explicitly stating both Hadamard basis transformations; author unsupported content manually"
-        )
+    if source is None or task_type != "quantum_circuit":
+        from app.services.source_episode_generation import source_episode
+
+        return source_episode(sources, outcome, task_type, assessed=True)
     reference = source["chunk_id"]
     descriptions = {
         "prediction": "Predict the computational-basis probabilities before running the supported circuit.",
@@ -127,6 +127,18 @@ def validate_multipart(criteria, task_type, source_texts):
         raise ValueError(
             "Generation metadata and the proposed assessment must declare the same purpose"
         )
+    if candidate.family == "source_application_transfer":
+        from app.services.source_episode_generation import EPISODE_TYPES, validate_source_episode
+
+        if task_type not in EPISODE_TYPES | {"quantum_circuit"}:
+            raise ValueError("This multipart family requires a supported episode response type")
+        validate_source_episode(criteria, source_texts)
+        if criteria.get("episode_plan") != candidate.episode_plan.model_dump(mode="json"):
+            raise ValueError("The episode plan must match the proposed assessment design")
+        for anchor in candidate.source_anchors:
+            if anchor.quote not in source_texts.get(anchor.source_reference, ""):
+                raise ValueError("Multipart source anchors must match supplied course passages")
+        return candidate
     if task_type != "quantum_circuit":
         raise ValueError("This multipart family requires the existing circuit episode renderer")
     if criteria.get("episode_plan") != candidate.episode_plan.model_dump(mode="json"):

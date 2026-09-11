@@ -49,6 +49,7 @@ class EpisodeRevision(EpisodeContract):
 
 
 class EpisodeStageResponseV1(EpisodeContract):
+    application: ResponseContent | None = None
     prediction: ResponseContent | None = None
     reasoning: Text | None = None
     explanation: Text | None = None

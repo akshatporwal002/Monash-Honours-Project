@@ -19,7 +19,7 @@ class SourceAnchor(BaseModel):
 class MultipartCandidate(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     schema_version: Literal["learnlens.multipart-candidate.v1"] = "learnlens.multipart-candidate.v1"
-    family: Literal["hadamard_basis_transfer"]
+    family: Literal["hadamard_basis_transfer", "source_application_transfer"]
     prior_work_policy: Literal["revision_after_real_same_work_response"]
     source_anchors: list[SourceAnchor] = Field(min_length=1, max_length=10)
     criterion_sources: dict[str, list[str]]

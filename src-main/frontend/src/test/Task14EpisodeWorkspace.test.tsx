@@ -6,6 +6,21 @@ import { EpisodeSnapshot } from '../components/EpisodeSnapshot'
 import type { EpisodePayload, EpisodeState } from '../app/types'
 
 const state: EpisodeState = { supported_part_id: 'supported', prediction_required: true, required_responses: ['prediction', 'explanation'], supported_hints: ['Consider the input state.'], accessibility_support: ['Text circuit available'], transfer_part_id: 'fresh' }
+function PracticeTransfer() {
+  const [value, setValue] = useState<EpisodePayload>({ supported: {} })
+  return <><EpisodeFields standaloneTransfer value={value} state={null} attempts={[]} disabled={false} onChange={setValue} onCheckpoint={() => {}} onTransfer={() => {}} onTransferCheckpoint={() => {}} onTransferSimulation={() => {}} /><EpisodeSnapshot episode={value} /></>
+}
+
+test('standalone transfer practice retains new-context evidence without an assessed stage', async () => {
+  render(<PracticeTransfer />)
+  const user = userEvent.setup()
+  await user.type(screen.getByLabelText('New-context application'), 'Change one assumption and explain its consequence.')
+  expect(screen.getByLabelText('New-context application')).toHaveValue('Change one assumption and explain its consequence.')
+  expect(screen.getByRole('heading', { name: 'New-context application' })).toBeVisible()
+  expect(screen.queryByRole('button', { name: 'Start unaided fresh application' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Record prediction for this input' })).not.toBeInTheDocument()
+})
+
 function Harness() {
   const [value, setValue] = useState<EpisodePayload>({ schema_version: 'learnlens.episode.v1', supported: {} })
   const [stage, setStage] = useState(state)

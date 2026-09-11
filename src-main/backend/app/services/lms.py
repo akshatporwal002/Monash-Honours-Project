@@ -636,6 +636,16 @@ class LmsService:
         self._commit()
         return self._task_read(task)
 
+    def task_generation_options(self, educator, course_id, outcome_id):
+        course = self._require_course_owner(educator, course_id)
+        self._require_not_archived(course)
+        outcome = self._get_outcome(outcome_id)
+        if self._get_module(outcome.module_id).course_id != course.id:
+            raise _unprocessable("learning_outcome_id is outside this course")
+        from app.services.generation_context import generation_options
+
+        return generation_options(self.session, course.id, outcome.id)
+
     async def generate_scaffolded_tasks(
         self,
         educator: User,
@@ -659,6 +669,7 @@ class LmsService:
                     allowed_task_types=tuple(payload.task_types),
                     difficulty_levels=("beginner", "intermediate", "advanced"),
                     generation_mode=payload.generation_mode,
+                    generation_context=payload.generation_context,
                 ),
                 commit=False,
             )
@@ -2260,8 +2271,16 @@ class LmsService:
             process = payload.episode.supported
             field = getattr(process, task.task_type.value, None)
             if task.task_type.value == "transfer":
-                field = payload.episode.transfer
+                field = (
+                    payload.episode.transfer
+                    if (task.marking_criteria or {}).get("episode_plan")
+                    else process.application
+                )
             if field is None:
+                raise _unprocessable(f"Complete the {task.task_type.value} response")
+            if isinstance(field, ResponseContent) and not EpisodeService.has_content(field):
+                raise _unprocessable(f"Complete the {task.task_type.value} response")
+            if isinstance(field, str) and not field.strip():
                 raise _unprocessable(f"Complete the {task.task_type.value} response")
             return
         try:

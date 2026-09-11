@@ -14,6 +14,7 @@ from pydantic import (
 )
 
 from app.models.enums import MaterialIndexStatus, TaskType
+from app.schemas.generation_context import GenerationContext
 
 ExternalId = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
 NonEmptyText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
@@ -232,6 +233,7 @@ class LearningMaterialLinkCreate(ContentSchema):
 
 
 class GenerateTasksRequest(ContentSchema):
+    generation_context: GenerationContext | None = None
     model_config = ConfigDict(extra="forbid", from_attributes=True, strict=False)
     generation_mode: Literal["basic", "multipart"] = "basic"
     module_id: ExternalId | None = None
