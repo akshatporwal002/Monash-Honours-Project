@@ -238,6 +238,16 @@ class TutorService:
             context["selection_reason"] = (
                 "REVIEW_RECORDED_EVIDENCE" if needs_review else "APPROVED_HINT_SEQUENCE"
             )
+            from app.services.integrity_cues import dialogue_cue, recent_turns, route_cue
+
+            cue_turns = recent_turns(
+                self.session,
+                student_id=student.id,
+                task_id=task_id,
+                context_token=token,
+                at=datetime.now(UTC),
+            )
+
             turns = list(
                 self.session.scalars(
                     select(TutorTurn)
@@ -250,9 +260,7 @@ class TutorService:
                     .limit(2)
                 )
             )
-            from app.services.integrity_cues import dialogue_cue
-
-            cue = dialogue_cue(payload.message, turns, ANSWER_SEEKING)
+            cue = dialogue_cue(payload.message, cue_turns, ANSWER_SEEKING)
             if cue:
                 context["integrity_review_cue"] = cue
             hint_index = None
@@ -349,25 +357,12 @@ class TutorService:
                 LiveEvidenceCapture(self.session).support(receipt)
             LiveEvidenceCapture(self.session).tutor(task, row)
             if cue:
-                from app.services.escalation_sources import record_signal
-
-                record_signal(
+                route_cue(
                     self.session,
+                    cue=cue,
                     source_kind="TUTOR",
                     source_id=row.id,
-                    trigger="LEARNING_INTEGRITY_REVIEW",
-                    request_key=f"integrity:{student.id}:{task.id}:{token}:"
-                    + ",".join(cue["signals"]),
-                    severity="NORMAL",
-                    reason=(
-                        "Dialogue contains "
-                        + ", ".join(cue["signals"])
-                        + ". "
-                        + cue["interpretation"]
-                        + " "
-                        + cue["next_action"]
-                        + " This is not a misconduct finding and has no assessment penalty."
-                    ),
+                    key=f"integrity:{student.id}:{task.id}:{token}",
                 )
             if row.kind == "fallback":
                 from app.services.escalation_sources import record_signal
