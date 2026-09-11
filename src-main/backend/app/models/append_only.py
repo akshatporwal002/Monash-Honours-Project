@@ -3,7 +3,7 @@
 from sqlalchemy import DDL, event
 
 
-def protect_history(model, *, unique_keys=()):
+def protect_history(model, *, unique_keys=(), delete_authorization=None):
     table = model.__table__
 
     def reject_change(*_):
@@ -19,6 +19,12 @@ def protect_history(model, *, unique_keys=()):
         f"SELECT RAISE(ABORT, '{table.name} history is immutable'); END"
         for operation in ("UPDATE", "DELETE")
     ]
+    if delete_authorization is not None:
+        statements[1] = (
+            f"CREATE TRIGGER IF NOT EXISTS {table.name}_no_delete BEFORE DELETE ON {table.name} "
+            f"WHEN NOT ({delete_authorization}) BEGIN "
+            f"SELECT RAISE(ABORT, '{table.name} history is immutable'); END"
+        )
     statements.append(
         f"CREATE TRIGGER IF NOT EXISTS {table.name}_no_replace BEFORE INSERT ON {table.name} "
         f"WHEN EXISTS (SELECT 1 FROM {table.name} WHERE "
