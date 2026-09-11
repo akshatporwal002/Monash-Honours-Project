@@ -12,6 +12,7 @@ import {
 
 import { api } from '../app/api'
 import { AssessorAccessPanel } from './AssessorAccessPanel'
+import { EvaluatorGovernancePanel } from '../features/assessment/EvaluatorGovernancePanel'
 import type { AdminUser, CourseSummary, SystemSettings, UserRole } from '../app/types'
 import {
   AlertDialog,
@@ -63,6 +64,7 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
   const [pendingUser, setPendingUser] = useState<AdminUser | null>(null)
   const [pendingCourse, setPendingCourse] = useState<CourseSummary | null>(null)
   const [accessCourseId, setAccessCourseId] = useState('')
+  const [validationCourseId, setValidationCourseId] = useState('')
   const [pendingRole, setPendingRole] = useState<{ user: AdminUser; role: UserRole } | null>(null)
   const [newUser, setNewUser] = useState({
     full_name: '',
@@ -408,6 +410,10 @@ export function AdminWorkspace({ section }: { section: AdminSection }) {
                     </Button>
                   </div>
                   {accessCourseId === course.id && <AssessorAccessPanel key={course.id} courseId={course.id} administrator />}
+                  <Button variant="secondary" onClick={() => setValidationCourseId(current => current === course.id ? '' : course.id)}>
+                    {validationCourseId === course.id ? 'Close evaluator validation' : `Evaluator validation for ${course.title}`}
+                  </Button>
+                  {validationCourseId === course.id && <EvaluatorGovernancePanel courseId={course.id} />}
                 </Card>
               ))}
             </div>

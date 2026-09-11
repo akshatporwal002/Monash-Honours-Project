@@ -75,7 +75,7 @@ class EvaluatorValidationStatusRead(BaseModel):
     validation_id: str | None
     fingerprint: str
     reason: str
-    ai_activation: Literal["PENDING"]
+    ai_activation: Literal["PENDING", "RELEASED"]
 
 
 class EvaluatorValidationReceipt(BaseModel):

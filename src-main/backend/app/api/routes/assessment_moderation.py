@@ -19,6 +19,11 @@ from app.schemas.assessment_moderation import (
     ModerationQueueRead,
     ModerationReviewReceipt,
 )
+from app.schemas.evaluator_governance import (
+    EvaluatorReleaseWrite,
+    EvaluatorRevokeWrite,
+    SuggestionImportWrite,
+)
 from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
 from app.services.assessment.evaluator_release import EvaluatorReleaseService
 from app.services.assessment.evidence import EvidenceValidationError
@@ -33,6 +38,7 @@ from app.services.assessment.review import (
     AssessmentReviewNotFoundError,
     AssessmentReviewValidationError,
 )
+from app.services.assessment.suggestions import AssessorSuggestionService
 
 router = APIRouter(prefix="/assessment", tags=["assessment moderation"])
 Database = Annotated[Session, Depends(get_db)]
@@ -54,6 +60,7 @@ class EvaluatorValidationWrite(BaseModel):
     expected_fingerprint: str = Field(min_length=64, max_length=64)
     evidence: dict[str, Any]
     expires_at: datetime
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=128)
 
 
 def execute(session, operation):
@@ -178,3 +185,81 @@ def record_validation(
         return {"validation_id": row.id, "state": row.state, "ai_activation": "PENDING"}
 
     return execute(session, operation)
+
+
+@router.get("/courses/{course_id}/evaluator-governance")
+def evaluator_governance(course_id: str, actor: CurrentAdministrator, session: Database):
+    return execute(session, lambda: EvaluatorReleaseService(session).history(actor, course_id))
+
+
+@router.post("/courses/{course_id}/evaluator-release")
+def release_evaluator(
+    course_id: str,
+    payload: EvaluatorReleaseWrite,
+    actor: CurrentAdministrator,
+    session: Database,
+    request: Request,
+):
+    def operation():
+        service = EvaluatorReleaseService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        )
+        row = service.release(actor, course_id, payload)
+        return {"record_id": row.id, "status": service.status(course_id)}
+
+    return execute(session, operation)
+
+
+@router.post("/courses/{course_id}/evaluator-revoke")
+def revoke_evaluator(
+    course_id: str,
+    payload: EvaluatorRevokeWrite,
+    actor: CurrentAdministrator,
+    session: Database,
+    request: Request,
+):
+    def operation():
+        service = EvaluatorReleaseService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        )
+        row = service.revoke(actor, course_id, payload)
+        return {"record_id": row.id, "status": service.status(course_id)}
+
+    return execute(session, operation)
+
+
+@router.get("/attempts/{attempt_id}/ai-suggestions")
+def read_suggestions(attempt_id: str, actor: CurrentUser, session: Database, human: Human):
+    return execute(
+        session, lambda: AssessorSuggestionService(session, human).read(actor, attempt_id)
+    )
+
+
+@router.post("/attempts/{attempt_id}/ai-suggestions")
+def import_suggestions(
+    attempt_id: str,
+    payload: SuggestionImportWrite,
+    actor: CurrentUser,
+    session: Database,
+    human: Human,
+):
+    return execute(
+        session,
+        lambda: AssessorSuggestionService(session, human).record(actor, attempt_id, payload),
+    )
+
+
+@router.post("/attempts/{attempt_id}/ai-suggestions/quality-context")
+def suggestion_quality_context(
+    attempt_id: str,
+    payload: SuggestionImportWrite,
+    actor: CurrentUser,
+    session: Database,
+    human: Human,
+):
+    return execute(
+        session,
+        lambda: AssessorSuggestionService(session, human).quality_context(
+            actor, attempt_id, payload
+        ),
+    )
