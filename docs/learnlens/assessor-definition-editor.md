@@ -6,6 +6,8 @@ The editor preserves stable criterion keys, approved anchors, critical-error rul
 
 Saved changes create a new unapproved version. Published definitions are read-only until the assessor starts a revision. Approval requires a saved draft, an explicit review acknowledgement and an approval reason; the server retains responsibility for publication readiness and authority. A conflict preserves the full local form, disables save/approval and permits history inspection followed by explicit replacement with a server version. Reloading history alone does not replace local edits.
 
+The existing editor checks assessor access against its selected definition course. Confirmed revocation, or permission denial from history, save or approval, clears the private draft, anchors and version history. Validation, conflict and transient service errors retain local edits. Generated preview/save requests ignore completions after their task selection is replaced or their panel unmounts, so a late save cannot replace another definition's local edits.
+
 The definition authoring response now includes `outcome_id` and a dedicated `AssessmentAuthoringCriterionRead` with anchors and critical-error rules. Learner criterion reads retain their previous fields. No storage or migration changes are involved. Root integration owns regeneration of the canonical OpenAPI and TypeScript contracts.
 
 ## Boundaries
@@ -19,6 +21,7 @@ The definition authoring response now includes `outcome_id` and a dedicated `Ass
 
 - Editor regression coverage: multi-criterion metadata round trip, add/remove references, required fields and invalid structured data, stale save/history/reload, frozen revision and explicit approval, safe error reporting, stable-key reservation, and generated save opening all five criteria.
 - Existing setup and generated-preview regressions retained.
+- Review regressions cover distinct-course revocation for both manually selected and initially opened definitions, and out-of-order generated saves that must preserve the later editor's unsaved work.
 - Authoring API checks cover owner and scoped-assessor reads, private metadata round trips, creation of an unapproved revision, unchanged published history and unauthorized history access.
 - Learner task reads assert that anchors and critical-error rules are absent.
 - TypeScript and scoped frontend/backend lint checks; no broad test suites or browser checks.

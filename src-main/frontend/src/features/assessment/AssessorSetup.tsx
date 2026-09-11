@@ -47,7 +47,7 @@ export function AssessorSetup({
         title="Assessment setup"
         description="Set the approved evidence rules before learners begin an assessed task."
         actions={
-          <Button
+          !existing && <Button
             variant="secondary"
             onClick={() => void checkAccess()}
             disabled={busy === 'access'}
@@ -64,9 +64,9 @@ export function AssessorSetup({
         {existing ? 'Set up a new assessment' : 'Edit an existing definition'}
       </Button>
       <div hidden={!existing}>
-        <AssessorDefinitionEditor key={`${editorTarget.courseId}-${editorTarget.definitionId}`} assignments={assignments} initialDefinitionId={editorTarget.definitionId} initialCourseId={editorTarget.courseId} autoLoad={Boolean(editorTarget.definitionId && editorTarget.courseId)} />
+        <AssessorDefinitionEditor key={`${editorTarget.courseId}-${editorTarget.definitionId}`} assignments={assignments} initialDefinitionId={editorTarget.definitionId} initialCourseId={editorTarget.courseId} autoLoad={Boolean(editorTarget.definitionId && editorTarget.courseId)} onCheckAccess={onCheckAccess} onAccessRevoked={onAccessRevoked} />
       </div>
-      <div hidden={existing}>
+      {!existing && <div>
       {serverError && <p className={styles.alert} role="alert">{serverError}</p>}
       {status && <p className={styles.status} role="status">{status}</p>}
       {faults.length > 0 && (
@@ -103,7 +103,7 @@ export function AssessorSetup({
         onLoadHistory={() => void loadHistory()}
         onPublish={() => void publish()}
       />
-      </div>
+      </div>}
     </div>
   )
 }

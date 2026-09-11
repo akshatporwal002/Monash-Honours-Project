@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { ApiError, api } from '../../app/api'
@@ -40,7 +40,7 @@ function fixture(): AuthoringDefinition {
 }
 async function open(record = fixture()) {
   vi.spyOn(definitionEditingApi, 'history').mockResolvedValue([record])
-  render(<AssessorDefinitionEditor assignments={assignments} initialDefinitionId="definition" />)
+  render(<AssessorDefinitionEditor assignments={assignments} initialDefinitionId="definition" onCheckAccess={async () => true} onAccessRevoked={() => undefined} />)
   fireEvent.click(screen.getByRole('button', { name: 'Load definition' }))
   await screen.findByText('Latest definition loaded.')
   return record
@@ -139,7 +139,7 @@ test('published versions are frozen and revisions remain unapproved until explic
   expect(screen.getByLabelText('Claim')).toBeDisabled()
 })
 
-test.each([403, 404, 422, 500])('save error %s preserves complete local draft and reports a safe error', async (status) => {
+test.each([422, 500])('save error %s preserves complete local draft and reports a safe error', async (status) => {
   await open()
   vi.spyOn(definitionEditingApi, 'save').mockRejectedValue(new ApiError('private error', status))
   fireEvent.change(screen.getByLabelText('Claim'), { target: { value: 'Retained local claim' } })
@@ -160,6 +160,30 @@ test('roundtrip remaps nested version references and rejects incomplete authorin
   expect(() => definitionToDraft({ ...original, outcome_id: '' })).toThrow('lacks authoring metadata')
   expect(validateDefinitionDraft({ ...draft, pass_rule_expression: { criterion: 'deleted' } })).toContain('The pass rule references a removed criterion.')
   expect(newCriterion(draft.criteria, ['criterion_3', 'criterion_4']).stable_key).toBe('criterion_5')
+})
+
+test.each([
+  ['save', 403], ['save', 404], ['history', 403], ['history', 404], ['publish', 403], ['publish', 404],
+] as const)('%s permission denial %s clears private draft and history', async (action, status) => {
+  await open()
+  const denial = new ApiError('private permission details', status)
+  if (action === 'save') {
+    vi.spyOn(definitionEditingApi, 'save').mockRejectedValue(denial)
+    fireEvent.click(screen.getByRole('button', { name: 'Save new draft version' }))
+  } else if (action === 'history') {
+    vi.mocked(definitionEditingApi.history).mockRejectedValue(denial)
+    fireEvent.click(screen.getByRole('button', { name: 'Reload definition history' }))
+  } else {
+    vi.spyOn(definitionEditingApi, 'publish').mockRejectedValue(denial)
+    fireEvent.change(screen.getByLabelText('Version approval reason'), { target: { value: 'Reviewed' } })
+    fireEvent.click(screen.getByLabelText(/I reviewed every criterion/))
+    fireEvent.click(screen.getByRole('button', { name: 'Approve saved version' }))
+  }
+  expect(await screen.findByRole('alert')).toHaveTextContent('Private definition content has been cleared')
+  expect(screen.queryByLabelText('Approved anchors — circuit')).not.toBeInTheDocument()
+  expect(screen.queryByText('Version 3 — DRAFT')).not.toBeInTheDocument()
+  expect(document.body.textContent).not.toContain('private anchor')
+  expect(document.body.textContent).not.toContain('private permission details')
 })
 
 test('saving a generated draft opens its course definition with all five criteria and anchors', async () => {
@@ -196,4 +220,66 @@ test('saving a generated draft opens its course definition with all five criteri
   await screen.findByText('Draft version 4 saved. It has not been approved.')
   expect(save).toHaveBeenCalledWith(original, definitionToDraft(original))
   expect(publish).not.toHaveBeenCalled()
+})
+
+test.each([false, true])('checks the existing editor course and clears private data on revocation (initial target: %s)', async (initialTarget) => {
+  const original = { ...fixture(), course_id: 'course-b' }
+  const twoCourses = [...assignments, { ...assignments[0], id: 'assignment-b', course_id: 'course-b' }]
+  vi.spyOn(definitionEditingApi, 'history').mockResolvedValue([original])
+  const checkAccess = vi.fn(async (courseId: string) => courseId !== 'course-b')
+  const revoked = vi.fn()
+  render(<AssessorSetup assignments={twoCourses} onCheckAccess={checkAccess} onAccessRevoked={revoked}
+    {...(initialTarget ? { initialCourseId: 'course-b', initialDefinitionId: 'definition' } : {})} />)
+  const user = userEvent.setup()
+  if (!initialTarget) {
+    await user.click(screen.getByRole('button', { name: 'Edit an existing definition' }))
+    fireEvent.change(screen.getByLabelText('Definition course'), { target: { value: 'course-b' } })
+    fireEvent.change(screen.getByLabelText('Assessment definition ID'), { target: { value: 'definition' } })
+    await user.click(screen.getByRole('button', { name: 'Load definition' }))
+  }
+  await screen.findByText('Latest definition loaded.')
+  expect(screen.getByLabelText('Approved anchors — circuit')).toHaveValue(JSON.stringify(original.criteria[1].approved_anchors, null, 2))
+  await user.click(screen.getByRole('button', { name: 'Check assessor access' }))
+  expect(checkAccess).toHaveBeenCalledExactlyOnceWith('course-b')
+  expect(revoked).toHaveBeenCalledOnce()
+  expect(await screen.findByRole('alert')).toHaveTextContent('Private definition content has been cleared')
+  expect(screen.queryByLabelText('Approved anchors — circuit')).not.toBeInTheDocument()
+  expect(screen.queryByText('Version 3 — DRAFT')).not.toBeInTheDocument()
+  expect(document.body.textContent).not.toContain('private anchor')
+})
+
+test('late generated save A cannot replace saved definition B or discard its local edits', async () => {
+  const first = { ...fixture(), assessment_definition_id: 'definition-a' }
+  const second = { ...fixture(), assessment_definition_id: 'definition-b', claim: 'Definition B' }
+  const tasks = ['a', 'b'].map((id) => ({ task_id: id, title: `Task ${id.toUpperCase()}`, task_type: 'short_answer',
+    outcome_id: `outcome-${id}`, outcome_statement: `Outcome ${id}`, revision_id: `revision-${id}`,
+    content_digest: `digest-${id}`, reviewed: true, issues: [],
+    source_materials: [{ material_id: 'material', label: 'Reviewed notes' }], generated_assessment_candidate: true }))
+  vi.spyOn(api.assessment, 'authoringTasks').mockResolvedValue(tasks)
+  vi.spyOn(api.assessment, 'generatedDraft').mockResolvedValue(definitionToDraft(first))
+  let resolveA!: (value: AuthoringDefinition) => void
+  let resolveB!: (value: AuthoringDefinition) => void
+  const pendingA = new Promise<AuthoringDefinition>((resolve) => { resolveA = resolve })
+  const pendingB = new Promise<AuthoringDefinition>((resolve) => { resolveB = resolve })
+  const generatedSave = vi.spyOn(api.assessment, 'saveGeneratedDraft')
+    .mockImplementation((_courseId, taskId) => taskId === 'a' ? pendingA : pendingB)
+  const history = vi.spyOn(definitionEditingApi, 'history').mockImplementation(async (_courseId, definitionId) => [definitionId === 'definition-a' ? first : second])
+  render(<AssessorSetup assignments={assignments} onCheckAccess={async () => true} onAccessRevoked={() => undefined} />)
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: 'Browse saved course tasks' }))
+  for (const task of ['A', 'B']) {
+    await user.click(await screen.findByLabelText('Saved course task'))
+    await user.click(await screen.findByRole('option', { name: `Task ${task}` }))
+    await user.click(screen.getByRole('button', { name: 'Preview generated assessment design' }))
+    await user.click(await screen.findByRole('button', { name: 'Save generated assessment draft' }))
+  }
+  expect(generatedSave).toHaveBeenCalledTimes(2)
+  await act(async () => { resolveB(second); await pendingB })
+  await screen.findByText('Latest definition loaded.')
+  const editor = within(screen.getByRole('group', { name: 'Definition content' }))
+  fireEvent.change(editor.getByLabelText('Claim'), { target: { value: 'Unsaved B edits' } })
+  await act(async () => { resolveA(first); await pendingA })
+  expect(history).toHaveBeenCalledExactlyOnceWith('course', 'definition-b')
+  expect(editor.getByLabelText('Claim')).toHaveValue('Unsaved B edits')
+  expect(screen.getByLabelText('Assessment definition ID')).toHaveValue('definition-b')
 })

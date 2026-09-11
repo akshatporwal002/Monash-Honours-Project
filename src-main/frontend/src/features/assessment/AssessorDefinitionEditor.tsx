@@ -19,8 +19,13 @@ function errorMessage(error: unknown): string {
   return 'The assessment service could not complete the request. Local edits are preserved.'
 }
 
-export function AssessorDefinitionEditor({ assignments, initialDefinitionId = '', initialCourseId, autoLoad = false }: {
+function permissionDenied(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 403 || error.status === 404)
+}
+
+export function AssessorDefinitionEditor({ assignments, initialDefinitionId = '', initialCourseId, autoLoad = false, onCheckAccess, onAccessRevoked }: {
   assignments: ScopedRoleAssignment[], initialDefinitionId?: string, initialCourseId?: string, autoLoad?: boolean,
+  onCheckAccess: (courseId: string) => Promise<boolean>, onAccessRevoked: () => void,
 }) {
   const courses = assignments.filter((assignment) => assignment.role === 'assessor')
   const canAutoLoad = Boolean(autoLoad && initialCourseId && initialDefinitionId
@@ -41,6 +46,23 @@ export function AssessorDefinitionEditor({ assignments, initialDefinitionId = ''
   const [reason, setReason] = useState('')
   const [verified, setVerified] = useState(false)
   const [formRevision, setFormRevision] = useState(0)
+  const [revoked, setRevoked] = useState(false)
+
+  const clearPrivateState = useCallback(() => {
+    setDefinition(null); setDraft(null); setHistory([]); setInvalidFields([]); setFaults([])
+    setReason(''); setVerified(false); setEditing(false); setDirty(false); setStatus(''); setError('')
+    setRevoked(true)
+  }, [setDefinition, setDraft, setHistory, setInvalidFields, setFaults, setReason,
+    setVerified, setEditing, setDirty, setStatus, setError, setRevoked])
+  const handleFailure = (failure: unknown) => {
+    if (permissionDenied(failure)) {
+      clearPrivateState()
+      onAccessRevoked()
+    } else {
+      setError(errorMessage(failure))
+      if (failure instanceof ApiError && failure.status === 409) setStale(true)
+    }
+  }
 
   const adopt = useCallback((record: AuthoringDefinition) => {
     const editable = definitionToDraft(record)
@@ -50,17 +72,21 @@ export function AssessorDefinitionEditor({ assignments, initialDefinitionId = ''
   }, [setDefinition, setDraft, setDirty, setStale, setEditing, setVerified, setReason,
     setInvalidFields, setFaults, setError, setFormRevision])
   useEffect(() => {
-    if (!canAutoLoad || !initialCourseId || !initialDefinitionId) return
+    if (revoked || !canAutoLoad || !initialCourseId || !initialDefinitionId) return
     let cancelled = false
     void definitionEditingApi.history(initialCourseId, initialDefinitionId).then((records) => {
       if (cancelled) return
       if (!records.length) throw new DefinitionEditingError('No definition versions are available.')
       const ordered = [...records].sort((left, right) => right.version - left.version)
       adopt(ordered[0]); setHistory(ordered); setStatus('Latest definition loaded.')
-    }).catch((failure: unknown) => { if (!cancelled) setError(errorMessage(failure)) })
+    }).catch((failure: unknown) => {
+      if (cancelled) return
+      if (permissionDenied(failure)) clearPrivateState()
+      else setError(errorMessage(failure))
+    })
       .finally(() => { if (!cancelled) setBusy(false) })
     return () => { cancelled = true }
-  }, [adopt, canAutoLoad, initialCourseId, initialDefinitionId])
+  }, [adopt, canAutoLoad, clearPrivateState, initialCourseId, initialDefinitionId, revoked])
   const load = async () => {
     setBusy(true); setError(''); setStatus('')
     try {
@@ -70,7 +96,7 @@ export function AssessorDefinitionEditor({ assignments, initialDefinitionId = ''
       setHistory(ordered)
       if (!definition) { adopt(ordered[0]); setStatus('Latest definition loaded.') }
       else setStatus('History reloaded. Local edits remain unchanged; select a version below to replace them.')
-    } catch (failure) { setError(errorMessage(failure)) }
+    } catch (failure) { handleFailure(failure) }
     finally { setBusy(false) }
   }
   const save = async () => {
@@ -84,7 +110,7 @@ export function AssessorDefinitionEditor({ assignments, initialDefinitionId = ''
       adopt(saved)
       setHistory((records) => [saved, ...records.filter((record) => record.id !== saved.id)])
       setStatus(`Draft version ${saved.version} saved. It has not been approved.`)
-    } catch (failure) { setError(errorMessage(failure)); setStale(failure instanceof ApiError && failure.status === 409) }
+    } catch (failure) { handleFailure(failure) }
     finally { setBusy(false) }
   }
   const publish = async () => {
@@ -98,11 +124,31 @@ export function AssessorDefinitionEditor({ assignments, initialDefinitionId = ''
       adopt(approved)
       setHistory((records) => [approved, ...records.filter((record) => record.id !== approved.id)])
       setStatus(`Version ${approved.version} approved and published.`)
-    } catch (failure) { setError(errorMessage(failure)); setStale(failure instanceof ApiError && failure.status === 409) }
+    } catch (failure) { handleFailure(failure) }
     finally { setBusy(false) }
   }
 
+  const checkAccess = async () => {
+    if (busy || revoked) return
+    setBusy(true); setError('')
+    try {
+      const active = await onCheckAccess(definition?.course_id ?? courseId)
+      if (active) setStatus('Assessor access is still active for this course.')
+      else {
+        clearPrivateState()
+        onAccessRevoked()
+      }
+    } catch (failure) {
+      if (permissionDenied(failure)) handleFailure(failure)
+      else setError('Assessor access could not be refreshed. Please try again.')
+    }
+    finally { setBusy(false) }
+  }
+
+  if (revoked) return <p role="alert">Assessor access is unavailable. Private definition content has been cleared.</p>
+
   return <div className={styles.form}>
+    <Button variant="secondary" disabled={busy || !courseId} onClick={() => void checkAccess()}>Check assessor access</Button>
     <Card heading="Open an existing definition">
       <Field label="Definition course"><select value={courseId} disabled={busy || definition !== null} onChange={(event) => setCourseId(event.target.value)}>
         {courses.map((assignment) => <option key={assignment.id} value={assignment.course_id}>{assignment.course_id}</option>)}
