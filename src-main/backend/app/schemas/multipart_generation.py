@@ -33,8 +33,10 @@ class MultipartCandidate(BaseModel):
             raise ValueError(
                 "Multipart candidates require prediction, reasoning, explanation and reflection"
             )
-        if plan.supported_hints or plan.support_representations:
-            raise ValueError("Generated support requires a separate reviewed authoring path")
+        if plan.supported_hints:
+            raise ValueError(
+                "Generated support must use the typed source-grounded representation contract"
+            )
         if design.task_forms or design.formal_result_eligible:
             raise ValueError(
                 "Generated designs cannot bind task forms or declare formal eligibility"

@@ -279,7 +279,11 @@ class TaskReviewService:
                 "The learning episode plan needs valid stage settings", 422
             ) from error
         if plan is not None:
-            for representation in plan.support_representations:
+            for representation in (
+                *plan.support_representations,
+                *plan.access_representations,
+                *plan.transfer.access_representations,
+            ):
                 if not set(representation.source_references) <= set(task.source_references or []):
                     raise TaskReviewError(
                         "Support representations must cite declared task sources", 422

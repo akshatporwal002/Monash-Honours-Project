@@ -15,7 +15,11 @@ from app.models.persistence import LearningTask
 from app.models.simulation import CircuitVersion, SimulationRun
 from app.models.task_review import TaskRevision
 from app.schemas.episode import EpisodePayloadV1, ResponseContent
-from app.services.episode_contract import learner_episode_plan, validate_reviewed_episode_plan
+from app.services.episode_contract import (
+    access_representation_choices,
+    learner_episode_plan,
+    validate_reviewed_episode_plan,
+)
 from app.services.task_review import TaskReviewError
 
 
@@ -274,6 +278,9 @@ class EpisodeService:
         if stage:
             projection["supported_hints"] = []
             projection["representation_choices"] = []
+            projection["access_representation_choices"] = access_representation_choices(
+                plan, transfer=True
+            )
             projection["transfer"] = {
                 "stage_start_id": stage.id,
                 "part_id": stage.part_id,

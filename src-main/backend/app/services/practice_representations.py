@@ -46,18 +46,15 @@ class PracticeRepresentationService:
         lms = LmsService(self.session)
         task = lms._require_student_task(actor, task_id)
         lms._require_unlocked(actor, task)
-        if (
-            task.task_type.value == "transfer"
-            or AssessmentSubmissionService(self.session).declaration_for_task(task) is not None
-            or self.session.scalar(
-                select(AssessmentWorkStart.id)
-                .where(
-                    AssessmentWorkStart.task_id == task_id,
-                    AssessmentWorkStart.student_id == actor.id,
-                )
-                .limit(1)
+        if AssessmentSubmissionService(self.session).declaration_for_task(
+            task
+        ) is not None or self.session.scalar(
+            select(AssessmentWorkStart.id)
+            .where(
+                AssessmentWorkStart.task_id == task_id,
+                AssessmentWorkStart.student_id == actor.id,
             )
-            or active_fresh_check(self.session, actor.id, task_id)
+            .limit(1)
         ):
             raise TaskReviewError(
                 "Use the approved support for this assessment or fresh application", 409
@@ -71,7 +68,11 @@ class PracticeRepresentationService:
             revision.snapshot.get("marking_criteria") or {},
             revision.snapshot.get("source_references") or [],
         )
-        transfer_active = active_course_transfer(self.session, actor.id, task.course_id)
+        transfer_active = (
+            task.task_type.value == "transfer"
+            or active_fresh_check(self.session, actor.id, task_id)
+            or active_course_transfer(self.session, actor.id, task.course_id)
+        )
         if transfer_active:
             variants = [item for item in variants if item.support_kind == "accessibility"]
         return task, revision, approval, variants, preferences, transfer_active

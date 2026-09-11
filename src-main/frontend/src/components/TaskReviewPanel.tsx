@@ -6,6 +6,8 @@ import type { ApiSchemas } from '../api/generated'
 import { TaskMarkingEditor } from './TaskMarkingEditor'
 import { EpisodePlanEditor } from './EpisodePlanEditor'
 import { PracticeRepresentationEditor } from '../features/practice-representations/PracticeRepresentationEditor'
+import { RepresentationGeneration, RepresentationGenerationNotes } from '../features/practice-representations/RepresentationGeneration'
+import { EpisodeAccessEditor } from '../features/practice-representations/EpisodeAccessEditor'
 import { Button, Field, Input, Select, Tag, Textarea } from './ui'
 import styles from './TaskReviewPanel.module.css'
 
@@ -157,7 +159,10 @@ function RevisionReview({ taskId }: { taskId: string }) {
       {(taskType === 'matching' || taskType === 'sequencing') && <StructuredTaskEditor type={taskType} value={criteria} answer={form.expected_answer} disabled={busy} onAnswer={answer => edit('expected_answer', answer)} onChange={next => { setCriteria(next); setCriteriaDirty(true); setDirty(true) }} />}
       <TaskMarkingEditor taskType={taskType} value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
       <EpisodePlanEditor value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
+      <EpisodeAccessEditor value={criteria} disabled={busy} onChange={next => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
       <PracticeRepresentationEditor value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
+      <RepresentationGenerationNotes value={criteria} />
+      {summary.revision_id && <RepresentationGeneration key={`${taskId}:${summary.revision_id}`} taskId={taskId} revisionId={summary.revision_id} episode={!!criteria.episode_plan} disabled={busy || dirty} onBusy={setBusy} onSaved={() => { setSummary(null); setReason(''); setReload(value => value + 1); setNotice('Generated alternatives saved as a new draft. Review the source excerpts and content before approval.') }} />}
       <Button onClick={() => void save()} disabled={busy || !dirty || !summary.revision_id}>Save task revision</Button>
       <Field label="Review reason" required><Textarea maxLength={2000} disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
       {dirty && <p>Save your edits before recording a review.</p>}

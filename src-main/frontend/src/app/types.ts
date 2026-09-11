@@ -273,5 +273,5 @@ export type AsyncState = 'idle' | 'loading' | 'success' | 'error'
 export type EpisodeContent = ApiSchemas['ResponseContent']
 export type EpisodeProcess = ApiSchemas['EpisodeStageResponseV1']
 export type EpisodePayload = ApiSchemas['EpisodePayloadV1']
-export type EpisodeState = ApiSchemas['EpisodeStateRead'] & { representation_choices?: Array<{ item_index: number; title: string; mode: string }> }
+export type EpisodeState = ApiSchemas['EpisodeStateRead'] & { representation_choices?: Array<{ item_index: number; title: string; mode: string; explanation_detail?: 'brief' | 'detailed' }>; access_representation_choices?: Array<{ item_index: number; title: string; mode: string; explanation_detail?: 'brief' | 'detailed' }> }
 export type EpisodeCheckpointSnapshot = ApiSchemas['EpisodeCheckpointRead']

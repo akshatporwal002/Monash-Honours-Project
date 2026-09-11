@@ -4,6 +4,7 @@ from sqlalchemy import select
 
 from app.models.episode import EpisodeHelpUse, EpisodeStageStart
 from app.schemas.episode import EpisodeHelpUseRead
+from app.services.assessment.transfer_boundary import active_course_transfer
 from app.services.episodes import EpisodeService
 from app.services.misconception_state import active_fresh_check
 from app.services.task_review import TaskReviewError
@@ -23,10 +24,25 @@ class EpisodeSupportService:
         stage = self.session.scalar(
             select(EpisodeStageStart).where(EpisodeStageStart.assessment_work_start_id == work.id)
         )
+        instructional_blocked = bool(
+            stage
+            or fresh_check
+            or active_course_transfer(self.session, work.student_id, work.course_id)
+        )
+        # Resolve access content from the requested frozen stage, including replay.
+        if payload.stage_start_id is not None and (
+            stage is None or payload.stage_start_id != stage.id
+        ):
+            raise TaskReviewError("Support action does not match this transfer stage", 409)
+        access_representations = (
+            plan.transfer.access_representations
+            if payload.stage_start_id
+            else plan.access_representations
+        )
         items = (
             (*plan.supported_hints, *(item.text for item in plan.support_representations))
             if payload.kind == "conceptual_hint"
-            else plan.accessibility_support
+            else (*plan.accessibility_support, *(item.text for item in access_representations))
         )
         representation_index = payload.item_index - len(plan.supported_hints)
         representation = (
@@ -35,6 +51,9 @@ class EpisodeSupportService:
             and 0 <= representation_index < len(plan.support_representations)
             else None
         )
+        access_index = payload.item_index - len(plan.accessibility_support)
+        if payload.kind == "accessibility" and 0 <= access_index < len(access_representations):
+            representation = access_representations[access_index].model_dump(mode="json")
         prior = self.session.scalar(
             select(EpisodeHelpUse).where(
                 EpisodeHelpUse.assessment_work_start_id == work.id,
@@ -52,14 +71,16 @@ class EpisodeSupportService:
                 )
             return {
                 "record": self.read(prior),
-                "representation": None if stage or fresh_check else representation,
+                "representation": None
+                if payload.kind == "conceptual_hint" and instructional_blocked
+                else representation,
                 "content": None
-                if payload.kind == "conceptual_hint" and (stage or fresh_check)
+                if payload.kind == "conceptual_hint" and instructional_blocked
                 else items[payload.item_index],
             }
         if payload.stage_start_id != (stage.id if stage else None):
             raise TaskReviewError("Support action does not match the current episode stage", 409)
-        if payload.kind == "conceptual_hint" and (stage or fresh_check):
+        if payload.kind == "conceptual_hint" and instructional_blocked:
             raise TaskReviewError(
                 "Instructional hints are unavailable during fresh application", 422
             )

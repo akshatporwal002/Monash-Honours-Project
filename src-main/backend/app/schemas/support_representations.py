@@ -12,10 +12,12 @@ class SupportRepresentationChoice(BaseModel):
     item_index: int = Field(ge=0, lt=100)
     title: str = Field(min_length=1, max_length=200)
     mode: RepresentationMode
+    explanation_detail: Literal["brief", "detailed"] = "detailed"
 
 
 class SupportRepresentation(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+    explanation_detail: Literal["brief", "detailed"] = "detailed"
     instructional_support_level: int = Field(ge=1, le=4, strict=True)
     mode: RepresentationMode
     title: str = Field(min_length=1, max_length=200)
@@ -49,3 +51,10 @@ class SupportRepresentation(BaseModel):
         if self.mode != "circuit" and self.circuit is not None:
             raise ValueError("Only circuit representations may carry circuit content")
         return self
+
+
+class AccessRepresentation(SupportRepresentation):
+    """A reviewed equivalent input with no instructional help or worked solution."""
+
+    instructional_support_level: int = Field(default=0, ge=0, le=0, strict=True)
+    mode: Literal["text", "visual", "circuit", "stepwise"]

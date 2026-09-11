@@ -1,5 +1,6 @@
 """Bounded offline candidates and validation before any teaching revision is saved."""
 
+from app.schemas.episode import EpisodePlanV1
 from app.schemas.multipart_generation import STAGES, MultipartCandidate
 
 SOURCE_FACT = "Hadamard maps |0> to (|0> + |1>)/sqrt(2) and |1> to (|0> - |1>)/sqrt(2)."
@@ -129,7 +130,7 @@ def validate_multipart(criteria, task_type, source_texts):
         )
     if task_type != "quantum_circuit":
         raise ValueError("This multipart family requires the existing circuit episode renderer")
-    if criteria.get("episode_plan") != candidate.episode_plan.model_dump(mode="json"):
+    if EpisodePlanV1.model_validate(criteria.get("episode_plan")) != candidate.episode_plan:
         raise ValueError("The executable episode plan must match the proposed multipart design")
     if (
         criteria.get("starter_circuit") != SUPPORTED
