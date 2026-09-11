@@ -96,7 +96,7 @@
     "src-main/backend/app/services/learner_model/safety.py": "f553c951e303c406e7825a764b5933388006e9328d8c741d88e44ef056509efc",
     "src-main/backend/app/services/learning_progress.py": "bdb2364378f5664d6353a3a466a432d96e4496f42a871fad120efc0904764fbf",
     "src-main/backend/app/services/llm.py": "e655993a7b01d5e7e12c47fd56b059125c3270823b6db950a7f96aaa2136d519",
-    "src-main/backend/app/services/lms.py": "6960b57347198e25607b9c8564658a751875c2dd4e068c2523dba5f6dd9b949b",
+    "src-main/backend/app/services/lms.py": "84a8db74b3ea9fb8ac6e52de4244e9ca5f93e219ce1d382550164a0294899a75",
     "src-main/backend/app/services/local_ai.py": "cd60d82ce8fc15479112a54bdffa7c756d62d61fec38110513de62506d98fbc5",
     "src-main/backend/app/services/material_scanning.py": "ce8877190a3572104cf497166ec3ec3dd52c33a957b4b0eb6806f928d18f9a0d",
     "src-main/backend/app/services/multipart_generation.py": "b4757e9c7499dfc621e882e15d5e41c8ca25898b0485b6db35576a44a18692ed",

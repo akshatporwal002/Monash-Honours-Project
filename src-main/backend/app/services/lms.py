@@ -747,8 +747,7 @@ class LmsService:
         return self._task_read(task, actor if actor.role is UserRole.STUDENT else None)
 
     def get_student_task(self, student: User, task_id: str) -> TaskRead:
-        task = self._require_student_task(student, task_id)
-        result = self._task_read(task, student)
+        task, result = self._student_task_projection(student, task_id)
         self._learning_event(
             student,
             task,
@@ -757,6 +756,14 @@ class LmsService:
         )
         self._commit()
         return result
+
+    @validation_read_scope
+    def _student_task_projection(
+        self, student: User, task_id: str
+    ) -> tuple[LearningTask, TaskRead]:
+        """Reuse publication reads only before the separate task-view event write."""
+        task = self._require_student_task(student, task_id)
+        return task, self._task_read(task, student)
 
     def start_assessment_work(
         self, student: User, task_id: str, expected_form_id: str

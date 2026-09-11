@@ -1,5 +1,7 @@
 # LearnLens remaining implementation tasks
 
+> **Historical audit — superseded for current task status.** Use [LearnLens task progress and remaining work](../LearnLens_Remaining_Tasks.md) for all 41 tasks, implemented progress, source-specific verification and next actions. The August findings below are retained as history; they are not the current implementation backlog.
+
 Status: codebase and document audit
 
 Last updated: 2026-08-14

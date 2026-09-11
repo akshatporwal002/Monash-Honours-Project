@@ -26,6 +26,10 @@ test('quantum episode connects checked feedback, revision, model, activity and h
   await expect(page.getByText(/X followed by two Hadamard gates/)).toHaveCount(0)
   await expect(page.getByText(/zero is restored|the final state is one/i)).toHaveCount(0)
   const tutor = page.getByRole('region', { name: 'Work through your reasoning' })
+  await expect(tutor).toHaveCount(0)
+  await page.getByRole('button', { name: 'Start assessed task', exact: true }).click()
+  await expect(page.getByText('Assessment started. Your approved task version is fixed.', { exact: true })).toBeVisible()
+  await expect(tutor).toBeVisible()
   for (let index = 0; index < 2; index++) {
     await tutor.getByLabel('Your reasoning or question').fill('How does the Hadamard gate change the zero state?')
     await tutor.getByRole('button', { name: 'Send to tutor' }).click()
@@ -98,11 +102,11 @@ test('quantum episode connects checked feedback, revision, model, activity and h
     await signIn(assessor, 'Educator', fixture.educator_email, fixture.educator_password)
     await assessor.goto('/assessor/review')
     await assessor.getByRole('button', { name: new RegExp(`Inspect attempt ${result.assessment_attempt_id}`) }).click()
-    const decisions = assessor.locator('select[id^="decision-"]')
+    const decisions = assessor.getByRole('combobox', { name: 'Criterion decision', exact: true })
     await expect(decisions).toHaveCount(3)
     for (let index = 0; index < 3; index++) {
       await decisions.nth(index).selectOption('MET')
-      await assessor.locator('textarea[id^="reason-"]').nth(index).fill('The exact saved prediction, circuit and fresh response demonstrate this criterion.')
+      await assessor.getByLabel('Criterion reason, including the evidence field used', { exact: true }).nth(index).fill('The exact saved prediction, circuit and fresh response demonstrate this criterion.')
     }
     const checks = assessor.getByRole('checkbox', { name: /Whole immutable learner response/ })
     for (let index = 0; index < await checks.count(); index++) await checks.nth(index).check()

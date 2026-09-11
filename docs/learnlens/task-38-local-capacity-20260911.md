@@ -226,3 +226,54 @@ scratch evidence; SHA-256 hashes are:
 - Usage export: `7e2d61ccdcd0c6b6c629095e21f7d2f155a20bcb9089834863ebdbd1cd7e1cf8`
 - Stopped database snapshot: `a17e33854a6cda2a8444c1dc3150e615ce888582bfc002cef2ea5441887d3971`
 - Harness: `951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75`
+
+## Integrated 50-user measurement on clean `7dddf9d`
+
+**This campaign failed overall: 64% of measured journeys ended in errors.**
+Of 50 measured journeys, 18 reached `awaiting_human`, 19 ended in
+`continuation_timeout` and 13 in `request_timeout`. No human-confirmed loop
+completed. HTTP errors were 18 / 4,558 (0.3949%); this separate denominator
+does not establish successful journey completion.
+
+| Metric | Observations | Measured p95 | Errors / censored | Target |
+| --- | --- | --- | --- | --- |
+| Ordinary requests | 275 | 8.023919 s | 0 / 0 | 2 s; not met |
+| Progress requests | 68 | 1.375461 s | 0 / 0 | 3 s; met for observed requests |
+| Formative feedback | 18 | 6.672365 s | 0 / 0 | 10 s; met for only 18 observations |
+| Assessed feedback | 57 | 71.773195 s | 2 / 2 | No threshold defined by this report |
+
+Progress and feedback observations are conditional on reaching those stages.
+Warm-up outcomes were 19 `awaiting_human`, 10 `continuation_timeout`, 20
+`request_timeout` and one `feedback_failed`. Neither phase reports a simulation
+timeout as its journey outcome. Across both phases, the stopped snapshot has
+165 simulation runs: 164 completed and one interrupted, with
+`simulation_interrupted` recorded once and no run missing an outcome. These
+snapshot counts are not a measurement-only denominator. This repeated-input
+campaign does not establish capacity for diverse numerical inputs.
+
+The run started at `2026-09-11T13:46:03.626809+10:00` on
+`7dddf9deaa27e27a74f7457a5d9ac018d2294e20`, branch `main`, with
+`dirty: false`. One warm-up and one measurement round planned 100 journeys and
+made 8,867 HTTP attempts. Both phases reached 50 active loops. Warm-up took
+310.320635 s; measurement took 292.732540 s. Runtime bounds and the local
+synthetic environment are retained in the JSON receipt.
+
+The stopped database retained 147 submissions, 110 assessment attempts, zero
+assessment decisions, 147 workflows, 131 learner-model snapshots and zero durable
+provider-usage rows. The usage export contains 282 local metadata records:
+141 feedback-generation and 141 judge records (208 `local`, 74
+`local-deterministic`). Those records are excluded from external billing evidence.
+External execution was disabled; recorded external provider/model observations
+are empty. Actual external AUD subtotal and cost per complete loop remain null,
+with `unknown_or_incomplete` cost status, incomplete billing coverage, no
+reconciliation record and no human-completion denominator.
+
+The report confirms all feedback workflows drained, owned processes stopped and
+the listener closed. It does not claim all continuation work completed. Earlier
+campaigns remain unchanged. Raw artifacts stay in ignored scratch storage;
+SHA-256 hashes are:
+
+- Report: `12adf0e55143122254848ddd1ed291fc91dd40fff0afac7d6b36ddc40f2612a5`
+- Usage export: `344595cbfc6a19f781aae6ba9e3e6cfd1dddb9f2d504c6b2bdfbfe3394c94e78`
+- Stopped database snapshot: `75970d773729fd28d90ff626176a7e61c02143a465d8f5166688d90bba0f9d26`
+- Harness: `951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75`

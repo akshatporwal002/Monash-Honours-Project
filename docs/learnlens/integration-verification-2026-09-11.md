@@ -317,3 +317,70 @@ is still running. Its repository history scan found no secrets, but the syntheti
 positive control failed. A deterministic control now passes local detection and
 two regression checks without weakening history coverage or detection assertions;
 the [secret-gate receipt](secret-scan-gate-2026-09-10.md) records the scope.
+
+The completed `5a57b66` backend CI passed all 2,030 tests with one warning in
+1,507.90 seconds and 90.16% service coverage. This includes the migration and
+integrated recovery/reuse cases; the OpenAPI and generated frontend contracts
+were current. Frontend lint, build and 395 unit/accessibility tests passed, as
+did all 124 configured browser cases in 7.4 minutes. The separate complete-loop
+browser test failed in all four browsers because it accessed the tutor before
+explicit assessed work start; static review also found obsolete assessor field
+IDs later in that journey. The subsequent misconception browser step did not
+run. Dependency audit passed. The workflow remains failed because of that
+complete-loop step and the synthetic secret-detection control; its successful
+jobs do not certify the later simulation repair.
+
+## Combined `7dddf9d` capacity result
+
+The next clean campaign removed simulation timeouts from measured journey
+outcomes, but still failed: 18 of 50 journeys reached human assessment, 19 ended
+with continuation timeouts and 13 with request timeouts. Ordinary-request p95
+was 8.023919 seconds against the two-second target. Progress p95 was 1.375461
+seconds and formative feedback p95 6.672365 seconds; these are conditional on
+surviving journeys. The HTTP error rate was 0.395% over 4,558 measured requests,
+while the journey error rate was 64%. Both denominators remain explicit.
+
+All feedback work drained and owned processes/listener stopped. No human result
+or external billing was fabricated. The [capacity receipt](task-38-local-capacity-20260911.md)
+records exact counts and hashes. Long database waits and continuation delays
+remain active software diagnosis; repeated numerical reuse alone does not meet
+the representative performance target.
+
+The complete-loop browser fixture now explicitly starts assessed work and uses
+the displayed assessor field labels. Its focused headless Firefox run passed
+in 35.7 seconds, retaining tutor, transfer, non-leakage, saved evidence, revision,
+activity choice, synthetic human confirmation and accessibility assertions.
+The separate misconception journey, previously not reached in CI, passed
+unchanged in headless Firefox in 16.6 seconds. A first local attempt stalled
+before login because the correct Windows headless setting was not supplied;
+that environment failure was corrected without an application change. Both
+test servers were stopped. These two scoped checks do not replace the final
+four-browser CI gates.
+
+
+## Reviewed reminder and task-read repair candidate
+
+The effective-deadline candidate filter preserves latest arrangement, revocation,
+base-deadline fallback and active reminder pauses. Authoritative delivery locking,
+publication checks, opt-out, rolling limits and pagination remain unchanged.
+Twenty-seven focused reminder tests passed in 39.55 seconds. On the same copied
+fixture, the first actual worker round dropped from 2.422 seconds, 2,922 SELECTs
+and 25 UPDATE/commit pairs to 0.016 seconds, one SELECT and zero writes. The second
+round correctly skips the scan during the existing idle interval. Both rounds
+still processed continuations and outboxes; owned children were reaped.
+
+Task availability/projection now uses the existing per-operation validation scope,
+ending before the separate TASK_VIEW event and commit. Seven focused checks passed
+in 17.14 seconds, including output/event preservation, fresh source/publication
+checks and learner authorization. A narrow 16-actor burst of 32 actual mounted GET
+routes, using signed cookie authentication, returned only HTTP 200. Dashboard p95
+was 1.824360 seconds; task GET p95 was 0.846284 seconds, with exactly 16 view inserts.
+It excludes login, worker and simulation load; a full 50-user campaign is still due.
+Independent read-only review found no concrete blocker in either repair. No full
+local suite was repeated.
+
+The affected 123-entry draft manifest is refreshed to
+`a8a2ed00081e63f31574fa5ae0c5b30f7e2665b8494a46285b1058e179d2e52f`.
+The runner retains 108 draft cases, zero approvals and zero included pairs. Quality
+is UNVERIFIED and AI release PENDING. Existing paired numerical receipts are retained;
+no duplicate numerical revalidation was needed for these read-path changes.

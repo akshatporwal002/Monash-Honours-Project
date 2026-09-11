@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, or_, select, text
+from sqlalchemy import and_, case, or_, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.models.lms import (
@@ -327,19 +327,46 @@ class ReminderService:
     def process_due(
         self, *, after: tuple[int, str] | None = None, limit: int = 25
     ) -> ReminderBatch:
+        latest_arrangement_id = (
+            select(DeadlineArrangement.id)
+            .where(
+                DeadlineArrangement.student_id == User.id,
+                DeadlineArrangement.task_id == LearningTask.id,
+            )
+            .order_by(DeadlineArrangement.revision.desc())
+            .limit(1)
+            .correlate(User, LearningTask)
+            .scalar_subquery()
+        )
+        arranged_due_at = case(
+            (DeadlineArrangement.active.is_(True), DeadlineArrangement.due_at), else_=None
+        )
+        cutoff = self.now - timedelta(hours=24)
         query = (
             select(User.id, LearningTask.id)
             .join(Enrollment, Enrollment.student_id == User.id)
             .join(Course, Course.id == Enrollment.course_id)
             .join(LearningTask, LearningTask.course_id == Course.id)
+            .outerjoin(DeadlineArrangement, DeadlineArrangement.id == latest_arrangement_id)
             .where(
                 User.is_active.is_(True),
                 User.role == UserRole.STUDENT,
                 Enrollment.status == EnrollmentStatus.ACTIVE,
                 Course.state == CourseState.PUBLISHED,
                 or_(
-                    LearningTask.due_at.is_(None),
-                    LearningTask.due_at <= self.now - timedelta(hours=24),
+                    DeadlineArrangement.id.is_(None),
+                    DeadlineArrangement.active.is_(False),
+                    DeadlineArrangement.reminders_paused.is_(False),
+                ),
+                # Match deadline(): an active arrangement can extend, never shorten,
+                # the base deadline. Missing or revoked arrangements use the base.
+                # This only selects candidates; send() rechecks under its write lock.
+                or_(
+                    and_(
+                        LearningTask.due_at <= cutoff,
+                        or_(arranged_due_at.is_(None), arranged_due_at <= cutoff),
+                    ),
+                    and_(LearningTask.due_at.is_(None), arranged_due_at <= cutoff),
                 ),
             )
         )
