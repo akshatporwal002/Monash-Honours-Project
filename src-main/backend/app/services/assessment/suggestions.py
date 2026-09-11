@@ -6,6 +6,9 @@ from uuid import NAMESPACE_URL, uuid5
 
 from sqlalchemy import inspect, select
 
+from app.domain.assessment import ResultState
+from app.models.assessment import AssessmentDecision
+from app.models.assessment_moderation import ModerationSelection
 from app.models.learning_evidence import EvidenceArtifact
 from app.models.lms import PlatformAuditEvent
 from app.schemas.category_review import CategoryReviewRecord, CategoryReviewRequest, ReviewEvidence
@@ -33,6 +36,27 @@ class AssessorSuggestionService:
     def __init__(self, session, human):
         self.session, self.human = session, human
 
+    def _withhold(self, actor, attempt):
+        """Caller holds the course lock; sampling does not assign reviewer roles."""
+        moderation = ModerationService(self.session)
+        selection = self.session.get(ModerationSelection, attempt.id)
+        if selection is None:
+            decision = self.session.scalar(
+                select(AssessmentDecision).where(
+                    AssessmentDecision.assessment_attempt_id == attempt.id
+                )
+            )
+            # Match moderation's prospective activation rule: do not enrol a
+            # previously confirmed result into a newly configured sample.
+            if decision is None or decision.result_state not in {
+                ResultState.CONFIRMED,
+                ResultState.OVERRIDDEN,
+            }:
+                selection = moderation.capture_if_configured(attempt)
+        if selection and selection.selected and "ORIGINAL" not in moderation.reviews(attempt.id):
+            return True
+        return moderation.withhold_judgements(actor, attempt.id)
+
     def _context(self, actor, attempt_id):
         attempt = self.human._visible(actor, attempt_id)
         release = EvaluatorReleaseService(self.session).require_release(
@@ -48,7 +72,7 @@ class AssessorSuggestionService:
 
     def _prepare(self, actor, attempt_id, command):
         attempt, release, bundle, response = self._context(actor, attempt_id)
-        if ModerationService(self.session).withhold_judgements(actor, attempt_id):
+        if self._withhold(actor, attempt):
             raise AssessmentReviewConflictError(
                 "Complete independent moderation before reviewing AI output"
             )
@@ -258,10 +282,10 @@ class AssessorSuggestionService:
         # Read the current moderation stage only after competing review writes
         # have completed; keep this lock through the suggestion read transaction.
         moderation.lock(attempt.course_id)
-        if moderation.withhold_judgements(actor, attempt_id):
+        if self._withhold(actor, attempt):
             return {
                 "status": "WITHHELD",
-                "reason": "Independent second review must be completed first",
+                "reason": "Independent review must be recorded before viewing AI suggestions",
                 "records": [],
             }
         try:
