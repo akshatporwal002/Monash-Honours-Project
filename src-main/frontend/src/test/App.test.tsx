@@ -492,6 +492,8 @@ test('shows formal assessment conditions and saves a response without a numeric 
   expect(screen.getByText(/Required: Explain the evidence-to-claim relationship/)).toBeInTheDocument()
   expect(screen.getByText('Permitted tools')).toBeInTheDocument()
   expect(screen.getByText('notes')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Start assessed task' }))
+  await waitFor(() => expect(screen.getByLabelText('Your response')).toBeEnabled())
   await user.type(screen.getByLabelText('Your response'), 'The evidence supports the claim.')
   await user.click(screen.getByRole('button', { name: /Submit activity/ }))
 

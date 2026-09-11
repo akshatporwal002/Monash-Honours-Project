@@ -25,6 +25,7 @@ try {
   await page.goto(`http://localhost:5233/student/tasks/${fixture.task_id}`)
   await expect(page.getByRole('heading', { name: 'Assessment conditions' })).toBeVisible()
   await expect(page.getByText('unlimited approved conceptual hints')).toBeVisible()
+  await page.getByRole('button', { name: 'Start assessed task', exact: true }).click()
   await page.getByRole('radio').first().check()
   await page.getByRole('button', { name: 'Save draft', exact: true }).click()
   await expect(page.getByText('Draft saved.', { exact: true })).toBeVisible()
