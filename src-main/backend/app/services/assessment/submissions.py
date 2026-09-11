@@ -27,6 +27,7 @@ from app.models.lms import Course, SubmissionAttempt, SubmissionDraft
 from app.models.persistence import LearningTask
 from app.services.rag.source_history import bind_sources
 from app.services.task_review import TaskReviewError
+from app.services.validation_reads import reuse_validation_read
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,7 @@ class AssessmentSubmissionService:
         declaration = self.declaration_for_task(task)
         return declaration.versions if declaration is not None else None
 
+    @reuse_validation_read
     def declaration_for_task(self, task: LearningTask) -> AssessmentTaskDeclaration | None:
         approved_form = self.session.execute(
             select(TaskFormVersion, TaskApproval)
