@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -102,6 +103,7 @@ def _seed_course_scope(db_session: Session) -> None:
     db_session.commit()
 
 
+@pytest.mark.usefixtures("synthetic_material_scanning")
 def test_task_generation_uses_offline_local_scaffold_by_default(
     db_session: Session,
 ) -> None:
@@ -126,6 +128,10 @@ def test_task_generation_uses_offline_local_scaffold_by_default(
         )
     )
     db_session.add(material)
+    db_session.flush()
+    from support.material_scanning import record_synthetic_scan
+
+    record_synthetic_scan(db_session, material)
     db_session.commit()
 
     application = create_app()
@@ -143,7 +149,7 @@ def test_task_generation_uses_offline_local_scaffold_by_default(
         },
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     assert response.json()[0]["source_references"] == ["chunk-1"]
     assert response.json()[0]["task_type"] == "short_answer"
     generated = db_session.query(LearningTask).one()

@@ -238,7 +238,7 @@ def test_stale_pathway_credit_does_not_block_unrelated_tasks(db_session):
 
     _, _, student, course, tasks, _, _ = setup_curriculum(db_session)
     service = LmsService(db_session)
-    service.submit(student, tasks[0].id, SubmissionCreate(answer="Practice observation"))
+    service.submit(student, tasks[0].id, SubmissionCreate(answer="a"))
     outcome = LearningOutcome(
         module_id=tasks[0].module_id,
         title="Unrelated outcome",
