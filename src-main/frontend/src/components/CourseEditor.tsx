@@ -1,3 +1,4 @@
+import { CourseHistoryPanel } from './CourseHistoryPanel'
 import { CourseActivityContinuations } from './ActivityContinuation'
 import { CurriculumPanel } from './CurriculumPanel'
 import { PathwayEditor } from './PathwayEditor'
@@ -94,6 +95,7 @@ export function CourseEditor() {
   const [accessOpen, setAccessOpen] = useState(false)
   const [pathwaysOpen, setPathwaysOpen] = useState(false)
   const [deadlinesOpen, setDeadlinesOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const indexedMaterialCount = materials.filter(
     (material) => material.status === 'indexed',
   ).length
@@ -514,6 +516,8 @@ export function CourseEditor() {
       />
 
       {course && <>
+        <Button variant="secondary" onClick={() => setHistoryOpen(value => !value)}>{historyOpen ? 'Close course history' : 'Inspect and restore course history'}</Button>
+        {historyOpen && <CourseHistoryPanel key={`${course.id}-${course.title}-${course.status}`} courseId={course.id} onRestored={async () => { setCourses(await api.courses.list()); await selectCourse(course.id) }} />}
         <Button variant="secondary" onClick={() => setPathwaysOpen(value => !value)}>Manage learning pathways</Button>
         {pathwaysOpen && <><PathwayEditor key={`editor-${course.id}`} courseId={course.id} /><CurriculumPanel key={`review-${course.id}`} courseId={course.id} staff /><CourseActivityContinuations key={`activity-${course.id}`} courseId={course.id} /></>}
         <Button variant="secondary" onClick={() => setDeadlinesOpen(value => !value)}>{deadlinesOpen ? 'Close individual deadlines' : 'Manage individual deadlines'}</Button>
@@ -688,13 +692,14 @@ export function CourseEditor() {
                         <span className={styles.materialBody}>
                           <strong className={styles.materialName}>{material.filename}</strong>
                           <small className={styles.materialStatus}>
+                            {material.scanStatus && material.scanStatus !== 'CLEAN' ? `Quarantined: ${material.scanStatus.toLowerCase()}. ` : ''}
                             {material.retryAt ? `Retry scheduled: ${new Date(material.retryAt).toLocaleString()}` : material.status}
                           </small>
                           {material.error && <small className={styles.materialStatus}>{material.error}</small>}
                         </span>
-                        {material.status === 'failed' && !material.retryAt && (
+                        {((material.status === 'failed' && !material.retryAt) || material.status === 'indexed') && (
                           <Button variant="quiet" disabled={busy} onClick={() => retryMaterial(material.id)} aria-label={`Retry processing ${material.filename}`}>
-                            Retry processing
+                            {material.status === 'indexed' ? 'Reprocess and scan' : 'Retry processing'}
                           </Button>
                         )}
                         <Button variant="quiet" onClick={() => setSourceReviewId(material.id)} aria-label={`Review source ${material.filename}`}>Review source</Button>

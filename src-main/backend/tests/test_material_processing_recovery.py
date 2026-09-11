@@ -43,12 +43,17 @@ NOW = datetime(2026, 9, 7, 4, 0, tzinfo=UTC)
 
 
 @pytest.fixture
-def processing_context(tmp_path: Path):
+def processing_context(tmp_path: Path, monkeypatch):
+    from support.material_scanning import enable_synthetic_scanning
+
+    enable_synthetic_scanning(monkeypatch)
     database = tmp_path / "processing.db"
     engine = create_db_engine(f"sqlite:///{database.as_posix()}")
     Base.metadata.create_all(engine)
     factory = create_session_factory(engine)
     config = Settings(
+        material_scan_policy="required",
+        material_scan_policy_version="synthetic-policy-v1",
         rag_upload_dir=str(tmp_path / "uploads"),
         material_processing_lease_seconds=5,
         material_processing_retry_seconds=1,

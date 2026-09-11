@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 from collections.abc import Generator
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -16,13 +17,15 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.authentication import get_current_user
 from app.core.config import settings
 from app.db.session import get_db_session
-from app.models import LearningMaterial, MaterialIndexStatus
+from app.models import CourseModule, LearningMaterial, MaterialIndexStatus
+from app.models.intake_history import MaterialScan
 from app.models.source_history import SourceApproval, SourcePassage, SourceRevision, SourceUse
 from app.models.user import User
 from app.schemas.content import (
     LearningMaterialLinkCreate,
     LearningMaterialRead,
     MaterialProcessingRead,
+    MaterialScanRead,
     SourceApprovalRead,
     SourceApprovalRequest,
     SourcePassageRead,
@@ -120,6 +123,12 @@ def upload_material(
 ) -> LearningMaterial:
     _require_manage(policy, actor_id, course_id)
     try:
+        if module_id is not None:
+            module = db.get(CourseModule, module_id)
+            if module is None or module.course_id != course_id:
+                raise HTTPException(status_code=422, detail="Module is outside this course")
+        if Path(file.filename or "").suffix.lower() not in {".pdf", ".docx", ".pptx"}:
+            raise HTTPException(status_code=422, detail="Uploads must be PDF, DOCX, or PPTX")
         staged = storage.stage_upload(file.filename, file.file)
         repository = MaterialRepository(db)
         duplicate = repository.find_by_course_hash(course_id, staged.content_hash)
@@ -163,6 +172,10 @@ def register_linked_material(
 ) -> LearningMaterial:
     _require_manage(policy, actor_id, course_id)
     try:
+        if payload.module_id is not None:
+            module = db.get(CourseModule, payload.module_id)
+            if module is None or module.course_id != course_id:
+                raise HTTPException(status_code=422, detail="Module is outside this course")
         downloaded = fetcher.fetch(str(payload.source_url))
         staged = storage.stage_upload(downloaded.filename, io.BytesIO(downloaded.content))
         repository = MaterialRepository(db)
@@ -437,12 +450,16 @@ def replace_material(
         if material.indexing_status == MaterialIndexStatus.PROCESSING:
             raise HTTPException(status_code=409, detail="Material is being processed")
         preserve_current_source(db, material)
+        if Path(file.filename or "").suffix.lower() not in {".pdf", ".docx", ".pptx"}:
+            raise HTTPException(status_code=422, detail="Uploads must be PDF, DOCX, or PPTX")
         staged = storage.stage_upload(file.filename, file.file)
         duplicate = MaterialRepository(db).find_by_course_hash(course_id, staged.content_hash)
         if duplicate is not None and duplicate.id != material.id:
             staged.temporary_path.unlink(missing_ok=True)
             raise _http_error(DuplicateMaterialError(duplicate.id))
         material.storage_key = storage.commit(staged, material.id)
+        material.scan_status = "QUARANTINED"
+        material.current_scan_id = None
         material.content_hash = staged.content_hash
         material.original_filename = file.filename or f"source{staged.safe_extension}"
         material.source_url = None
@@ -488,4 +505,30 @@ def _revision_read(db: Session, revision: SourceRevision) -> SourceRevisionRead:
             "approvals": [SourceApprovalRead.model_validate(item) for item in approvals],
             "passages": [SourcePassageRead.model_validate(item) for item in passages],
         }
+    )
+
+
+@router.get("/{material_id}/scans", response_model=list[MaterialScanRead])
+def material_scan_history(
+    course_id: str,
+    material_id: str,
+    actor_id: str = Depends(get_actor_id),
+    policy: CourseAccessPolicy = Depends(get_course_access_policy),
+    db: Session = Depends(get_db_session),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+):
+    _require_manage(policy, actor_id, course_id)
+    try:
+        MaterialRepository(db).get(course_id, material_id, include_retired=True)
+    except RagError as error:
+        raise _http_error(error) from error
+    return list(
+        db.scalars(
+            select(MaterialScan)
+            .where(MaterialScan.material_id == material_id)
+            .order_by(MaterialScan.created_at.desc(), MaterialScan.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
     )

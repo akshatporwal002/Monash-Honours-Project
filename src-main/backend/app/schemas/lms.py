@@ -128,6 +128,24 @@ class CourseRead(LmsSchema):
     progress_percentage: int = 0
 
 
+class CourseRevisionRead(LmsSchema):
+    id: str
+    course_id: str
+    version: int
+    metadata_snapshot: dict[str, Any]
+    context_snapshot: dict[str, Any]
+    actor_id: str | None
+    action: str
+    reason: str
+    restored_from_id: str | None
+    created_at: datetime
+
+
+class CourseRestoreRequest(LmsSchema):
+    expected_version: Annotated[int, Field(ge=1)]
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+
+
 class CourseProgressRead(LmsSchema):
     id: str
     code: str
@@ -690,6 +708,8 @@ class MaterialLinkCreate(LmsSchema):
 
 
 class MaterialRead(LmsSchema):
+    scan_status: str = "QUARANTINED"
+    current_scan_id: str | None = None
     id: str
     course_id: str
     module_id: str | None

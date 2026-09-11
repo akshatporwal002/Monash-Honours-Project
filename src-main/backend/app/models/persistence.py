@@ -797,6 +797,10 @@ class LearningMaterial(Base):
     processing_backend: Mapped[str] = mapped_column(
         String(16), nullable=False, default="offline", server_default="offline"
     )
+    scan_status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default="QUARANTINED", server_default="QUARANTINED"
+    )
+    current_scan_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     current_source_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

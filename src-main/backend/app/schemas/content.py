@@ -53,6 +53,8 @@ class LearningMaterialCreate(ContentSchema):
 
 
 class LearningMaterialRead(LearningMaterialCreate):
+    scan_status: str = "QUARANTINED"
+    current_scan_id: str | None = None
     id: str
     source_url: str | None = None
     extracted_at: datetime | None = None
@@ -82,6 +84,19 @@ class SourceApprovalRequest(ContentSchema):
     expected_sequence: Annotated[int, Field(ge=0)] | None = None
     state: Annotated[str, StringConstraints(pattern="^(APPROVED|REVOKED)$")]
     reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+
+
+class MaterialScanRead(ContentSchema):
+    id: str
+    material_id: str
+    content_hash: str
+    processing_revision: int
+    policy_version: str
+    scanner: str
+    scanner_version: str
+    status: str
+    code: str
+    created_at: datetime
 
 
 class SourceApprovalRead(ContentSchema):
