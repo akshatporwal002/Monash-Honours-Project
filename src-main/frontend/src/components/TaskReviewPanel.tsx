@@ -1,3 +1,4 @@
+import { StructuredTaskEditor } from './StructuredTaskEditor'
 import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '../app/api'
@@ -152,6 +153,7 @@ function RevisionReview({ taskId }: { taskId: string }) {
         <Textarea disabled={busy} value={form.expected_answer} onChange={(event) => edit('expected_answer', event.target.value)} />
       </Field>
       {form.starter_code && <Field label="Starter code"><Textarea disabled={busy} value={form.starter_code} onChange={(event) => edit('starter_code', event.target.value)} /></Field>}
+      {(taskType === 'matching' || taskType === 'sequencing') && <StructuredTaskEditor type={taskType} value={criteria} answer={form.expected_answer} disabled={busy} onAnswer={answer => edit('expected_answer', answer)} onChange={next => { setCriteria(next); setCriteriaDirty(true); setDirty(true) }} />}
       <TaskMarkingEditor taskType={taskType} value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
       <EpisodePlanEditor value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
       <Button onClick={() => void save()} disabled={busy || !dirty || !summary.revision_id}>Save task revision</Button>

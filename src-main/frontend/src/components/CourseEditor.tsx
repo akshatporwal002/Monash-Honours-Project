@@ -84,6 +84,7 @@ export function CourseEditor() {
   const [outcomes, setOutcomes] = useState<LearningOutcome[]>([])
   const [generationOutcomeId, setGenerationOutcomeId] = useState('')
   const [taskCount, setTaskCount] = useState(3)
+  const [generationType, setGenerationType] = useState('mixed')
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTaskPreview[]>([])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -309,6 +310,7 @@ export function CourseEditor() {
         module_id: module.id,
         learning_outcome_ids: [generationOutcomeId],
         count: taskCount,
+        ...(generationType === 'mixed' ? {} : { task_types: [generationType] }),
       })
       setGeneratedTasks(tasks)
       setMessage(`${tasks.length} grounded task${tasks.length === 1 ? '' : 's'} generated for educator review.`)
@@ -862,6 +864,7 @@ export function CourseEditor() {
                     }))}
                   />
                 </Field>
+                <Field label="Response type"><Select value={generationType} onValueChange={setGenerationType} options={['mixed', 'multiple_choice', 'multiple_answer', 'short_answer', 'code_explanation', 'code_completion', 'quantum_circuit', 'matching', 'sequencing'].map(value => ({ value, label: value.replaceAll('_', ' ') }))} /></Field>
                 <Field label="Tasks">
                   <Select
                     value={String(taskCount)}

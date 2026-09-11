@@ -10,6 +10,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Course, CourseModule, LearningOutcome, LearningTask, TaskType
+from app.schemas.generated_task_design import GeneratedTaskDesign
+from app.schemas.structured_tasks import DEFINITION, definition_for, response_for
 from app.services.rag.contracts import (
     RetrievalPurpose,
     RetrievalQuery,
@@ -49,7 +51,7 @@ class GenerateTasksInput:
 
 
 class GroundedTaskGenerationService:
-    prompt_version = "task-generation-v1"
+    prompt_version = "task-generation-v2"
 
     def __init__(
         self, session: Session, retrieval: RetrievalService, client: TaskGenerationClient | None
@@ -90,11 +92,15 @@ class GroundedTaskGenerationService:
             TaskGenerationRequest(
                 self.prompt_version,
                 {
+                    "course_id": request.course_id,
+                    "module_id": module_id,
                     "learning_outcome_id": request.learning_outcome_id,
                     "learning_outcome_text": request.learning_outcome_text,
                     "task_count": request.task_count,
                     "allowed_task_types": [item.value for item in request.allowed_task_types],
                     "difficulty_levels": list(request.difficulty_levels),
+                    "generated_design_contract": GeneratedTaskDesign.model_json_schema(),
+                    "structured_task_contracts": DEFINITION.json_schema(),
                     "sources": [
                         {"chunk_id": hit.chunk_id, "text": hit.chunk_text} for hit in result.hits
                     ],
@@ -123,6 +129,7 @@ class GroundedTaskGenerationService:
             if (
                 not isinstance(source_ids, list)
                 or not source_ids
+                or not all(isinstance(source, str) for source in source_ids)
                 or not set(source_ids) <= allowed_sources
                 or output.get("learning_outcome_id") != request.learning_outcome_id
                 or task_type not in allowed_task_types
@@ -147,6 +154,14 @@ class GroundedTaskGenerationService:
                 starter_code = scaffold.starter_code
             if not expected_answer and not criteria:
                 raise ValueError("task generation response failed marking validation")
+            GeneratedTaskDesign.model_validate(criteria.get("generation_design"))
+            structured = definition_for(str(task_type), criteria, source_ids)
+            if structured:
+                if not expected_answer:
+                    raise ValueError(
+                        "Generated structured tasks require a complete private response key"
+                    )
+                response_for(structured, expected_answer, complete=True)
             task_id = str(uuid4())
             task = LearningTask(
                 id=task_id,
@@ -180,6 +195,7 @@ class GroundedTaskGenerationService:
         self.session.add_all(tasks)
         self.session.flush()
         for task in tasks:
+            original_sources = list(task.source_references)
             task.source_references = bind_sources(
                 self.session,
                 course_id=request.course_id,
@@ -189,6 +205,17 @@ class GroundedTaskGenerationService:
                 references=task.source_references,
                 strict=True,
             )
+            if "structured_task" in task.marking_criteria:
+                import copy
+
+                criteria = copy.deepcopy(task.marking_criteria)
+                mapping = dict(zip(original_sources, task.source_references, strict=True))
+                for group in ("prompts", "options", "items"):
+                    for item in criteria["structured_task"].get(group, []):
+                        item["source_references"] = [
+                            mapping[ref] for ref in item["source_references"]
+                        ]
+                task.marking_criteria = criteria
             TaskReviewService(self.session).capture(task)
         if commit:
             self.session.commit()

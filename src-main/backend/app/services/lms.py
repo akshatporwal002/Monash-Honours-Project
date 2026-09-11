@@ -640,6 +640,9 @@ class LmsService:
         except ValueError as error:
             self.session.rollback()
             raise _unprocessable(str(error)) from error
+        self._validate_structured_response(
+            task, task.expected_answer or "", complete=bool(task.expected_answer)
+        )
         review.capture(task, educator.id)
         self._audit(educator, "task.updated", "task", task.id)
         self._commit()
@@ -709,6 +712,7 @@ class LmsService:
             student_id=student.id,
             task_id=task.id,
         )
+        self._validate_structured_response(task, payload.answer, complete=False)
         draft.answer = payload.answer
         draft.code = payload.code
         draft.circuit = payload.circuit
@@ -942,6 +946,7 @@ class LmsService:
             student_id=student.id,
             task_id=task.id,
         )
+        self._validate_structured_response(task, payload.answer, complete=True)
         schema_version = "assessment.response.v2" if payload.episode else "assessment.response.v1"
         if payload.episode and frozen_versions is None:
             schema_version = "practice.response.v1"
@@ -2095,6 +2100,7 @@ class LmsService:
             source_references=list(task.source_references or []),
             prerequisite_task_ids=list(task.prerequisite_task_ids or []),
             choices=choices,
+            structured_task=criteria.get("structured_task"),
             starter_circuit=criteria.get("starter_circuit"),
             access_status=access_status,
             attempt_count=attempt_count,
@@ -2141,12 +2147,29 @@ class LmsService:
             ),
         )
 
+    @staticmethod
+    def _validate_structured_response(task, answer, *, complete):
+        from app.schemas.structured_tasks import definition_for, response_for
+
+        try:
+            definition = definition_for(
+                task.task_type.value, task.marking_criteria or {}, task.source_references or []
+            )
+            if definition:
+                response_for(definition, answer, complete=complete)
+        except ValueError as error:
+            raise _unprocessable(str(error)) from error
+
     def _validate_practice_response(
         self,
         task: LearningTask,
         payload: SubmissionCreate,
     ) -> None:
         from app.services.task_types import EPISODE_TASK_TYPES
+
+        if task.task_type.value in {"matching", "sequencing"}:
+            self._validate_structured_response(task, payload.answer, complete=True)
+            return
 
         if task.task_type.value in EPISODE_TASK_TYPES:
             if payload.episode is None:

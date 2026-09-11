@@ -279,12 +279,43 @@ class TaskReviewService:
                 "The learning episode plan needs valid stage settings", 422
             ) from error
         if plan is not None:
+            for representation in plan.support_representations:
+                if not set(representation.source_references) <= set(task.source_references or []):
+                    raise TaskReviewError(
+                        "Support representations must cite declared task sources", 422
+                    )
+                if representation.circuit is not None:
+                    self._validate_circuit_payload(representation.circuit)
             for circuit in (
                 plan.transfer.starter_circuit,
                 plan.transfer.solution.circuit if plan.transfer.solution else None,
             ):
                 if circuit is not None:
                     self._validate_circuit_payload(circuit)
+        from app.schemas.structured_tasks import definition_for, response_for
+        from app.services.task_types import DEFAULT_TASK_TYPE_REGISTRY
+
+        try:
+            if task.generation_prompt_version == "task-generation-v2":
+                from app.schemas.generated_task_design import GeneratedTaskDesign
+
+                GeneratedTaskDesign.model_validate(
+                    (task.marking_criteria or {}).get("generation_design")
+                )
+            DEFAULT_TASK_TYPE_REGISTRY.resolve(task.task_type)
+            structured = definition_for(
+                task.task_type.value, task.marking_criteria or {}, task.source_references or []
+            )
+            if structured and task.expected_answer:
+                response_for(structured, task.expected_answer, complete=True)
+            if (
+                structured
+                and not task.expected_answer
+                and task.marking_criteria.get("response_review") != "human"
+            ):
+                raise ValueError("Structured tasks require an answer key or explicit human review")
+        except ValueError as error:
+            raise TaskReviewError(str(error), 422) from error
         self._validate_circuit(task)
         return self.source_approvals(
             task,

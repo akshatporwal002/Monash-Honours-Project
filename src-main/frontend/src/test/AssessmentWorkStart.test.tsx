@@ -27,6 +27,23 @@ function showTask() {
   render(<TaskView task={task} onClose={() => {}} onSubmitted={async () => {}} />)
 }
 
+test('opening a new assessment only previews conditions until the learner explicitly starts', async () => {
+  const mock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    if (String(input).endsWith('/draft')) return response({ ...draft, answer: '', assessment_work_start_id: null })
+    if (String(input).endsWith('/start')) return response({ ...draft, answer: '' })
+    return response([])
+  })
+  showTask()
+  await waitFor(() => expect(screen.queryByText('Restoring your saved work…')).not.toBeInTheDocument())
+  expect(mock.mock.calls.filter(([url]) => String(url).endsWith('/start'))).toHaveLength(0)
+  expect(screen.getByLabelText('Your response')).toBeDisabled()
+  const start = screen.getByRole('button', { name: 'Start assessed task' })
+  start.focus()
+  await userEvent.setup().keyboard('{Enter}')
+  await waitFor(() => expect(screen.getByLabelText('Your response')).toBeEnabled())
+  expect(mock.mock.calls.filter(([url]) => String(url).endsWith('/start'))).toHaveLength(1)
+})
+
 test('workspace pins the displayed form and retains its work reference on save and submit', async () => {
   const mock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)

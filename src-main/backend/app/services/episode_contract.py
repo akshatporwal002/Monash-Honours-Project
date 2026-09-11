@@ -52,6 +52,14 @@ def learner_episode_plan(plan: EpisodePlanV1) -> dict[str, Any]:
         "prediction_required": plan.prediction_required,
         "required_responses": list(plan.required_responses),
         "supported_hints": list(plan.supported_hints),
+        "representation_choices": [
+            {
+                "item_index": len(plan.supported_hints) + index,
+                "title": f"{item.mode.replace('_', ' ').capitalize()} support {index + 1}",
+                "mode": item.mode,
+            }
+            for index, item in enumerate(plan.support_representations)
+        ],
         "accessibility_support": list(plan.accessibility_support),
         "transfer_part_id": plan.transfer.part_id,
     }

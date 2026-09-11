@@ -266,6 +266,23 @@ class LiveEvidenceCapture:
         task = self.session.get(LearningTask, self.session.get(EpisodeHelpUse, record.id).task_id)
         work = self.session.get(AssessmentWorkStart, record.assessment_work_start_id)
         conceptual = record.kind == "conceptual_hint"
+        from app.services.episodes import EpisodeService
+
+        support_level = InstructionalSupportLevel.INDEPENDENT
+        if conceptual:
+            plan = EpisodeService(self.session).work_plan(work)
+            if plan is None:
+                raise ValueError("Support evidence requires the frozen reviewed plan")
+            if record.item_index < len(plan.supported_hints):
+                # Existing string items are explicitly declared conceptual hints.
+                support_level = InstructionalSupportLevel.CONCEPT_CUE
+            else:
+                index = record.item_index - len(plan.supported_hints)
+                if not 0 <= index < len(plan.support_representations):
+                    raise ValueError("Support evidence has no reviewed representation")
+                support_level = InstructionalSupportLevel(
+                    plan.support_representations[index].instructional_support_level
+                )
         return self._write(
             task=task,
             learner_id=work.student_id,
@@ -276,9 +293,7 @@ class LiveEvidenceCapture:
             work_id=work.id,
             occurred_at=record.created_at,
             observation=ObservationType.SYSTEM_CAPTURED,
-            support=InstructionalSupportLevel.CONCEPT_CUE
-            if conceptual
-            else InstructionalSupportLevel.INDEPENDENT,
+            support=support_level if conceptual else InstructionalSupportLevel.INDEPENDENT,
             access=AccessSupportState.NOT_DECLARED if conceptual else AccessSupportState.PROVIDED,
         )
 

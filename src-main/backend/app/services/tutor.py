@@ -250,9 +250,16 @@ class TutorService:
                     .limit(2)
                 )
             )
+            from app.services.integrity_cues import dialogue_cue
+
+            cue = dialogue_cue(payload.message, turns, ANSWER_SEEKING)
+            if cue:
+                context["integrity_review_cue"] = cue
             hint_index = None
-            if ANSWER_SEEKING.search(payload.message) or INSTRUCTION_PATTERN.search(
-                payload.message
+            if (
+                cue
+                or ANSWER_SEEKING.search(payload.message)
+                or INSTRUCTION_PATTERN.search(payload.message)
             ):
                 candidate, kind = REDIRECT, "redirect"
             elif not turns:
@@ -341,6 +348,27 @@ class TutorService:
                 )
                 LiveEvidenceCapture(self.session).support(receipt)
             LiveEvidenceCapture(self.session).tutor(task, row)
+            if cue:
+                from app.services.escalation_sources import record_signal
+
+                record_signal(
+                    self.session,
+                    source_kind="TUTOR",
+                    source_id=row.id,
+                    trigger="LEARNING_INTEGRITY_REVIEW",
+                    request_key=f"integrity:{student.id}:{task.id}:{token}:"
+                    + ",".join(cue["signals"]),
+                    severity="NORMAL",
+                    reason=(
+                        "Dialogue contains "
+                        + ", ".join(cue["signals"])
+                        + ". "
+                        + cue["interpretation"]
+                        + " "
+                        + cue["next_action"]
+                        + " This is not a misconduct finding and has no assessment penalty."
+                    ),
+                )
             if row.kind == "fallback":
                 from app.services.escalation_sources import record_signal
 

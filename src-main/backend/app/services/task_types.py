@@ -311,14 +311,38 @@ EPISODE_TASK_TYPES = {
     "transfer",
 }
 STAGED_TASK_TYPES = {
-    "matching",
-    "sequencing",
     "state_comparison",
     "diagnosis",
     "probability_interpretation",
     "part_complete",
     "confidence",
 }
+
+
+class StructuredTaskHandler:
+    def scaffold(self, outcome_statement: str) -> TaskScaffold:
+        return TaskScaffold(None, {"response_review": "human", "outcome": outcome_statement})
+
+    def is_correct(self, task, submission) -> bool:
+        from app.schemas.structured_tasks import definition_for, response_for
+
+        criteria = _criteria(task)
+        raw = criteria.get("structured_task", {})
+        if not isinstance(raw, dict):
+            raise InvalidTaskSubmissionError("A reviewed structured definition is required")
+        if not task.expected_answer:
+            raise UnsupportedTaskTypeError("Structured evidence requires human criterion review")
+        definition = definition_for(
+            raw.get("task_type", ""), criteria, task.source_references or []
+        )
+        if definition is None:
+            raise InvalidTaskSubmissionError("A reviewed structured definition is required")
+        try:
+            actual = response_for(definition, submission.answer, complete=True)
+            expected = response_for(definition, task.expected_answer, complete=True)
+        except ValueError as error:
+            raise InvalidTaskSubmissionError(str(error)) from error
+        return actual.model_dump(exclude={"labels"}) == expected.model_dump(exclude={"labels"})
 
 
 class EpisodeResponseHandler:
@@ -336,6 +360,8 @@ class EpisodeResponseHandler:
 
 def build_default_task_type_registry() -> TaskTypeRegistry:
     registry = TaskTypeRegistry()
+    registry.register(TaskType.MATCHING, StructuredTaskHandler())
+    registry.register(TaskType.SEQUENCING, StructuredTaskHandler())
     for identifier in EPISODE_TASK_TYPES:
         registry.register(identifier, EpisodeResponseHandler())
     registry.register(

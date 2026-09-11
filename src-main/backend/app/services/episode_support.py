@@ -24,9 +24,16 @@ class EpisodeSupportService:
             select(EpisodeStageStart).where(EpisodeStageStart.assessment_work_start_id == work.id)
         )
         items = (
-            plan.supported_hints
+            (*plan.supported_hints, *(item.text for item in plan.support_representations))
             if payload.kind == "conceptual_hint"
             else plan.accessibility_support
+        )
+        representation_index = payload.item_index - len(plan.supported_hints)
+        representation = (
+            plan.support_representations[representation_index].model_dump(mode="json")
+            if payload.kind == "conceptual_hint"
+            and 0 <= representation_index < len(plan.support_representations)
+            else None
         )
         prior = self.session.scalar(
             select(EpisodeHelpUse).where(
@@ -45,6 +52,7 @@ class EpisodeSupportService:
                 )
             return {
                 "record": self.read(prior),
+                "representation": None if stage or fresh_check else representation,
                 "content": None
                 if payload.kind == "conceptual_hint" and (stage or fresh_check)
                 else items[payload.item_index],
@@ -70,7 +78,11 @@ class EpisodeSupportService:
         )
         self.session.add(record)
         self.session.flush()
-        return {"record": self.read(record), "content": items[payload.item_index]}
+        return {
+            "record": self.read(record),
+            "content": items[payload.item_index],
+            "representation": representation,
+        }
 
     @staticmethod
     def read(record):

@@ -21,11 +21,12 @@ export interface ScopedRoleAssignment {
   valid_until: string | null
 }
 
-export type TaskType = ApiSchemas['TaskType']
+export type TaskType = ApiSchemas['TaskType'] | 'matching' | 'sequencing'
 
 export type LearningState = 'locked' | 'not_started' | 'draft' | 'in_progress' | 'submitted' | 'completed'
 
 export interface LearningTask {
+  structured_task?: import('../components/StructuredTask').StructuredDefinition | null
   episode_plan?: EpisodeState | null
   id: string
   title: string
@@ -272,5 +273,5 @@ export type AsyncState = 'idle' | 'loading' | 'success' | 'error'
 export type EpisodeContent = ApiSchemas['ResponseContent']
 export type EpisodeProcess = ApiSchemas['EpisodeStageResponseV1']
 export type EpisodePayload = ApiSchemas['EpisodePayloadV1']
-export type EpisodeState = ApiSchemas['EpisodeStateRead']
+export type EpisodeState = ApiSchemas['EpisodeStateRead'] & { representation_choices?: Array<{ item_index: number; title: string; mode: string }> }
 export type EpisodeCheckpointSnapshot = ApiSchemas['EpisodeCheckpointRead']

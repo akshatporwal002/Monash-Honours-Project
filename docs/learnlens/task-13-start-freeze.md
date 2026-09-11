@@ -4,18 +4,19 @@ Status: implemented and locally verified; independent review and integration rem
 
 ## Learner behavior
 
-The accepted interaction policy is to freeze approved assessment versions through
-an explicit **Start assessed task** action, then resume saved work safely without
-duplicate submissions. The current implementation starts assessed work when the
-formal workspace opens, as described below. A distinct visible start action
-remains an interaction requirement to reconcile; the existing automatic start
-must not be described as satisfying that explicit-action requirement.
+New assessed work opens as a preview of the approved conditions. An explicit
+**Start assessed task** action freezes the displayed form before response entry,
+support requests, draft saves or submission become available. Opening a new
+workspace alone does not call the start endpoint.
 
-Opening a formal workspace now starts assessed work against the exact form shown to the learner.
-The start saves an immutable reference before the learner enters an answer.
-Draft saves and submissions carry that reference through reloads and retries.
-A new rule version returns HTTP 409 and asks the assessor to review the conflict.
-It never replaces the original standard or overwrites the saved draft during that failed write.
+Existing started drafts revalidate their frozen version through the idempotent
+start endpoint and resume safely. Draft saves and submissions retain that work
+reference through reloads and retries. A changed approved version returns HTTP
+409 and asks the assessor to review the conflict; it never replaces the original
+standard or overwrites saved work during the failed write.
+
+The [learner typed/support delivery](learner-typed-support-delivery.md) records
+the explicit-start correction and its focused keyboard regression coverage.
 
 The workspace keeps the learner's saved answer visible after a conflict and disables further writes.
 A temporary start failure can retry the same displayed form.

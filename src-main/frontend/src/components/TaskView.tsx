@@ -1,3 +1,5 @@
+import { StructuredTask, StructuredSnapshot } from './StructuredTask'
+import { validStructured } from '../app/structuredTasks'
 import { ActivityContinuation } from './ActivityContinuation'
 import { EpisodeSnapshot, EpisodeCircuitText } from "./EpisodeSnapshot"
 import { EpisodeFields } from "./EpisodeFields"
@@ -51,7 +53,8 @@ function attemptLabel(attempt: TaskSubmission): string {
   return 'Response saved'
 }
 
-function taskMode(task: LearningTask): 'mcq' | 'multi' | 'code-explanation' | 'code-completion' | 'circuit' | 'text' | 'unsupported' {
+function taskMode(task: LearningTask): 'mcq' | 'multi' | 'code-explanation' | 'code-completion' | 'circuit' | 'text' | 'structured' | 'unsupported' {
+  if (['matching', 'sequencing'].includes(task.task_type)) return task.structured_task ? 'structured' : 'unsupported'
   if (['multiple_choice', 'quiz'].includes(task.task_type)) return 'mcq'
   if (task.task_type === 'multiple_answer') return 'multi'
   if (task.task_type === 'code_explanation') return 'code-explanation'
@@ -182,6 +185,9 @@ export function TaskView({
   const [circuitExtras, setCircuitExtras] = useState<Record<string, unknown>>({})
   const idempotencyKeyRef = useRef<string | null>(null)
   const restoredDraftTaskRef = useRef<string | null>(null)
+  const resumeStartedWorkRef = useRef(false)
+  const [hasSavedStart, setHasSavedStart] = useState(false)
+  const [startRequested, setStartRequested] = useState(false)
   const feedbackClient = useMemo(
     () => createFeedbackApiClient({ getCsrfToken: csrfToken }),
     [],
@@ -225,7 +231,8 @@ export function TaskView({
         : await api.student.draft(task.id, controller.signal)
       if (controller.signal.aborted) return null
       restoredDraftTaskRef.current = task.id
-      if (task.assessment) {
+      if (draft?.assessment_work_start_id) { resumeStartedWorkRef.current = true; setHasSavedStart(true) }
+      if (task.assessment && (resumeStartedWorkRef.current || startRequested)) {
         try {
           const started = await api.student.startAssessment(
             task.id, task.assessment.task_form_version_id, controller.signal,
@@ -272,7 +279,7 @@ export function TaskView({
         if (!controller.signal.aborted) setDraftLoading(false)
       })
     return () => controller.abort()
-  }, [draftReload, mode, options, task.id, task.starter_code, task.assessment, task.episode_plan])
+  }, [draftReload, mode, options, task.id, task.starter_code, task.assessment, task.episode_plan, startRequested])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -320,7 +327,7 @@ export function TaskView({
     circuit: mode === 'circuit' ? { ...circuitExtras, qubits, operations } : hasEpisode && Object.keys(circuitExtras).length ? circuitExtras : undefined,
   }), [answer, code, mode, operations, selectedOption, selectedOptions, workStartId, episode, hasEpisode, qubits, circuitExtras, savedEpisodeCode])
 
-  const valid = mode === 'unsupported' ? false : hasEpisode ? Boolean(episode.supported.prediction?.answer?.trim() || episode.supported.reasoning?.trim() || episode.supported.explanation?.trim() || episode.supported.reflection?.trim()) : mode === 'mcq'
+  const valid = mode === 'unsupported' ? false : mode === 'structured' ? validStructured(task.structured_task, answer) : hasEpisode ? Boolean(episode.supported.prediction?.answer?.trim() || episode.supported.reasoning?.trim() || episode.supported.explanation?.trim() || episode.supported.reflection?.trim()) : mode === 'mcq'
     ? Boolean(selectedOption)
     : mode === 'multi'
       ? selectedOptions.length > 0
@@ -523,7 +530,7 @@ export function TaskView({
             <p className={styles.briefText}>{task.instructions}</p>
             <p className={styles.briefNote}>
               {task.assessment
-                ? 'Read the assessment conditions before you submit. Your response will be saved as evidence.'
+                ? 'Read the assessment conditions before starting. Starting fixes the approved version for your work.'
                 : 'Try an answer first. Your feedback will explain the next useful step.'}
             </p>
           </Card>
@@ -539,6 +546,8 @@ export function TaskView({
                   </li>
                 ))}
               </ul>
+              {!workStartId && !hasSavedStart && <Button disabled={draftLoading || Boolean(draftError) || startRequested} onClick={() => { setDraftLoading(true); setStartRequested(true) }}>Start assessed task</Button>}
+              {workStartId && <p role="status">Assessment started. Your approved task version is fixed.</p>}
             </Card>
           ) : null}
           <LearnerPreferencesSummary />
@@ -558,7 +567,8 @@ export function TaskView({
           {draftLoading ? (
             <p className={styles.stateNote} role="status">Restoring your saved work…</p>
           ) : (
-            <>
+            <fieldset aria-label="Task response controls" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }} disabled={Boolean(task.assessment && !workStartId && !hasSavedStart)}>
+              {mode === 'structured' && task.structured_task && <StructuredTask definition={task.structured_task} answer={answer} onChange={value => { setAnswer(value); touch() }} />}
               {(mode === 'mcq' || mode === 'multi') && (
                 <fieldset className={styles.choices}>
                   <legend className={styles.legend}>
@@ -737,11 +747,11 @@ export function TaskView({
                       <pre className={styles.circuitText}>{simulation.circuit_text}</pre>
                     </div>
                   )}
-            </>
+            </fieldset>
           )}
 
           {mode === 'unsupported' && <p role="alert">This task type is not supported yet. Ask your educator for a supported task.</p>}
-          {hasEpisode && <EpisodeFields value={episode} state={episodeState} attempts={attempts ?? []} disabled={busy || draftLoading || workConflict} onChange={value => { setEpisode(value); touch() }} onCheckpoint={() => void recordPrediction()} onTransfer={() => void enterTransfer()} onTransferCheckpoint={() => void recordPrediction(true)} onTransferSimulation={() => void runTransferSimulation()} support={episodeState && <EpisodeSupport onRequest={presentation.support_amount === 'on_request'} taskId={task.id} workId={workStartId} state={episodeState} disabled={busy || draftLoading || workConflict} />} />}
+          {hasEpisode && <EpisodeFields value={episode} state={episodeState} attempts={attempts ?? []} disabled={busy || draftLoading || workConflict || Boolean(task.assessment && !workStartId)} onChange={value => { setEpisode(value); touch() }} onCheckpoint={() => void recordPrediction()} onTransfer={() => void enterTransfer()} onTransferCheckpoint={() => void recordPrediction(true)} onTransferSimulation={() => void runTransferSimulation()} support={episodeState && <EpisodeSupport onRequest={presentation.support_amount === 'on_request'} taskId={task.id} workId={workStartId} state={episodeState} disabled={busy || draftLoading || workConflict || Boolean(task.assessment && !workStartId)} />} />}
           {checkpointHistory.length > 0 && <Card heading="Earlier predictions"><details><summary>View saved predictions and inputs</summary>{checkpointHistory.map((checkpoint, index) => <section key={`${checkpoint.created_at}-${index}`}><h3>{checkpoint.part_id === episodeState?.transfer_part_id ? 'Fresh application' : 'Supported'} prediction, {new Date(checkpoint.created_at).toLocaleString()}</h3><EpisodeSnapshot episode={{ schema_version: 'learnlens.episode.v1', supported: { prediction: checkpoint.prediction } }} />{checkpoint.input_content.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{checkpoint.input_content.answer}</pre>}{checkpoint.input_content.code && <pre>{checkpoint.input_content.code}</pre>}{checkpoint.input_content.circuit && <EpisodeCircuitText circuit={checkpoint.input_content.circuit} />}</section>)}{checkpointOffset !== null && <Button variant="secondary" disabled={historyLoading} onClick={() => { setHistoryLoading(true); api.student.checkpointHistory(task.id, undefined, checkpointOffset).then(page => { setCheckpointHistory(current => [...current, ...page.items]); setCheckpointOffset(page.next_offset) }).catch(() => setStatusMessage('Earlier predictions could not be loaded. Try again.')).finally(() => setHistoryLoading(false)) }}>{historyLoading ? 'Loading earlier predictions...' : 'Load earlier predictions'}</Button>}</details></Card>}
           {draftError && (
             <div className={styles.alert} role="alert">
@@ -775,7 +785,7 @@ export function TaskView({
           {latestFeedbackReference && (
             <><FeedbackPanel submissionId={latestFeedbackReference} client={feedbackClient} explanationForm={presentation.feedback_form} /><ActivityContinuation key={latestFeedbackReference} submissionId={latestFeedbackReference} /></>
           )}
-          {!draftLoading && !workConflict && <TutorPanel key={`${task.id}-${episodeState?.transfer?.stage_start_id ?? 'supported'}`} taskId={task.id} />}
+          {!draftLoading && !workConflict && (!task.assessment || workStartId) && <TutorPanel key={`${task.id}-${episodeState?.transfer?.stage_start_id ?? 'supported'}`} taskId={task.id} />}
           <ReportNotices key={task.id} taskId={task.id} />
           <Card id="task-records" tabIndex={-1} eyebrow="Your records" heading="Attempt history" actions={attempts ? <span className={styles.attemptCount}>{attempts.length} {attempts.length === 1 ? 'attempt' : 'attempts'}</span> : undefined}>
             {attempts === null ? (
@@ -793,7 +803,7 @@ export function TaskView({
                       <strong>{attemptLabel(item)}</strong>
                       <small className={styles.attemptStatus}>{item.status.replace('_', ' ')}</small>
                       <details><summary>Saved response</summary>
-                        {item.answer && <pre style={{ whiteSpace: 'pre-wrap' }}>{item.answer}</pre>}
+                        {item.answer && <StructuredSnapshot answer={item.answer} />}
                         {item.code && <pre>{item.code}</pre>}
                         {item.episode && <EpisodeSnapshot episode={item.episode} />}
                       </details>
@@ -818,10 +828,10 @@ export function TaskView({
 
       <footer className={styles.footer}>
         <Button variant="quiet" onClick={requestClose}>Close</Button>
-        <Button variant="secondary" onClick={() => void save(false)} disabled={Boolean(draftError) || workConflict || busy || draftLoading || !valid}>
+        <Button variant="secondary" onClick={() => void save(false)} disabled={Boolean(draftError) || workConflict || busy || draftLoading || (mode !== 'structured' && !valid) || Boolean(task.assessment && !workStartId)}>
           Save draft
         </Button>
-        <Button variant="primary" onClick={() => void save(true)} disabled={Boolean(draftError) || workConflict || busy || draftLoading || !valid} loading={busy}>
+        <Button variant="primary" onClick={() => void save(true)} disabled={Boolean(draftError) || workConflict || busy || draftLoading || !valid || Boolean(task.assessment && !workStartId)} loading={busy}>
           Submit activity
         </Button>
       </footer>
