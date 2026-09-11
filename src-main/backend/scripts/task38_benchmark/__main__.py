@@ -49,6 +49,8 @@ def read_config(args):
             "Real mode requires explicit synthetic-target and provider-budget acknowledgements"
         )
     data = load(args.config)
+    if data.get("local_only"):
+        raise ValueError("Use the owned local-campaign launcher for unpaid local measurements")
     if (
         not {
             "users",

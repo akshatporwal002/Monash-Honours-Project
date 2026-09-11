@@ -1,9 +1,9 @@
 # Task 38 synthetic load and cost harness
 
 This harness prepares operational evidence for NFR7, NFR8 and NFR22. It does not
-approve a provider, environment, assessment evaluator or release. This delivery
-ran unit tests and one tiny fake-transport smoke only. The coordinator owns the
-later campaigns after Tasks 35–37 and D-12 approvals.
+approve a provider, environment, assessment evaluator or release. It supports
+an explicitly unpaid loopback campaign as well as separately approved external
+provider campaigns. The original fake smoke is historical orchestration evidence.
 
 Run commands from `src-main/backend` with the coordinator's existing Python 3.11
 environment. Only standard-library code and the already installed `httpx` are
@@ -88,6 +88,37 @@ each invocation. The checked-in Task 38 smoke summary records the original
 delivery. The current adapter adds formative draft save/readback calls, so a new
 smoke has additional requests; wall timestamps/durations and source digest also vary.
 
+## Unpaid local capacity measurement
+
+```powershell
+python -m scripts.task38_benchmark.local --directory ../../.tmp-task38/local-50 --users 50 --warmup-rounds 1 --measurement-rounds 1 --ack-synthetic-only
+```
+
+This launcher requires a new directory, prepares fresh synthetic learners, and
+owns one loopback API and one durable worker against its new database. It pins
+subprocess imports to the current checkout, clears the provider key, selects
+local templates and an unreachable loopback provider endpoint, disables research,
+and retains CSRF, rate limits, simulation limits and production worker behavior.
+Source scanning uses the explicit test-only scanner scope for the disposable
+fixture processes; this is not a scanner effectiveness result. Additional learner
+identities satisfy the mounted login schema. No emails are sent.
+
+Local mode has bounded requests, users, rounds and timeouts. Monetary amounts and
+provider budget approvals stay absent. It records `SYNTHETIC LOCAL CAPACITY`, not
+provider performance or hosted capacity. A 50-user run needs 100 fresh learners
+with the illustrated warmup/measurement settings. All errors and pending human
+results remain visible. The launcher waits for bounded feedback drain, stops only
+its owned processes, checks the listener closed, and snapshots the stopped
+database. Windows TIME_WAIT does not mean the server remains running.
+
+Private credentials/database/logs remain in the requested scratch directory.
+`report.json` contains measured phase/HTTP/operation data and `usage.json` contains
+scoped metadata. No answer text or credentials enter these reports. Local records
+cannot establish a zero-cost external provider or a human-confirmed cost denominator.
+Do not pass `local_only` to the external `run` command; only this owned launcher
+can select it. Historical/synthetic fixtures do not replace institutional approvals
+required for hosted, real-participant or external-provider campaigns.
+
 ## Later campaign preparation (coordinator only)
 
 1. Record the integrated commit, successful Tasks 35–37 checks, synthetic host
@@ -137,15 +168,19 @@ if needed; do not reuse institutional learner/admin credentials.
    ceiling is a conservative exposure bound, not an estimate or the AUD 0.10
    acceptance threshold. Record its derivation and an independently enforced
    provider/gateway spend cap in `provider_budget_record` and
-   `runtime.provider_budget_enforcement`. There is no core budget API. Without
-   this external enforcement/approval the real campaign remains blocked.
+   `runtime.provider_budget_enforcement`. The production adapter now implements
+   durable server reservations; configure its approved allocation, currency,
+   provider/model/endpoint-bound prices and policy version as described in
+   [durable metering](../../../../docs/learnlens/task-38-durable-metering.md).
+   Monetary settings are deployment configuration, not mutable harness assertions.
+   Without matching approval/enforcement the external campaign remains blocked.
 
 Reservations are taken atomically before dispatch and never refunded. Dispatch
 stops at the request budget or reserved cost ceiling; later loops are recorded
 as budget-limited. Client cancellation/deadlines stop new work but cannot cancel
 already accepted server jobs or prevent their provider charges. Retain the full
 reservation and let the coordinator drain/inspect the worker after stopping.
-The external cap is essential because this client cannot enforce server spend.
+Server-side enforcement is essential because the load client alone cannot enforce spend.
 There is no client-side retry of submissions or failed feedback; normal server
 retry policy remains active and its costs must be reconciled.
 
@@ -181,7 +216,7 @@ administrator, and reads it back. It restores all four original values in
 a failed restoration requires operator action before any campaign. Blank or
 otherwise unrestorable original values stop the probe before mutation. Provider
 and model identifiers must be nonblank and have no surrounding whitespace.
-Budget remains an explicitly missing runtime interface and is never sent.
+Budget is configured through the server deployment and is never sent by this settings probe.
 CRUD/readback does not prove provider execution or enforcement: timeout/retry
 effect remains pending an instrumented execution receipt, and provider/model
 effect remains pending later workflow usage. For each approved configuration
@@ -219,12 +254,25 @@ python -m scripts.task38_benchmark report --report .tmp-task38/campaign-A-report
 ```
 
 The extractor opens an existing snapshot read-only and selects only metadata
-for the report's submission IDs from `feedback_records` and `judge_evaluations`.
+for the report's submission IDs from `feedback_records`, `judge_evaluations`, and
+the durable `provider_usage` ledger when present. Ambiguous dispatches and failed
+attempts survive even if feedback was never persisted. Available token counts,
+estimates, original reservations, held exposure, currency, pricing/policy versions,
+nullable actuals and receipt references remain separate. For metered submissions,
+external generation metadata is retained under `legacy_generation_metadata` and
+the durable attempts supply financial rows, preventing duplicate spend. Legacy
+and otherwise unattributed calls still need explicit coverage reconciliation.
 It includes all persisted generations/judges, including rejected generations,
 provider/model/prompt, source references, judge rule, tokens, usage completeness
 and recorded estimated cost. It never reads answer/feedback/source text or
 research exports. Database cost estimates have no recorded currency provenance;
-the extractor therefore never labels them as actual AUD cost.
+the extractor therefore never labels them as actual AUD cost. Durable estimates
+also remain estimates. Known billed subtotals survive missing token counts, while
+incomplete usage still prevents a complete cost gate. The report rejects reuse
+of one billing receipt across two rows and mismatched pricing versions. `NOT_SENT`
+and `RELEASED` records are retained but excluded from billed spend without fabricating
+a zero-value invoice. Reconciliation can never turn a local-only campaign into
+approved external-cost evidence.
 
 An operator reconciles missing/in-flight/failed provider attempts and any other
 agents against provider billing, retaining unique receipt IDs and loop IDs. Add
