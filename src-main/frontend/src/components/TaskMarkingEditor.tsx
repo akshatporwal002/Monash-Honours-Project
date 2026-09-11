@@ -46,6 +46,7 @@ export function TaskMarkingEditor({ taskType, value, disabled, onChange }: { tas
   const circuitTask = taskType === 'quantum_circuit' || taskType === 'circuit'
   return <fieldset disabled={disabled}>
     <legend>Marking guidance</legend>
+    {value.generation_design != null && <details><summary>Generated teaching design</summary><dl>{Object.entries(contentObject(value.generation_design)).map(([key, item]) => <div key={key}><dt>{key.replaceAll('_', ' ')}</dt><dd>{Array.isArray(item) ? item.join(', ') || 'None declared' : String(item)}</dd></div>)}</dl><p>This formative draft does not establish an approved Bloom target or pass rule. Formal assessment requires a separately approved assessment definition.</p></details>}
     {fields.filter(([key]) => key in value || primary[taskType]?.includes(key)).map(([key, label]) => <Field key={key} label={label} help="Enter one item per line.">
       <Textarea value={lines(value[key])} onChange={(event) => set(key, event.target.value.split('\n'))} />
     </Field>)}

@@ -43,6 +43,35 @@ const weeklyOutcome = {
   position: 1,
 }
 
+test('generation sends the chosen supported structured response type', async () => {
+  const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.endsWith('/courses')) return response([course])
+    if (url.endsWith('/courses/course-1/materials/list')) return response([{ id: 'material', original_filename: 'source.pdf', indexing_status: 'indexed' }])
+    if (url.endsWith('/courses/course-1/modules')) return response([module])
+    if (url.endsWith('/modules/module-1/outcomes')) return response(init?.method === 'POST' ? { ...weeklyOutcome, id: 'outcome-new' } : [weeklyOutcome])
+    if (url.endsWith('/courses/course-1')) return response(course)
+    if (url.endsWith('/modules/module-1')) return response(module)
+    if (url.endsWith('/generate-tasks')) return response([])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+  render(<CourseEditor />)
+  const user = userEvent.setup()
+  await user.click(await screen.findByRole('combobox', { name: 'Choose a course to edit' }))
+  await user.click(await screen.findByRole('option', { name: /QL-101/ }))
+  await user.click(screen.getByRole('button', { name: /Save and add materials/ }))
+  await user.click(await screen.findByRole('button', { name: /Define outcomes/ }))
+  await user.type(screen.getByLabelText('Learning outcomes · one per line'), 'Interpret source evidence')
+  await user.click(screen.getByRole('button', { name: /Save and generate/ }))
+  await user.click(await screen.findByRole('combobox', { name: 'Response type' }))
+  expect(screen.queryByRole('option', { name: 'transfer' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('option', { name: 'matching' }))
+  await user.click(screen.getAllByRole('button', { name: 'Generate tasks' }).at(-1)!)
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/generate-tasks'))).toBe(true))
+  const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/generate-tasks'))
+  expect(JSON.parse(String(call?.[1]?.body)).task_types).toEqual(['matching'])
+})
+
 test('shows scheduled recovery and lets an educator retry after automatic attempts stop', async () => {
   let reads = 0
   const material = {

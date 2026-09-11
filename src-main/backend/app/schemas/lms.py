@@ -27,6 +27,7 @@ from app.models.user import ScopedRole, UserRole
 from app.schemas.assessment import OpaqueId
 from app.schemas.episode import EpisodeContract, EpisodePayloadV1
 from app.schemas.reminders import TimeZone
+from app.schemas.structured_tasks import StructuredDefinition
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -437,6 +438,16 @@ class TaskCreate(LmsSchema):
     def require_answer_or_criteria(self) -> TaskCreate:
         if not self.expected_answer and not self.marking_criteria:
             raise ValueError("expected_answer or marking_criteria is required")
+        from app.schemas.choice_tasks import validate_choice_key
+        from app.schemas.structured_tasks import definition_for, response_for
+
+        validate_choice_key(self.task_type.value, self.marking_criteria, self.expected_answer)
+
+        definition = definition_for(
+            self.task_type.value, self.marking_criteria, self.source_references
+        )
+        if definition and self.expected_answer:
+            response_for(definition, self.expected_answer, complete=True)
         if len(set(self.prerequisite_task_ids)) != len(self.prerequisite_task_ids):
             raise ValueError("prerequisite_task_ids must be unique")
         return self
@@ -521,6 +532,7 @@ class AssessmentConditionsRead(LmsSchema):
 
 
 class TaskRead(LmsSchema):
+    structured_task: StructuredDefinition | None = None
     episode_plan: dict[str, Any] | None = None
     id: str
     title: str

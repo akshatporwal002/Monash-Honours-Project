@@ -75,7 +75,7 @@ def _setup(session: Session) -> tuple[str, str, int, str]:
             description="Analyse an interference observation.",
             instructions="Use the observed pattern to justify the claim.",
             expected_answer="Connect the observed pattern to the claim.",
-            task_type=TaskType.QUIZ,
+            task_type=TaskType.SHORT_ANSWER,
             difficulty="intermediate",
             points=0,
             position=1,

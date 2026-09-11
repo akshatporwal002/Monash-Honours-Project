@@ -273,6 +273,7 @@ class EpisodeService:
         ]
         if stage:
             projection["supported_hints"] = []
+            projection["representation_choices"] = []
             projection["transfer"] = {
                 "stage_start_id": stage.id,
                 "part_id": stage.part_id,

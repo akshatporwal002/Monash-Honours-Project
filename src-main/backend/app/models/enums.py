@@ -75,6 +75,8 @@ class ResearchStatus(str, Enum):
 
 
 class TaskType(str, Enum):
+    MATCHING = "matching"
+    SEQUENCING = "sequencing"
     PREDICTION = "prediction"
     REASONING = "reasoning"
     EXPLANATION = "explanation"

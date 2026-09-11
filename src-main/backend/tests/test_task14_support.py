@@ -1,5 +1,7 @@
 """Durable explicit support requests remain scoped and do not change assessment content."""
 
+import json
+
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
@@ -11,6 +13,125 @@ from app.schemas.lms import DraftWrite
 from app.services.task_review import TaskReviewError
 
 pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
+
+@pytest.mark.parametrize("modes,level", [(("stepwise",), 3), (("worked_example", "stepwise"), 4)])
+def test_representation_intensity_propagates_without_contaminating_transfer(
+    db_session, modes, level
+):
+    from test_task14_lifecycle import complete
+
+    from app.schemas.lms import SubmissionCreate
+    from app.schemas.student import SimulationRequest
+
+    lms, student, task, started = setup_episode(
+        db_session, prediction_required=False, support_modes=modes
+    )
+    receipts = []
+    for index, mode in enumerate(modes, 1):
+        receipts.append(
+            lms.episode_help_use(
+                student,
+                task.id,
+                EpisodeHelpUseWrite(
+                    assessment_work_start_id=started.assessment_work_start_id,
+                    kind="conceptual_hint",
+                    item_index=index,
+                    request_key=mode,
+                ),
+            )
+        )
+    lms.simulate_student_circuit(
+        student,
+        SimulationRequest(
+            task_id=task.id,
+            qubits=1,
+            operations=[{"gate": "h", "targets": [0]}],
+            request_key="representation-simulation",
+        ),
+    )
+    payload = complete(lms, student, task, started)
+    lms.submit(
+        student, task.id, SubmissionCreate(**payload.model_dump(), idempotency_key="supported")
+    )
+    from app.models.learning_evidence import EvidenceArtifact, LearningEvidence
+    from app.services.evidence.live import evidence_id
+
+    rows = list(
+        db_session.scalars(select(LearningEvidence).where(LearningEvidence.task_id == task.id))
+    )
+    by_field = {
+        json.loads(db_session.get(EvidenceArtifact, row.artifact_id).content)["context"][
+            "field"
+        ]: row
+        for row in rows
+    }
+    for field in (
+        "prediction",
+        "simulation",
+        "response",
+        "supported:reasoning",
+        "supported:explanation",
+        "supported:reflection",
+    ):
+        assert by_field[field].instructional_support_level == level, field
+    for field in ("transfer", "transfer:reasoning", "transfer:explanation", "transfer:reflection"):
+        assert by_field[field].instructional_support_level == 0, field
+    history = lms.evidence_history(student, task.id).items
+    support_ids = {evidence_id(receipt["record"].id, "support") for receipt in receipts}
+    for field in ("prediction", "simulation", "response"):
+        item = next(item for item in history if item.evidence_id == by_field[field].id)
+        assert support_ids <= set(item.related_evidence_ids)
+    transfer = next(item for item in history if item.evidence_id == by_field["transfer"].id)
+    assert support_ids.isdisjoint(transfer.related_evidence_ids)
+
+
+def test_equivalent_representations_release_reviewed_content_and_hide_it_in_transfer(db_session):
+    modes = ("text", "visual", "worked_example", "circuit", "stepwise")
+    lms, student, task, started = setup_episode(db_session, support_modes=modes)
+    state = lms.episode_state(student, task.id)
+    assert [choice["mode"] for choice in state["representation_choices"]] == list(modes)
+    assert "Inspect the input" not in str(state)
+    requests = []
+    for index, mode in enumerate(modes, 1):
+        request = EpisodeHelpUseWrite(
+            assessment_work_start_id=started.assessment_work_start_id,
+            kind="conceptual_hint",
+            item_index=index,
+            request_key=f"representation-{index}",
+        )
+        requests.append(request)
+        receipt = lms.episode_help_use(student, task.id, request)
+        assert receipt["representation"]["mode"] == mode
+        assert receipt["representation"]["source_references"] == task.source_references
+        assert receipt["record"].item_index == index
+        from app.models.learning_evidence import EvidenceArtifact, LearningEvidence
+        from app.services.evidence.live import evidence_id
+
+        evidence = db_session.get(LearningEvidence, evidence_id(receipt["record"].id, "support"))
+        assert evidence.instructional_support_level == (
+            4 if mode == "worked_example" else 3 if mode == "stepwise" else 2
+        )
+        artifact = db_session.get(EvidenceArtifact, evidence.artifact_id)
+        assert (
+            json.loads(artifact.content)["context"]["task_form_version_id"]
+            == receipt["record"].task_form_version_id
+        )
+    assert (
+        lms.episode_help_use(student, task.id, requests[0])["record"].id
+        == lms.episode_help_use(student, task.id, requests[0])["record"].id
+    )
+    checkpoint = lms.episode_checkpoint(student, task.id, supported(started), "supported", None)
+    payload = DraftWrite.model_validate(
+        checkpoint["draft"].model_dump(exclude={"id", "task_id", "updated_at"})
+    )
+    state = lms.episode_transfer(student, task.id, payload)
+    assert state["representation_choices"] == []
+    for request in requests:
+        replay = lms.episode_help_use(student, task.id, request)
+        assert replay["representation"] is None and replay["content"] is None
+    assert len(lms.episode_help_history(student, task.id)["items"]) == len(modes)
+    assert lms.get_draft(student, task.id).episode == payload.episode
 
 
 def test_hint_requests_are_durable_unlimited_idempotent_and_safe_after_transfer(db_session):

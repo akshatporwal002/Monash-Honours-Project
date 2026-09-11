@@ -20,10 +20,12 @@ from app.schemas.feedback import (
     JudgeResult,
     TokenUsage,
 )
+from app.schemas.generated_task_design import local_design
 from app.services.rag.contracts import (
     TaskGenerationRequest,
     TaskGenerationResponse,
 )
+from app.services.structured_generation import grounded_structure
 
 
 class LocalFeedbackGenerator:
@@ -161,6 +163,9 @@ class LocalTaskGenerationClient:
                 outcome,
                 evidence,
             )
+            if task_type in {"matching", "sequencing"}:
+                expected_answer, marking_criteria = grounded_structure(task_type, source_rows)
+            marking_criteria["generation_design"] = local_design(task_type, outcome, difficulty)
             tasks.append(
                 {
                     "title": f"{outcome[:48]} · Step {index + 1}",
@@ -175,7 +180,7 @@ class LocalTaskGenerationClient:
                     "marking_criteria": marking_criteria,
                     "starter_code": starter_code,
                     "learning_outcome_id": outcome_id,
-                    "source_references": [sources[index % len(sources)]],
+                    "source_references": sources,
                 }
             )
         return TaskGenerationResponse(
@@ -186,6 +191,13 @@ class LocalTaskGenerationClient:
 
 
 def _instructions(task_type: str, index: int) -> str:
+    if task_type == "matching":
+        return "Match each excerpt opening to its complete source excerpt. Use each option once."
+    if task_type == "sequencing":
+        return (
+            "Reconstruct the cited passage by placing its fragments in the original reading order."
+        )
+
     if task_type == "quantum_circuit":
         return "Build the circuit, run it with Qiskit Aer, and explain the measurement counts."
     if task_type in {"code_explanation", "code_completion"}:
@@ -200,6 +212,8 @@ def _task_scaffold(
     outcome: str,
     evidence: str,
 ) -> tuple[str | None, dict[str, object], str | None]:
+    if task_type in {"matching", "sequencing"}:
+        return None, {}, None
     if task_type in {"multiple_choice", "quiz"}:
         return (
             "b",
@@ -256,6 +270,12 @@ def _task_scaffold(
                 "starter_circuit": {"qubits": 1, "operations": []},
             },
             None,
+        )
+    if task_type != "short_answer":
+        from app.services.task_types import UnsupportedTaskTypeError
+
+        raise UnsupportedTaskTypeError(
+            f"Local generation is unavailable for {task_type}; author a reviewed episode instead"
         )
     keyword = max(
         (word.strip(".,:;!?()[]").casefold() for word in outcome.split()),

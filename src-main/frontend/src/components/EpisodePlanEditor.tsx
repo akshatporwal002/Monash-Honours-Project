@@ -1,5 +1,5 @@
 import { CircuitSpecificationEditor } from './TaskMarkingEditor'
-import { Button, Checkbox, Field, Textarea } from './ui'
+import { Button, Checkbox, Field, Input, Textarea } from './ui'
 
 type Content = Record<string, unknown>
 const object = (value: unknown): Content => value !== null && typeof value === 'object'
@@ -38,6 +38,25 @@ export function EpisodePlanEditor({ value, disabled, onChange }: {
       <Field label="Accessibility support for both stages" help="One support per line. Keep access support separate from instructional hints.">
         <Textarea value={lines(plan.accessibility_support)} onChange={(event) => setPlan('accessibility_support', event.target.value.split('\n').filter((line) => line.trim()))} />
       </Field>
+      <fieldset><legend>Equivalent instructional representations</legend>
+        <p>These reviewed formats are available during supported work only. Use conceptual material or a different worked example; preserve the assessed task and fresh application.</p>
+        {(Array.isArray(plan.support_representations) ? plan.support_representations : []).map((entry, index, entries) => {
+          const item = object(entry)
+          const update = (key: string, next: unknown) => setPlan('support_representations', entries.map((row, i) => i === index ? { ...item, [key]: next } : row))
+          return <fieldset key={index}><legend>Representation {index + 1}</legend>
+            <label>Format<select value={text(item.mode)} onChange={event => update('mode', event.target.value)}>{['text', 'visual', 'worked_example', 'circuit', 'stepwise'].map(mode => <option key={mode} value={mode}>{mode.replace('_', ' ')}</option>)}</select></label>
+            <label>Instructional support level<select value={String(item.instructional_support_level ?? 2)} onChange={event => update('instructional_support_level', Number(event.target.value))}><option value="1">Goal reminder</option><option value="2">Concept cue</option><option value="3">Narrowing hint</option><option value="4">Partial worked step</option></select></label>
+            <Field label={`Representation ${index + 1} title`}><Input value={text(item.title)} onChange={event => update('title', event.target.value)} /></Field>
+            <Field label={`Representation ${index + 1} equivalent text`}><Textarea value={text(item.text)} onChange={event => update('text', event.target.value)} /></Field>
+            <Field label={`Representation ${index + 1} steps`} help="One step per line; visual formats also show these as a labelled diagram."><Textarea value={lines(item.steps)} onChange={event => update('steps', event.target.value.split('\n').filter(Boolean))} /></Field>
+            <Field label={`Representation ${index + 1} source passages`}><Textarea value={lines(item.source_references)} onChange={event => update('source_references', event.target.value.split('\n').filter(Boolean))} /></Field>
+            <Field label={`Representation ${index + 1} equivalence basis`}><Textarea value={text(item.equivalence_basis)} onChange={event => update('equivalence_basis', event.target.value)} /></Field>
+            {item.mode === 'circuit' && <CircuitSpecificationEditor label={`Representation ${index + 1} circuit`} value={item.circuit} disabled={disabled} onChange={value => update('circuit', value)} />}
+            <Button onClick={() => setPlan('support_representations', entries.filter((_, i) => i !== index))}>Remove representation {index + 1}</Button>
+          </fieldset>
+        })}
+        <Button onClick={() => setPlan('support_representations', [...(Array.isArray(plan.support_representations) ? plan.support_representations : []), { mode: 'text', instructional_support_level: 2, title: '', text: '', steps: [], circuit: null, source_references: [], equivalence_basis: '' }])}>Add approved representation</Button>
+      </fieldset>
       <Field label="Fresh transfer prompt" required><Textarea value={text(transfer.prompt)} onChange={(event) => setTransfer('prompt', event.target.value)} /></Field>
       <Field label="Fresh transfer instructions"><Textarea value={text(transfer.instructions)} onChange={(event) => setTransfer('instructions', event.target.value)} /></Field>
       <Field label="Fresh transfer starter code" help="Optional. Code formatting is preserved."><Textarea value={text(transfer.starter_code)} onChange={(event) => setTransfer('starter_code', event.target.value || null)} /></Field>

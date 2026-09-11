@@ -20,6 +20,7 @@ test('formal submission survives task reload, history, and both dashboards', asy
   await expect(page).toHaveURL(/\/student$/)
   await page.goto(`/student/tasks/${ids.task_id}`)
   await expect(page.getByText('Explain the relationship between evidence and claim.')).toBeVisible()
+  await page.getByRole('button', { name: 'Start assessed task', exact: true }).click()
   await page.getByRole('radio').first().check()
   const submitted = page.waitForResponse((response) => response.url().endsWith('/submissions') && response.request().method() === 'POST')
   await page.getByRole('button', { name: 'Submit activity' }).click()

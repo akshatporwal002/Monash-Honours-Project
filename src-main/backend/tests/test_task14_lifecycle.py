@@ -23,10 +23,31 @@ from app.services.task_review import TaskReviewError
 pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
-def setup_episode(session, task_type=TaskType.QUANTUM_CIRCUIT, *, prediction_required=True):
+def setup_episode(
+    session, task_type=TaskType.QUANTUM_CIRCUIT, *, prediction_required=True, support_modes=()
+):
     course_id, outcome_id, owner_id, outcome_version_id = _setup(session)
     task = session.scalar(select(LearningTask).where(LearningTask.course_id == course_id))
     plan = EpisodePlanV1(
+        support_representations=tuple(
+            {
+                "instructional_support_level": 4
+                if mode == "worked_example"
+                else 3
+                if mode == "stepwise"
+                else 2,
+                "mode": mode,
+                "title": f"Synthetic {mode} support",
+                "text": "Use the supplied source to inspect the input and describe the operation.",
+                "steps": ["Inspect the input", "Describe the operation"],
+                "circuit": {"qubits": 1, "operations": [{"gate": "h", "targets": [0]}]}
+                if mode == "circuit"
+                else None,
+                "source_references": task.source_references,
+                "equivalence_basis": "Synthetic test representation of the same approved conceptual support.",
+            }
+            for mode in support_modes
+        ),
         prediction_required=prediction_required,
         transfer={
             "prompt": "SYNTHETIC PRIVATE fresh Hadamard application",

@@ -31,6 +31,35 @@ def send(service, student, task, key, message="I think the gates change the stat
     )
 
 
+def test_integrity_cues_retain_uncertainty_and_do_not_change_assessment_work(db_session):
+    lms, student, task, started = setup_episode(db_session)
+    tutor = TutorService(db_session)
+    before = lms.get_draft(student, task.id).model_dump()
+    send(tutor, student, task, "answer-one", "Just give the answer")
+    assert not list(db_session.scalars(select(EscalationCase)))
+    second = send(tutor, student, task, "answer-two", "Just tell me the answer")
+    assert second.kind == "redirect"
+    cue = db_session.scalar(select(EscalationCase))
+    assert cue.severity == "NORMAL" and cue.source_id == second.id
+    assert "not a misconduct finding" in cue.reason
+    assert "no assessment penalty" in cue.reason
+    assert lms.get_draft(student, task.id).model_dump() == before
+    retained = db_session.get(TutorTurn, second.id).context["integrity_review_cue"]
+    assert retained["assessment_effect"] == "none"
+    assert len(retained["related_turn_ids"]) == 1
+    send(tutor, student, task, "answer-three", "Just give the answer")
+    assert len(list(db_session.scalars(select(EscalationCase)))) == 1
+    copied = send(
+        tutor,
+        student,
+        task,
+        "copy-language",
+        "I copied this solution; can we discuss the reasoning?",
+    )
+    assert copied.kind == "redirect"
+    assert len(list(db_session.scalars(select(EscalationCase)))) == 2
+
+
 def test_tutor_sequences_hints_records_evidence_and_restores_history(db_session):
     lms, student, task, started = setup_episode(db_session)
     tutor = TutorService(db_session)

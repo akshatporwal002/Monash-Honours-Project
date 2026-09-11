@@ -299,6 +299,7 @@ function normalizeTask(task: RawTask): LearningTask {
     starter_code: task.starter_code,
     due_at: task.due_at,
     options: task.choices ?? [],
+    structured_task: (task as typeof task & { structured_task?: LearningTask['structured_task'] }).structured_task,
     source_references: task.source_references ?? [],
     prerequisite_task_ids: task.prerequisite_task_ids ?? [],
     attempt_count: task.attempt_count ?? 0,
@@ -785,14 +786,14 @@ export const api = {
       (await request<RawMaterial[]>(`/courses/${encodeURIComponent(courseId)}/materials/list`)).map(normalizeMaterial),
     generateTasks: async (
       courseId: string,
-      payload: { module_id: string; learning_outcome_ids: string[]; count: number },
+      payload: { module_id: string; learning_outcome_ids: string[]; count: number; task_types?: string[] },
     ): Promise<GeneratedTaskPreview[]> => {
       const tasks = await request<RawTask[]>(
         `/courses/${encodeURIComponent(courseId)}/generate-tasks`,
         json('POST', {
           learning_outcome_id: payload.learning_outcome_ids[0],
           task_count: Math.max(3, payload.count),
-          task_types: ['multiple_choice', 'code_explanation', 'quantum_circuit'],
+          task_types: payload.task_types ?? ['multiple_choice', 'code_explanation', 'quantum_circuit'],
         }),
       )
       return tasks.map((task) => ({

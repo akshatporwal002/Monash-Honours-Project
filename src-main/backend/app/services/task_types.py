@@ -115,14 +115,13 @@ def _criteria(task: TaskForMarking) -> dict[str, Any]:
     return task.marking_criteria if isinstance(task.marking_criteria, dict) else {}
 
 
-def _answer_set(answer: str) -> set[str]:
+def _choice_answer(task_type, task, answer):
+    from app.schemas.choice_tasks import choice_response
+
     try:
-        decoded = json.loads(answer)
-    except (json.JSONDecodeError, TypeError):
-        decoded = answer.replace(";", ",").split(",")
-    if not isinstance(decoded, list):
-        decoded = [decoded]
-    return {str(value).strip().casefold() for value in decoded if str(value).strip()}
+        return choice_response(task_type, _criteria(task), answer, complete=True)
+    except ValueError as error:
+        raise InvalidTaskSubmissionError(str(error)) from error
 
 
 class MultipleChoiceHandler:
@@ -143,9 +142,8 @@ class MultipleChoiceHandler:
         task: TaskForMarking,
         submission: SubmissionForMarking,
     ) -> bool:
-        return (submission.answer or "").strip().casefold() == (
-            task.expected_answer or ""
-        ).strip().casefold()
+        actual = _choice_answer("multiple_choice", task, submission.answer)
+        return actual == {task.expected_answer} if task.expected_answer else False
 
 
 class MultipleAnswerHandler:
@@ -169,10 +167,10 @@ class MultipleAnswerHandler:
         task: TaskForMarking,
         submission: SubmissionForMarking,
     ) -> bool:
-        expected = {
-            str(value).strip().casefold() for value in _criteria(task).get("correct_answers", [])
-        }
-        return bool(expected) and _answer_set(submission.answer) == expected
+        actual = _choice_answer("multiple_answer", task, submission.answer)
+        expected = _criteria(task).get("correct_answers")
+        key = json.dumps(expected) if expected is not None else task.expected_answer
+        return actual == _choice_answer("multiple_answer", task, key) if key else False
 
 
 class ShortAnswerHandler:
@@ -311,14 +309,38 @@ EPISODE_TASK_TYPES = {
     "transfer",
 }
 STAGED_TASK_TYPES = {
-    "matching",
-    "sequencing",
     "state_comparison",
     "diagnosis",
     "probability_interpretation",
     "part_complete",
     "confidence",
 }
+
+
+class StructuredTaskHandler:
+    def scaffold(self, outcome_statement: str) -> TaskScaffold:
+        return TaskScaffold(None, {"response_review": "human", "outcome": outcome_statement})
+
+    def is_correct(self, task, submission) -> bool:
+        from app.schemas.structured_tasks import definition_for, response_for
+
+        criteria = _criteria(task)
+        raw = criteria.get("structured_task", {})
+        if not isinstance(raw, dict):
+            raise InvalidTaskSubmissionError("A reviewed structured definition is required")
+        if not task.expected_answer:
+            raise UnsupportedTaskTypeError("Structured evidence requires human criterion review")
+        definition = definition_for(
+            raw.get("task_type", ""), criteria, task.source_references or []
+        )
+        if definition is None:
+            raise InvalidTaskSubmissionError("A reviewed structured definition is required")
+        try:
+            actual = response_for(definition, submission.answer, complete=True)
+            expected = response_for(definition, task.expected_answer, complete=True)
+        except ValueError as error:
+            raise InvalidTaskSubmissionError(str(error)) from error
+        return actual.model_dump(exclude={"labels"}) == expected.model_dump(exclude={"labels"})
 
 
 class EpisodeResponseHandler:
@@ -336,6 +358,8 @@ class EpisodeResponseHandler:
 
 def build_default_task_type_registry() -> TaskTypeRegistry:
     registry = TaskTypeRegistry()
+    registry.register(TaskType.MATCHING, StructuredTaskHandler())
+    registry.register(TaskType.SEQUENCING, StructuredTaskHandler())
     for identifier in EPISODE_TASK_TYPES:
         registry.register(identifier, EpisodeResponseHandler())
     registry.register(

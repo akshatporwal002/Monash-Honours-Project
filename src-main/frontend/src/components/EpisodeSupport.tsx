@@ -3,6 +3,7 @@ import { api } from '../app/api'
 import type { ApiSchemas } from '../api/generated'
 import type { EpisodeState } from '../app/types'
 import { Button } from './ui'
+import { SupportRepresentation, type Representation } from './SupportRepresentation'
 
 export function EpisodeSupport({ taskId, workId, state, disabled, onRequest = false }: {
   taskId: string; workId: string | null; state: EpisodeState; disabled: boolean
@@ -11,6 +12,7 @@ export function EpisodeSupport({ taskId, workId, state, disabled, onRequest = fa
   const [history, setHistory] = useState<ApiSchemas['EpisodeHelpUseRead'][]>([])
   const [offset, setOffset] = useState<number | null>(null)
   const [hint, setHint] = useState<string | null>(null)
+  const [representation, setRepresentation] = useState<Representation | null>(null)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const pending = useRef<Record<string, string>>({})
@@ -31,7 +33,7 @@ export function EpisodeSupport({ taskId, workId, state, disabled, onRequest = fa
     try {
       const receipt = await api.student.recordHelp(taskId, { assessment_work_start_id: workId, stage_start_id: stageId, kind, item_index: index, request_key: pending.current[key] })
       delete pending.current[key]
-      if (kind === 'conceptual_hint') setHint(receipt.content)
+      if (kind === 'conceptual_hint') { setHint(receipt.content); setRepresentation((receipt as typeof receipt & { representation?: Representation | null }).representation ?? null) }
       if (!history.some(item => item.id === receipt.record.id)) setOffset(current => current === null ? null : current + 1)
       setHistory(current => [receipt.record, ...current.filter(item => item.id !== receipt.record.id)])
       setMessage(kind === 'conceptual_hint' ? 'Hint request saved. You can request approved hints as often as needed.' : 'Access support noted. It does not lower your result.')
@@ -42,7 +44,8 @@ export function EpisodeSupport({ taskId, workId, state, disabled, onRequest = fa
     {state.transfer ? <p>Fresh application is unaided. Accessibility support remains available.</p> : <>
       <p>Conceptual hints, use as often as needed</p>
       {onRequest ? <details><summary>Open approved hint controls</summary>{(state.supported_hints ?? []).map((label, index) => <Button key={index} disabled={disabled || loading || !workId} onClick={() => void record('conceptual_hint', index)}>Request {label.toLowerCase()}</Button>)}</details> : (state.supported_hints ?? []).map((label, index) => <Button key={index} disabled={disabled || loading || !workId} onClick={() => void record('conceptual_hint', index)}>Request {label.toLowerCase()}</Button>)}
-      {hint && <p aria-label="Requested conceptual hint">{hint}</p>}
+      {(state.representation_choices ?? []).map(choice => <Button key={choice.item_index} disabled={disabled || loading || !workId} onClick={() => void record('conceptual_hint', choice.item_index)}>Open {choice.title} ({choice.mode.replace('_', ' ')})</Button>)}
+      {representation ? <SupportRepresentation value={representation} /> : hint && <p aria-label="Requested conceptual hint">{hint}</p>}
     </>}
     {(state.accessibility_support ?? []).map((support, index) => <div key={index}><p>{support}</p><Button disabled={disabled || loading || !workId} onClick={() => void record('accessibility', index)}>I used access support {index + 1}</Button></div>)}
     {message && <p role="status">{message}</p>}
