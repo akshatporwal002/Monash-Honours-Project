@@ -74,8 +74,8 @@ def response(output):
 
 
 @pytest.fixture
-def runtime_api(tmp_path):
-    yield from _lms_context.__wrapped__(tmp_path)
+def runtime_api(tmp_path, monkeypatch):
+    yield from _lms_context.__wrapped__(tmp_path, monkeypatch)
 
 
 def test_only_admin_can_persist_bounded_runtime_controls(runtime_api):
