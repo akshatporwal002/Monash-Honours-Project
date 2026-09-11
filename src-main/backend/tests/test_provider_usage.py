@@ -384,6 +384,13 @@ def _interrupted_process(url, dispatched):
 
 @pytest.mark.parametrize("dispatched", [False, True])
 def test_process_interruption_preserves_reservation_boundary(meter, dispatched):
+    backend_root = Path(__file__).resolve().parents[1]
+    # A fresh interpreter does not inherit pytest's sys.path adjustments. Pin
+    # both modules to this checkout rather than a developer's editable install.
+    child_env = {
+        **os.environ,
+        "PYTHONPATH": os.pathsep.join((str(backend_root), str(backend_root / "tests"))),
+    }
     result = subprocess.run(
         [
             sys.executable,
@@ -396,6 +403,8 @@ def test_process_interruption_preserves_reservation_boundary(meter, dispatched):
         capture_output=True,
         text=True,
         timeout=20,
+        cwd=backend_root,
+        env=child_env,
         creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
     )
     assert result.returncode == 0, result.stderr
