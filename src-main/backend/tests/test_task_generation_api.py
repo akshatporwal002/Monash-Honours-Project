@@ -9,6 +9,7 @@ from app.api.routes.task_generation import (
     get_course_access_policy,
     get_task_generation_service,
 )
+from app.core.config import settings
 from app.core.security import hash_password
 from app.db.session import get_db_session
 from app.main import create_app
@@ -106,7 +107,10 @@ def _seed_course_scope(db_session: Session) -> None:
 @pytest.mark.usefixtures("synthetic_material_scanning")
 def test_task_generation_uses_offline_local_scaffold_by_default(
     db_session: Session,
+    tmp_path,
+    monkeypatch,
 ) -> None:
+    monkeypatch.setattr(settings, "rag_upload_dir", str(tmp_path / "uploads"))
     _seed_course_scope(db_session)
     material = LearningMaterial(
         id="material-1",
@@ -131,7 +135,19 @@ def test_task_generation_uses_offline_local_scaffold_by_default(
     db_session.flush()
     from support.material_scanning import record_synthetic_scan
 
+    from app.services.rag.source_history import preserve_current_source, record_approval
+
     record_synthetic_scan(db_session, material)
+    revision = preserve_current_source(db_session, material)
+    record_approval(
+        db_session,
+        course_id=material.course_id,
+        material_id=material.id,
+        revision_id=revision.id,
+        actor_id="synthetic-reviewer",
+        state="APPROVED",
+        reason="Synthetic source review for generation",
+    )
     db_session.commit()
 
     application = create_app()
@@ -160,21 +176,19 @@ def test_task_generation_uses_offline_local_scaffold_by_default(
     assert generated.module_id == "module-1"
 
 
-def test_default_service_does_not_construct_embedding_retrieval(
+def test_default_service_uses_configured_local_vector_retrieval(
     db_session: Session,
     monkeypatch,
 ) -> None:
-    def fail_if_called(_db: Session):
-        raise AssertionError("local generation must not initialize model retrieval")
+    from app.services.rag.local_vectors import LocalTextEmbedding
+    from app.services.rag.vector_retrieval import LocalVectorRetrievalService
 
-    monkeypatch.setattr(
-        "app.api.routes.task_generation.get_retrieval_service",
-        fail_if_called,
-    )
-
+    monkeypatch.setattr(settings, "rag_retrieval_backend", "local_vector")
     service = get_task_generation_service(db_session, LocalTaskGenerationClient())
 
-    assert service.client is not None
+    assert isinstance(service.retrieval, LocalVectorRetrievalService)
+    assert isinstance(service.retrieval.embedding, LocalTextEmbedding)
+    assert isinstance(service.client, LocalTaskGenerationClient)
 
 
 def test_default_generation_without_content_returns_controlled_422(

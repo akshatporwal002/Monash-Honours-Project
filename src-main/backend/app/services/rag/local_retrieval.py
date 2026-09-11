@@ -46,8 +46,8 @@ _STOP_WORDS = frozenset(
 class LocalCourseRetrievalService:
     """Rank authorised SQLite chunks without a model download or vector process.
 
-    The same adapter serves task generation, feedback grounding, and the retrieval
-    API so local and hosted deployments share one predictable MVP path.
+    Kept for explicit legacy/test injection. Runtime selection uses the shared
+    approved-source eligibility in vector_retrieval for both ranking algorithms.
     """
 
     def __init__(self, session: Session) -> None:
