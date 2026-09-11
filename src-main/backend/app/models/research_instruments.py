@@ -16,6 +16,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 from app.models.append_only import protect_history
 from app.models.assessment import new_uuid, utc_now
+from app.models.research_disposal import DISPOSAL_DELETE_AUTHORIZATION
 
 
 class ResearchInstrumentForm(Base):
@@ -115,4 +116,10 @@ for model, keys in (
     ),
     (RestrictedInstrumentEvidence, (("record_id",),)),
 ):
-    protect_history(model, unique_keys=keys)
+    protect_history(
+        model,
+        unique_keys=keys,
+        delete_authorization=(
+            DISPOSAL_DELETE_AUTHORIZATION if model is RestrictedInstrumentEvidence else None
+        ),
+    )
