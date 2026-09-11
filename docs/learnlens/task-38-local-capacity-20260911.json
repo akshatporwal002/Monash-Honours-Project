@@ -1,0 +1,492 @@
+{
+  "schema": "task38.local-capacity-summary.v1",
+  "production_compliance": "not_established",
+  "external_provider_execution": "disabled",
+  "human_assessment_confirmations": 0,
+  "historical_timeout_label_caveat": "These original reports precede 7dc8d62. Some request wall timeouts were mislabeled phase_deadline; raw labels remain unchanged. All failures remain counted.",
+  "runs": [
+    {
+      "run": "local-five-cleanup-20260911",
+      "report_sha256": "edd2821b703010d67aa706993b9afe63a9a5d3ffb4715f2b72d5439eb75ccc25",
+      "evidence_class": "SYNTHETIC LOCAL CAPACITY",
+      "source": {
+        "commit": "09d08895bedae42f864a7c8f00f5f7e5a01a87d8",
+        "branch": "codex/task38-durable-metering",
+        "dirty": true,
+        "harness_sha256": "c3a7e6a9c2e241e81a4e50f0dc2926ce8f43ae670c5cc3a4c180139a40c29519"
+      },
+      "started_at_utc": "2026-09-11T02:04:35.101736+00:00",
+      "runtime": {
+        "external_provider_disabled": true,
+        "provider_endpoint": "unreachable-loopback",
+        "database_engine": "sqlite",
+        "api_workers": 1,
+        "worker_processes": 1,
+        "rate_limit_enabled": true,
+        "csrf_enabled": true,
+        "research_enabled": false,
+        "material_scanner": "synthetic-test-only; no malware effectiveness evidence",
+        "worker_poll_seconds": 0.1,
+        "worker_heartbeat_seconds": 1,
+        "host": {
+          "os": "Windows",
+          "architecture": "AMD64",
+          "logical_cpus": 12,
+          "python": "3.11.16"
+        }
+      },
+      "profile": "task38-single-qubit-v1-synthetic-only",
+      "bounds": {
+        "users": [
+          5
+        ],
+        "warmup_rounds": 0,
+        "measurement_rounds": 1,
+        "request_timeout": 30,
+        "phase_timeout": 600,
+        "worker_timeout": 90,
+        "human_timeout": 0,
+        "poll_seconds": 1,
+        "max_requests": 750
+      },
+      "periods": [
+        {
+          "users": 5,
+          "phase": "warmup",
+          "rounds": 0,
+          "wall_seconds": 0.00017219997243955731,
+          "peak_active_loops": 0
+        },
+        {
+          "users": 5,
+          "phase": "measurement",
+          "rounds": 1,
+          "wall_seconds": 37.70663049997529,
+          "peak_active_loops": 5
+        }
+      ],
+      "measured_scenarios": [
+        {
+          "users": 5,
+          "report_mode": "scaling",
+          "metrics": {
+            "ordinary": {
+              "count": 35,
+              "p95_seconds": 3.0723249000147916,
+              "threshold_seconds": 2,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": false
+            },
+            "progress": {
+              "count": 10,
+              "p95_seconds": 1.5939364000223577,
+              "threshold_seconds": 3,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": true
+            },
+            "feedback": {
+              "count": 5,
+              "p95_seconds": 5.635694500000682,
+              "threshold_seconds": 10,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": true
+            },
+            "assessed_feedback": {
+              "count": 10,
+              "p95_seconds": 4.534297800040804,
+              "threshold_seconds": null,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": null
+            }
+          },
+          "loop_count": 5,
+          "complete_loops": 0,
+          "learning_loops": 5,
+          "loop_outcomes": {
+            "awaiting_human": 5
+          },
+          "http_attempts": 169,
+          "http_errors": 0,
+          "http_error_rate": 0.0,
+          "http_errors_within_threshold": true,
+          "loop_error_rate": 0.0,
+          "error_threshold_exclusive": 0.01
+        }
+      ],
+      "warmup_outcomes": {},
+      "total_http_attempts": 169,
+      "database_counts": {
+        "submission_attempts": 15,
+        "assessment_attempts": 10,
+        "assessment_decisions": 0,
+        "workflow_runs": 15,
+        "learner_model_snapshots": 15,
+        "provider_usage": 0
+      },
+      "drain": {
+        "remaining_feedback_workflows": 0,
+        "drained": true
+      },
+      "cleanup": {
+        "owned_processes_stopped": true,
+        "listener_closed": true
+      },
+      "cost_status": "unknown_or_incomplete",
+      "cost_scenarios": [
+        {
+          "users": 5,
+          "recorded_external_aud_subtotal": null,
+          "complete_loop_denominator": 0,
+          "external_aud_per_complete_loop": null,
+          "within_threshold_observed": null
+        }
+      ]
+    },
+    {
+      "run": "local-fifty-20260911",
+      "report_sha256": "5c37c04cf5cad380b9967ba78435ec7a42b98772a1f0f58c91217c3366a36724",
+      "evidence_class": "SYNTHETIC LOCAL CAPACITY",
+      "source": {
+        "commit": "d223c97577e1839a9f59238925dba234116b4c85",
+        "branch": "codex/task38-durable-metering",
+        "dirty": false,
+        "harness_sha256": "c3a7e6a9c2e241e81a4e50f0dc2926ce8f43ae670c5cc3a4c180139a40c29519"
+      },
+      "started_at_utc": "2026-09-11T02:06:13.255569+00:00",
+      "runtime": {
+        "external_provider_disabled": true,
+        "provider_endpoint": "unreachable-loopback",
+        "database_engine": "sqlite",
+        "api_workers": 1,
+        "worker_processes": 1,
+        "rate_limit_enabled": true,
+        "csrf_enabled": true,
+        "research_enabled": false,
+        "material_scanner": "synthetic-test-only; no malware effectiveness evidence",
+        "worker_poll_seconds": 0.1,
+        "worker_heartbeat_seconds": 1,
+        "host": {
+          "os": "Windows",
+          "architecture": "AMD64",
+          "logical_cpus": 12,
+          "python": "3.11.16"
+        }
+      },
+      "profile": "task38-single-qubit-v1-synthetic-only",
+      "bounds": {
+        "users": [
+          50
+        ],
+        "warmup_rounds": 1,
+        "measurement_rounds": 1,
+        "request_timeout": 30,
+        "phase_timeout": 600,
+        "worker_timeout": 90,
+        "human_timeout": 0,
+        "poll_seconds": 1,
+        "max_requests": 15000
+      },
+      "periods": [
+        {
+          "users": 50,
+          "phase": "warmup",
+          "rounds": 1,
+          "wall_seconds": 156.51292540004943,
+          "peak_active_loops": 50
+        },
+        {
+          "users": 50,
+          "phase": "measurement",
+          "rounds": 1,
+          "wall_seconds": 154.42219750001095,
+          "peak_active_loops": 50
+        }
+      ],
+      "measured_scenarios": [
+        {
+          "users": 50,
+          "report_mode": "50-user",
+          "metrics": {
+            "ordinary": {
+              "count": 122,
+              "p95_seconds": 30.020510000002105,
+              "threshold_seconds": 2,
+              "errors": 35,
+              "censored": 35,
+              "within_threshold_observed": null
+            },
+            "progress": {
+              "count": 18,
+              "p95_seconds": 0.9736813000054099,
+              "threshold_seconds": 3,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": true
+            },
+            "feedback": {
+              "count": 4,
+              "p95_seconds": 33.94516399997519,
+              "threshold_seconds": 10,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": false
+            },
+            "assessed_feedback": {
+              "count": 8,
+              "p95_seconds": 11.5742929999833,
+              "threshold_seconds": null,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": null
+            }
+          },
+          "loop_count": 50,
+          "complete_loops": 0,
+          "learning_loops": 4,
+          "loop_outcomes": {
+            "phase_deadline": 29,
+            "awaiting_human": 4,
+            "request_timeout": 7,
+            "simulation_timed_out": 10
+          },
+          "http_attempts": 329,
+          "http_errors": 36,
+          "http_error_rate": 0.1094224924012158,
+          "http_errors_within_threshold": false,
+          "loop_error_rate": 0.92,
+          "error_threshold_exclusive": 0.01
+        }
+      ],
+      "warmup_outcomes": {
+        "phase_deadline": 32,
+        "request_timeout": 13,
+        "awaiting_human": 5
+      },
+      "total_http_attempts": 815,
+      "database_counts": {
+        "submission_attempts": 27,
+        "assessment_attempts": 18,
+        "assessment_decisions": 0,
+        "workflow_runs": 27,
+        "learner_model_snapshots": 27,
+        "provider_usage": 0
+      },
+      "drain": {
+        "remaining_feedback_workflows": 0,
+        "drained": true
+      },
+      "cleanup": {
+        "owned_processes_stopped": true,
+        "listener_closed": true
+      },
+      "cost_status": "unknown_or_incomplete",
+      "cost_scenarios": [
+        {
+          "users": 50,
+          "recorded_external_aud_subtotal": null,
+          "complete_loop_denominator": 0,
+          "external_aud_per_complete_loop": null,
+          "within_threshold_observed": null
+        }
+      ]
+    },
+    {
+      "run": "local-fifty-pool-fixed-20260911",
+      "report_sha256": "997c40fa87c47d85a5770f25c652c0f6d9eee03217fff48f44144b57dd12f6bf",
+      "evidence_class": "SYNTHETIC LOCAL CAPACITY",
+      "source": {
+        "commit": "408908e47c2d8dafa07289b49ae489dfc14a858f",
+        "branch": "codex/task38-durable-metering",
+        "dirty": true,
+        "harness_sha256": "8d7273b6c3a0af86a0c2d92d635d55b7f4c23d03bd57a164772a5dd3d25e8c6b"
+      },
+      "started_at_utc": "2026-09-11T02:15:34.284582+00:00",
+      "runtime": {
+        "external_provider_disabled": true,
+        "provider_endpoint": "unreachable-loopback",
+        "database_engine": "sqlite",
+        "api_workers": 1,
+        "worker_processes": 1,
+        "rate_limit_enabled": true,
+        "csrf_enabled": true,
+        "research_enabled": false,
+        "material_scanner": "synthetic-test-only; no malware effectiveness evidence",
+        "worker_poll_seconds": 0.1,
+        "worker_heartbeat_seconds": 1,
+        "host": {
+          "os": "Windows",
+          "architecture": "AMD64",
+          "logical_cpus": 12,
+          "python": "3.11.16"
+        }
+      },
+      "profile": "task38-single-qubit-v1-synthetic-only",
+      "bounds": {
+        "users": [
+          50
+        ],
+        "warmup_rounds": 1,
+        "measurement_rounds": 1,
+        "request_timeout": 30,
+        "phase_timeout": 600,
+        "worker_timeout": 90,
+        "human_timeout": 0,
+        "poll_seconds": 1,
+        "max_requests": 15000
+      },
+      "periods": [
+        {
+          "users": 50,
+          "phase": "warmup",
+          "rounds": 1,
+          "wall_seconds": 117.20339219999732,
+          "peak_active_loops": 50
+        },
+        {
+          "users": 50,
+          "phase": "measurement",
+          "rounds": 1,
+          "wall_seconds": 38.2583191000158,
+          "peak_active_loops": 50
+        }
+      ],
+      "measured_scenarios": [
+        {
+          "users": 50,
+          "report_mode": "50-user",
+          "metrics": {
+            "ordinary": {
+              "count": 49,
+              "p95_seconds": 30.038215000007767,
+              "threshold_seconds": 2,
+              "errors": 49,
+              "censored": 49,
+              "within_threshold_observed": null
+            },
+            "progress": {
+              "count": 0,
+              "p95_seconds": null,
+              "threshold_seconds": 3,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": null
+            },
+            "feedback": {
+              "count": 0,
+              "p95_seconds": null,
+              "threshold_seconds": 10,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": null
+            },
+            "assessed_feedback": {
+              "count": 0,
+              "p95_seconds": null,
+              "threshold_seconds": null,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": null
+            }
+          },
+          "loop_count": 50,
+          "complete_loops": 0,
+          "learning_loops": 0,
+          "loop_outcomes": {
+            "phase_deadline": 39,
+            "request_timeout": 11
+          },
+          "http_attempts": 99,
+          "http_errors": 50,
+          "http_error_rate": 0.5050505050505051,
+          "http_errors_within_threshold": false,
+          "loop_error_rate": 1.0,
+          "error_threshold_exclusive": 0.01
+        }
+      ],
+      "warmup_outcomes": {
+        "phase_deadline": 14,
+        "simulation_timed_out": 27,
+        "request_timeout": 5,
+        "awaiting_human": 3,
+        "simulation_failed": 1
+      },
+      "total_http_attempts": 555,
+      "database_counts": {
+        "submission_attempts": 9,
+        "assessment_attempts": 6,
+        "assessment_decisions": 0,
+        "workflow_runs": 9,
+        "learner_model_snapshots": 9,
+        "provider_usage": 0
+      },
+      "drain": {
+        "remaining_feedback_workflows": 0,
+        "drained": true
+      },
+      "cleanup": {
+        "owned_processes_stopped": true,
+        "listener_closed": true
+      },
+      "cost_status": "unknown_or_incomplete",
+      "cost_scenarios": [
+        {
+          "users": 50,
+          "recorded_external_aud_subtotal": null,
+          "complete_loop_denominator": 0,
+          "external_aud_per_complete_loop": null,
+          "within_threshold_observed": null
+        }
+      ]
+    }
+  ],
+  "isolated_dashboard_diagnostics": [
+    {
+      "diagnostic": "dashboard-diagnostic-4",
+      "implementation_commit": "2f7007c3666cdfe530b6ac34904bc8c56395c16a",
+      "result_sha256": "025d5c39dc7d754b1cb36e45af0c871c5a1f46ce61880d01ca55c091bbdb2069",
+      "single_dashboard_profile_queries": 198,
+      "request_timeout_seconds": 30,
+      "metrics": {
+        "login": {
+          "attempts": 50,
+          "http_200": 50,
+          "p95_seconds": 4.422000000020489,
+          "max_seconds": 8.14000000001397
+        },
+        "dashboard": {
+          "attempts": 50,
+          "http_200": 50,
+          "p95_seconds": 5.5,
+          "max_seconds": 5.875
+        }
+      },
+      "limitations": "Copied populated synthetic snapshot; API only; no full learning loop, worker or simulation; measured implementation before commit; no production compliance claim."
+    },
+    {
+      "diagnostic": "dashboard-diagnostic-5",
+      "implementation_commit": "54f34afa79147b5a68212a3feac03fbe4df8449d",
+      "result_sha256": "55d187336abe672be0b6d10420f3b9d37af3e93dd5f58c29094b274d7fb655f0",
+      "single_dashboard_profile_queries": 93,
+      "request_timeout_seconds": 30,
+      "metrics": {
+        "login": {
+          "attempts": 50,
+          "http_200": 50,
+          "p95_seconds": 4.64000000001397,
+          "max_seconds": 4.967999999993481
+        },
+        "dashboard": {
+          "attempts": 50,
+          "http_200": 50,
+          "p95_seconds": 2.875,
+          "max_seconds": 3.1570000000065193
+        }
+      },
+      "limitations": "Copied populated synthetic snapshot; API only; no full learning loop, worker or simulation; measured implementation before commit; no production compliance claim."
+    }
+  ]
+}
