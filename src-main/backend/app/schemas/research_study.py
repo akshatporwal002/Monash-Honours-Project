@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
-from app.schemas.research_governance import Code, GovernanceContract
+from app.schemas.research_governance import Code, GovernanceContract, OperationalField
 from app.schemas.research_instruments import (
     ExportField,
     FormRead,
@@ -118,7 +118,9 @@ class StudySelfResponse(GovernanceContract):
 
 class StudyExportRequest(GovernanceContract):
     format: Literal["csv", "json"]
-    fields: list[StudyExportField | ExportField] = Field(min_length=1, max_length=64)
+    fields: list[StudyExportField | ExportField | OperationalField] = Field(
+        min_length=1, max_length=64
+    )
     stages: list[Stage] = Field(min_length=1, max_length=8)
 
 

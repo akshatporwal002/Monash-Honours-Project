@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { AuthUser } from '../../app/types'
 import { Button, Card, Field } from '../../components/ui'
-import { studyApi, studyFields, key, type Form, type Packet, type Plan } from './api'
+import { studyApi, studyFields, operationalFields, key, type Form, type Packet, type Plan } from './api'
 
 export function StudyEntryPage({ user }: { user: AuthUser }) {
   const navigate = useNavigate()
@@ -32,6 +32,7 @@ function ResearchStudyPageContent({ user }: { user: AuthUser }) {
   const [reviewReference, setReviewReference] = useState('')
   const [planJson, setPlanJson] = useState('')
   const [allocation, setAllocation] = useState<Record<string, string>>({})
+  const [recordInput, setRecordInput] = useState<Record<string, string>>({ kind: 'missingness' })
   const [packetInput, setPacketInput] = useState<Record<string, string>>({})
   const [redacted, setRedacted] = useState('')
   const [packetId, setPacketId] = useState('')
@@ -43,6 +44,12 @@ function ResearchStudyPageContent({ user }: { user: AuthUser }) {
   const [exportStages, setExportStages] = useState<string[]>([])
   const [format, setFormat] = useState('json')
   const [governanceJson, setGovernanceJson] = useState('')
+  const [operational, setOperational] = useState<Record<string, string>>({})
+  const [operationalSelected, setOperationalSelected] = useState<string[]>([])
+  const [redactions, setRedactions] = useState('[]')
+  const [snapshotRevision, setSnapshotRevision] = useState(0)
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof studyApi.operationalPreview>> | null>(null)
+  const operationalSelection = () => ({ allocation_id: operational.allocation_id, instrument_record_id: operational.instrument_record_id, fields: operationalSelected, redactions: JSON.parse(redactions) })
   const allowed = user.scoped_assignments.some(a => a.role === 'research' && a.course_id === courseId)
   useEffect(() => {
     if (!allowed) return
@@ -84,6 +91,13 @@ function ResearchStudyPageContent({ user }: { user: AuthUser }) {
         <Field label="Condition"><select value={allocation.condition ?? ''} onChange={e => setAllocation({ ...allocation, condition: e.target.value })}><option value="">Choose approved condition…</option>{plan?.plan.conditions.map(c => <option key={c}>{c}</option>)}</select></Field>
         <Button disabled={busy || !plan || !allocation.condition} onClick={() => void run(() => write({ ...allocation, kind: 'allocation', plan_id: plan?.id, subject_user_id: Number(allocation.subject_user_id) }), 'Allocation recorded.')}>Record allocation</Button>
       </Card>
+      <Card heading="Missingness, attrition and deviations"><p>Record an event against an allocated stage using the instrument's supplied reason codes. This preserves an explicit gap without inventing an outcome.</p>
+        <ReferenceFields labels={{ allocation_id: 'Status allocation receipt', subject_user_id: 'Status participant account reference', reason_code: 'Instrument event reason code' }} values={recordInput} setValues={setRecordInput} />
+        <Field label="Status stage"><select value={recordInput.stage ?? ''} onChange={e => setRecordInput({ ...recordInput, stage: e.target.value })}><option value="">Choose stage�</option>{plan?.plan.stages.map(s => <option key={s.stage}>{s.stage}</option>)}</select></Field>
+        <Field label="Event type"><select value={recordInput.kind} onChange={e => setRecordInput({ ...recordInput, kind: e.target.value })}><option value="missingness">Missing observation</option><option value="attrition">Attrition</option><option value="deviation">Protocol deviation</option></select></Field>
+        {recordInput.kind === 'missingness' && <Field label="Missing observation reason"><select value={recordInput.missing_reason ?? ''} onChange={e => setRecordInput({ ...recordInput, missing_reason: e.target.value })}><option value="">Choose reason�</option>{['not_collected', 'not_applicable', 'participant_skipped', 'technical_failure', 'not_evaluable', 'outside_window', 'not_approved'].map(reason => <option key={reason}>{reason}</option>)}</select></Field>}
+        <Button disabled={busy || !recordInput.allocation_id || !recordInput.stage || !recordInput.reason_code || (recordInput.kind === 'missingness' && !recordInput.missing_reason)} onClick={() => void run(() => studyApi.researcherResponse(studyId, courseId, { allocation_id: recordInput.allocation_id, record: { request_key: key(), subject_user_id: Number(recordInput.subject_user_id), form_version_id: plan?.plan.stages.find(s => s.stage === recordInput.stage)?.form_id, sequence_key: recordInput.allocation_id, stage: recordInput.stage, kind: recordInput.kind, answers: [], reason_code: recordInput.reason_code, missing_reason: recordInput.kind === 'missingness' ? recordInput.missing_reason : null } }), 'Study status recorded.')}>Record study status</Button>
+      </Card>
       <Card heading="Prepare study reviewer packet"><p>Supply evidence redacted under the recorded rule. The packet omits account, participant, sequence and condition fields. Verify the evidence text itself is appropriately blinded before recording it.</p>
         <ReferenceFields labels={{ allocation_id: 'Allocation receipt', instrument_record_id: 'Instrument response receipt', reviewer_user_id: 'Independent reviewer account reference', rubric_code: 'Study rubric code', redaction_evidence_reference: 'Redaction review evidence reference' }} values={packetInput} setValues={setPacketInput} />
         <Field label="Reviewed and redacted evidence"><textarea value={redacted} onChange={e => setRedacted(e.target.value)} /></Field>
@@ -104,7 +118,17 @@ function ResearchStudyPageContent({ user }: { user: AuthUser }) {
       <Card heading="Study records"><Button disabled={busy} onClick={() => void run(async () => setRecords(await studyApi.records(studyId, courseId)), 'Current eligible study records loaded.')}>Load eligible records</Button>
         <table><thead><tr><th>Receipt</th><th>Kind</th><th>Stage</th><th>Value</th><th>Missingness</th></tr></thead><tbody>{records.map(row => <tr key={row['study.record_id']}><td>{row['study.record_id']}</td><td>{row['study.record_kind']}</td><td>{row['study.stage'] ?? '—'}</td><td>{row['study.value_code'] ?? '—'}</td><td>{row['study.missing_reason'] ?? '—'}</td></tr>)}</tbody></table>
       </Card>
-      <Card heading="Full study export"><p>Choose the exact approved fields and stages. This export includes study allocation, instrument observations, ratings and outcomes. Restricted evidence text stays outside routine exports.</p>
+      <Card heading="Operational evidence snapshot"><p>Select the exact approved operational fields for a study response. Preview identifies absent records and redaction requirements. A snapshot saves source bindings and review instructions; it does not copy the full operational dataset.</p>
+        <ReferenceFields labels={{ allocation_id: 'Operational allocation receipt', instrument_record_id: 'Linked instrument response receipt' }} values={operational} setValues={setOperational} />
+        <fieldset><legend>Operational fields to collect</legend>{operationalFields.map(field => <label key={field} style={{ display: 'block' }}><input type="checkbox" aria-label={`Collect ${field}`} checked={operationalSelected.includes(field)} onChange={e => { setPreview(null); setOperationalSelected(current => e.target.checked ? [...current, field] : current.filter(f => f !== field)) }} /> {field}</label>)}</fieldset>
+        <Field label="Reviewed redaction spans (JSON)"><textarea rows={4} value={redactions} onChange={e => { setPreview(null); setRedactions(e.target.value) }} /></Field>
+        <p>Text/code fields require the preview source digest, the plan's redaction rule reference, a review evidence reference and reviewed character spans. Empty spans still require an actual review. Known identifiers and secret patterns are removed automatically.</p>
+        <Button disabled={busy || !operationalSelected.length} onClick={() => void run(async () => { setPreview(await studyApi.operationalPreview(studyId, courseId, operationalSelection())) }, 'Operational field preview loaded.')}>Preview operational fields</Button>
+        {preview && <div>{Object.entries(preview.fields).map(([field, value]) => <details key={field}><summary>{field}: {value.missing_reason ?? 'Available'}</summary><p>Source digest: {value.source_digest}. Adapter: {value.adapter_version}</p><pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(value.value, null, 2)}</pre></details>)}</div>}
+        <Field label="Current snapshot revision (zero for first capture)"><input type="number" min={0} value={snapshotRevision} onChange={e => setSnapshotRevision(Number(e.target.value))} /></Field>
+        <Button disabled={busy || !preview || Object.values(preview.fields).some(v => v.missing_reason === 'redaction_required')} onClick={() => void run(async () => { const result = await studyApi.operationalCapture(studyId, courseId, { ...operationalSelection(), expected_revision: snapshotRevision, request_key: key() }); setSnapshotRevision(n => n + 1); return result }, 'Operational snapshot recorded.')}>Capture selected operational fields</Button>
+      </Card>
+      <Card heading="Full study export"><p>Choose the exact approved fields and stages. This export includes study allocation, instrument observations, ratings, outcomes and selected operational snapshots. Restricted evidence text stays outside routine exports.</p>
         <fieldset><legend>Export fields</legend>{studyFields.map(field => <label key={field} style={{ display: 'block' }}><input type="checkbox" checked={exportFields.includes(field)} onChange={e => setExportFields(current => e.target.checked ? [...current, field] : current.filter(f => f !== field))} /> {field}</label>)}</fieldset>
         <fieldset><legend>Export stages</legend>{plan?.plan.stages.map(s => <label key={s.stage} style={{ display: 'block' }}><input type="checkbox" checked={exportStages.includes(s.stage)} onChange={e => setExportStages(current => e.target.checked ? [...current, s.stage] : current.filter(v => v !== s.stage))} /> {s.stage}</label>)}</fieldset>
         <Field label="Export format"><select value={format} onChange={e => setFormat(e.target.value)}><option value="json">JSON</option><option value="csv">CSV</option></select></Field>

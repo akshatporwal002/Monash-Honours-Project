@@ -1,10 +1,12 @@
 """Scoped synthetic instrument preparation and closed production collection routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.feedback_dependencies import require_actor
+from app.api.research_study_dependencies import invoke
+from app.api.routes import research_study
 from app.api.security_dependencies import RequestSecurityGuard, get_request_security_guard
 from app.db.session import get_db_session
 from app.schemas.feedback_api import AuthenticatedActor
@@ -18,23 +20,11 @@ from app.schemas.research_instruments import (
     InstrumentReceipt,
     InstrumentRecordWrite,
 )
-from app.services.research.governance import GovernanceConflict, GovernanceDenied
 from app.services.research.instruments import ResearchInstrumentService
 
 router = APIRouter(
     prefix="/research/instruments/{study_id}/{course_id}", tags=["research instruments"]
 )
-
-
-def invoke(action):
-    try:
-        return action()
-    except GovernanceDenied as error:
-        raise HTTPException(403, str(error)) from None
-    except GovernanceConflict as error:
-        raise HTTPException(409, str(error)) from None
-    except ValueError:
-        raise HTTPException(422, "instrument_validation_failed") from None
 
 
 @router.post("/forms/{instrument_key}", response_model=FormRead, status_code=201)
@@ -160,7 +150,5 @@ async def export(
         },
     )
 
-# Mount after invoke and handlers are defined to share the scoped instrument prefix.
-from app.api.routes import research_study  # noqa: E402
 
 router.include_router(research_study.router)

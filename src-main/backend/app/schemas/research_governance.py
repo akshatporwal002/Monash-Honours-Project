@@ -95,8 +95,38 @@ StudyField = Literal[
     "study.provenance",
 ]
 STUDY_FIELDS = frozenset(get_args(StudyField))
-FieldPath = TechnicalPairField | InstrumentField | StudyField
-ResearchPurpose = Literal["technical_pair", "provider_processing", "study_instruments"]
+OperationalField = Literal[
+    "operational.episode",
+    "operational.adaptation_reasons",
+    "operational.override_reasons",
+    "operational.reserved_cost",
+    "operational.exposure_cost",
+    "operational.response_text",
+    "operational.code",
+    "operational.evidence",
+    "operational.model_references",
+    "operational.adaptations",
+    "operational.overrides",
+    "operational.source_references",
+    "operational.ai_output",
+    "operational.judge_result",
+    "operational.simulation",
+    "operational.latency_ms",
+    "operational.input_tokens",
+    "operational.output_tokens",
+    "operational.estimated_cost",
+    "operational.actual_cost",
+    "operational.outcome",
+    "operational.moderation",
+]
+OperationalPermission = Literal["operational.collect", "operational.read", "operational.export"]
+OPERATIONAL_FIELDS = frozenset(get_args(OperationalField))
+FieldPath = (
+    TechnicalPairField | InstrumentField | StudyField | OperationalField | OperationalPermission
+)
+ResearchPurpose = Literal[
+    "technical_pair", "provider_processing", "study_instruments", "study_operational_evidence"
+]
 
 
 class GovernanceContract(BaseModel):
@@ -150,6 +180,11 @@ class StudyScope(GovernanceContract):
             <= classes
         ):
             raise ValueError("instrument retention classes are missing")
+        if (
+            "study_operational_evidence" in self.purposes
+            and "study_operational_manifests" not in classes
+        ):
+            raise ValueError("operational manifest retention class is missing")
         return self
 
 

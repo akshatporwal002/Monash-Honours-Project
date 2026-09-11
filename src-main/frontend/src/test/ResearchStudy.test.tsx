@@ -7,7 +7,7 @@ import { studyApi } from '../features/research/api'
 import type { AuthUser } from '../app/types'
 
 vi.mock('../features/research/api', async importOriginal => ({ ...await importOriginal<typeof import('../features/research/api')>(), studyApi: {
-  participation: vi.fn(), forms: vi.fn(), submit: vi.fn(), governance: vi.fn(), plan: vi.fn(), packet: vi.fn(), decision: vi.fn(), records: vi.fn(), export: vi.fn(),
+  researcherResponse: vi.fn(), operationalPreview: vi.fn(), operationalCapture: vi.fn(), participation: vi.fn(), forms: vi.fn(), submit: vi.fn(), governance: vi.fn(), plan: vi.fn(), packet: vi.fn(), decision: vi.fn(), records: vi.fn(), export: vi.fn(),
 } }))
 const student: AuthUser = { id: 3, role: 'student', email: 'synthetic@example.invalid', full_name: 'Synthetic', scoped_assignments: [] }
 const researcher: AuthUser = { ...student, id: 4, role: 'educator', scoped_assignments: [{ id: 'grant', course_id: 'course', role: 'research', version: 1, valid_from: '', valid_until: null }] }
@@ -62,4 +62,39 @@ test('export sends only checked fields and stages', async () => {
   fireEvent.click(await screen.findByLabelText('T0_BASELINE'))
   fireEvent.click(screen.getByRole('button', { name: 'Download study export' }))
   await waitFor(() => expect(studyApi.export).toHaveBeenCalledWith('study', 'course', ['study.condition'], ['T0_BASELINE'], 'json'))
+})
+
+test('operational collection requires a preview and preserves exact selected fields', async () => {
+  vi.mocked(studyApi.operationalPreview).mockResolvedValue({ fields: { 'operational.latency_ms': { value: 23, missing_reason: null, source_digest: 'sha256:test', source_references: [], adapter_version: 'v1' } } })
+  vi.mocked(studyApi.operationalCapture).mockResolvedValue({ id: 'snapshot' })
+  page(true)
+  expect(screen.getByRole('button', { name: 'Capture selected operational fields' })).toBeDisabled()
+  fireEvent.change(screen.getByLabelText('Operational allocation receipt'), { target: { value: 'allocation' } })
+  fireEvent.change(screen.getByLabelText('Linked instrument response receipt'), { target: { value: 'instrument' } })
+  fireEvent.click(screen.getByLabelText('Collect operational.latency_ms'))
+  fireEvent.click(screen.getByRole('button', { name: 'Preview operational fields' }))
+  await screen.findByText('operational.latency_ms: Available')
+  fireEvent.click(screen.getByRole('button', { name: 'Capture selected operational fields' }))
+  await waitFor(() => expect(studyApi.operationalCapture).toHaveBeenCalledWith('study', 'course', expect.objectContaining({ allocation_id: 'allocation', instrument_record_id: 'instrument', fields: ['operational.latency_ms'], redactions: [], expected_revision: 0 })))
+})
+test('raw operational evidence cannot be captured while its review is missing', async () => {
+  vi.mocked(studyApi.operationalPreview).mockResolvedValue({ fields: { 'operational.code': { value: null, missing_reason: 'redaction_required', source_digest: 'sha256:test', source_references: [], adapter_version: 'v1' } } })
+  page(true)
+  fireEvent.click(screen.getByLabelText('Collect operational.code'))
+  fireEvent.click(screen.getByRole('button', { name: 'Preview operational fields' }))
+  await screen.findByText('operational.code: redaction_required')
+  expect(screen.getByRole('button', { name: 'Capture selected operational fields' })).toBeDisabled()
+})
+
+test('researcher records a missing stage with an explicit reason and allocation', async () => {
+  vi.mocked(studyApi.researcherResponse).mockResolvedValue({ id: 'status' })
+  page(true)
+  fireEvent.change(screen.getByLabelText('Status allocation receipt'), { target: { value: 'allocation' } })
+  fireEvent.change(screen.getByLabelText('Status participant account reference'), { target: { value: '3' } })
+  fireEvent.change(screen.getByLabelText('Instrument event reason code'), { target: { value: 'technical_problem' } })
+  await screen.findByLabelText('T0_BASELINE')
+  fireEvent.change(screen.getByLabelText('Status stage'), { target: { value: 'T0_BASELINE' } })
+  fireEvent.change(screen.getByLabelText('Missing observation reason'), { target: { value: 'technical_failure' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Record study status' }))
+  await waitFor(() => expect(studyApi.researcherResponse).toHaveBeenCalledWith('study', 'course', expect.objectContaining({ allocation_id: 'allocation', record: expect.objectContaining({ subject_user_id: 3, stage: 'T0_BASELINE', form_version_id: 'form', kind: 'missingness', missing_reason: 'technical_failure', answers: [] }) })))
 })

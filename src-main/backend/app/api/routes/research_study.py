@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.feedback_dependencies import require_actor
-from app.api.routes.research_instruments import invoke
+from app.api.research_study_dependencies import invoke
 from app.api.security_dependencies import RequestSecurityGuard, get_request_security_guard
 from app.db.session import get_db_session
 from app.schemas.feedback_api import AuthenticatedActor
@@ -154,4 +154,94 @@ async def export(
             "Content-Disposition": f'attachment; filename="full-study.{payload.format}"',
             "X-Research-Export-Id": prepared.export_id,
         },
+    )
+
+
+from fastapi import Query  # noqa: E402
+
+from app.schemas.research_governance import OperationalField  # noqa: E402
+from app.schemas.research_operational import (  # noqa: E402
+    OperationalCapture,
+    OperationalFieldRead,
+    OperationalPreview,
+    OperationalSelection,
+)
+from app.services.research.operational import OperationalCollector  # noqa: E402
+
+
+@router.post("/operational/preview", response_model=OperationalPreview)
+async def operational_preview(
+    study_id: Code,
+    course_id: Code,
+    payload: OperationalSelection,
+    request: Request,
+    response: Response,
+    actor: AuthenticatedActor = Depends(require_actor),
+    session: Session = Depends(get_db_session),
+    security: RequestSecurityGuard = Depends(get_request_security_guard),
+):
+    await security.enforce(request, actor, "research-instruments", mutating=True)
+    response.headers["Cache-Control"] = "no-store"
+    return invoke(
+        lambda: OperationalCollector(ResearchStudyService(session)).preview(
+            int(actor.actor_reference), study_id, course_id, payload
+        )
+    )
+
+
+@router.post("/operational/snapshots", response_model=StudyReceipt, status_code=201)
+async def operational_capture(
+    study_id: Code,
+    course_id: Code,
+    payload: OperationalCapture,
+    request: Request,
+    response: Response,
+    actor: AuthenticatedActor = Depends(require_actor),
+    session: Session = Depends(get_db_session),
+    security: RequestSecurityGuard = Depends(get_request_security_guard),
+):
+    await security.enforce(request, actor, "research-instruments", mutating=True)
+    response.headers["Cache-Control"] = "no-store"
+    return invoke(
+        lambda: OperationalCollector(ResearchStudyService(session)).capture(
+            int(actor.actor_reference), study_id, course_id, payload
+        )
+    )
+
+
+@router.get("/operational/snapshots/{snapshot_id}", response_model=dict[str, OperationalFieldRead])
+def operational_read(
+    study_id: Code,
+    course_id: Code,
+    snapshot_id: Code,
+    response: Response,
+    fields: list[OperationalField] = Query(min_length=1, max_length=32),
+    actor: AuthenticatedActor = Depends(require_actor),
+    session: Session = Depends(get_db_session),
+):
+    response.headers["Cache-Control"] = "no-store"
+    return invoke(
+        lambda: OperationalCollector(ResearchStudyService(session)).read(
+            int(actor.actor_reference), study_id, course_id, snapshot_id, fields
+        )
+    )
+
+
+@router.post("/responses", response_model=InstrumentReceipt, status_code=201)
+async def researcher_response(
+    study_id: Code,
+    course_id: Code,
+    payload: StudySelfResponse,
+    request: Request,
+    response: Response,
+    actor: AuthenticatedActor = Depends(require_actor),
+    session: Session = Depends(get_db_session),
+    security: RequestSecurityGuard = Depends(get_request_security_guard),
+):
+    await security.enforce(request, actor, "research-instruments", mutating=True)
+    response.headers["Cache-Control"] = "no-store"
+    return invoke(
+        lambda: ResearchStudyService(session).submit_researcher(
+            int(actor.actor_reference), study_id, course_id, payload
+        )
     )

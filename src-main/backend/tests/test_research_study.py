@@ -18,8 +18,27 @@ from app.services.research.study import ResearchStudyService
 
 
 @pytest.fixture
-def study(instruments):
+def study(instruments, request):
     g = instruments
+    if getattr(request, "param", None) == "operational":
+        from app.schemas.research_governance import OPERATIONAL_FIELDS
+
+        g.scope = g.scope.model_copy(
+            update={
+                "fields": sorted(
+                    set(g.scope.fields)
+                    | OPERATIONAL_FIELDS
+                    | {"operational.collect", "operational.read", "operational.export"}
+                ),
+                "purposes": [*g.scope.purposes, "study_operational_evidence"],
+                "retention": [
+                    *g.scope.retention,
+                    g.scope.retention[0].model_copy(
+                        update={"record_class": "study_operational_manifests"}
+                    ),
+                ],
+            }
+        )
     g.scope = g.scope.model_copy(
         update={
             "fields": sorted(set(g.scope.fields) | STUDY_FIELDS),
@@ -36,7 +55,11 @@ def study(instruments):
     g.approval = g.approval.model_copy(update={"scope_id": g.scope_event.id})
     g.record(g.approval)
     g.consent = g.consent.model_copy(
-        update={"scope_id": g.scope_event.id, "fields": g.scope.fields}
+        update={
+            "scope_id": g.scope_event.id,
+            "fields": g.scope.fields,
+            "purposes": g.scope.purposes,
+        }
     )
     g.record(g.consent, g.student.id)
     g.eligibility = g.eligibility.model_copy(update={"scope_id": g.scope_event.id})
@@ -432,3 +455,28 @@ def test_study_migration_replay_and_populated_guard(study):
             module.upgrade()
             with pytest.raises(RuntimeError, match="populated"):
                 module.downgrade()
+
+
+def test_researcher_status_uses_allocation_sequence_and_denies_student(study):
+    g = study
+    command = StudySelfResponse(
+        allocation_id=g.allocation.id,
+        record=g.command.model_copy(
+            update={
+                "kind": "missingness",
+                "answers": [],
+                "reason_code": "synthetic_fault",
+                "missing_reason": "not_collected",
+                "stage": "T2_TRANSFER",
+            }
+        ),
+    )
+    with pytest.raises(GovernanceDenied):
+        g.workflow.submit_researcher(g.student.id, g.study, g.course.id, command)
+    receipt = g.workflow.submit_researcher(g.educator.id, g.study, g.course.id, command)
+    from app.models.research_instruments import ResearchInstrumentRecord
+
+    row = g.session.get(ResearchInstrumentRecord, receipt.id)
+    allocation = g.session.get(ResearchStudyEvent, g.allocation.id)
+    assert row.sequence_id == allocation.data["sequence_id"]
+    assert row.data["missing_reason"] == "not_collected"

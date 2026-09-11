@@ -12,6 +12,7 @@ from app.models.research_instruments import (
     ResearchInstrumentRecord,
 )
 from app.models.research_study import ResearchStudyEvent
+from app.schemas.research_governance import OPERATIONAL_FIELDS
 from app.schemas.research_study import StudyExportField, StudyPacketRead, StudyPlan, StudyReceipt
 from app.services.research import governance
 from app.services.research.governance import (
@@ -26,6 +27,7 @@ from app.services.research.instruments import (
     csv_row,
     digest,
 )
+from app.services.research.operational import OperationalCollector
 
 STUDY_EXPORT_FIELDS = frozenset(get_args(StudyExportField))
 
@@ -336,6 +338,22 @@ class ResearchStudyService:
             )
         return result
 
+    def submit_researcher(self, actor, study, course, command):
+        try:
+            lock_governance_write(self.session)
+            scope, _, _ = self.policy.approved(study)
+            allocation, plan = self.allocation(command.allocation_id, study, course, scope)
+            record = command.record
+            if record.subject_user_id != allocation.subject_user_id or not any(
+                s.stage == record.stage and s.form_id == record.form_version_id for s in plan.stages
+            ):
+                raise GovernanceDenied("study_assignment_denied")
+            return self.instruments.collect(
+                actor, study, course, record, allocated_sequence=allocation.data["sequence_id"]
+            )
+        finally:
+            self.session.rollback()
+
     def submit_self(self, actor, study, course, command):
         # Keep allocation and consent validation ordered with collection's write transaction.
         try:
@@ -413,6 +431,8 @@ class ResearchStudyService:
         ):
             if index == 1000:
                 raise GovernanceDenied("study_read_limit")
+            if row.kind == "snapshot":
+                continue
             try:
                 self.study_readable(row.id, actor, study, course, STUDY_EXPORT_FIELDS, "read")
             except GovernanceDenied:
@@ -511,6 +531,10 @@ class ResearchStudyService:
         fields = set(command.fields)
         scope = self.scope(actor, study, course, fields, "export")
         study_fields, instrument_fields = fields & STUDY_EXPORT_FIELDS, fields & EXPORT_FIELDS
+        operational_fields = fields & OPERATIONAL_FIELDS
+        collector = OperationalCollector(self)
+        if operational_fields:
+            collector.scope(actor, study, course, operational_fields, "export")
         if instrument_fields:
             self.instruments._scope(actor, study, course, instrument_fields, "export")
         included, excluded = [], {}
@@ -542,6 +566,8 @@ class ResearchStudyService:
         if len(rows) > 1000 or len(observations) > 1000:
             raise GovernanceDenied("study_export_limit")
         for row in rows if study_fields else []:
+            if row.kind == "snapshot":
+                continue
             if row.kind != "allocation" and row.data["stage"] not in command.stages:
                 continue
             try:
@@ -556,6 +582,24 @@ class ResearchStudyService:
             try:
                 projected = self.instrument_projection(row.id, actor, study, course, fields)
                 included.append(("instrument", row.id, projected))
+            except GovernanceDenied as error:
+                excluded[str(error)] = excluded.get(str(error), 0) + 1
+        latest_snapshots = {}
+        for row in rows:
+            if row.kind == "snapshot" and row.data["stage"] in command.stages:
+                previous = latest_snapshots.get(row.slot)
+                if previous is None or row.revision > previous.revision:
+                    latest_snapshots[row.slot] = row
+        for row in latest_snapshots.values() if operational_fields else []:
+            try:
+                projected = collector.read(
+                    actor, study, course, row.id, operational_fields, operation="export"
+                )
+                if study_fields:
+                    self.study_readable(row.id, actor, study, course, study_fields, "export")
+                included.append(
+                    ("snapshot", row.id, [{**self.project(row, study_fields), **projected}])
+                )
             except GovernanceDenied as error:
                 excluded[str(error)] = excluded.get(str(error), 0) + 1
         export_id = self.instruments._audit(
@@ -576,7 +620,13 @@ class ResearchStudyService:
 
         def check(kind, identity):
             self.scope(actor, study, course, fields, "export")
-            if kind == "instrument":
+            if kind == "snapshot":
+                collector.read(
+                    actor, study, course, identity, operational_fields, operation="export"
+                )
+                if study_fields:
+                    self.study_readable(identity, actor, study, course, study_fields, "export")
+            elif kind == "instrument":
                 self.instrument_projection(identity, actor, study, course, fields)
             else:
                 self.study_readable(identity, actor, study, course, study_fields, "export")
@@ -596,7 +646,14 @@ class ResearchStudyService:
                     for row in rows:
                         check(kind, identity)
                         yield (
-                            csv_row([row.get(f) for f in sorted(fields)])
+                            csv_row(
+                                [
+                                    json.dumps(row.get(f), ensure_ascii=False, sort_keys=True)
+                                    if isinstance(row.get(f), (dict, list))
+                                    else row.get(f)
+                                    for f in sorted(fields)
+                                ]
+                            )
                             if command.format == "csv"
                             else (("" if first else ",") + json.dumps(row, sort_keys=True)).encode()
                         )
