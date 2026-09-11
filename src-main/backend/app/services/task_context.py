@@ -18,7 +18,7 @@ def to_feedback_task_context(task: LearningTask) -> TaskContext:
         task_id=task.id,
         course_id=task.course_id,
         task_type=task.task_type.value,
-        prompt=task.instructions,
+        prompt="\n\n".join(part for part in (task.description, task.instructions) if part),
         difficulty=task.difficulty,
         expected_answer=task.expected_answer,
         marking_criteria=task.marking_criteria,
