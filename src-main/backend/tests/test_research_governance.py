@@ -160,6 +160,14 @@ def governed(db_session, monkeypatch):
     )
     record(state.grant)
     monkeypatch.setattr(governance, "research_processing_approved", lambda: True)
+    # Synthetic functional fixtures explicitly bypass release; they are not approval records.
+    monkeypatch.setattr(
+        ResearchGovernanceService, "require_release", lambda self, study: self.approved(study)
+    )
+    monkeypatch.setattr(
+        ResearchGovernanceService, "require_form_release", lambda self, study, form: None
+    )
+    monkeypatch.setattr(ResearchGovernanceService, "release_active", lambda self, study: False)
     return state
 
 

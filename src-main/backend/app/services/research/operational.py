@@ -34,6 +34,7 @@ class OperationalCollector:
         if not governance.research_processing_approved():
             raise GovernanceDenied("research_governance_pending")
         scope, definition, _ = self.policy.approved(study)
+        self.policy.require_release(study)
         if not {"study_instruments", "study_operational_evidence"} <= set(definition.purposes):
             raise GovernanceDenied("operational_purpose_not_approved")
         if "study_operational_manifests" not in {r.record_class for r in definition.retention}:
@@ -77,6 +78,10 @@ class OperationalCollector:
             )
         ):
             raise GovernanceDenied("operational_anchor_denied")
+        from app.services.research.disposal import disposed
+
+        if disposed(self.policy, study, record.id):
+            raise GovernanceDenied("instrument_evidence_disposed")
         self.study.instruments._form(record.form_id, study, course, scope)
         raw = self.session.scalar(
             select(RestrictedInstrumentEvidence).where(

@@ -1,4 +1,4 @@
-"""Versioned governance commands; none of these records opens the production gate."""
+"""Versioned authority records; study release also requires explicit deployment opt-in."""
 
 from typing import Annotated, Literal, get_args
 
@@ -209,6 +209,39 @@ class ConsentDecision(GovernanceContract):
     purposes: list[ResearchPurpose] = Field(default_factory=list)
 
 
+class InstrumentApprovalDecision(GovernanceContract):
+    kind: Literal["instrument_approval"] = "instrument_approval"
+    scope_id: Code
+    form_id: Code
+    content_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    state: Literal["approved", "suspended", "revoked"]
+    authority_reference: Code
+    evidence_reference: Code
+    valid_from: AwareDatetime
+    valid_until: AwareDatetime
+
+
+class StudyReleaseDecision(GovernanceContract):
+    kind: Literal["release"] = "release"
+    scope_id: Code
+    approval_id: Code
+    plan_ids: list[Code] = Field(default_factory=list, max_length=128)
+    instrument_approval_ids: list[Code] = Field(default_factory=list, max_length=128)
+    state: Literal["active", "suspended", "revoked"]
+    authority_reference: Code
+    evidence_reference: Code
+    valid_from: AwareDatetime
+    valid_until: AwareDatetime
+
+    @model_validator(mode="after")
+    def unique_references(self):
+        if len(set(self.plan_ids)) != len(self.plan_ids) or len(
+            set(self.instrument_approval_ids)
+        ) != len(self.instrument_approval_ids):
+            raise ValueError("release references must be unique")
+        return self
+
+
 class EligibilityDecision(GovernanceContract):
     kind: Literal["eligibility"] = "eligibility"
     scope_id: Code
@@ -242,13 +275,63 @@ class RetentionHold(GovernanceContract):
     active: bool
 
 
+class DisposalAuthorization(GovernanceContract):
+    kind: Literal["disposal_authorization"] = "disposal_authorization"
+    scope_id: Code
+    record_class: Literal["restricted_instrument_evidence"]
+    record_ids: list[Code] = Field(min_length=1, max_length=200)
+    manifest_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    executor_user_id: int = Field(gt=0)
+    state: Literal["authorized", "revoked"]
+    method: Literal["delete_restricted_text"]
+    authority_reference: Code
+    evidence_reference: Code
+    not_before: AwareDatetime
+    valid_until: AwareDatetime
+
+    @model_validator(mode="after")
+    def bounded_authority(self):
+        if self.not_before >= self.valid_until or len(set(self.record_ids)) != len(self.record_ids):
+            raise ValueError(
+                "disposal authority requires an exact unique inventory and valid window"
+            )
+        return self
+
+
+class DisposedEvidence(GovernanceContract):
+    evidence_id: Code
+    record_id: Code
+    content_digest: str
+
+
+class DisposalExecution(GovernanceContract):
+    kind: Literal["disposal_execution"] = "disposal_execution"
+    scope_id: Code
+    authorization_id: Code
+    manifest_digest: str
+    records: list[DisposedEvidence]
+
+
+class DisposalPreview(GovernanceContract):
+    record_ids: list[Code] = Field(min_length=1, max_length=200)
+
+
+class DisposalExecute(GovernanceContract):
+    authorization_id: Code
+    request_key: Code
+
+
 GovernanceDecision = Annotated[
     StudyScope
     | ApprovalDecision
     | ConsentDecision
+    | InstrumentApprovalDecision
+    | StudyReleaseDecision
     | EligibilityDecision
     | ResearchGrant
-    | RetentionHold,
+    | RetentionHold
+    | DisposalAuthorization
+    | DisposalExecution,
     Field(discriminator="kind"),
 ]
 
@@ -266,7 +349,7 @@ class GovernanceReceipt(GovernanceContract):
     revision: int
     kind: str
     recorded_at: AwareDatetime
-    production_active: Literal[False] = False
+    production_active: bool = False
 
 
 class GovernanceHistoryEntry(GovernanceReceipt):
@@ -280,4 +363,4 @@ class ParticipationRead(GovernanceContract):
     revision: int
     scope: StudyScope
     consent: ConsentDecision | None
-    production_active: Literal[False] = False
+    production_active: bool = False

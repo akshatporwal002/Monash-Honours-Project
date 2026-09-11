@@ -24,7 +24,7 @@ function InstrumentResponse({ study, course, userId, assignment, stage, form }: 
     finally { setBusy(false) }
   }
   return <Card heading={`${form.definition.title} — ${stage}`}>
-    <p>Version {form.version}. Synthetic validation only. This does not create a formal assessment result.</p>
+    <p>Version {form.version}. {form.definition.synthetic_only ? 'Synthetic validation only.' : 'Study instrument under the recorded release.'} This does not create a formal assessment result.</p>
     <form onSubmit={e => { e.preventDefault(); void submit() }}>
       {form.definition.items.map(item => <fieldset key={item.item_id} disabled={busy}>
         <legend>{item.prompt}</legend>
@@ -76,7 +76,7 @@ function StudyParticipationPageContent({ user }: { user: AuthUser }) {
     finally { setBusy(false) }
   }
   return <section aria-label="Study participation"><h1>Study participation</h1>
-    <p>Production research remains closed. Participation decisions do not affect course access, learning support or assessment results.</p>
+    <p>{participation?.production_active ? 'This study has an active recorded release.' : 'Production research remains closed.'} Participation decisions do not affect course access, learning support or assessment results.</p>
     <p role="status">{status}</p>
     <Button onClick={() => { setForms([]); setParticipation(null); setReload(n => n + 1) }}>Reload study details</Button>
     {participation && <Card heading="Your participation choice">
