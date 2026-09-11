@@ -544,3 +544,57 @@ def test_synthetic_fixture_scope_restores_policy_and_keeps_per_test_overrides():
         settings.material_scan_policy_version,
         material_scanning.configured_scanner,
     ) == original
+
+
+@pytest.mark.parametrize("operation", ["duplicate_update", "reused_code_restore"])
+def test_course_code_conflict_returns_409_without_partial_history_or_metadata(
+    db_session, actors, operation
+):
+    from fastapi.testclient import TestClient
+
+    from app.api.dependencies.authentication import get_current_user
+    from app.db.session import get_db
+    from app.main import create_app
+
+    owner = actors[0]
+    service = LmsService(db_session)
+    course = service.create_course(owner, CourseCreate(code="ORIGINAL", title="Original title"))
+    original = service.course_revisions(owner, course.id)[0]
+    if operation == "duplicate_update":
+        service.create_course(owner, CourseCreate(code="TAKEN", title="Other course"))
+    else:
+        service.update_course(
+            owner,
+            course.id,
+            CourseUpdate(code="CURRENT", title="Current title", enrollment_open=False),
+        )
+        service.create_course(owner, CourseCreate(code="ORIGINAL", title="Reused code"))
+    current_version = service.course_revisions(owner, course.id)[0].version
+
+    def stored_records():
+        return {
+            table: db_session.execute(text(f"SELECT * FROM {table} ORDER BY id")).all()
+            for table in ("courses", "course_revisions", "platform_audit_events")
+        }
+
+    before = stored_records()
+    app = create_app()
+    app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_current_user] = lambda: owner
+    with TestClient(app) as client:
+        path = f"/api/v1/courses/{course.id}"
+        if operation == "duplicate_update":
+            response = client.patch(
+                path, json={"code": "TAKEN", "title": "Must not persist", "enrollment_open": False}
+            )
+        else:
+            response = client.post(
+                path + f"/revisions/{original.id}/restore",
+                json={"expected_version": current_version, "reason": "Recover original wording"},
+            )
+        assert response.status_code == 409, response.text
+        assert response.json()["detail"] == "The change conflicts with an existing record"
+        # The same session is usable immediately; no caller rollback is needed.
+        db_session.expire_all()
+        assert stored_records() == before
+        assert client.get(path).status_code == 200

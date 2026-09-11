@@ -240,18 +240,25 @@ class LmsService:
         course_id: str,
         payload: CourseUpdate,
     ) -> CourseRead:
-        course = self._require_course_owner(educator, course_id)
-        self._require_not_archived(course)
-        preserve_initial(self.session, course)
-        self._require_not_archived(course)
-        for name, value in payload.model_dump(
-            exclude_unset=True,
-            exclude_none=True,
-        ).items():
-            setattr(course, name, value)
-        snapshot(self.session, course, str(educator.id), "UPDATED")
-        self._audit(educator, "course.updated", "course", course.id)
-        self._commit()
+        try:
+            course = self._require_course_owner(educator, course_id)
+            self._require_not_archived(course)
+            preserve_initial(self.session, course)
+            self._require_not_archived(course)
+            for name, value in payload.model_dump(
+                exclude_unset=True,
+                exclude_none=True,
+            ).items():
+                setattr(course, name, value)
+            snapshot(self.session, course, str(educator.id), "UPDATED")
+            self._audit(educator, "course.updated", "course", course.id)
+            self._commit()
+        except IntegrityError as error:
+            self.session.rollback()
+            raise _conflict("The change conflicts with an existing record") from error
+        except Exception:
+            self.session.rollback()
+            raise
         return self._course_read(course)
 
     def set_course_state(
@@ -302,33 +309,42 @@ class LmsService:
     def restore_course(
         self, actor: User, course_id: str, revision_id: str, expected_version: int, reason: str
     ) -> CourseRead:
-        course = self._get_course(course_id)
-        if actor.role is not UserRole.ADMINISTRATOR:
-            self._require_course_owner(actor, course_id)
-        preserve_initial(self.session, course)
-        latest = self.session.scalar(
-            select(func.max(CourseRevision.version)).where(CourseRevision.course_id == course_id)
-        )
-        if latest != expected_version:
-            raise _conflict("Course history changed; reload before restoring")
-        revision = self.session.get(CourseRevision, revision_id)
-        if revision is None or revision.course_id != course_id:
-            raise _not_found("Course revision")
-        if not reason.strip():
-            raise _unprocessable("A restoration reason is required")
-        if revision.metadata_snapshot["state"] == CourseState.PUBLISHED:
-            self._validate_publishable(course)
-        for name in FIELDS:
-            setattr(course, name, revision.metadata_snapshot[name])
-        snapshot(self.session, course, str(actor.id), "RESTORED", reason.strip(), revision.id)
-        self._audit(
-            actor,
-            "course.restored",
-            "course",
-            course.id,
-            {"revision_id": revision.id, "reason": reason.strip()},
-        )
-        self._commit()
+        try:
+            course = self._get_course(course_id)
+            if actor.role is not UserRole.ADMINISTRATOR:
+                self._require_course_owner(actor, course_id)
+            preserve_initial(self.session, course)
+            latest = self.session.scalar(
+                select(func.max(CourseRevision.version)).where(
+                    CourseRevision.course_id == course_id
+                )
+            )
+            if latest != expected_version:
+                raise _conflict("Course history changed; reload before restoring")
+            revision = self.session.get(CourseRevision, revision_id)
+            if revision is None or revision.course_id != course_id:
+                raise _not_found("Course revision")
+            if not reason.strip():
+                raise _unprocessable("A restoration reason is required")
+            if revision.metadata_snapshot["state"] == CourseState.PUBLISHED:
+                self._validate_publishable(course)
+            for name in FIELDS:
+                setattr(course, name, revision.metadata_snapshot[name])
+            snapshot(self.session, course, str(actor.id), "RESTORED", reason.strip(), revision.id)
+            self._audit(
+                actor,
+                "course.restored",
+                "course",
+                course.id,
+                {"revision_id": revision.id, "reason": reason.strip()},
+            )
+            self._commit()
+        except IntegrityError as error:
+            self.session.rollback()
+            raise _conflict("The change conflicts with an existing record") from error
+        except Exception:
+            self.session.rollback()
+            raise
         return self._course_read(course)
 
     def list_modules(self, actor: User, course_id: str) -> list[CourseModule]:
