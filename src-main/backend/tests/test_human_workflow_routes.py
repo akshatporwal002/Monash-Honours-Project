@@ -1,5 +1,6 @@
 """New workflow adapters enforce session roles, ownership and CSRF."""
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from support.assessment_review import seed_review_context
@@ -12,6 +13,8 @@ from app.models.escalation import EscalationCase
 from app.models.gamification import GamificationPreference
 from app.models.reassessment import OutcomeResultPolicy
 from app.models.user import User
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 def test_new_mutations_reject_missing_csrf_without_writing_history(db_session, monkeypatch):

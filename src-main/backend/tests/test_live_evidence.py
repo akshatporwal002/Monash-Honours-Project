@@ -1,10 +1,13 @@
 """Operational evidence through the existing learner command boundary."""
 
+import pytest
 from sqlalchemy import select
 from test_task14_lifecycle import complete, setup_episode
 
 from app.models.learning_evidence import LearningEvidence
 from app.schemas.lms import SubmissionCreate
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 def test_episode_commands_capture_ordered_evidence_and_replay(db_session):

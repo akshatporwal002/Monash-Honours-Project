@@ -42,6 +42,8 @@ from app.services.feedback.runtime import LmsSubmissionProvider
 from app.services.local_ai import LocalFeedbackJudge
 from app.services.rag.source_history import bind_sources, record_approval, snapshot_source
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 NOW = datetime(2026, 8, 21, 10, 0, tzinfo=UTC)
 
 
@@ -65,6 +67,9 @@ def _approved_attempt(db_session: Session):
     )
     db_session.add(material)
     db_session.flush()
+    from support.material_scanning import record_synthetic_scan
+
+    record_synthetic_scan(db_session, material)
     chunk = MaterialChunk(
         id="approved-source-1",
         material_id=material.id,

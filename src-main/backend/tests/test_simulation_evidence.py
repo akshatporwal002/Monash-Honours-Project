@@ -14,6 +14,8 @@ from app.models.simulation import CircuitVersion, SimulationOutcome, SimulationR
 from app.services.quantum import CircuitOperation, QuantumSimulationError
 from app.services.simulation_evidence import SimulationEvidenceError, SimulationEvidenceService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture
 def evidence(db_session):

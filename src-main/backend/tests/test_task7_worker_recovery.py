@@ -37,6 +37,8 @@ from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepositor
 from app.services.lms import DEMO_PASSWORD
 from app.services.rag.source_history import record_approval, resolve_passages
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 BACKEND = Path(__file__).resolve().parents[1]
 
 
@@ -74,6 +76,9 @@ def test_accepted_submission_recovers_after_worker_kill_without_second_post(tmp_
         )
         session.add(material)
         session.flush()
+        from support.material_scanning import record_synthetic_scan
+
+        record_synthetic_scan(session, material)
         chunk = MaterialChunk(
             material_id=material.id,
             chunk_index=0,

@@ -28,6 +28,8 @@ from app.services.lms import LmsService
 from app.services.rag.source_history import record_approval
 from app.services.task_review import TaskReviewError
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def test_publication_binds_exact_review_and_content_edit_needs_new_definition(
     assessment_api_context,

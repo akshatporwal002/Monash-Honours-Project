@@ -32,6 +32,8 @@ from app.services.feedback.runtime import LmsSubmissionProvider
 from app.services.lms import DEMO_PASSWORD, LmsService, LmsServiceError
 from app.worker import build_database_worker, build_offline_worker_adapters
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def practice(session):
     users, _ = bootstrap_reviewed_demo(session)

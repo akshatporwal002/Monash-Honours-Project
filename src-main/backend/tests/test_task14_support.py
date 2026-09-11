@@ -10,6 +10,8 @@ from app.schemas.episode import EpisodeHelpUseWrite
 from app.schemas.lms import DraftWrite
 from app.services.task_review import TaskReviewError
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def test_hint_requests_are_durable_unlimited_idempotent_and_safe_after_transfer(db_session):
     lms, student, task, started = setup_episode(db_session)

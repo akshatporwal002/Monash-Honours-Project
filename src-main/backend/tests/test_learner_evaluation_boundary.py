@@ -55,6 +55,8 @@ from app.services.assessment.jobs import (
 from app.services.assessment.runtime import build_assessment_evaluation_service
 from app.services.lms import DEMO_PASSWORD, LmsService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def _published_task(session: Session):
     users, _ = bootstrap_reviewed_demo(session)

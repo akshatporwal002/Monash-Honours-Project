@@ -22,6 +22,8 @@ from app.services.feedback.errors import ContextIntegrityError
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.feedback.runtime import build_feedback_pipeline
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def setup_human(session):
     lms, student, task, started = setup_task16_episode(session)

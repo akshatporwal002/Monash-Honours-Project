@@ -30,6 +30,8 @@ from app.services.rag.contracts import TaskGenerationRequest
 from app.services.runtime_policy import RuntimePolicyUnavailable, read_runtime_policy
 from app.worker import build_database_worker, build_offline_worker_adapters
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def set_policy(session, timeout=10, attempts=3):
     for key, value in {

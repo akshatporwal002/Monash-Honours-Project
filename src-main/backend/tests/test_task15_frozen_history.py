@@ -22,6 +22,8 @@ from app.services.episode_contract import FrozenResponseError
 from app.services.episode_evidence import canonical_response_digest
 from app.services.episode_responses import SqlAlchemyFrozenResponseReader
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.mark.parametrize("action", [AssessorReviewAction.CONFIRM, AssessorReviewAction.OVERRIDE])
 def test_legacy_valid_response_remains_readable_without_approved_context(db_session, action):

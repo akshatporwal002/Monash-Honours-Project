@@ -19,6 +19,10 @@ os.environ.update(
 sys.path.insert(0, str(ROOT / "tests"))
 
 
+from support.material_scanning import synthetic_scanning_scope  # noqa: E402
+
+
+@synthetic_scanning_scope()
 def prepare():
     from alembic import command
     from alembic.config import Config
@@ -49,6 +53,7 @@ def prepare():
         return data
 
 
+@synthetic_scanning_scope()
 def main():
     prepare()
     if "--prepare-only" in sys.argv:

@@ -66,6 +66,8 @@ from app.services.research.governance import (
 from scripts.learning_backup import create_bundle, restore_bundle, verify_bundle
 from scripts.verify_sqlite_backup import database_manifest
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 BACKEND = Path(__file__).resolve().parents[1]
 ORIGIN = "http://127.0.0.1:4710"
 

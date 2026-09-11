@@ -21,6 +21,8 @@ from app.models.user import User
 from app.schemas.progress import LearningProgressPage
 from app.services.learning_progress import LearningProgressService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 RECORDED = datetime(2026, 9, 10, 3, 33, 21, 486860, tzinfo=UTC)
 
 

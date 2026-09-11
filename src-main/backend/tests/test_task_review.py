@@ -25,6 +25,8 @@ from app.services.quantum import QuantumSimulationError, validate_circuit
 from app.services.rag.source_history import record_approval
 from app.services.task_review import TaskReviewError, TaskReviewService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture
 def review_context(db_session):
@@ -272,6 +274,9 @@ def _source(db_session, task):
     )
     db_session.add(material)
     db_session.flush()
+    from support.material_scanning import record_synthetic_scan
+
+    record_synthetic_scan(db_session, material)
     revision = SourceRevision(
         material_id=material.id,
         course_id=task.course_id,

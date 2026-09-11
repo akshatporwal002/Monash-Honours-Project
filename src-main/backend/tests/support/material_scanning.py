@@ -1,5 +1,7 @@
 """Explicit synthetic malware-control fixtures; never scanner effectiveness evidence."""
 
+from contextlib import contextmanager
+
 from app.core.config import settings
 from app.services.material_scanning import ScanVerdict
 
@@ -15,6 +17,16 @@ def enable_synthetic_scanning(monkeypatch):
     monkeypatch.setattr(
         "app.services.material_scanning.configured_scanner", lambda config: SyntheticCleanScanner()
     )
+
+
+@contextmanager
+def synthetic_scanning_scope():
+    """Restore the real configuration when a disposable test/app lifecycle ends."""
+    from pytest import MonkeyPatch
+
+    with MonkeyPatch.context() as patch:
+        enable_synthetic_scanning(patch)
+        yield
 
 
 def record_synthetic_scan(session, material):

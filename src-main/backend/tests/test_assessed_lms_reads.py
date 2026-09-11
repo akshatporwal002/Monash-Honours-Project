@@ -29,6 +29,8 @@ from app.models.user import UserRole
 from app.schemas.lms import SubmissionCreate
 from app.services.lms import DEMO_PASSWORD, LmsService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def prepare_reads(session: Session, with_practice: bool):
     users, _ = bootstrap_reviewed_demo(session)

@@ -51,6 +51,8 @@ from app.services.assessment.jobs import (
 from app.services.assessment.runtime import SqlAlchemyRuleCriterionEvaluationPort
 from scripts.learning_backup import create_bundle, restore_bundle
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 NOW = datetime(2026, 8, 21, 12, 0, tzinfo=UTC)
 
 

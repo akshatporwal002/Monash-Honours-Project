@@ -9,6 +9,15 @@ from app.db.base import Base
 from app.db.session import create_db_engine, create_session_factory
 
 
+@pytest.fixture(scope="module")
+def synthetic_material_scanning():
+    """Explicit module opt-in for synthetic source/approval fixtures only."""
+    from support.material_scanning import synthetic_scanning_scope
+
+    with synthetic_scanning_scope():
+        yield
+
+
 @pytest.fixture
 def db_session(tmp_path: Path) -> Generator[Session, None, None]:
     database_path = tmp_path / "test.db"

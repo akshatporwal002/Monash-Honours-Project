@@ -10,6 +10,8 @@ from app.models.lms import Course, CourseState
 from app.models.user import User, UserRole
 from app.services.learning_progress import LearningProgressService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def test_progress_reads_preserve_states_links_and_hide_provisional_results(db_session):
     fixture, _, educator, _, student, checks, _, saved = context(db_session)

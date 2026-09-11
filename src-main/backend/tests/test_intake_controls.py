@@ -521,3 +521,26 @@ def test_frozen_form_remains_readable_when_policy_changes_but_new_form_review_is
     db_session.commit()
     with pytest.raises(TaskReviewError):
         require_learner_task_available(db_session, task)
+
+
+def test_synthetic_fixture_scope_restores_policy_and_keeps_per_test_overrides():
+    from support.material_scanning import synthetic_scanning_scope
+
+    from app.services import material_scanning
+
+    original = (
+        settings.material_scan_policy,
+        settings.material_scan_policy_version,
+        material_scanning.configured_scanner,
+    )
+    with synthetic_scanning_scope():
+        assert settings.material_scan_policy == "required"
+        with pytest.MonkeyPatch.context() as per_test:
+            per_test.setattr(settings, "material_scan_policy", "disabled")
+            assert settings.material_scan_policy == "disabled"
+        assert settings.material_scan_policy == "required"
+    assert (
+        settings.material_scan_policy,
+        settings.material_scan_policy_version,
+        material_scanning.configured_scanner,
+    ) == original

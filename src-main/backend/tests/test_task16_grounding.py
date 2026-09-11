@@ -12,6 +12,8 @@ from app.schemas.feedback import FeedbackContext, RetrievalContext
 from app.services.assessment.feedback_context import SqlAlchemyAssessmentFeedbackContextProvider
 from app.services.feedback.assessed import AssessedFeedbackGenerator, AssessedFeedbackJudge
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 class NoDelegate:
     async def generate(self, *args):

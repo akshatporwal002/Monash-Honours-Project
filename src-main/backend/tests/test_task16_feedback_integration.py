@@ -2,6 +2,7 @@
 
 import asyncio
 
+import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from support.task16 import setup_task16_episode
@@ -15,6 +16,8 @@ from app.schemas.lms import SubmissionCreate
 from app.services.episode_responses import SqlAlchemyFrozenResponseReader
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.feedback.runtime import build_feedback_pipeline
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 def test_task16_real_episode_feedback_preserves_response_and_never_scores(db_session: Session):

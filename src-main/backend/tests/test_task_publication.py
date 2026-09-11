@@ -7,6 +7,8 @@ from app.models import Course, CourseModule, CourseState, LearningOutcome, Learn
 from app.models.task_review import TaskReviewEvent, TaskRevision
 from app.services.lms import LmsService, LmsServiceError, bootstrap_demo
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def _create(client, session, *, circuit=False):
     module = session.scalar(select(CourseModule))

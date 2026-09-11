@@ -18,6 +18,8 @@ from app.models.persistence import LearningTask
 from app.models.user import RoleAssignment, User
 from app.services.lms import DEMO_PASSWORD
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture
 def assessment_api_context(tmp_path: Path) -> Generator[tuple[TestClient, Session], None, None]:

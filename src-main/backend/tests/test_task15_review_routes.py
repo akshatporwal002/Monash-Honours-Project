@@ -14,6 +14,8 @@ from app.api.routes.assessment import router
 from app.db.session import get_db
 from app.models.user import RoleAssignment, UserRole
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def client_for(session, actor):
     app = FastAPI()

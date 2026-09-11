@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 
+import pytest
 from sqlalchemy import func, select
 from test_assessment_evaluation_api import _ready_attempt, _service
 
@@ -13,6 +14,8 @@ from app.services.assessment.evaluation import AssessmentEvaluationService
 from app.services.learner_preferences.contracts import LearnerPreferencesWrite
 from app.services.learner_preferences.repository import SqlAlchemyLearnerPreferencesRepository
 from app.services.learner_preferences.service import LearnerPreferencesService
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 def _preferences(*, expected_revision: int, key: str, slower: bool) -> LearnerPreferencesWrite:

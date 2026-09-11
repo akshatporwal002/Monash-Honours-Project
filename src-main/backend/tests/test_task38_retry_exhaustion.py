@@ -28,6 +28,8 @@ from app.services.assessment.jobs import (
 from app.services.continuation.repository import SqlAlchemyContinuationRepository
 from app.services.terminal_integrations.repository import SqlAlchemyTerminalIntegrationRepository
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def queue(session, kind):
     if kind == "assessment":

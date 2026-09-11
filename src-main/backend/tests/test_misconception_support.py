@@ -16,6 +16,8 @@ from app.services.evidence.live import LiveEvidenceCapture
 from app.services.lms import LmsServiceError
 from app.services.misconception_state import active_assessed_transfer
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def test_teaching_is_retained_for_future_work_and_extra_help_cannot_be_downgraded(db_session):
     fixture, _, educator, _, student, service, opened, saved = context(db_session)

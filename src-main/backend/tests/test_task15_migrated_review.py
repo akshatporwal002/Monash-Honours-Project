@@ -36,6 +36,8 @@ from app.services.assessment.jobs import SqlAlchemyAssessmentEvaluationJobReposi
 from app.services.assessment.review import AssessmentReviewConflictError
 from app.services.episode_responses import SqlAlchemyFrozenResponseReader
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture
 def migrated(tmp_path):

@@ -36,6 +36,8 @@ from app.services.assessment.evaluation import (
 )
 from app.services.assessment.evaluators import EvaluatorOutcome
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 class StaticCriterionPort:
     def __init__(

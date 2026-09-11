@@ -32,6 +32,8 @@ from app.services.continuation.contracts import NextTaskRequest, ProgressUpdate
 from app.services.lms import LmsService
 from app.worker import _ContinuationDatabasePass, build_offline_worker_adapters
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 NOW = datetime.now(UTC)
 
 

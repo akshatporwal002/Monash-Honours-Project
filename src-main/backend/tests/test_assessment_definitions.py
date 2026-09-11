@@ -29,6 +29,8 @@ from app.services.assessment.definitions import (
     TaskFormDraft,
 )
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 NOW = datetime(2026, 8, 16, 1, 0, tzinfo=UTC)
 
 

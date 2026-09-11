@@ -14,6 +14,8 @@ from app.services.rag.feedback_adapter import (
 from app.services.rag.local_retrieval import LocalCourseRetrievalService
 from app.services.rag.source_history import latest_approval
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def source(
     session: Session,
@@ -34,6 +36,9 @@ def source(
     )
     session.add(material)
     session.flush()
+    from support.material_scanning import record_synthetic_scan
+
+    record_synthetic_scan(session, material)
     revision = SourceRevision(
         id=name + "-revision",
         material_id=name,
