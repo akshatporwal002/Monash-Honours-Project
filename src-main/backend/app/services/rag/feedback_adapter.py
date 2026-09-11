@@ -11,12 +11,16 @@ from app.services.rag.contracts import RetrievalPurpose, RetrievalQuery
 from app.services.rag.local_retrieval import LocalCourseRetrievalService
 from app.services.rag.retrieval import RetrievalService
 from app.services.rag.source_history import latest_approval
+from app.services.rag.vector_retrieval import LocalVectorRetrievalService
 
 FEEDBACK_RETRIEVAL_VERSION = "task-feedback-retrieval-v1"
 
 
 class RagFeedbackRetrievalProvider:
-    def __init__(self, retrieval: RetrievalService | LocalCourseRetrievalService) -> None:
+    def __init__(
+        self,
+        retrieval: RetrievalService | LocalCourseRetrievalService | LocalVectorRetrievalService,
+    ) -> None:
         self.retrieval = retrieval
 
     async def get_retrieval_context(
@@ -74,6 +78,20 @@ class RagFeedbackRetrievalProvider:
             if isinstance(marking, list)
             else [str(marking or task.expected_answer or "")]
         )
+        if isinstance(marking, dict):
+            # Legacy practice criteria contain runtime metadata as well as text.
+            # JSON keys/model provenance are not learning content for retrieval.
+            descriptions = [
+                choice["text"]
+                for choice in (marking.get("choices") or [])
+                if isinstance(choice, dict) and isinstance(choice.get("text"), str)
+            ]
+            descriptions.extend(
+                term
+                for key in ("required_keywords", "required_terms")
+                for term in (marking.get(key) or [])
+                if isinstance(term, str)
+            )
         text = "\n".join([task.prompt, *descriptions])
         result = self.retrieval.search(
             RetrievalQuery(

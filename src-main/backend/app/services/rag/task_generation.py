@@ -20,6 +20,7 @@ from app.services.rag.contracts import (
 )
 from app.services.rag.errors import RagError
 from app.services.rag.retrieval import RetrievalService
+from app.services.rag.runtime import RetrievalBackend
 from app.services.rag.source_history import bind_sources, output_digest
 from app.services.task_review import TaskReviewService
 from app.services.task_types import DEFAULT_TASK_TYPE_REGISTRY
@@ -55,7 +56,10 @@ class GroundedTaskGenerationService:
     prompt_version = "task-generation-v2"
 
     def __init__(
-        self, session: Session, retrieval: RetrievalService, client: TaskGenerationClient | None
+        self,
+        session: Session,
+        retrieval: RetrievalService | RetrievalBackend,
+        client: TaskGenerationClient | None,
     ) -> None:
         self.session, self.retrieval, self.client = session, retrieval, client
 

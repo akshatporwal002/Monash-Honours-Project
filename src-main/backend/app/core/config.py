@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     material_scan_timeout_seconds: int = Field(default=60, ge=1, le=120)
     material_scan_database_max_age_days: int = Field(default=7, ge=1, le=30)
     rag_upload_dir: str = "./data/rag/uploads"
+    rag_retrieval_backend: Literal["local_vector", "lexical"] = "local_vector"
 
     rag_max_file_bytes: int = Field(default=20 * 1024 * 1024, gt=0, le=20 * 1024 * 1024)
     material_processing_lease_seconds: int = Field(default=300, ge=5, le=3600)

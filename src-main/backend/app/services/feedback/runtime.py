@@ -45,7 +45,7 @@ from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
 from app.services.provider_usage import configured_meter
 from app.services.quantum import SIMULATION_POLICY_VERSION, CircuitOperation, QuantumSimulationError
 from app.services.rag.feedback_adapter import RagFeedbackRetrievalProvider
-from app.services.rag.local_retrieval import LocalCourseRetrievalService
+from app.services.rag.runtime import build_retrieval_service
 from app.services.research.governance import research_processing_approved
 from app.services.runtime_policy import RuntimePolicy, read_runtime_policy
 from app.services.simulation_evidence import (
@@ -125,7 +125,7 @@ class TaskSourceRetrievalProvider:
     """Retrieve checked passages through the existing scoped retrieval adapter."""
 
     def __init__(self, session: Session) -> None:
-        self._provider = RagFeedbackRetrievalProvider(LocalCourseRetrievalService(session))
+        self._provider = RagFeedbackRetrievalProvider(build_retrieval_service(session))
 
     async def get_retrieval_context(
         self, task: TaskContext, submission: SubmissionContext

@@ -103,6 +103,7 @@ def mvp_context(
     monkeypatch.setattr(settings, "llm_api_key", None)
     monkeypatch.setattr(settings, "csrf_enabled", True)
     monkeypatch.setattr(settings, "research_enabled", False)
+    monkeypatch.setattr(settings, "rag_upload_dir", str(tmp_path / "material-storage"))
 
     app = create_app()
     material_storage = LocalFileStorage(
@@ -230,6 +231,16 @@ def test_canonical_mvp_learning_loop(
         assert chunks
         chunk_id = chunks[0].id
         assert "Hadamard gate" in chunks[0].chunk_text
+        revision_id = stored_material.current_source_revision_id
+
+    _json(
+        client.post(
+            f"/api/v1/courses/{course['id']}/materials/{material['id']}/revisions/{revision_id}/approvals",
+            headers=educator_headers,
+            json={"state": "APPROVED", "reason": "Synthetic source review for the MVP fixture"},
+        ),
+        201,
+    )
 
     generated_tasks = _json(
         client.post(

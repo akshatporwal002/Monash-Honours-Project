@@ -26,7 +26,8 @@ The worker retains an append-only receipt in `material_scans`, exposed to author
 - Historical source/passage/citation APIs, recorded assessments and task-review history remain readable within their existing authorisation scope. Existing task approval summaries do not retrospectively revoke approval solely because scanner policy changed. New task approval and course publication explicitly rerun the scan gate. Historical extracted text is not a clean-scan claim about the original binary.
 - A receipt is bound to the source revision's original content hash. Scanning replacement bytes never certifies an older passage. Rejection of replacement bytes preserves older approved passages and their exact citations. Changing the policy version requires another scan for new uses.
 - Local demo authentication and source-free demonstration content can still run with the default configuration. Upload processing, source-backed generation and new sourced publication remain closed until the operator provisions a scanner and policy. A successful boot or health check does not certify scanning readiness.
-- Generated API contracts need regeneration after integration: `CourseRevisionRead`, `CourseRestoreRequest`, `MaterialScanRead`, `MaterialRead` and `LearningMaterialRead` changed. Migration 0051 follows 0046 on this isolated branch; integration owns final ordering.
+- Integrated API contracts include `CourseRevisionRead`, `CourseRestoreRequest`, `MaterialScanRead`, `MaterialRead` and `LearningMaterialRead`. Migration 0051 follows 0050 in the integrated migration chain.
+- Runtime vector and lexical retrieval share approved-source, course and scan eligibility. The derived vector cache rebuilds from preserved passages after loss or restore; see [local vector retrieval](local-vector-retrieval.md) for scoring and recovery semantics.
 
 ## Verification limits and test fixtures
 

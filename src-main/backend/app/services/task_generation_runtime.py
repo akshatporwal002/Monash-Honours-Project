@@ -11,7 +11,7 @@ from app.services.llm import (
 from app.services.local_ai import LocalTaskGenerationClient
 from app.services.provider_usage import configured_meter
 from app.services.rag.contracts import TaskGenerationClient
-from app.services.rag.local_retrieval import LocalCourseRetrievalService
+from app.services.rag.runtime import build_retrieval_service
 from app.services.rag.task_generation import GroundedTaskGenerationService
 from app.services.runtime_policy import read_runtime_policy
 
@@ -46,6 +46,6 @@ def build_grounded_task_generation_service(
 ) -> GroundedTaskGenerationService:
     return GroundedTaskGenerationService(
         session,
-        LocalCourseRetrievalService(session),
+        build_retrieval_service(session),
         configured_task_generation_client(session),
     )

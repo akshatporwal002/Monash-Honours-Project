@@ -8,10 +8,8 @@ from app.api.routes.materials import _require_manage, get_actor_id, get_course_a
 from app.api.routes.retrieval import get_retrieval_service
 from app.db.session import get_db_session
 from app.schemas.content import GeneratedTaskRead, GenerateTasksRequest
-from app.services.local_ai import LocalTaskGenerationClient
 from app.services.rag.contracts import CourseAccessPolicy, TaskGenerationClient
 from app.services.rag.errors import RagError
-from app.services.rag.local_retrieval import LocalCourseRetrievalService
 from app.services.rag.task_generation import (
     GenerateTasksInput,
     GroundedTaskGenerationService,
@@ -31,12 +29,6 @@ def get_task_generation_service(
     db: Session = Depends(get_db_session),
     client: TaskGenerationClient = Depends(get_task_generation_client),
 ) -> GroundedTaskGenerationService:
-    if isinstance(client, LocalTaskGenerationClient):
-        return GroundedTaskGenerationService(
-            db,
-            LocalCourseRetrievalService(db),
-            client,
-        )
     return GroundedTaskGenerationService(db, get_retrieval_service(db), client)
 
 

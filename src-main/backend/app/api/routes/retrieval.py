@@ -8,15 +8,16 @@ from app.api.routes.materials import _require_read, get_actor_id, get_course_acc
 from app.db.session import get_db_session
 from app.schemas.content import RetrievalResultRead, RetrievalSearchRequest
 from app.services.rag.contracts import CourseAccessPolicy, RetrievalPurpose, RetrievalQuery
-from app.services.rag.local_retrieval import LocalCourseRetrievalService
+from app.services.rag.errors import RagError
+from app.services.rag.runtime import RetrievalBackend, build_retrieval_service
 
 router = APIRouter(prefix="/courses/{course_id}/retrieval")
 
 
 def get_retrieval_service(
     db: Session = Depends(get_db_session),
-) -> LocalCourseRetrievalService:
-    return LocalCourseRetrievalService(db)
+) -> RetrievalBackend:
+    return build_retrieval_service(db)
 
 
 @router.post("/search", response_model=RetrievalResultRead)
@@ -25,7 +26,7 @@ def search_course_content(
     payload: RetrievalSearchRequest,
     actor_id: str = Depends(get_actor_id),
     policy: CourseAccessPolicy = Depends(get_course_access_policy),
-    service: LocalCourseRetrievalService = Depends(get_retrieval_service),
+    service: RetrievalBackend = Depends(get_retrieval_service),
 ) -> RetrievalResultRead:
     _require_read(policy, actor_id, course_id)
     try:
@@ -42,6 +43,11 @@ def search_course_content(
             ),
             strict=False,
         )
+    except RagError as error:
+        raise HTTPException(
+            status_code=error.http_status,
+            detail={"code": error.code, "message": error.safe_message},
+        ) from error
     except ValueError as error:
         raise HTTPException(
             status_code=422, detail={"code": "invalid_query", "message": str(error)}
