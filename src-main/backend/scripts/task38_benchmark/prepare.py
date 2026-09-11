@@ -52,6 +52,7 @@ def main():
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
     from support.learning_loop import seed_learning_loop
+    from support.material_scanning import synthetic_scanning_scope
 
     from app.core.security import hash_password
     from app.models.lms import Enrollment
@@ -62,7 +63,7 @@ def main():
 
     template = json.loads(FIXTURE.read_text(encoding="utf-8"))
     engine = create_engine(environment["DATABASE_URL"])
-    with Session(engine) as session:
+    with synthetic_scanning_scope(), Session(engine) as session:
         fixture = seed_learning_loop(session)
         rows = [
             {

@@ -500,6 +500,7 @@ def test_participation_and_both_technical_conditions_preserve_formal_history(gov
     )
 
 
+@pytest.mark.usefixtures("synthetic_material_scanning")
 def test_withdrawal_does_not_block_real_operational_adaptation(db_session, monkeypatch):
     from test_activity_continuation import context, run_worker
 
