@@ -311,6 +311,8 @@ def test_task37_accepted_episode_recovers_once_and_restores_all_history(
         "LLM_MODEL": "local-template",
         "LLM_API_BASE_URL": "https://127.0.0.1:1",
         "RESEARCH_ENABLED": "false",
+        "MATERIAL_SCAN_POLICY": "required",
+        "MATERIAL_SCAN_POLICY_VERSION": "synthetic-policy-v1",
         "WORKER_ADAPTER_FACTORY": "app.worker:build_offline_worker_adapters",
         "WORKER_STALE_SECONDS": "30",
         "WORKER_HEARTBEAT_SECONDS": "1",

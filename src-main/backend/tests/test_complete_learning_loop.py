@@ -55,6 +55,8 @@ def test_complete_episode_reaches_checked_feedback_and_model_after_restart(db_se
         "PYTHONPATH": str(backend),
         "LLM_API_KEY": "",
         "RESEARCH_ENABLED": "false",
+        "MATERIAL_SCAN_POLICY": "required",
+        "MATERIAL_SCAN_POLICY_VERSION": "synthetic-policy-v1",
         "LEARNING_EVENT_PSEUDONYM_SECRET": "learning-loop-test-only-pseudonym-secret-32-bytes",
     }
     with (tmp_path / "interrupted-worker.log").open("w", encoding="utf-8") as log:
