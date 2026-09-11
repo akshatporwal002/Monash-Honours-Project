@@ -2,7 +2,7 @@
 
 **12 of 41 tasks still need work; 29 are completed implementations.** Partial tasks count as unfinished. The breakdown remains **29 completed, 11 partial, one remaining** because approved content, external acceptance and final integrated verification still gate those numbered tasks.
 
-Current inspection: 11 September 2026, integrated source `72392d9` plus contract, encoding and formatting corrections in this receipt. The first six deliveries and the follow-up practice representations, submission review cues, bounded multipart generation and lossless assessor editor are integrated. **Final CI validation is pending.** Scoped owner receipts do not constitute a completed combined suite, hosted deployment or actual approval.
+Current inspection: 11 September 2026. The second implementation wave adds source-led generation and generated support, full task-category review, assessment alignment, reviewed learner interpretations, governed study release/disposal, evaluator release/import and approved-source vector retrieval. **Final combined CI is pending. Populated-dashboard load remediation and combined verification remain active software work.** Scoped owner receipts do not constitute a completed combined suite, hosted deployment or actual approval.
 
 Historical receipts remain valid only for their dated source. The earlier `6d20416` integration accounted for 1,607 backend cases across recorded runs, 88.93% service coverage, 319 frontend tests and 132 browser checks; the interrupted full rerun was not a passing run. Earlier `4fe8bb8`/`ece4bed` receipts reported 1,475 backend, 306 frontend and 132 browser checks. Neither set certifies the new six-delivery source. See the [dated integration receipt](docs/learnlens/next-wave-integration-verification-2026-09-10.md).
 
@@ -23,11 +23,13 @@ Completed numbered scope does not waive broader requirement clauses. The [curren
 - **Study:** participant/researcher pages, allocation, redacted packets, ratings/outcomes, full-study export and exact operational snapshots with current authority/redaction/source checks. [Operational receipt](docs/learnlens/task-34-operational-evidence.md) accounts for 101 distinct affected backend and 14 frontend cases across overlapping runs. Technical-v2 and closed production research remain unchanged.
 - **Learner:** explicit assessed start, typed matching/sequencing with opaque IDs, canonical choice writes without invented options, reviewed support representations with frozen intensity, and uncertain tutor review cues. [Delivery and focused evidence](docs/learnlens/learner-typed-support-delivery.md). Historical answers/support evidence remain unchanged; no handler match becomes a formal result.
 
-The integrated migration graph/readiness pin is `20260911_0051`. The [integration receipt](docs/learnlens/integration-verification-2026-09-11.md) separates the first batch's 139 distinct backend and 32 frontend cases from follow-up verification. It does not treat overlapping focused runs as a full suite. CI runs the complete backend and frontend/browser gates on the final pushed source; migrations run once within the backend suite.
+The integrated migration graph/readiness pin is `20260911_0055`; its complete upgrade, metadata alignment and protected-history check passed on the combined source. The [integration receipt](docs/learnlens/integration-verification-2026-09-11.md) separates the first batch's 139 distinct backend and 32 frontend cases from follow-up verification. It does not treat overlapping focused runs as a full suite. CI runs the complete backend and frontend/browser gates on the final pushed source; migrations run once within the backend suite.
 
 ## Concrete work left
 
-The three learner follow-ups now supply **FR8 one source-anchored Hadamard multipart family and draft bridge**, **FR35 reviewed formative representations and preference variants**, and **PD6 bounded submission/code and retained-dialogue review cues**. Remaining software scope includes generalized source interpretation, additional generated families/variants, standalone episode-type generation, feedback-conditioned regeneration and generated support representations. PD4's remaining standalone forms stay explicitly staged. Broader validity, accessibility and release acceptance still require the records below.
+Source-led basic and multipart generation now supports the required core types, reviewed current-task variants and actual accepted-feedback conditioning. Initial generation attaches source-grounded support drafts and freezes their source references before review. PD4 explicitly permits the five remaining extension contracts to stay staged. Complete ten-dimension review is enforced for new generated task/support approvals and assessor imports; live generated feedback now requires the same complete findings bound to its exact candidate/context before release and persistence, with immutable receipts. Historical reads remain supported.
+
+Active software work is the populated-dashboard performance target and representative local campaign, plus final combined verification/traceability. Approved data-plan choices may additionally require class-specific disposal beyond the delivered restricted instrument text; protected learning and assessment histories cannot be deleted by assumption.
 
 | Task | What still needs to be done | Main dependency |
 | --- | --- | --- |
@@ -37,9 +39,9 @@ The three learner follow-ups now supply **FR8 one source-anchored Hadamard multi
 | 33 | Evidence actual consent/grants/retention and approved activation/disposal rules in the release environment. | Approved study and privacy records |
 | 34 | Supply approved instrument/rubric/redaction content and reconcile actual participant stages through the delivered workflows/export. | Approved protocol/content and named researchers |
 | 35 | Obtain expert-approved cases, actual outputs/ratings, agreement/fairness/error measurements and signed revalidation/release evidence. | Independent experts and approved models/sources |
-| 36 | Complete combined checks for final source, contracts, schema and fingerprints; reconcile traceability and suppression/exclusion evidence. | Integrated source and review |
+| 36 | Complete the final combined CI, refreshed fingerprints and traceability after the active fixes. Contracts and migration head 0055 are aligned. | Integrated source and review |
 | 37 | Verify changed-schema recovery/restore and actual approved hosted/provider/security/rollback drills. | Final package and approved environment |
-| 38 | Run approved representative 50-user/scaling and actual complete-loop cost campaign; reconcile failed/retried calls and bills through the delivered ledger. | Provider/model/rates/budget approval and invoices |
+| 38 | Fix measured populated-dashboard load failures, rerun the local 50-user campaign, then obtain approved hosted/scaling and actual billed complete-loop cost evidence. | Active software remediation; approved provider/rates/budget and invoices |
 | 39 | Complete current combined browser checks and named native Safari, screen-reader, zoom/contrast and first-time usability trials. | Final package and human testers |
 | 40 | Verify full approved second-domain reuse independently and measure contributor effort against 16 hours. | Approved module and independent verifier |
 | 41 | Execute approved hosted package, TLS/storage/worker, backup/rollback and availability validation; obtain release handoff. | Tasks 1–40 and release authority |
@@ -110,7 +112,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 7. **[Completed] Start the durable worker and check actual readiness.**
 
-    The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. The integrated readiness pin now matches head 0051. Earlier local readiness/recovery receipts retain their dated scope; final combined verification and the approved operational/hosted drill remain Tasks 36/37/41 work.
+    The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. The integrated readiness pin now matches head 0055. Earlier local readiness/recovery receipts retain their dated scope; final combined verification and the approved operational/hosted drill remain Tasks 36/37/41 work.
 
     Dependencies: none for local template mode. Suggested owner: platform.
 
@@ -180,7 +182,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 14. **[Completed] Complete the learning episode inside the task workspace.**
 
-    Typed prediction, reasoning, code/circuit, revision, reflection and transfer retain drafts/submission/history. Matching/sequencing now have typed definitions, opaque generated IDs and exact response/evaluator contracts; choices validate canonical declared IDs without fallback content. Reviewed representations retain frozen support intensity and unaided-transfer separation. FR8 generated multipart/assessed candidates and FR35 formative variants remain broader software work.
+    Typed prediction, reasoning, code/circuit, revision, reflection and transfer retain drafts/submission/history. Matching/sequencing have typed definitions, opaque generated IDs and exact response/evaluator contracts; choices validate canonical declared IDs without fallback content. One source-anchored Hadamard multipart family now creates five-criterion assessment drafts, and reviewed formative variants preserve course-wide unaided-transfer restrictions. Generalized generation, additional families and generated support remain broader work.
 
     Dependencies: Tasks 11 and 13; Task 8, D-04 and D-05, for approved assessed stages. Suggested owner: task engine and frontend.
 
@@ -240,7 +242,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 20. **[Completed] Add learner preferences and control over non-essential support.**
 
-    Learner preferences and control over non-essential support are delivered. Reviewed assessed-stage representations are selectable, but ordinary formative delivery and actual format/detail/on-request preference binding remain the scoped FR35 extension. Preserve access support, required evidence and learner override.
+    Learner preferences and control over non-essential support are delivered. Reviewed assessed-stage and formative representations support actual format/detail/on-request preferences, explicit learner override and immutable delivery evidence. Course-wide transfer restrictions preserve approved access-only alternatives. Generated representations and broader equivalence/acceptance evidence remain due.
 
     Dependencies: Tasks 14 and 17; Task 8, D-05, for assessed conditions. Suggested owner: learner experience.
 
@@ -270,7 +272,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 23. **[Completed] Add tutor dialogue and a controlled sequence of hints.**
 
-    Grounded tutor dialogue and reviewed support survive reload and stop instructional help during separate unaided transfer. Recent answer-only/copied-solution language now creates uncertain, deduplicated human-review cues and reasoning redirects with no penalty. Broader submitted answer/code and spaced-dialogue producers remain the PD6 software package; no plagiarism verdict is implied.
+    Grounded tutor dialogue and reviewed support survive reload and stop instructional help during separate unaided transfer. Bounded retained dialogue and submitted answer/code/episode evidence create uncertain, deduplicated human-review cues and reasoning redirects with no penalty. Frozen scaffolding is excluded; stored responses and formal decisions are unchanged. Staff response and effectiveness require actual acceptance evidence; no plagiarism verdict is implied.
 
     Dependencies: Tasks 16, 17, 18, and 20. Suggested owner: teaching services and task workspace.
 
@@ -370,7 +372,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 33. **[Partial] Enforce research permission, consent, and governed exports.**
 
-    Append-only scopes/approvals, consent/refusal/withdrawal, eligibility, study/course/field grants, retention holds and governed technical-v2 processing/export are delivered. New study and operational capture/export recheck their separate purposes/permissions and retain the closed production gate. Actual approvals/activation, disposal policy and release-environment validation remain due.
+    Append-only scopes/approvals, consent/refusal/withdrawal, eligibility, study/course/field grants, retention holds and governed technical-v2 processing/export are delivered. Study and operational capture/export recheck their separate purposes/permissions. Exact approved study-release receipts can enable governed use after deployment opt-in; no actual study has been enabled. Authorized restricted instrument text disposal is implemented with immutable receipts and restore exclusion. Actual approvals, record-class schedules and release-environment validation remain due; other deletion classes may require implementation after the approved plan resolves protected-history obligations.
 
     Dependencies: Tasks 5, 9, 17, 18, 22, 24, and 32; Task 8, D-03 and D-08. Suggested owner: research backend and privacy.
 
@@ -380,7 +382,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 34. **[Partial] Build and verify the learning-study instruments and records.**
 
-    Versioned instruments now have learner/researcher UI, self responses, missingness/attrition/deviation, allocation, redacted blinded packets, ratings/outcomes and dedicated full-study CSV/JSON export. Operational snapshots add exact consented response/stage evidence and source/redaction/authority revalidation during streaming. Approved instrument/rubric/redaction content, real participant reconciliation and activation remain due; technical-v2 is unchanged. See [study workflows](docs/learnlens/task-34-study-workflows.md) and [operational evidence](docs/learnlens/task-34-operational-evidence.md).
+    Versioned instruments now have learner/researcher UI, self responses, missingness/attrition/deviation, allocation, redacted blinded packets, ratings/outcomes and dedicated full-study CSV/JSON export. Operational snapshots add exact consented response/stage evidence and source/redaction/authority revalidation during streaming. A pseudonymous stage reconciliation workflow now distinguishes missing, recorded and ambiguous evidence without inventing outcomes. Approved instrument/rubric/redaction content, actual participant records and activation remain due; technical-v2 is unchanged. See [study workflows](docs/learnlens/task-34-study-workflows.md) and [operational evidence](docs/learnlens/task-34-operational-evidence.md).
 
     Dependencies: Tasks 25, 29, 32, and 33. Suggested owner: research and analytics.
 
@@ -390,7 +392,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 35. **[Partial] Validate quantum content, feedback, and assessment against expert judgements.**
 
-    Offline tooling retains 108 DRAFT probes with zero approved cases, expert ratings or recorded system outputs. Earlier numerical/tooling receipts are dated synthetic evidence; integrated source changes require fingerprint refresh. Live moderation and validation/invalidation ledgers now exist. Actual outputs, expert agreement/fairness/error measurements, approved sampling/training, revalidation and signed D-07 release remain due; advisory AI activation remains separate and closed.
+    Offline tooling retains 108 DRAFT probes with zero approved cases, expert ratings or recorded system outputs. Earlier numerical/tooling receipts are dated synthetic evidence; integrated source changes require fingerprint refresh. Live moderation, signed evaluator validation/release, exact-output imports and ten-dimension human quality review now exist. Selected moderation attempts withhold AI suggestions before independent original/second review; no historic exposure is retrospectively certified as blind. Actual outputs, expert agreement/fairness/error measurements, approved sampling/training, revalidation and signed D-07 release remain due; advisory AI activation remains separate and closed.
 
     Dependencies: Tasks 11, 15, 16, 23, and 25; Task 8, D-07 and D-12. Suggested owner: assessors and evaluation reviewers.
 
@@ -400,7 +402,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 36. **[Partial] Refresh traceability and run the complete automated checks.**
 
-    The baseline and current matrix cover all 143 requirements. Six deliveries and scoped owner receipts are reconciled; final combined checks, contracts/schema, dependency/security/coverage evidence and validation fingerprints are pending. Historical 1,607/319/132 counts do not certify this source. Actual Task 34 acceptance and broader requirement gaps keep the task partial.
+    The baseline and current matrix cover all 143 requirements. First and follow-up deliveries are reconciled; contracts, schema alignment and draft validation fingerprints have been refreshed. CI dependency and secret audits passed at `262f2f6`; that application run failed with 1,775 backend passes, 19 failures and one error, plus 357 frontend passes and 12 failures. The identified fixture failures are repaired; final-source combined CI remains due. Historical 1,607/319/132 counts do not certify this source. Current active software fixes and final integration evidence keep this task partial; actual human acceptance is recorded separately.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
 
@@ -420,7 +422,7 @@ Dependencies and acceptance conditions are retained below; current descriptions 
 
 38. **[Partial] Measure load, provider cost, and runtime configuration changes.**
 
-    Durable shared-budget reservation, dispatch fencing, failed/ambiguous exposure, frozen pricing and nullable actual-billing reconciliation are implemented alongside administrator timeout/retry controls and benchmark tooling. The 65-case budget owner receipt is scoped synthetic evidence. Approved provider/model/pricing/framing/budget records, invoices, representative 50-user latency, 5–100 scaling and actual <=AUD 0.10 per human-confirmed complete loop remain due. See [durable metering](docs/learnlens/task-38-durable-metering.md).
+    Durable shared-budget reservation, dispatch fencing, failed/ambiguous exposure, frozen pricing and nullable actual-billing reconciliation are implemented alongside administrator timeout/retry controls and benchmark tooling. The 65-case budget owner receipt is scoped synthetic evidence. Local 50-user runs exposed request/pool and populated-dashboard bottlenecks. Pooling and query amplification are corrected (748 to 93 queries), but isolated dashboard p95 remains 2.875 seconds; the combined full campaign and any remaining target remediation are due. Failed receipts remain in the [capacity record](docs/learnlens/task-38-local-capacity-20260911.md). Approved provider/model/pricing/framing/budget records, invoices, representative 50-user latency, 5–100 scaling and actual <=AUD 0.10 per human-confirmed complete loop remain due. See [durable metering](docs/learnlens/task-38-durable-metering.md).
 
     Dependencies: Tasks 25, 35, 36, and 37; Task 8, D-12. Suggested owner: platform and operations.
 

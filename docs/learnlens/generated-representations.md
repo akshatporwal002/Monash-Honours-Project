@@ -18,13 +18,13 @@ The episode support UI uses format and explanation-detail preferences to select 
 
 ## Integration boundaries
 
-The task review route and UI provide a complete generate, save-draft, review and delivery path. Initial task-generation attachment is a separate integration hook for the generation owner:
+The task review route and UI provide a complete generate, save-draft, review and delivery path. Initial task generation now uses the same hooks before immutable revision capture:
 
 - Call `attach_generated_task_representations(output, sources, provider=..., model=...)` before final generated-task validation. It copies the task, builds missing candidates locally, validates supplied candidates, and supports basic tasks and multipart plans.
 - Call `bind_task_representation_sources(criteria, mapping)` when retrieval chunk IDs become stored source-passage IDs. It copies and remaps installed alternatives, candidate quotations and the duplicate multipart plan together.
 - Optional configured-model candidates use `representation_candidates` and `transfer_access_candidates` inside marking criteria; their provider/model identity is required. Missing candidates are recorded with the local builder's identity.
 
-These hooks are tested but not yet called by the shared initial generation entry points in this branch. The generation owner retains those files. Combined OpenAPI contracts and quality-review integration remain the coordinator's responsibility. This change adds no migration.
+The combined entry point calls both hooks. Two focused formative/multipart lifecycle checks passed after integration, including frozen source quotes, matching installed content and access-only transfer. Generated contracts are refreshed and retained generation markers require category-quality review after authored edits. This change adds no migration.
 
 The narrow TaskReviewPanel mounts and task-review source/circuit validation additions predate the coordinator's reservation of those files for category-quality review. Preserve those additions when merging that review work; this branch does not implement or bypass category-quality decisions.
 
