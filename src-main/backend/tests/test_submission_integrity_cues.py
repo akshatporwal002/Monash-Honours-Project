@@ -4,14 +4,17 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from support.assessment import assign_assessor
 from support.task_review import approve_sourced_fixture_task
 from test_task14_lifecycle import complete, setup_episode
+from test_task15_migrated_review import migrated  # noqa: F401
 from test_tutor import send
 from test_typed_practice_feedback import practice, run_worker
 
 from app.models.assessment import AssessmentAttempt, AssessmentDecision
+from app.models.enums import TaskType
 from app.models.escalation import EscalationCase
 from app.models.learning_evidence import EvidenceArtifact, LearningEvidence
 from app.models.lms import Course, SubmissionAttempt
@@ -19,6 +22,7 @@ from app.models.persistence import FeedbackRecord
 from app.models.source_history import SourcePassage
 from app.models.tutor import TutorTurn
 from app.models.user import User
+from app.schemas.episode import EpisodePlanV1
 from app.schemas.lms import SubmissionCreate
 from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
 from app.services.escalation import EscalationService
@@ -138,7 +142,15 @@ def test_history_is_bounded_by_context_time_and_count(db_session):
     assert [row.id for row in found] == [row.id for row in reversed(valid[-HISTORY_LIMIT:])]
 
 
-def test_formal_submission_code_and_episode_cues_preserve_response_and_assessment(db_session):
+@pytest.mark.parametrize("database", ["metadata", "migrated"])
+def test_formal_submission_code_and_episode_cues_preserve_response_and_assessment(
+    request, database
+):
+    db_session = (
+        request.getfixturevalue("migrated")[0]
+        if database == "migrated"
+        else request.getfixturevalue("db_session")
+    )
     lms, student, task, started = setup_episode(db_session)
     payload = complete(lms, student, task, started)
     episode = payload.episode.model_dump(mode="json")
@@ -207,6 +219,16 @@ def test_formal_submission_code_and_episode_cues_preserve_response_and_assessmen
     )
     with pytest.raises((ScopedRoleAccessDeniedError, LmsServiceError)):
         EscalationService(db_session).evidence(student, case.id)
+    if database == "migrated":
+        with pytest.raises(IntegrityError, match="immutable|append.only"):
+            db_session.execute(
+                text("UPDATE evidence_artifacts SET content='changed' WHERE id=:id"),
+                {"id": artifact_id(response.id)},
+            )
+        db_session.rollback()
+        assert retained_submission_cue(db_session, response) == cue
+        assert attempt.state.value == "PENDING" and attempt.fault_reason is None
+        assert db_session.scalar(select(AssessmentDecision)) is None
 
 
 def test_practice_exact_source_links_are_frozen_and_routed_at_terminal(db_session, monkeypatch):
@@ -273,6 +295,119 @@ def test_ordinary_practice_response_has_no_cue_or_redirect(db_session):
     assert REDIRECT not in receipt.feedback
     assert db_session.get(EvidenceArtifact, artifact_id(receipt.id)) is None
     assert db_session.scalar(select(EscalationCase)) is None
+
+
+def test_valid_long_multiple_choice_id_is_not_interpreted_as_learner_prose(db_session):
+    lms, student, task, _ = practice(db_session)
+    option_id = "I copied this solution. " + LONG_TEXT
+    task.task_type = TaskType.MULTIPLE_CHOICE
+    task.expected_answer = option_id
+    task.marking_criteria = {
+        "choices": [
+            {"id": option_id, "text": "First declared option"},
+            {"id": "alternative", "text": "Second declared option"},
+        ]
+    }
+    db_session.commit()
+    approve_sourced_fixture_task(db_session, task, source_text=LONG_TEXT)
+    command = SubmissionCreate(answer=option_id, idempotency_key="long-choice-id")
+    receipt = lms.submit(student, task.id, command)
+    assert receipt.answer == option_id
+    assert lms.submit(student, task.id, command).id == receipt.id
+    assert REDIRECT not in receipt.feedback
+    assert db_session.get(EvidenceArtifact, artifact_id(receipt.id)) is None
+    assert db_session.scalar(select(EscalationCase)) is None
+
+
+def test_frozen_transfer_templates_are_excluded_without_hiding_extra_copy(db_session, monkeypatch):
+    import test_task14_lifecycle as lifecycle
+
+    starter = "# " + LONG_TEXT
+    instructions = (
+        "Before completing this fresh application, inspect the supplied initial state and "
+        "the listed operations carefully. Record the prediction, explain the reasoning "
+        "behind the expected measurement, and describe how the observation would change "
+        "when the starting state differs from this example."
+    )
+    unprovided = (
+        "The measurement probabilities follow from the squared magnitudes of the final "
+        "amplitudes. Interference between the two computational paths changes those "
+        "amplitudes according to their relative phases, which means the intermediate "
+        "phase relationships must be retained until all operations have been applied."
+    )
+
+    def fixture_plan(**values):
+        return EpisodePlanV1(
+            **{
+                **values,
+                "transfer": {
+                    **values["transfer"],
+                    "starter_code": starter,
+                    "instructions": instructions,
+                },
+            }
+        )
+
+    # Configure the synthetic authoring fixture before its normal review/freeze/start.
+    monkeypatch.setattr(lifecycle, "EpisodePlanV1", fixture_plan)
+    monkeypatch.setattr(
+        lifecycle,
+        "approve_fixture_task",
+        lambda session, task: approve_sourced_fixture_task(
+            session, task, source_text="\n\n".join((starter, instructions, unprovided))
+        ),
+    )
+    lms, student, task, started = setup_episode(db_session)
+    payload = complete(lms, student, task, started)
+    episode = payload.episode.model_dump(mode="json")
+    episode["transfer"]["content"]["code"] = starter + "\nh(0)  # my completion"
+    episode["transfer"]["process"]["reasoning"] = instructions + " I predict equal probabilities."
+    command = SubmissionCreate(
+        **{
+            **payload.model_dump(),
+            "episode": episode,
+            "idempotency_key": "provided-transfer-template",
+        }
+    )
+    receipt = lms.submit(student, task.id, command)
+    assert db_session.get(EvidenceArtifact, artifact_id(receipt.id)) is None
+    assert db_session.scalar(select(EscalationCase)) is None
+
+    episode["transfer"]["content"]["code"] += "\n# " + unprovided
+    copied = lms.submit(
+        student,
+        task.id,
+        SubmissionCreate(
+            **{
+                **payload.model_dump(),
+                "episode": episode,
+                "idempotency_key": "extra-transfer-copy",
+            }
+        ),
+    )
+    response = db_session.get(SubmissionAttempt, copied.id)
+    cue = retained_submission_cue(db_session, response)
+    assert cue["signals"] == ["SUBSTANTIAL_EXACT_REUSE"]
+    match = cue["matches"][0]
+    assert match["field"] == "episode.transfer.content.code"
+    code = episode["transfer"]["content"]["code"]
+    assert code[match["start"] : match["end"]] in unprovided
+
+    # A transfer template is not an exclusion for an independently supplied earlier answer.
+    episode["supported"]["reasoning"] = starter
+    earlier = lms.submit(
+        student,
+        task.id,
+        SubmissionCreate(
+            **{
+                **payload.model_dump(),
+                "episode": episode,
+                "idempotency_key": "earlier-stage-copy",
+            }
+        ),
+    )
+    cue = retained_submission_cue(db_session, db_session.get(SubmissionAttempt, earlier.id))
+    assert "episode.supported.reasoning" in {match["field"] for match in cue["matches"]}
 
 
 def test_submission_links_exact_tutor_reply_and_excludes_other_revision(db_session):

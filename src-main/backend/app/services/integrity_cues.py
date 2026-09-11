@@ -10,7 +10,7 @@ from sqlalchemy import select
 
 from app.models.assessment import AssessmentAttempt, TaskApproval, TaskFormVersion
 from app.models.assessment_work import AssessmentWorkStart
-from app.models.enums import FeedbackStatus
+from app.models.enums import FeedbackStatus, TaskType
 from app.models.escalation import EscalationCase
 from app.models.learning_evidence import EvidenceArtifact
 from app.models.lms import SubmissionAttempt
@@ -27,7 +27,16 @@ SOURCE_LIMIT = 12
 MATCH_LIMIT = 20
 COPY_WORDS = 30
 COPY_CHARS = 160
-RECONSTRUCTION_TYPES = {"matching", "sequencing", "mcq", "multiple_answer", "quiz"}
+RECONSTRUCTION_TYPES = {
+    task_type.value
+    for task_type in (
+        TaskType.MATCHING,
+        TaskType.SEQUENCING,
+        TaskType.MULTIPLE_CHOICE,
+        TaskType.MULTIPLE_ANSWER,
+        TaskType.QUIZ,
+    )
+}
 REDIRECT = "Explain one step in your own reasoning or make a prediction for a fresh example."
 COPIED_SOLUTION = re.compile(
     r"\bI (?:copied|pasted) (?:this|the|a) (?:answer|solution|code)\b|"
@@ -190,6 +199,18 @@ def artifact_id(response_id):
     return str(uuid5(NAMESPACE_URL, f"learnlens.integrity-cue:{response_id}"))
 
 
+def _transfer_exclusions(form, field):
+    """Only the transfer form actually supplied for this frozen work is applicable."""
+    if not form or not field.startswith("episode.transfer."):
+        return []
+    plan = (form.constraints or {}).get("episode_plan") or {}
+    transfer = plan.get("transfer") or {}
+    exclusions = [transfer.get(key) or "" for key in ("prompt", "instructions")]
+    if field.endswith(".code"):
+        exclusions.append(transfer.get("starter_code") or "")
+    return exclusions
+
+
 def retained_submission_cue(session, response):
     artifact = session.get(EvidenceArtifact, artifact_id(response.id))
     if artifact and artifact.learner_id == response.student_id:
@@ -288,7 +309,7 @@ def capture_submission_cue(session, task, response):
             for source, text in sources:
                 if len(matches) >= MATCH_LIMIT:
                     break
-                match = _overlap(value, text, exclusions)
+                match = _overlap(value, text, exclusions + _transfer_exclusions(form, field))
                 if match:
                     matches.append(
                         {
