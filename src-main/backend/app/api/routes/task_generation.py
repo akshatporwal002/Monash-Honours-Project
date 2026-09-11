@@ -59,6 +59,7 @@ async def generate_tasks(
                 task_count=payload.task_count,
                 allowed_task_types=tuple(payload.allowed_task_types),
                 difficulty_levels=tuple(payload.difficulty_levels),
+                generation_mode=payload.generation_mode,
             )
         )
     except RagError as error:

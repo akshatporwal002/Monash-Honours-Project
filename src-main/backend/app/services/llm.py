@@ -257,9 +257,18 @@ structured_task_contracts. Include source_references on every item. expected_ans
 is a JSON string of the matching-response pairs or sequencing-response order.
 Never invent a fallback answer key or substitute a different task type.
 Every marking_criteria must include generation_design matching generated_design_contract.
-Declare formative purpose, difficulty basis, intended evidence, expected features,
+Declare formative purpose for basic tasks, difficulty basis, intended evidence, expected features,
 permitted tools, instructional support, access modes, equivalent formats and rubric
 version. These are drafts for educator review; never claim formal assessment approval.
+When generation_mode is multipart, use multipart_candidate_contract inside
+marking_criteria.multipart_candidate and an identical executable episode_plan.
+Only the specified Hadamard basis-transfer circuit family is supported: the source
+must contain the exact required basis-transformation statement. Include all five
+stage criteria and their source anchors. Keep formal eligibility false, human
+evaluators, unverified access, and no task forms. Never invent learner response,
+checkpoint, simulation, stage or approval IDs. Fail rather than substitute content.
+For multipart tasks, generation_design.assessment_purpose must match the proposed
+assessment_design.purpose; that purpose is a proposal, not an approval.
 """
 
     def __init__(self, client: ResponsesStructuredLlmClient) -> None:

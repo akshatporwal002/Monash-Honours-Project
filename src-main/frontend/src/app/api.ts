@@ -502,6 +502,10 @@ export const api = {
     logout: () => request<void>('/auth/logout', { method: 'POST' }),
   },
   assessment: {
+    generatedDraft: (courseId: string, taskId: string, revisionId: string) =>
+      request<ApiSchemas['AssessmentDefinitionDraftCreate']>(`/assessment/courses/${encodeURIComponent(courseId)}/tasks/${encodeURIComponent(taskId)}/generated-assessment-draft?expected_revision_id=${encodeURIComponent(revisionId)}`),
+    saveGeneratedDraft: (courseId: string, taskId: string, revisionId: string) =>
+      request<ApiSchemas['AssessmentDefinitionRead']>(`/assessment/courses/${encodeURIComponent(courseId)}/tasks/${encodeURIComponent(taskId)}/generated-assessment-draft?expected_revision_id=${encodeURIComponent(revisionId)}`, { method: 'POST' }),
     authoringTasks: (courseId: string, offset = 0) =>
       request<ApiSchemas['AssessmentAuthoringTaskRead'][]>(`/assessment/courses/${encodeURIComponent(courseId)}/authoring-tasks?limit=20&offset=${offset}`),
     createDefinition: (
@@ -786,13 +790,14 @@ export const api = {
       (await request<RawMaterial[]>(`/courses/${encodeURIComponent(courseId)}/materials/list`)).map(normalizeMaterial),
     generateTasks: async (
       courseId: string,
-      payload: { module_id: string; learning_outcome_ids: string[]; count: number; task_types?: string[] },
+      payload: { module_id: string; learning_outcome_ids: string[]; count: number; task_types?: string[]; generation_mode?: 'basic' | 'multipart' },
     ): Promise<GeneratedTaskPreview[]> => {
       const tasks = await request<RawTask[]>(
         `/courses/${encodeURIComponent(courseId)}/generate-tasks`,
         json('POST', {
           learning_outcome_id: payload.learning_outcome_ids[0],
-          task_count: Math.max(3, payload.count),
+          task_count: payload.generation_mode === 'multipart' ? 1 : Math.max(3, payload.count),
+          ...(payload.generation_mode ? { generation_mode: payload.generation_mode } : {}),
           task_types: payload.task_types ?? ['multiple_choice', 'code_explanation', 'quantum_circuit'],
         }),
       )

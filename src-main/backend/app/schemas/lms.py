@@ -347,6 +347,7 @@ class AssessmentSourceMaterialRead(LmsSchema):
 
 
 class AssessmentAuthoringTaskRead(LmsSchema):
+    generated_assessment_candidate: bool = False
     task_id: str
     title: str
     task_type: str
@@ -470,8 +471,9 @@ class TaskUpdate(LmsSchema):
 
 
 class TaskGenerateRequest(LmsSchema):
+    generation_mode: Literal["basic", "multipart"] = "basic"
     learning_outcome_id: UuidString
-    task_count: Annotated[int, Field(ge=3, le=6)] = 6
+    task_count: Annotated[int, Field(ge=1, le=6)] = 6
     task_types: list[TaskType] = Field(
         default_factory=lambda: [
             TaskType.MULTIPLE_CHOICE,
@@ -483,6 +485,17 @@ class TaskGenerateRequest(LmsSchema):
         ]
     )
     due_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def bounded_generation_mode(self):
+        if self.generation_mode == "multipart":
+            if self.task_count != 1 or self.task_types != [TaskType.QUANTUM_CIRCUIT]:
+                raise ValueError(
+                    "Multipart generation currently supports one circuit episode at a time"
+                )
+        elif self.task_count < 3:
+            raise ValueError("Basic generation requires three to six tasks")
+        return self
 
     @field_validator("task_types")
     @classmethod

@@ -48,6 +48,7 @@ class GenerateTasksInput:
     task_count: int
     allowed_task_types: tuple[TaskType, ...]
     difficulty_levels: tuple[str, ...]
+    generation_mode: str = "basic"
 
 
 class GroundedTaskGenerationService:
@@ -67,6 +68,19 @@ class GroundedTaskGenerationService:
         if self.client is None:
             raise TaskGenerationProviderUnavailableError()
         module_id, module_title = self._validated_scope(request)
+        if request.generation_mode not in {"basic", "multipart"}:
+            raise ValueError("Unsupported generation mode")
+        if request.generation_mode == "multipart" and (
+            request.task_count != 1 or request.allowed_task_types != (TaskType.QUANTUM_CIRCUIT,)
+        ):
+            raise ValueError("Multipart generation supports one circuit episode at a time")
+        from app.schemas.multipart_generation import MultipartCandidate
+
+        prompt_version = (
+            "task-generation-multipart-v1"
+            if request.generation_mode == "multipart"
+            else self.prompt_version
+        )
         result = self.retrieval.search(
             RetrievalQuery(
                 course_id=request.course_id,
@@ -90,7 +104,7 @@ class GroundedTaskGenerationService:
             raise NoRelevantCourseContentError()
         response = await self.client.generate_structured(
             TaskGenerationRequest(
-                self.prompt_version,
+                prompt_version,
                 {
                     "course_id": request.course_id,
                     "module_id": module_id,
@@ -99,6 +113,10 @@ class GroundedTaskGenerationService:
                     "task_count": request.task_count,
                     "allowed_task_types": [item.value for item in request.allowed_task_types],
                     "difficulty_levels": list(request.difficulty_levels),
+                    "generation_mode": request.generation_mode,
+                    "multipart_candidate_contract": MultipartCandidate.model_json_schema()
+                    if request.generation_mode == "multipart"
+                    else None,
                     "generated_design_contract": GeneratedTaskDesign.model_json_schema(),
                     "structured_task_contracts": DEFINITION.json_schema(),
                     "sources": [
@@ -154,7 +172,24 @@ class GroundedTaskGenerationService:
                 starter_code = scaffold.starter_code
             if not expected_answer and not criteria:
                 raise ValueError("task generation response failed marking validation")
-            GeneratedTaskDesign.model_validate(criteria.get("generation_design"))
+            design = GeneratedTaskDesign.model_validate(criteria.get("generation_design"))
+            if request.generation_mode == "basic" and design.assessment_purpose != "FORMATIVE":
+                raise ValueError(
+                    "Basic generation remains formative; use the multipart design bridge for assessed candidates"
+                )
+            if request.generation_mode == "multipart" or "multipart_candidate" in criteria:
+                from app.services.multipart_generation import validate_multipart
+
+                validate_multipart(
+                    criteria,
+                    str(task_type),
+                    {
+                        hit.chunk_id: hit.chunk_text
+                        for hit in result.hits
+                        if hit.chunk_id in source_ids
+                    },
+                )
+                expected_answer = None
             structured = definition_for(str(task_type), criteria, source_ids)
             if structured:
                 if not expected_answer:
@@ -184,7 +219,7 @@ class GroundedTaskGenerationService:
                 prerequisite_task_ids=[previous_id] if previous_id else [],
                 generation_provider=response.provider,
                 generation_model=response.model,
-                generation_prompt_version=self.prompt_version,
+                generation_prompt_version=prompt_version,
                 generation_input_tokens=response.input_tokens,
                 generation_output_tokens=response.output_tokens,
                 generation_total_tokens=response.input_tokens + response.output_tokens,
@@ -215,6 +250,19 @@ class GroundedTaskGenerationService:
                         item["source_references"] = [
                             mapping[ref] for ref in item["source_references"]
                         ]
+                task.marking_criteria = criteria
+            if "multipart_candidate" in task.marking_criteria:
+                from copy import deepcopy
+
+                criteria = deepcopy(task.marking_criteria)
+                mapping = dict(zip(original_sources, task.source_references, strict=True))
+                candidate = criteria["multipart_candidate"]
+                for anchor in candidate["source_anchors"]:
+                    anchor["source_reference"] = mapping[anchor["source_reference"]]
+                candidate["criterion_sources"] = {
+                    key: [mapping[ref] for ref in refs]
+                    for key, refs in candidate["criterion_sources"].items()
+                }
                 task.marking_criteria = criteria
             TaskReviewService(self.session).capture(task)
         if commit:
