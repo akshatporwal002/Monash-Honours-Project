@@ -244,6 +244,10 @@ class AssessmentReviewService:
         if request.expected_review_revision < 0:
             raise AssessmentReviewValidationError("review revision is invalid")
         decision = self._visible_decision(actor, decision_id)
+        from app.services.assessment.moderation import ModerationService
+
+        ModerationService(self.session).lock(decision.assessment_attempt.course_id)
+        self.session.refresh(decision)
         reviews = self._reviews(decision.id)
         current_revision = reviews[-1].review_revision if reviews else 0
         if request.expected_review_revision != current_revision:
@@ -272,6 +276,10 @@ class AssessmentReviewService:
                     "Record missing criterion decisions through human assessment first."
                 )
         self._validate_action(decision, request)
+        if request.action in {AssessorReviewAction.CONFIRM, AssessorReviewAction.OVERRIDE}:
+            ModerationService(self.session).require_ready(
+                actor, decision.assessment_attempt, self._new_result(decision, request)
+            )
         reviewed_at = self._utc(self._now())
         review = AssessorReview(
             assessment_decision_id=decision.id,
@@ -599,6 +607,9 @@ class AssessmentReviewService:
     def confirm_calculated_result(self, actor, decision, result, reason):
         """Append a reviewed calculated result within the caller's locked transaction."""
         self.assignments.require_assessor_access(actor, decision.assessment_attempt.course_id)
+        from app.services.assessment.moderation import ModerationService
+
+        ModerationService(self.session).require_ready(actor, decision.assessment_attempt, result)
         if decision.result_state is ResultState.VOID:
             raise AssessmentReviewConflictError("A void decision cannot be finalised")
         if decision.result == result and decision.result_state in {
@@ -659,13 +670,12 @@ class AssessmentReviewService:
                 raise AssessmentReviewValidationError("only a provisional result can be confirmed")
         elif request.action is AssessorReviewAction.OVERRIDE:
             if (
-                decision.result_state not in {ResultState.PROVISIONAL, ResultState.CONFIRMED}
+                decision.result_state
+                not in {ResultState.PROVISIONAL, ResultState.CONFIRMED, ResultState.OVERRIDDEN}
                 or request.new_result is None
                 or request.new_result is decision.result
             ):
-                raise AssessmentReviewValidationError(
-                    "override must change a provisional or confirmed result"
-                )
+                raise AssessmentReviewValidationError("override must change an active result")
         elif request.action is AssessorReviewAction.VOID:
             if (
                 decision.result_state

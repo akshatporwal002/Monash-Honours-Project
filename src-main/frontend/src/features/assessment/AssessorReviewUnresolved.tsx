@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { ApiError } from '../../app/api'
+import { request } from '../../app/api'
 import { Button, Card, CodeBlock } from '../../components/ui'
 import { AssessorReviewResponse } from './AssessorReviewResponse'
 import { humanReviewApi } from './assessmentReviewApi'
@@ -12,13 +13,15 @@ import styles from './assessment.module.css'
 
 type Entry = { decision: '' | CriterionDecision; reason: string; evidenceIds: string[] }
 
-export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckAccess, onAccessRevoked, onFinalised }: {
+export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckAccess, onAccessRevoked, onFinalised, moderation }: {
   courseId: string
   reviewedAttemptId?: string
   onCheckAccess: (courseId: string) => Promise<boolean>
   onAccessRevoked: () => void
   onFinalised: () => void
+  moderation?: { attemptId: string; stage: string }
 }) {
+  const fieldPrefix = moderation ? `moderation-${moderation.attemptId}` : 'human'
   const [records, setRecords] = useState<UnresolvedAssessment[]>([])
   const [selected, setSelected] = useState<UnresolvedAssessment | null>(null)
   const [entries, setEntries] = useState<Record<string, Entry>>({})
@@ -40,6 +43,7 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
   }, [onAccessRevoked])
 
   const load = useCallback(async (append = false) => {
+    if (moderation) return
     if (!courseId) return
     setBusy(true)
     try {
@@ -52,11 +56,11 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
       if (caught instanceof ApiError && [403, 404].includes(caught.status)) deny()
       else setError('Unresolved work could not be loaded. Reload to retry.')
     } finally { setBusy(false) }
-  }, [courseId, deny, onCheckAccess, records.length])
+  }, [courseId, deny, onCheckAccess, records.length, moderation])
 
   useEffect(() => {
     let active = true
-    if (!courseId) return
+    if (!courseId || moderation) return
     async function start() {
       try {
         const rows = await humanReviewApi.queue(courseId)
@@ -69,7 +73,7 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
     }
     void start()
     return () => { active = false }
-  }, [courseId, deny, onCheckAccess])
+  }, [courseId, deny, onCheckAccess, moderation])
 
   const inspect = async (attemptId: string) => {
     setBusy(true)
@@ -111,10 +115,16 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
     try {
       if (!(await onCheckAccess(courseId))) { deny(); return }
       key.current ??= crypto.randomUUID()
-      const receipt = await humanReviewApi.finalise(selected.assessment_attempt_id, {
+      const payload = {
         idempotency_key: key.current, expected_token: selected.expected_token, reason: reason.trim(), criteria,
-      })
-      setStatus(`Formal result ${receipt.result} ${receipt.result_state === 'OVERRIDDEN' ? 'corrected' : 'confirmed'}. Your criterion decisions and reasons are saved.`)
+      }
+      if (moderation) {
+        await request(`/assessment/attempts/${encodeURIComponent(moderation.attemptId)}/moderation/${moderation.stage}`, { method: 'POST', body: JSON.stringify(payload) })
+        setStatus('Moderation decision saved. Formal confirmation remains a separate assessor action.')
+      } else {
+        const receipt = await humanReviewApi.finalise(selected.assessment_attempt_id, payload)
+        setStatus(`Formal result ${receipt.result} ${receipt.result_state === 'OVERRIDDEN' ? 'corrected' : 'confirmed'}. Your criterion decisions and reasons are saved.`)
+      }
       setSelected(null)
       setEntries({})
       setReason('')
@@ -128,7 +138,7 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
           const current = await humanReviewApi.detail(selected.assessment_attempt_id)
           setSelected(current)
           key.current = null
-          setError('This assessment changed. Inspect the refreshed evidence and history before confirming again. Your entries remain available.')
+          setError(moderation ? 'Moderation state changed or another reviewer is required. Reload the moderation queue. Your entries remain available.' : 'This assessment changed or needs moderation. Inspect the refreshed evidence and assessment moderation before confirming again. Your entries remain available.')
         } catch (refreshError) {
           if (refreshError instanceof ApiError && [403, 404].includes(refreshError.status)) deny()
           else setError('The current review could not be refreshed. Your entries remain available. Reload before confirming.')
@@ -137,12 +147,13 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
     } finally { setBusy(false) }
   }
 
-  return <Card heading="Unresolved assessment attempts" eyebrow="Human criterion decisions">
-    <p>These attempts have no formal decision. Technical faults remain under review without a learner penalty.</p>
-    <Button variant="secondary" onClick={() => void load()} disabled={busy || !courseId}>Reload unresolved work</Button>
+  return <Card heading={moderation?.stage === 'CORRECTION' ? 'Proposed correction for independent review' : moderation ? 'Independent moderation decision' : 'Unresolved assessment attempts'} eyebrow="Human criterion decisions">
+    <p>{moderation ? 'Inspect the frozen evidence and approved anchors. Record your own criterion decisions. This action does not confirm a formal result.' : 'These attempts have no formal decision. Technical faults remain under review without a learner penalty.'}</p>
+    {moderation?.stage === 'CORRECTION' && <p>The existing formal result remains in place while a new moderation cycle reviews the proposed correction.</p>}
+    {moderation ? <Button variant="secondary" onClick={() => void inspect(moderation.attemptId)} disabled={busy}>Inspect moderation evidence</Button> : <Button variant="secondary" onClick={() => void load()} disabled={busy || !courseId}>Reload unresolved work</Button>}
     {error && <p role="alert" className={styles.alert}>{error}</p>}
     <p role={status ? "status" : undefined} ref={receiptRef} tabIndex={-1}>{status}</p>
-    {!records.length && <p>No unresolved attempts are currently listed.</p>}
+    {!moderation && !records.length && <p>No unresolved attempts are currently listed.</p>}
     <ul className={styles.recordList}>
       {records.map((record) => <li key={record.assessment_attempt_id}>
         <Button variant="secondary" disabled={busy} onClick={() => void inspect(record.assessment_attempt_id)}>
@@ -173,13 +184,13 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
               <dt>Not evaluable</dt><dd>{criterion.not_evaluable_rule}</dd>
             </dl>
             <details><summary>Approved anchors and critical error rules</summary><CodeBlock code={JSON.stringify({ anchors: criterion.approved_anchors, critical_errors: criterion.critical_error_rules }, null, 2)} label="Approved criterion rules" /></details>
-            <label htmlFor={`decision-${id}`}>Criterion decision</label>
-            <select id={`decision-${id}`} required value={entry.decision} onChange={(event) => edit(id, { decision: event.target.value as Entry['decision'] })}>
+            <label htmlFor={`${fieldPrefix}-decision-${id}`}>Criterion decision</label>
+            <select id={`${fieldPrefix}-decision-${id}`} required value={entry.decision} onChange={(event) => edit(id, { decision: event.target.value as Entry['decision'] })}>
               <option value="">Choose a decision</option>
               {(['MET', 'NOT_MET', 'NOT_EVALUABLE'] as const).map((value) => <option key={value} value={value}>{criterionDecisionLabels[value]}</option>)}
             </select>
-            <label htmlFor={`reason-${id}`}>Criterion reason, including the evidence field used</label>
-            <textarea id={`reason-${id}`} required maxLength={2000} rows={4} value={entry.reason} onChange={(event) => edit(id, { reason: event.target.value })} />
+            <label htmlFor={`${fieldPrefix}-reason-${id}`}>Criterion reason, including the evidence field used</label>
+            <textarea id={`${fieldPrefix}-reason-${id}`} required maxLength={2000} rows={4} value={entry.reason} onChange={(event) => edit(id, { reason: event.target.value })} />
             <fieldset><legend>Evidence used for this criterion</legend>
               {references.map((reference) => <label key={reference.id} style={{ display: 'block' }}>
                 <input type="checkbox" checked={entry.evidenceIds.includes(reference.id)} onChange={(event) => edit(id, { evidenceIds: event.target.checked ? [...entry.evidenceIds, reference.id] : entry.evidenceIds.filter((value) => value !== reference.id) })} />
@@ -189,10 +200,10 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
             </fieldset>
           </fieldset>
         })}
-        <label htmlFor="human-confirmation-reason">Formal confirmation reason</label>
-        <textarea id="human-confirmation-reason" required maxLength={2000} rows={3} value={reason} disabled={busy || !selected.can_finalise} onChange={(event) => { key.current = null; setReason(event.target.value) }} />
-        <p>The saved pass rule determines PASS or INCOMPLETE from these criterion decisions. This action confirms the result or records a reasoned correction. Earlier decisions remain in the history.</p>
-        <Button type="submit" disabled={busy || !selected.can_finalise}>{busy ? 'Recording assessment...' : 'Apply frozen pass rule and confirm result'}</Button>
+        <label htmlFor={`${fieldPrefix}-confirmation-reason`}>{moderation ? 'Moderation reason' : 'Formal confirmation reason'}</label>
+        <textarea id={`${fieldPrefix}-confirmation-reason`} required maxLength={2000} rows={3} value={reason} disabled={busy || !selected.can_finalise} onChange={(event) => { key.current = null; setReason(event.target.value) }} />
+        <p>{moderation ? 'The saved pass rule calculates your moderation decision. A disagreement requires explicit resolution before anyone can confirm the result.' : 'The saved pass rule determines PASS or INCOMPLETE from these criterion decisions. This action confirms the result or records a reasoned correction. Earlier decisions remain in the history.'}</p>
+        <Button type="submit" disabled={busy || !selected.can_finalise}>{busy ? 'Recording assessment...' : moderation ? 'Record moderation decision' : 'Apply frozen pass rule and confirm result'}</Button>
       </form>
     </div>}
   </Card>

@@ -35,9 +35,16 @@ from app.services.evidence.assessment_port import AssessmentEvidencePort
 class SqlAlchemyRuleCriterionEvaluationPort:
     """Evaluate approved rule criteria against one immutable response record."""
 
-    def __init__(self, session: Session, *, reader: FrozenResponseReader | None = None) -> None:
+    def __init__(
+        self,
+        session: Session,
+        *,
+        reader: FrozenResponseReader | None = None,
+        correlation_id: str | None = None,
+    ) -> None:
         self._session = session
         self._reader = reader
+        self._correlation_id = correlation_id
 
     def evaluate(
         self,
@@ -47,6 +54,13 @@ class SqlAlchemyRuleCriterionEvaluationPort:
         bloom_process: BloomProcess,
         criterion: CriterionVersion,
     ) -> EvaluatorOutcome:
+        from app.services.assessment.evaluator_release import EvaluatorReleaseService
+
+        # Recheck deployed/configured dependencies at point of use. Validation
+        # never activates AI by itself; the operational adapter remains gated.
+        EvaluatorReleaseService(self._session, correlation_id=self._correlation_id).observe(
+            assessment.course_id
+        )
         from app.services.misconception_support import response_teaching, teaching_result_issue
 
         saved_response = self._session.get(SubmissionAttempt, assessment.response_version_id)
@@ -162,7 +176,9 @@ def build_assessment_evaluation_service(
 ) -> AssessmentEvaluationService:
     return AssessmentEvaluationService(
         session,
-        criterion_port=SqlAlchemyRuleCriterionEvaluationPort(session),
+        criterion_port=SqlAlchemyRuleCriterionEvaluationPort(
+            session, correlation_id=correlation_id
+        ),
         quality_port=AdvisoryAssessmentQualityReviewPort(),
         correlation_id=correlation_id,
         retain_pending_on_fault=True,

@@ -264,6 +264,9 @@ class AssessmentSubmissionService:
         )
         self.session.add(attempt)
         self.session.flush()
+        from app.services.assessment.moderation import ModerationService
+
+        ModerationService(self.session).capture_if_configured(attempt)
         work = (
             self.session.get(AssessmentWorkStart, response.assessment_work_start_id)
             if response.assessment_work_start_id

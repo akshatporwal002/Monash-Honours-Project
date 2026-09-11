@@ -218,6 +218,7 @@ __all__ = [
 ]
 
 from app.models import (
+    assessment_moderation,  # noqa: F401
     provider_usage,  # noqa: F401
     research_instruments,  # noqa: F401
 )
