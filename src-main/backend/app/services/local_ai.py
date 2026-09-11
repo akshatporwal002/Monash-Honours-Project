@@ -25,6 +25,7 @@ from app.services.rag.contracts import (
     TaskGenerationRequest,
     TaskGenerationResponse,
 )
+from app.services.source_episode_generation import EPISODE_TYPES, source_episode
 from app.services.structured_generation import grounded_structure
 
 
@@ -161,11 +162,25 @@ class LocalTaskGenerationClient:
             if payload.get("generation_mode") == "multipart":
                 from app.services.multipart_generation import local_multipart
 
-                if task_count != 1 or types != ["quantum_circuit"]:
-                    raise ValueError("Multipart generation supports one circuit episode at a time")
-                item = local_multipart(source_rows, outcome)
+                if task_count != 1 or len(types) != 1:
+                    raise ValueError("Multipart generation supports one episode at a time")
+                item = local_multipart(source_rows, outcome, task_type)
                 item["marking_criteria"]["generation_design"] = local_design(
                     task_type, outcome, difficulty, purpose="SUMMATIVE"
+                )
+                tasks.append(
+                    {
+                        **item,
+                        "task_type": task_type,
+                        "difficulty": difficulty,
+                        "learning_outcome_id": outcome_id,
+                    }
+                )
+                continue
+            if task_type in EPISODE_TYPES:
+                item = source_episode(source_rows, outcome, task_type, index)
+                item["marking_criteria"]["generation_design"] = local_design(
+                    task_type, outcome, difficulty
                 )
                 tasks.append(
                     {
@@ -201,11 +216,45 @@ class LocalTaskGenerationClient:
                     "source_references": sources,
                 }
             )
+        _condition_drafts(tasks, payload.get("generation_context"))
         return TaskGenerationResponse(
             tasks=tuple(tasks),
             provider="local-deterministic",
             model="quantumlearn-task-scaffold-v1",
         )
+
+
+def _condition_drafts(tasks, context):
+    if not context:
+        return
+    if context["kind"] == "variant":
+        focus = "Use a contrasting example or starting condition and explain which relationship remains unchanged."
+        label = "Variant"
+    else:
+        import json
+
+        feedback = json.dumps(context["feedback"]).casefold()
+        prior = context["prior_response"]
+        if "code" in feedback and not prior.get("code"):
+            focus = "Include the missing code step and explain how it implements the cited relationship."
+        elif "prediction" in feedback:
+            focus = "Make an explicit prediction before checking the evidence and justify it from the source."
+        elif "reflection" in feedback or "revision" in feedback:
+            focus = "Compare an initial claim with the evidence and explain a specific correction or retained relationship."
+        else:
+            focus = (
+                "Make each reasoning step explicit and link it to evidence from the cited passage."
+            )
+        label = "Feedback follow-up"
+    for task in tasks:
+        task["title"] = f"{label}: {task['title']}"
+        task["prompt"] += f"\n\n{focus}"
+        task["marking_criteria"]["adaptation_review"] = {
+            "kind": context["kind"],
+            "focus": focus,
+            "equivalence_review_required": True,
+            "new_work_not_a_revision": True,
+        }
 
 
 def _instructions(task_type: str, index: int) -> str:
@@ -220,7 +269,9 @@ def _instructions(task_type: str, index: int) -> str:
         return "Build the circuit, run it with Qiskit Aer, and explain the measurement counts."
     if task_type in {"code_explanation", "code_completion"}:
         return "Read the formatted Qiskit code and explain or complete the missing operation."
-    if task_type in {"multiple_choice", "multiple_answer"}:
+    if task_type == "multiple_answer":
+        return "Select every excerpt that occurs in the supplied course evidence."
+    if task_type == "multiple_choice":
         return "Select the best supported answer and justify the choice."
     return f"Explain the concept in a concise response for scaffold step {index + 1}."
 
@@ -245,47 +296,76 @@ def _task_scaffold(
             None,
         )
     if task_type == "multiple_answer":
+        words = evidence.split()
+        if len(words) < 4:
+            raise ValueError("Multiple-answer generation requires a substantive source passage")
+        midpoint = len(words) // 2
         return (
             '["a","c"]',
             {
                 "choices": [
-                    {"id": "a", "text": "Use the supplied course evidence."},
-                    {"id": "b", "text": "Ignore measurement behavior."},
-                    {"id": "c", "text": f"Address the outcome: {outcome[:180]}"},
-                    {"id": "d", "text": "Invent a source that was not supplied."},
+                    {"id": "a", "text": " ".join(words[:midpoint])},
+                    {"id": "b", "text": "No course evidence is needed for this conclusion."},
+                    {"id": "c", "text": " ".join(words[midpoint:])},
+                    {
+                        "id": "d",
+                        "text": "Every assumption can be ignored without changing the conclusion.",
+                    },
                 ],
                 "correct_answers": ["a", "c"],
             },
             None,
         )
+    if task_type in {"code_explanation", "code_completion", "code", "quantum_circuit", "circuit"}:
+        import re
+
+        mentions = [
+            (match.start(), gate)
+            for gate, pattern in (
+                ("h", r"\bhadamard\b|\bh\s+gate\b|\b(?:circuit|qc)\.h\("),
+                ("x", r"\bpauli[- ]?x\b|\bx\s+gate\b|\b(?:circuit|qc)\.x\("),
+                (
+                    "cx",
+                    r"\bcnot\b|\bcontrolled[- ](?:not|x)\b|\bcx\s+gate\b|\b(?:circuit|qc)\.cx\(",
+                ),
+            )
+            if (match := re.search(pattern, evidence, re.IGNORECASE))
+        ]
+        if not mentions:
+            raise ValueError(
+                "Local code and circuit drafts require a source naming a supported H, X or CX gate"
+            )
+        gate = min(mentions)[1]
+        qubits = 2 if gate == "cx" else 1
+        operation = f"circuit.{gate}({'0, 1' if qubits == 2 else '0'})"
+        preamble = (
+            f"from qiskit import QuantumCircuit\n\ncircuit = QuantumCircuit({qubits}, {qubits})\n"
+        )
+        measurement = f"circuit.measure(range({qubits}), range({qubits}))\n"
     if task_type == "code_explanation":
         return (
-            "measurement",
-            {"required_terms": ["measurement", "superposition"]},
-            (
-                "from qiskit import QuantumCircuit\n\n"
-                "circuit = QuantumCircuit(1, 1)\n"
-                "circuit.h(0)\n"
-                "circuit.measure(0, 0)\n"
-            ),
+            None,
+            {
+                "response_review": "human",
+                "expected_response_features": [
+                    f"Explain {operation} using the cited relationship",
+                    "Explain the measurement operation and its limits",
+                ],
+            },
+            preamble + operation + "\n" + measurement,
         )
     if task_type in {"code_completion", "code"}:
         return (
-            "circuit.h",
-            {"required_code_fragments": ["circuit.h"]},
-            (
-                "from qiskit import QuantumCircuit\n\n"
-                "circuit = QuantumCircuit(1, 1)\n"
-                "# Add the required gate here\n"
-                "circuit.measure(0, 0)\n"
-            ),
+            operation,
+            {"required_code_fragments": [operation], "response_review": "human"},
+            preamble + f"# Add the source's {gate.upper()} operation here\n" + measurement,
         )
     if task_type in {"quantum_circuit", "circuit"}:
         return (
             None,
             {
-                "required_gates": ["h"],
-                "starter_circuit": {"qubits": 1, "operations": []},
+                "required_gates": [gate],
+                "starter_circuit": {"qubits": qubits, "operations": []},
             },
             None,
         )
@@ -295,9 +375,14 @@ def _task_scaffold(
         raise UnsupportedTaskTypeError(
             f"Local generation is unavailable for {task_type}; author a reviewed episode instead"
         )
-    keyword = max(
-        (word.strip(".,:;!?()[]").casefold() for word in outcome.split()),
-        key=len,
-        default="quantum",
+    return (
+        None,
+        {
+            "response_review": "human",
+            "expected_response_features": [
+                "Explain the cited relationship in your own words",
+                "State its conditions and cite the supporting passage",
+            ],
+        },
+        None,
     )
-    return keyword, {"required_keywords": [keyword]}, None

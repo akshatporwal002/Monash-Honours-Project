@@ -87,7 +87,7 @@ def test_multipart_contract_rejects_missing_stages_fabricated_work_and_inconsist
         edit(invalid)
         with pytest.raises(ValueError):
             validate_multipart(invalid, "quantum_circuit", {"source": SOURCE_FACT})
-    with pytest.raises(ValueError, match="requires a source"):
+    with pytest.raises(ValueError, match="source material"):
         local_multipart(
             [{"chunk_id": "source", "text": "Unrelated or incomplete quantum material"}], "Apply H"
         )

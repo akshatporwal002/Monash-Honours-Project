@@ -788,9 +788,11 @@ export const api = {
     },
     listMaterials: async (courseId: string) =>
       (await request<RawMaterial[]>(`/courses/${encodeURIComponent(courseId)}/materials/list`)).map(normalizeMaterial),
+    generationOptions: (courseId: string, outcomeId: string) =>
+      request<{ label: string; context: { variant_task_id?: string; variant_revision_id?: string; response_version_id?: string; feedback_id?: string } }[]>(`/courses/${encodeURIComponent(courseId)}/generation-options?learning_outcome_id=${encodeURIComponent(outcomeId)}`),
     generateTasks: async (
       courseId: string,
-      payload: { module_id: string; learning_outcome_ids: string[]; count: number; task_types?: string[]; generation_mode?: 'basic' | 'multipart' },
+      payload: { module_id: string; learning_outcome_ids: string[]; count: number; task_types?: string[]; generation_mode?: 'basic' | 'multipart'; generation_context?: { variant_task_id?: string; variant_revision_id?: string; response_version_id?: string; feedback_id?: string } },
     ): Promise<GeneratedTaskPreview[]> => {
       const tasks = await request<RawTask[]>(
         `/courses/${encodeURIComponent(courseId)}/generate-tasks`,
@@ -798,6 +800,7 @@ export const api = {
           learning_outcome_id: payload.learning_outcome_ids[0],
           task_count: payload.generation_mode === 'multipart' ? 1 : Math.max(3, payload.count),
           ...(payload.generation_mode ? { generation_mode: payload.generation_mode } : {}),
+          ...(payload.generation_context ? { generation_context: payload.generation_context } : {}),
           task_types: payload.task_types ?? ['multiple_choice', 'code_explanation', 'quantum_circuit'],
         }),
       )

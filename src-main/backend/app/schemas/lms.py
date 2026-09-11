@@ -26,6 +26,7 @@ from app.models.lms import (
 from app.models.user import ScopedRole, UserRole
 from app.schemas.assessment import OpaqueId
 from app.schemas.episode import EpisodeContract, EpisodePayloadV1
+from app.schemas.generation_context import GenerationContext
 from app.schemas.reminders import TimeZone
 from app.schemas.structured_tasks import StructuredDefinition
 
@@ -477,6 +478,7 @@ class TaskUpdate(LmsSchema):
 
 
 class TaskGenerateRequest(LmsSchema):
+    generation_context: GenerationContext | None = None
     generation_mode: Literal["basic", "multipart"] = "basic"
     learning_outcome_id: UuidString
     task_count: Annotated[int, Field(ge=1, le=6)] = 6
@@ -495,9 +497,21 @@ class TaskGenerateRequest(LmsSchema):
     @model_validator(mode="after")
     def bounded_generation_mode(self):
         if self.generation_mode == "multipart":
-            if self.task_count != 1 or self.task_types != [TaskType.QUANTUM_CIRCUIT]:
+            if (
+                self.task_count != 1
+                or len(self.task_types) != 1
+                or self.task_types[0].value
+                not in {
+                    "quantum_circuit",
+                    "prediction",
+                    "reasoning",
+                    "explanation",
+                    "reflection",
+                    "transfer",
+                }
+            ):
                 raise ValueError(
-                    "Multipart generation currently supports one circuit episode at a time"
+                    "Multipart generation supports one circuit or text episode at a time"
                 )
         elif self.task_count < 3:
             raise ValueError("Basic generation requires three to six tasks")

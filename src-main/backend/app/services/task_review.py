@@ -308,6 +308,21 @@ class TaskReviewService:
 
         try:
             validate_choice_key(task.task_type.value, task.marking_criteria, task.expected_answer)
+            if "source_episode" in (task.marking_criteria or {}) or (
+                task.generation_provider
+                and task.task_type.value
+                in {"prediction", "reasoning", "explanation", "reflection", "transfer"}
+            ):
+                from app.services.source_episode_generation import validate_source_episode
+
+                validate_source_episode(
+                    task.marking_criteria,
+                    {
+                        ref: passage.chunk_text
+                        for ref in task.source_references or []
+                        if (passage := self.session.get(SourcePassage, ref)) is not None
+                    },
+                )
             if (
                 task.generation_prompt_version == "task-generation-multipart-v1"
                 or isinstance(task.marking_criteria, dict)

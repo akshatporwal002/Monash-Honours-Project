@@ -271,7 +271,7 @@ export type AsyncState = 'idle' | 'loading' | 'success' | 'error'
 
 
 export type EpisodeContent = ApiSchemas['ResponseContent']
-export type EpisodeProcess = ApiSchemas['EpisodeStageResponseV1']
-export type EpisodePayload = ApiSchemas['EpisodePayloadV1']
+export type EpisodeProcess = ApiSchemas['EpisodeStageResponseV1'] & { application?: EpisodeContent | null }
+export type EpisodePayload = Omit<ApiSchemas['EpisodePayloadV1'], 'supported'> & { supported: EpisodeProcess }
 export type EpisodeState = ApiSchemas['EpisodeStateRead'] & { representation_choices?: Array<{ item_index: number; title: string; mode: string }> }
 export type EpisodeCheckpointSnapshot = ApiSchemas['EpisodeCheckpointRead']

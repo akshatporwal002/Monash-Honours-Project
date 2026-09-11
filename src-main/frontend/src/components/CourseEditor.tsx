@@ -86,6 +86,11 @@ export function CourseEditor() {
   const [generationOutcomeId, setGenerationOutcomeId] = useState('')
   const [taskCount, setTaskCount] = useState(3)
   const [generationType, setGenerationType] = useState('mixed')
+  const [generationOptions, setGenerationOptions] = useState<{ courseId: string; outcomeId: string; items: Awaited<ReturnType<typeof api.courses.generationOptions>> } | null>(null)
+  const [generationOption, setGenerationOption] = useState('new')
+  const scopedGenerationOptions = generationOptions?.courseId === course?.id && generationOptions?.outcomeId === generationOutcomeId ? generationOptions.items : []
+  const selectedGenerationContext = generationOption === 'new' ? undefined : scopedGenerationOptions[Number(generationOption)]?.context
+  const isMultipart = generationType.startsWith('multipart')
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTaskPreview[]>([])
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -303,6 +308,22 @@ export function CourseEditor() {
     }
   }
 
+  const loadGenerationOptions = async () => {
+    if (!course || !generationOutcomeId) return
+    resetMessages()
+    setBusy(true)
+    try {
+      const items = await api.courses.generationOptions(course.id, generationOutcomeId)
+      setGenerationOptions({ courseId: course.id, outcomeId: generationOutcomeId, items })
+      setGenerationOption('new')
+      if (items.length === 0) setMessage('No existing task variants or approved practice feedback are available for this outcome yet.')
+    } catch (caught) {
+      setError(errorMessage(caught))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const generate = async () => {
     if (!course || !module || !generationOutcomeId) return
     resetMessages()
@@ -312,8 +333,9 @@ export function CourseEditor() {
         module_id: module.id,
         learning_outcome_ids: [generationOutcomeId],
         count: taskCount,
-        ...(generationType === 'multipart' ? { task_types: ['quantum_circuit'], generation_mode: 'multipart' as const }
+        ...(isMultipart ? { task_types: [generationType === 'multipart_text' ? 'explanation' : 'quantum_circuit'], generation_mode: 'multipart' as const }
           : generationType === 'mixed' ? {} : { task_types: [generationType] }),
+        ...(selectedGenerationContext ? { generation_context: selectedGenerationContext } : {}),
       })
       setGeneratedTasks(tasks)
       setMessage(`${tasks.length} grounded task${tasks.length === 1 ? '' : 's'} generated for educator review.`)
@@ -870,14 +892,17 @@ export function CourseEditor() {
                     }))}
                   />
                 </Field>
-                <Field label="Response type"><Select value={generationType} onValueChange={setGenerationType} options={['mixed', 'multiple_choice', 'multiple_answer', 'short_answer', 'code_explanation', 'code_completion', 'quantum_circuit', 'matching', 'sequencing', 'multipart'].map(value => ({ value, label: value === 'multipart' ? 'Multipart Hadamard episode (one draft)' : value.replaceAll('_', ' ') }))} /></Field>
-                {generationType === 'multipart' && <p>Creates one episode with prediction, reasoning, explanation, reflection and fresh transfer. This local family requires a source stating both Hadamard basis transformations. Assessment criteria are proposals for separate review.</p>}
+                <Field label="Response type"><Select value={generationType} onValueChange={setGenerationType} options={['mixed', 'multiple_choice', 'multiple_answer', 'short_answer', 'code_explanation', 'code_completion', 'quantum_circuit', 'matching', 'sequencing', 'prediction', 'reasoning', 'explanation', 'reflection', 'transfer', 'multipart', 'multipart_text'].map(value => ({ value, label: value === 'multipart' ? 'Multipart circuit episode (one draft)' : value === 'multipart_text' ? 'Multipart text episode (one draft)' : value.replaceAll('_', ' ') }))} /></Field>
+                {isMultipart && <p>Creates a source-led episode with prediction, reasoning, explanation, reflection and fresh transfer. Assessment criteria and example suitability require separate review.</p>}
+                <Button variant="secondary" disabled={busy || !generationOutcomeId} onClick={() => void loadGenerationOptions()}>Load variant and feedback options</Button>
+                {scopedGenerationOptions.length > 0 && <Field label="Generation starting point"><Select value={selectedGenerationContext ? generationOption : 'new'} onValueChange={setGenerationOption} options={[{ value: 'new', label: 'New source-led tasks' }, ...scopedGenerationOptions.map((item, index) => ({ value: String(index), label: item.label }))]} /></Field>}
+                {selectedGenerationContext && <p>Creates new drafts for review from the selected task or approved practice feedback. Review the new context, evidence demand and support before release.</p>}
                 <Field label="Tasks">
                   <Select
-                    value={generationType === 'multipart' ? '1' : String(taskCount)}
-                    disabled={generationType === 'multipart'}
+                    value={isMultipart ? '1' : String(taskCount)}
+                    disabled={isMultipart}
                     onValueChange={(value) => setTaskCount(Number(value))}
-                    options={(generationType === 'multipart' ? [1] : [3, 4, 5]).map((count) => ({
+                    options={(isMultipart ? [1] : [3, 4, 5]).map((count) => ({
                       value: String(count),
                       label: String(count),
                     }))}

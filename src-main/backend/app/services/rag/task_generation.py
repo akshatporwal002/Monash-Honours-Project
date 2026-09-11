@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Course, CourseModule, LearningOutcome, LearningTask, TaskType
 from app.schemas.generated_task_design import GeneratedTaskDesign
+from app.schemas.generation_context import GenerationContext
 from app.schemas.structured_tasks import DEFINITION, definition_for, response_for
 from app.services.rag.contracts import (
     RetrievalPurpose,
@@ -49,6 +50,7 @@ class GenerateTasksInput:
     allowed_task_types: tuple[TaskType, ...]
     difficulty_levels: tuple[str, ...]
     generation_mode: str = "basic"
+    generation_context: GenerationContext | None = None
 
 
 class GroundedTaskGenerationService:
@@ -68,12 +70,25 @@ class GroundedTaskGenerationService:
         if self.client is None:
             raise TaskGenerationProviderUnavailableError()
         module_id, module_title = self._validated_scope(request)
+        from app.services.generation_context import resolve_generation_context
+
+        lineage, generation_context = resolve_generation_context(self.session, request)
         if request.generation_mode not in {"basic", "multipart"}:
             raise ValueError("Unsupported generation mode")
         if request.generation_mode == "multipart" and (
-            request.task_count != 1 or request.allowed_task_types != (TaskType.QUANTUM_CIRCUIT,)
+            request.task_count != 1
+            or len(request.allowed_task_types) != 1
+            or request.allowed_task_types[0].value
+            not in {
+                "quantum_circuit",
+                "prediction",
+                "reasoning",
+                "explanation",
+                "reflection",
+                "transfer",
+            }
         ):
-            raise ValueError("Multipart generation supports one circuit episode at a time")
+            raise ValueError("Multipart generation supports one circuit or text episode at a time")
         from app.schemas.multipart_generation import MultipartCandidate
 
         prompt_version = (
@@ -114,6 +129,7 @@ class GroundedTaskGenerationService:
                     "allowed_task_types": [item.value for item in request.allowed_task_types],
                     "difficulty_levels": list(request.difficulty_levels),
                     "generation_mode": request.generation_mode,
+                    "generation_context": generation_context,
                     "multipart_candidate_contract": MultipartCandidate.model_json_schema()
                     if request.generation_mode == "multipart"
                     else None,
@@ -127,6 +143,8 @@ class GroundedTaskGenerationService:
         )
         if len(response.tasks) != request.task_count:
             raise ValueError("task generation response returned an unexpected task count")
+        if resolve_generation_context(self.session, request)[0] != lineage:
+            raise ValueError("Generation context changed; reload before generating")
         allowed_sources = {hit.chunk_id for hit in result.hits}
         allowed_task_types = {item.value for item in request.allowed_task_types}
         start_position = (
@@ -163,19 +181,44 @@ class GroundedTaskGenerationService:
                 str(task_type),
                 request.learning_outcome_text,
             )
-            expected_answer = output.get("expected_answer") or scaffold.expected_answer
+            expected_answer = output.get("expected_answer", scaffold.expected_answer)
             criteria = output.get("marking_criteria")
             if not isinstance(criteria, dict):
                 criteria = scaffold.marking_criteria
+            if "generation_lineage" in criteria:
+                raise ValueError("Providers cannot supply generation lineage")
+            if lineage:
+                criteria = {**criteria, "generation_lineage": lineage}
             starter_code = output.get("starter_code")
             if not isinstance(starter_code, str) or not starter_code.strip():
                 starter_code = scaffold.starter_code
             if not expected_answer and not criteria:
                 raise ValueError("task generation response failed marking validation")
             design = GeneratedTaskDesign.model_validate(criteria.get("generation_design"))
+            if "source_episode" in criteria or str(task_type) in {
+                "prediction",
+                "reasoning",
+                "explanation",
+                "reflection",
+                "transfer",
+            }:
+                from app.services.source_episode_generation import validate_source_episode
+
+                validate_source_episode(
+                    criteria,
+                    {
+                        hit.chunk_id: hit.chunk_text
+                        for hit in result.hits
+                        if hit.chunk_id in source_ids
+                    },
+                )
             if request.generation_mode == "basic" and design.assessment_purpose != "FORMATIVE":
                 raise ValueError(
                     "Basic generation remains formative; use the multipart design bridge for assessed candidates"
+                )
+            if request.generation_mode == "basic" and "episode_plan" in criteria:
+                raise ValueError(
+                    "Basic practice generation cannot require assessed episode stages; use multipart mode"
                 )
             if request.generation_mode == "multipart" or "multipart_candidate" in criteria:
                 from app.services.multipart_generation import validate_multipart
@@ -240,6 +283,14 @@ class GroundedTaskGenerationService:
                 references=task.source_references,
                 strict=True,
             )
+            if "source_episode" in task.marking_criteria:
+                from copy import deepcopy
+
+                criteria = deepcopy(task.marking_criteria)
+                mapping = dict(zip(original_sources, task.source_references, strict=True))
+                anchor = criteria["source_episode"]
+                anchor["source_reference"] = mapping[anchor["source_reference"]]
+                task.marking_criteria = criteria
             if "structured_task" in task.marking_criteria:
                 import copy
 

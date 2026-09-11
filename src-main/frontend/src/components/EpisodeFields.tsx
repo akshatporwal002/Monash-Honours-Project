@@ -5,7 +5,8 @@ import type { EpisodePayload, EpisodeProcess, EpisodeState, TaskSubmission } fro
 import { Button, Card, Field, Textarea } from './ui'
 
 
-export function EpisodeFields({ value, state, attempts, disabled, onChange, onCheckpoint, onTransfer, onTransferCheckpoint, onTransferSimulation, support }: {
+export function EpisodeFields({ value, state, attempts, disabled, onChange, onCheckpoint, onTransfer, onTransferCheckpoint, onTransferSimulation, support, standaloneTransfer = false }: {
+  standaloneTransfer?: boolean
   value: EpisodePayload
   state: EpisodeState | null
   attempts: TaskSubmission[]
@@ -32,6 +33,7 @@ export function EpisodeFields({ value, state, attempts, disabled, onChange, onCh
     <nav className={styles.navigation} aria-label="Episode sections"><a href="#episode-prediction">Prediction</a>{' | '}<a href="#episode-explanation">Explanation</a>{' | '}<a href="#episode-reflection">Reflection</a>{' | '}<a href="#episode-transfer">Fresh application</a></nav>
     <fieldset className={styles.stage} disabled={disabled}>
       <legend>Supported response</legend>
+      {standaloneTransfer && <Field label="New-context application"><Textarea value={value.supported.application?.answer ?? ''} onChange={event => update('application', { answer: event.target.value })} /></Field>}
       <div id="episode-prediction">
         <Field label="Your prediction before results" help="Your original prediction is saved before results become available.">
           <Textarea value={value.supported.prediction?.answer ?? ''} readOnly={Boolean(value.supported.prediction_checkpoint_id)} onChange={event => update('prediction', { ...value.supported.prediction, answer: event.target.value })} />
