@@ -15,6 +15,7 @@ from test_task_generation_api import StaticRetrieval
 from app.models import FeedbackRecord, LearningTask, TaskType, User
 from app.models.lms import SubmissionAttempt
 from app.models.source_history import SourcePassage
+from app.models.task_review import CategoryQualityReview
 from app.schemas.generation_context import GenerationContext
 from app.schemas.lms import SubmissionCreate
 from app.services.generation_context import generation_options, resolve_generation_context
@@ -220,6 +221,34 @@ def test_generated_practice_types_submit_and_reload_without_assessment_work(cont
             service_for(db_session, prior).generate(request_for(prior, [TaskType(task_type)]))
         )[0]
         approve_fixture_task(db_session, task)
+        review = TaskReviewService(db_session)
+        revision = review.latest_revision(task.id)
+        criteria = revision.snapshot["marking_criteria"]
+        generation = criteria["representation_generation"]["practice"]
+        assert criteria == task.marking_criteria
+        assert criteria["practice_representations"] == generation["installed"]["practice"]
+        assert generation["candidate"]["variants"]
+        for variant in generation["candidate"]["variants"]:
+            assert set(variant["source_references"]) <= set(task.source_references)
+            for quote in variant["source_quotes"]:
+                passage = db_session.get(SourcePassage, quote["source_reference"])
+                assert passage.course_id == task.course_id
+                assert quote["quote"] in passage.chunk_text
+            if task_type == "transfer":
+                assert variant["support_kind"] == "accessibility"
+                assert variant["instructional_support_level"] == 0
+        event = review.latest_event(revision.id)
+        quality = db_session.scalar(
+            select(CategoryQualityReview).where(
+                CategoryQualityReview.task_review_event_id == event.id,
+            )
+        )
+        assert quality.task_revision_id == revision.id and quality.course_id == task.course_id
+        assert len(quality.receipt["assessment"]["findings"]) == 10
+        assert all(
+            "Synthetic fixture" in finding["reason"]
+            for finding in quality.receipt["assessment"]["findings"]
+        )
         field = "application" if task_type == "transfer" else task_type
         value = (
             {"answer": "A new example with its changed condition"}

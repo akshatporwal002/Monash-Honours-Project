@@ -13,6 +13,7 @@ from test_task_generation_api import StaticRetrieval
 from app.models import LearningTask, TaskType, User
 from app.models.assessment import AssessmentDefinitionVersion, TaskFormVersion
 from app.models.source_history import SourcePassage
+from app.models.task_review import CategoryQualityReview
 from app.schemas.multipart_generation import STAGES
 from app.services.local_ai import LocalTaskGenerationClient
 from app.services.multipart_generation import SOURCE_FACT, local_multipart, validate_multipart
@@ -156,6 +157,29 @@ def test_generated_candidate_bridge_preserves_all_criteria_and_never_approves(db
     review = TaskReviewService(db_session)
     revision = review.latest_revision(task.id)
     assert review.latest_event(revision.id) is None
+    criteria = revision.snapshot["marking_criteria"]
+    assert criteria == task.marking_criteria
+    assert criteria["multipart_candidate"]["episode_plan"] == criteria["episode_plan"]
+    assert set(criteria["representation_generation"]) == {"supported", "transfer"}
+    for target, generation in criteria["representation_generation"].items():
+        plan = criteria["episode_plan"]
+        if target == "transfer":
+            plan = plan["transfer"]
+        for field, variants in generation["installed"].items():
+            assert variants == plan[field]
+            assert all(
+                set(item["source_references"]) <= set(task.source_references) for item in variants
+            )
+        assert generation["candidate"]["variants"]
+        for variant in generation["candidate"]["variants"]:
+            assert set(variant["source_references"]) <= set(task.source_references)
+            for quote in variant["source_quotes"]:
+                passage = db_session.get(SourcePassage, quote["source_reference"])
+                assert passage.course_id == task.course_id
+                assert quote["quote"] in passage.chunk_text
+            if target == "transfer":
+                assert variant["support_kind"] == "accessibility"
+                assert variant["instructional_support_level"] == 0
     app = create_app()
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_current_user] = lambda: owner
@@ -163,6 +187,14 @@ def test_generated_candidate_bridge_preserves_all_criteria_and_never_approves(db
         url = f"/api/v1/assessment/courses/{task.course_id}/tasks/{task.id}/generated-assessment-draft?expected_revision_id={revision.id}"
         assert client.get(url).status_code == 409
         approve_fixture_task(db_session, task)
+        event = review.latest_event(revision.id)
+        quality = db_session.scalar(
+            select(CategoryQualityReview).where(
+                CategoryQualityReview.task_review_event_id == event.id,
+            )
+        )
+        assert quality.task_revision_id == revision.id and quality.reviewer_id == owner.id
+        assert len(quality.receipt["assessment"]["findings"]) == 10
         with pytest.raises(TaskReviewError, match="approved assessment form"):
             require_learner_task_available(db_session, task)
         preview = client.get(url)
@@ -238,6 +270,7 @@ def test_generated_candidate_bridge_preserves_all_criteria_and_never_approves(db
 
 
 def test_generated_episode_uses_real_runtime_references_and_keeps_transfer_separate(db_session):
+    from support.alignment import next_action_contract
     from support.task_review import bootstrap_reviewed_demo
     from test_task14_lifecycle import complete, supported
 
@@ -260,6 +293,7 @@ def test_generated_episode_uses_real_runtime_references_and_keeps_transfer_separ
     raw.update(
         formal_result_eligible=True,
         access_conditions={"modes": [{"mode": "text", "preserves_construct": True}]},
+        next_action_contract=next_action_contract(*(c["stable_key"] for c in raw["criteria"])),
     )
     raw["task_forms"][0]["constraints"]["elicited_bloom_processes"] = ["APPLY"]
     source = LmsService(db_session).create_assessment_outcome_version(

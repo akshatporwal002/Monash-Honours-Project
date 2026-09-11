@@ -15,7 +15,14 @@ TASK_QUALITY_POLICY = "educator-task-review-fr17-v1"
 
 
 def requires_category_review(task, revision):
-    return revision.provenance == "GENERATED" or bool(task.generation_provider)
+    retained_representation_generation = isinstance(task.marking_criteria, dict) and bool(
+        task.marking_criteria.get("representation_generation")
+    )
+    return (
+        revision.provenance == "GENERATED"
+        or bool(task.generation_provider)
+        or retained_representation_generation
+    )
 
 
 def task_review_request(session, task, revision, sources, previous):

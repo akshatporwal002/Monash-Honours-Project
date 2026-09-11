@@ -10,9 +10,34 @@ from app.models import Course, CourseState, LearningMaterial, LearningTask, User
 from app.models.assessment import TaskFormVersion
 from app.models.source_history import SourcePassage, SourceRevision
 from app.models.task_review import TaskReviewEvent
+from app.schemas.category_review import ReviewDimension
 from app.services.lms import LmsService, bootstrap_demo
 from app.services.rag.source_history import record_approval
 from app.services.task_review import TaskReviewService
+
+
+def synthetic_task_quality_review(session: Session, task: LearningTask) -> dict | None:
+    """Explicit fake reviewer findings for synthetic tests, never a production approval."""
+    review = TaskReviewService(session)
+    if not review.summary(task)["quality_review_required"]:
+        return None
+    course = session.get(Course, task.course_id)
+    actor = session.get(User, course.educator_id)
+    context = review.quality_context(actor, task.id)
+    references = [item.reference for item in context["request"].evidence]
+    return {
+        "request_digest": context["request_digest"],
+        "findings": [
+            {
+                "dimension": dimension.value,
+                "outcome": "SATISFIED",
+                "basis": "human",
+                "reason": f"Synthetic fixture reviewer explicitly accepts {dimension.value} for this test only; this is not expert validity evidence.",
+                "evidence_references": references,
+            }
+            for dimension in ReviewDimension
+        ],
+    }
 
 
 def approve_fixture_task(session: Session, task: LearningTask) -> None:
@@ -51,6 +76,7 @@ def approve_fixture_task(session: Session, task: LearningTask) -> None:
         expected_review_version=summary["review_version"],
         state="APPROVED",
         reason="Test fixture teaching content approved for this test only",
+        quality_review=synthetic_task_quality_review(session, task),
     )
 
 

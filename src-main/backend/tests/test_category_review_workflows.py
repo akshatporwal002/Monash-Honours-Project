@@ -68,6 +68,39 @@ def findings(context):
     }
 
 
+def test_authored_revision_with_retained_generated_representation_requires_quality_review(
+    generated, db_session
+):
+    service, actors, task = generated
+    task.generation_provider = None
+    task.generation_model = None
+    task.generation_prompt_version = None
+    task.title = "Educator revision retaining generated practice content"
+    task.marking_criteria = {
+        "representation_generation": {
+            "practice": {"candidate_reference": "synthetic-retained-representation"}
+        }
+    }
+    revision = service.capture(task, actors["lead"].id)
+    db_session.commit()
+    assert revision.provenance == "AUTHORED"
+    _record(generated, "SUBMITTED")
+    assert service.summary(task)["quality_review_required"]
+    context = service.quality_context(actors["lead"], task.id)
+    assert context["required"]
+    with pytest.raises(TaskReviewError, match="every generated-content"):
+        _record(generated, "APPROVED")
+    assert not service.summary(task)["available"]
+    event = _record(generated, "APPROVED", quality_review=findings(context))
+    receipt = db_session.scalar(
+        select(CategoryQualityReview).where(CategoryQualityReview.task_review_event_id == event.id)
+    )
+    assert receipt.task_revision_id == revision.id
+    assert receipt.reviewer_id == actors["lead"].id
+    assert service.summary(task)["available"]
+    assert revision.snapshot["marking_criteria"] == task.marking_criteria
+
+
 @pytest.mark.parametrize("storage", ["metadata", "migration_ddl"])
 def test_generated_approval_requires_complete_review_and_retains_protected_receipt(
     generated, db_session, storage

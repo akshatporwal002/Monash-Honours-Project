@@ -23,6 +23,10 @@ from app.services.rag.errors import RagError
 from app.services.rag.retrieval import RetrievalService
 from app.services.rag.runtime import RetrievalBackend
 from app.services.rag.source_history import bind_sources, output_digest
+from app.services.representation_generation import (
+    attach_generated_task_representations,
+    bind_task_representation_sources,
+)
 from app.services.task_review import TaskReviewService
 from app.services.task_types import DEFAULT_TASK_TYPE_REGISTRY
 
@@ -244,6 +248,13 @@ class GroundedTaskGenerationService:
                         "Generated structured tasks require a complete private response key"
                     )
                 response_for(structured, expected_answer, complete=True)
+            represented = attach_generated_task_representations(
+                {**output, "marking_criteria": criteria, "starter_code": starter_code},
+                [{"chunk_id": hit.chunk_id, "text": hit.chunk_text} for hit in result.hits],
+                provider=response.provider,
+                model=response.model,
+            )
+            criteria = represented["marking_criteria"]
             task_id = str(uuid4())
             task = LearningTask(
                 id=task_id,
@@ -319,6 +330,10 @@ class GroundedTaskGenerationService:
                     for key, refs in candidate["criterion_sources"].items()
                 }
                 task.marking_criteria = criteria
+            task.marking_criteria = bind_task_representation_sources(
+                task.marking_criteria,
+                dict(zip(original_sources, task.source_references, strict=True)),
+            )
             TaskReviewService(self.session).capture(task)
         if commit:
             self.session.commit()
