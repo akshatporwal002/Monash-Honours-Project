@@ -115,14 +115,13 @@ def _criteria(task: TaskForMarking) -> dict[str, Any]:
     return task.marking_criteria if isinstance(task.marking_criteria, dict) else {}
 
 
-def _answer_set(answer: str) -> set[str]:
+def _choice_answer(task_type, task, answer):
+    from app.schemas.choice_tasks import choice_response
+
     try:
-        decoded = json.loads(answer)
-    except (json.JSONDecodeError, TypeError):
-        decoded = answer.replace(";", ",").split(",")
-    if not isinstance(decoded, list):
-        decoded = [decoded]
-    return {str(value).strip().casefold() for value in decoded if str(value).strip()}
+        return choice_response(task_type, _criteria(task), answer, complete=True)
+    except ValueError as error:
+        raise InvalidTaskSubmissionError(str(error)) from error
 
 
 class MultipleChoiceHandler:
@@ -143,9 +142,8 @@ class MultipleChoiceHandler:
         task: TaskForMarking,
         submission: SubmissionForMarking,
     ) -> bool:
-        return (submission.answer or "").strip().casefold() == (
-            task.expected_answer or ""
-        ).strip().casefold()
+        actual = _choice_answer("multiple_choice", task, submission.answer)
+        return actual == {task.expected_answer} if task.expected_answer else False
 
 
 class MultipleAnswerHandler:
@@ -169,10 +167,10 @@ class MultipleAnswerHandler:
         task: TaskForMarking,
         submission: SubmissionForMarking,
     ) -> bool:
-        expected = {
-            str(value).strip().casefold() for value in _criteria(task).get("correct_answers", [])
-        }
-        return bool(expected) and _answer_set(submission.answer) == expected
+        actual = _choice_answer("multiple_answer", task, submission.answer)
+        expected = _criteria(task).get("correct_answers")
+        key = json.dumps(expected) if expected is not None else task.expected_answer
+        return actual == _choice_answer("multiple_answer", task, key) if key else False
 
 
 class ShortAnswerHandler:

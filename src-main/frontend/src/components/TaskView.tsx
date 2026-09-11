@@ -41,12 +41,7 @@ import { LearnerPreferencesSummary } from '../features/preferences/LearnerPrefer
 const episodeTaskTypes = ['prediction', 'reasoning', 'explanation', 'revision', 'reflection', 'transfer']
 const emptyEpisode = (): EpisodePayload => ({ schema_version: 'learnlens.episode.v1', supported: {} })
 
-const defaultOptions = [
-  { id: 'a', text: 'It creates an equal superposition of |0⟩ and |1⟩.' },
-  { id: 'b', text: 'It measures the qubit immediately.' },
-  { id: 'c', text: 'It always changes |0⟩ to |1⟩.' },
-  { id: 'd', text: 'It removes all quantum interference.' },
-]
+const emptyOptions: NonNullable<LearningTask['options']> = []
 
 function attemptLabel(attempt: TaskSubmission): string {
   if (attempt.formal_assessment) return 'Assessment response saved'
@@ -211,7 +206,11 @@ export function TaskView({
   const [busy, setBusy] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
-  const options = task.options?.length ? task.options : defaultOptions
+  const options = task.options ?? emptyOptions
+  const choicesUnavailable = (mode === 'mcq' || mode === 'multi') && (
+    options.length < 2 || new Set(options.map(option => option.id)).size !== options.length
+    || options.some(option => !option.id.trim() || option.id !== option.id.trim() || !option.text.trim())
+  )
   const qiskitCode = task.starter_code || [
     'from qiskit import QuantumCircuit',
     'from qiskit_aer import AerSimulator',
@@ -327,7 +326,7 @@ export function TaskView({
     circuit: mode === 'circuit' ? { ...circuitExtras, qubits, operations } : hasEpisode && Object.keys(circuitExtras).length ? circuitExtras : undefined,
   }), [answer, code, mode, operations, selectedOption, selectedOptions, workStartId, episode, hasEpisode, qubits, circuitExtras, savedEpisodeCode])
 
-  const valid = mode === 'unsupported' ? false : mode === 'structured' ? validStructured(task.structured_task, answer) : hasEpisode ? Boolean(episode.supported.prediction?.answer?.trim() || episode.supported.reasoning?.trim() || episode.supported.explanation?.trim() || episode.supported.reflection?.trim()) : mode === 'mcq'
+  const valid = mode === 'unsupported' || choicesUnavailable ? false : mode === 'structured' ? validStructured(task.structured_task, answer) : hasEpisode ? Boolean(episode.supported.prediction?.answer?.trim() || episode.supported.reasoning?.trim() || episode.supported.explanation?.trim() || episode.supported.reflection?.trim()) : mode === 'mcq'
     ? Boolean(selectedOption)
     : mode === 'multi'
       ? selectedOptions.length > 0
@@ -564,12 +563,13 @@ export function TaskView({
         </aside>
 
         <section id="task-response" tabIndex={-1} className={styles.interaction} aria-label="Activity">
+          {choicesUnavailable && <p role="alert">Reviewed choices are unavailable. Ask your educator to review this task.</p>}
           {draftLoading ? (
             <p className={styles.stateNote} role="status">Restoring your saved work…</p>
           ) : (
             <fieldset aria-label="Task response controls" style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }} disabled={Boolean(task.assessment && !workStartId && !hasSavedStart)}>
               {mode === 'structured' && task.structured_task && <StructuredTask definition={task.structured_task} answer={answer} onChange={value => { setAnswer(value); touch() }} />}
-              {(mode === 'mcq' || mode === 'multi') && (
+              {(mode === 'mcq' || mode === 'multi') && !choicesUnavailable && (
                 <fieldset className={styles.choices}>
                   <legend className={styles.legend}>
                     {mode === 'mcq' ? 'Select the best answer' : 'Select every correct answer'}

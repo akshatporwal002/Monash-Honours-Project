@@ -31,7 +31,7 @@ class SubmissionStub:
 @pytest.mark.parametrize(
     ("task_type", "submission"),
     [
-        (TaskType.MULTIPLE_CHOICE, SubmissionStub(answer="B")),
+        (TaskType.MULTIPLE_CHOICE, SubmissionStub(answer="b")),
         (TaskType.MULTIPLE_ANSWER, SubmissionStub(answer='["c", "a"]')),
         (
             TaskType.SHORT_ANSWER,

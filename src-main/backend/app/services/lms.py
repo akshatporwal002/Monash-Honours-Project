@@ -643,6 +643,12 @@ class LmsService:
         self._validate_structured_response(
             task, task.expected_answer or "", complete=bool(task.expected_answer)
         )
+        from app.schemas.choice_tasks import validate_choice_key
+
+        try:
+            validate_choice_key(task.task_type.value, task.marking_criteria, task.expected_answer)
+        except ValueError as error:
+            raise _unprocessable(str(error)) from error
         review.capture(task, educator.id)
         self._audit(educator, "task.updated", "task", task.id)
         self._commit()
@@ -2149,9 +2155,11 @@ class LmsService:
 
     @staticmethod
     def _validate_structured_response(task, answer, *, complete):
+        from app.schemas.choice_tasks import choice_response
         from app.schemas.structured_tasks import definition_for, response_for
 
         try:
+            choice_response(task.task_type.value, task.marking_criteria, answer, complete=complete)
             definition = definition_for(
                 task.task_type.value, task.marking_criteria or {}, task.source_references or []
             )

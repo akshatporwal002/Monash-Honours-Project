@@ -292,10 +292,12 @@ class TaskReviewService:
             ):
                 if circuit is not None:
                     self._validate_circuit_payload(circuit)
+        from app.schemas.choice_tasks import validate_choice_key
         from app.schemas.structured_tasks import definition_for, response_for
         from app.services.task_types import DEFAULT_TASK_TYPE_REGISTRY
 
         try:
+            validate_choice_key(task.task_type.value, task.marking_criteria, task.expected_answer)
             if task.generation_prompt_version == "task-generation-v2":
                 from app.schemas.generated_task_design import GeneratedTaskDesign
 

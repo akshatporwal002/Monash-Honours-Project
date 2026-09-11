@@ -420,7 +420,10 @@ class TaskCreate(LmsSchema):
     def require_answer_or_criteria(self) -> TaskCreate:
         if not self.expected_answer and not self.marking_criteria:
             raise ValueError("expected_answer or marking_criteria is required")
+        from app.schemas.choice_tasks import validate_choice_key
         from app.schemas.structured_tasks import definition_for, response_for
+
+        validate_choice_key(self.task_type.value, self.marking_criteria, self.expected_answer)
 
         definition = definition_for(
             self.task_type.value, self.marking_criteria, self.source_references
