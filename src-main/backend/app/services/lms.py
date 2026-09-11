@@ -122,6 +122,7 @@ from app.services.task_types import (
     TaskTypeRegistry,
     UnsupportedTaskTypeError,
 )
+from app.services.validation_reads import validation_read_scope
 
 DEFAULT_SETTINGS: dict[str, tuple[Any, str]] = {
     "provider_timeout_seconds": (60, "Wall-time limit in seconds for a provider operation (1–60)."),
@@ -1227,6 +1228,7 @@ class LmsService:
         ):
             self._commit()
 
+    @validation_read_scope
     def student_dashboard(self, student: User) -> StudentDashboardRead:
         from app.services.curriculum import PathwayProgressReader
         from app.services.progress_activity import completed_practice_tasks

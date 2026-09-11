@@ -32,6 +32,7 @@ from app.services.quantum import (
     validate_circuit,
 )
 from app.services.rag.source_history import latest_approval
+from app.services.validation_reads import reuse_validation_read
 
 TASK_CONTENT_FIELDS = (
     "id",
@@ -109,6 +110,7 @@ class TaskReviewService:
         self.session = session
         self.correlation_id = correlation_id or str(uuid4())
 
+    @reuse_validation_read
     def latest_revision(self, task_id: str) -> TaskRevision | None:
         return self.session.scalar(
             select(TaskRevision)
@@ -117,6 +119,7 @@ class TaskReviewService:
             .limit(1)
         )
 
+    @reuse_validation_read
     def latest_event(self, revision_id: str) -> TaskReviewEvent | None:
         return self.session.scalar(
             select(TaskReviewEvent)
@@ -356,6 +359,7 @@ class TaskReviewService:
             require_scan=require_scan,
         )
 
+    @reuse_validation_read
     def source_approvals(
         self, task: LearningTask, *, required: bool = False, require_scan: bool = True
     ) -> dict[str, str]:
@@ -391,6 +395,7 @@ class TaskReviewService:
             approved[reference] = approval.id
         return approved
 
+    @reuse_validation_read
     def summary(self, task: LearningTask) -> dict:
         revision = self.latest_revision(task.id)
         event = self.latest_event(revision.id) if revision else None
