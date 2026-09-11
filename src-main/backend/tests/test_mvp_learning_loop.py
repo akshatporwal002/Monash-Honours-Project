@@ -142,6 +142,7 @@ def mvp_context(
 
 
 @pytest.mark.parametrize("research_enabled", (False, True))
+@pytest.mark.usefixtures("synthetic_material_scanning")
 def test_canonical_mvp_learning_loop(
     mvp_context: MvpTestContext, monkeypatch: pytest.MonkeyPatch, research_enabled: bool
 ) -> None:

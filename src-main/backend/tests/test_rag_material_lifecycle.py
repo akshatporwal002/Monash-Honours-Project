@@ -17,6 +17,8 @@ from app.db.base import Base
 from app.db.session import get_db_session
 from app.main import app
 from app.models import LearningMaterial, MaterialIndexStatus
+from app.models.lms import Course, CourseModule
+from app.models.user import User, UserRole
 from app.services.rag.errors import InvalidDocumentError, MaterialTooLargeError
 from app.services.rag.fakes import AllowAllCourseAccessPolicy
 from app.services.rag.storage import LocalFileStorage
@@ -85,6 +87,18 @@ def test_upload_list_read_duplicate_and_delete_are_course_scoped(
     material_client: tuple[TestClient, Session, LocalFileStorage],
 ) -> None:
     client, session, storage = material_client
+    educator = User(
+        email="materials@example.invalid",
+        full_name="Synthetic educator",
+        password_hash="unused-test-password",
+        role=UserRole.EDUCATOR,
+    )
+    session.add(educator)
+    session.flush()
+    session.add(Course(id="course-1", educator_id=educator.id, code="MAT-1", title="Materials"))
+    session.flush()
+    session.add(CourseModule(id="week-1", course_id="course-1", title="Week 1", position=1))
+    session.commit()
     response = client.post(
         "/api/v1/courses/course-1/materials/uploads?module_id=week-1",
         files={

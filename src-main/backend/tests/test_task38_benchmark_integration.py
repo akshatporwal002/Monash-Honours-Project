@@ -99,17 +99,22 @@ def _observe_local_providers(receipt_path, process_role):
 
 
 def _run_observed_worker(receipt_path):
+    from support.material_scanning import synthetic_scanning_scope
+
     from app.worker import main
 
     _observe_local_providers(receipt_path, "worker")
-    return main()
+    with synthetic_scanning_scope():
+        return main()
 
 
 def _run_observed_api(receipt_path, port):
     import uvicorn
+    from support.material_scanning import synthetic_scanning_scope
 
     _observe_local_providers(receipt_path, "api")
-    uvicorn.run("app.main:app", host="127.0.0.1", port=int(port), access_log=False)
+    with synthetic_scanning_scope():
+        uvicorn.run("app.main:app", host="127.0.0.1", port=int(port), access_log=False)
 
 
 def test_preparer_refuses_existing_directory_without_changing_it(tmp_path):
@@ -148,7 +153,7 @@ def test_preparer_and_real_local_learning_loop(tmp_path):
     scratch = tmp_path / "synthetic"
     environment = {
         **os.environ,
-        "PYTHONPATH": str(BACKEND),
+        "PYTHONPATH": os.pathsep.join((str(BACKEND), str(BACKEND / "tests"))),
         "LLM_API_KEY": "",
         "LLM_API_BASE_URL": "https://127.0.0.1:1",
         "LLM_PROVIDER": "local",
