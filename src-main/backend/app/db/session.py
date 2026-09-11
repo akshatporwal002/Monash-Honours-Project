@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
@@ -18,7 +19,22 @@ def create_db_engine(database_url: str) -> Engine:
         # failing immediately when another request holds SQLite's writer lock.
         connect_args["timeout"] = 30.0
 
-    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True)
+    engine_options: dict[str, Any] = {}
+    if (
+        url.get_backend_name() == "sqlite"
+        and url.database not in {None, "", ":memory:"}
+        and url.query.get("mode") != "memory"
+        and not url.database.startswith("file::memory:")
+    ):
+        # Async routes can retain sessions while awaiting simulation/feedback.
+        # A synchronous QueuePool checkout would block that same event loop,
+        # preventing existing requests from returning their connections. SQLite
+        # file connections are inexpensive; close each at its transaction/session
+        # boundary. Keep memory-database pooling and SQLite write limits intact.
+        engine_options["poolclass"] = NullPool
+    engine = create_engine(
+        database_url, connect_args=connect_args, pool_pre_ping=True, **engine_options
+    )
 
     if url.get_backend_name() == "sqlite":
 
