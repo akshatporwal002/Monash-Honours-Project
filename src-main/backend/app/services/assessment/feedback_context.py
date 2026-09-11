@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from pydantic_core import to_jsonable_python
-from sqlalchemy import exists, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.assessment import AssessmentAttemptState, ResultState
@@ -15,7 +15,7 @@ from app.models.assessment import (
     AssessmentDecision,
     TaskApproval,
 )
-from app.models.episode import EpisodeHelpUse, EpisodeStageStart
+from app.models.episode import EpisodeHelpUse
 from app.models.human_assessment import HumanAssessmentAction, HumanCriterionDecision
 from app.models.lms import SubmissionAttempt
 from app.models.persistence import LearningTask
@@ -32,6 +32,7 @@ from app.schemas.feedback import (
 )
 from app.services.assessment.evaluation import AssessmentEvaluationConflictError
 from app.services.assessment.frozen_review import FrozenReviewEvidenceReader
+from app.services.assessment.transfer_boundary import active_course_transfer
 from app.services.episode_contract import FrozenResponseError, FrozenResponseReader
 from app.services.episode_responses import SqlAlchemyFrozenResponseReader
 
@@ -239,22 +240,7 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
                 "episode_plan"
             ):
                 return _unresolved(AssessmentContextStatus.INVALID, "PRACTICE_FEEDBACK_RESTRICTED")
-            active = self._session.scalar(
-                select(EpisodeStageStart.id)
-                .where(
-                    EpisodeStageStart.student_id == response.student_id,
-                    EpisodeStageStart.task_id.in_(
-                        select(LearningTask.id).where(LearningTask.course_id == task.course_id)
-                    ),
-                    ~exists(
-                        select(SubmissionAttempt.id).where(
-                            SubmissionAttempt.assessment_work_start_id
-                            == EpisodeStageStart.assessment_work_start_id
-                        )
-                    ),
-                )
-                .limit(1)
-            )
+            active = active_course_transfer(self._session, response.student_id, task.course_id)
             if active or active_fresh_check(self._session, response.student_id, response.task_id):
                 return _unresolved(AssessmentContextStatus.INVALID, "PRACTICE_FEEDBACK_RESTRICTED")
         except (ValueError, TypeError, TaskReviewError):
@@ -290,25 +276,7 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
 
 def feedback_release_state(session, attempt, response, definition, human_action=None):
     """Recheck timing on every release, including reads of previously generated feedback."""
-    active = (
-        session.scalar(
-            select(EpisodeStageStart.id)
-            .where(
-                EpisodeStageStart.student_id == attempt.student_id,
-                EpisodeStageStart.task_id.in_(
-                    select(LearningTask.id).where(LearningTask.course_id == attempt.course_id)
-                ),
-                ~exists(
-                    select(SubmissionAttempt.id).where(
-                        SubmissionAttempt.assessment_work_start_id
-                        == EpisodeStageStart.assessment_work_start_id
-                    )
-                ),
-            )
-            .limit(1)
-        )
-        is not None
-    )
+    active = active_course_transfer(session, attempt.student_id, attempt.course_id)
     if active or attempt.state in {AssessmentAttemptState.VOID, AssessmentAttemptState.FAULTED}:
         return False, active
     transfer_required = (

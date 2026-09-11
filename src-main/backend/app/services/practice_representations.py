@@ -27,6 +27,7 @@ from app.schemas.practice_representations import (
     practice_representations,
 )
 from app.services.assessment.submissions import AssessmentSubmissionService
+from app.services.assessment.transfer_boundary import active_course_transfer
 from app.services.evidence.repository import EvidenceCapture, SqlAlchemyEvidenceRepository
 from app.services.learner_preferences import LearnerPreferenceService
 from app.services.lms import LmsService
@@ -70,7 +71,10 @@ class PracticeRepresentationService:
             revision.snapshot.get("marking_criteria") or {},
             revision.snapshot.get("source_references") or [],
         )
-        return task, revision, approval, variants, preferences
+        transfer_active = active_course_transfer(self.session, actor.id, task.course_id)
+        if transfer_active:
+            variants = [item for item in variants if item.support_kind == "accessibility"]
+        return task, revision, approval, variants, preferences, transfer_active
 
     def _latest(self, actor_id, task_id):
         return self.session.scalar(
@@ -117,7 +121,9 @@ class PracticeRepresentationService:
         return selected, values, explanation
 
     def catalog(self, actor, task_id):
-        _, revision, approval, variants, preferences = self._context(actor, task_id)
+        _, revision, approval, variants, preferences, transfer_active = self._context(
+            actor, task_id
+        )
         recommended, values, explanation = self._recommend(variants, preferences)
         selected_id = recommended.representation_id if recommended else None
         selection = "preference"
@@ -128,9 +134,13 @@ class PracticeRepresentationService:
                 saved["request"]["revision_id"],
                 saved["request"]["preference_version"],
                 saved["request"]["selection"],
-            ) == (revision.id, preferences.version, "override"):
+            ) == (revision.id, preferences.version, "override") and any(
+                item.representation_id == saved["request"]["representation_id"] for item in variants
+            ):
                 selected_id, selection = saved["request"]["representation_id"], "override"
                 explanation = "Your choice for this reviewed task version is retained. You can use your preferences again."
+        if transfer_active:
+            explanation = "Instructional representations are unavailable while a fresh application in this course is open. Reviewed access support remains available where offered."
         return PracticeRepresentationCatalog(
             revision_id=revision.id,
             review_event_id=approval.id,
@@ -147,11 +157,24 @@ class PracticeRepresentationService:
         try:
             task = LmsService(self.session)._require_student_task(actor, task_id)
             TaskReviewService(self.session)._lock_course(task.course_id)
-            task, revision, approval, variants, preferences = self._context(actor, task_id)
+            task, revision, approval, variants, preferences, transfer_active = self._context(
+                actor, task_id
+            )
             if command.revision_id != revision.id:
                 raise TaskReviewError(
                     "The reviewed task changed. Reload the available representations", 409
                 )
+            variant = next(
+                (item for item in variants if item.representation_id == command.representation_id),
+                None,
+            )
+            if variant is None:
+                if transfer_active:
+                    raise TaskReviewError(
+                        "Instructional representations are unavailable during an active fresh application in this course",
+                        409,
+                    )
+                raise TaskReviewError("This representation is not in the reviewed task", 422)
             identity = str(
                 uuid5(NAMESPACE_URL, f"{VERSION}:{actor.id}:{task_id}:{command.request_key}")
             )
@@ -172,12 +195,6 @@ class PracticeRepresentationService:
                 raise TaskReviewError(
                     "Preferences changed. Reload the available representations", 409
                 )
-            variant = next(
-                (item for item in variants if item.representation_id == command.representation_id),
-                None,
-            )
-            if variant is None:
-                raise TaskReviewError("This representation is not in the reviewed task", 422)
             recommended, _, _ = self._recommend(variants, preferences)
             if command.selection == "preference" and variant != recommended:
                 raise TaskReviewError("Select this version as a learner override", 422)
