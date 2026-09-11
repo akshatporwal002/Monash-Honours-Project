@@ -312,7 +312,8 @@ export function CourseEditor() {
         module_id: module.id,
         learning_outcome_ids: [generationOutcomeId],
         count: taskCount,
-        ...(generationType === 'mixed' ? {} : { task_types: [generationType] }),
+        ...(generationType === 'multipart' ? { task_types: ['quantum_circuit'], generation_mode: 'multipart' as const }
+          : generationType === 'mixed' ? {} : { task_types: [generationType] }),
       })
       setGeneratedTasks(tasks)
       setMessage(`${tasks.length} grounded task${tasks.length === 1 ? '' : 's'} generated for educator review.`)
@@ -869,12 +870,14 @@ export function CourseEditor() {
                     }))}
                   />
                 </Field>
-                <Field label="Response type"><Select value={generationType} onValueChange={setGenerationType} options={['mixed', 'multiple_choice', 'multiple_answer', 'short_answer', 'code_explanation', 'code_completion', 'quantum_circuit', 'matching', 'sequencing'].map(value => ({ value, label: value.replaceAll('_', ' ') }))} /></Field>
+                <Field label="Response type"><Select value={generationType} onValueChange={setGenerationType} options={['mixed', 'multiple_choice', 'multiple_answer', 'short_answer', 'code_explanation', 'code_completion', 'quantum_circuit', 'matching', 'sequencing', 'multipart'].map(value => ({ value, label: value === 'multipart' ? 'Multipart Hadamard episode (one draft)' : value.replaceAll('_', ' ') }))} /></Field>
+                {generationType === 'multipart' && <p>Creates one episode with prediction, reasoning, explanation, reflection and fresh transfer. This local family requires a source stating both Hadamard basis transformations. Assessment criteria are proposals for separate review.</p>}
                 <Field label="Tasks">
                   <Select
-                    value={String(taskCount)}
+                    value={generationType === 'multipart' ? '1' : String(taskCount)}
+                    disabled={generationType === 'multipart'}
                     onValueChange={(value) => setTaskCount(Number(value))}
-                    options={[3, 4, 5].map((count) => ({
+                    options={(generationType === 'multipart' ? [1] : [3, 4, 5]).map((count) => ({
                       value: String(count),
                       label: String(count),
                     }))}

@@ -43,7 +43,7 @@ const weeklyOutcome = {
   position: 1,
 }
 
-test('generation sends the chosen supported structured response type', async () => {
+test.each(['matching', 'multipart'])('generation sends the chosen supported response mode: %s', async mode => {
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
     if (url.endsWith('/courses')) return response([course])
@@ -65,11 +65,13 @@ test('generation sends the chosen supported structured response type', async () 
   await user.click(screen.getByRole('button', { name: /Save and generate/ }))
   await user.click(await screen.findByRole('combobox', { name: 'Response type' }))
   expect(screen.queryByRole('option', { name: 'transfer' })).not.toBeInTheDocument()
-  await user.click(screen.getByRole('option', { name: 'matching' }))
+  await user.click(screen.getByRole('option', { name: mode === 'multipart' ? 'Multipart Hadamard episode (one draft)' : 'matching' }))
   await user.click(screen.getAllByRole('button', { name: 'Generate tasks' }).at(-1)!)
   await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/generate-tasks'))).toBe(true))
   const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/generate-tasks'))
-  expect(JSON.parse(String(call?.[1]?.body)).task_types).toEqual(['matching'])
+  const payload = JSON.parse(String(call?.[1]?.body))
+  expect(payload.task_types).toEqual([mode === 'multipart' ? 'quantum_circuit' : 'matching'])
+  if (mode === 'multipart') expect(payload).toMatchObject({ generation_mode: 'multipart', task_count: 1 })
 })
 
 test('shows scheduled recovery and lets an educator retry after automatic attempts stop', async () => {

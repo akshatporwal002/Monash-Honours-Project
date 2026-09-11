@@ -358,6 +358,63 @@ def read_assessment_authoring_tasks(
         raise HTTPException(status_code=error.status_code, detail=error.detail) from error
 
 
+@router.get(
+    "/courses/{course_id}/tasks/{task_id}/generated-assessment-draft",
+    response_model=AssessmentDefinitionDraftCreate,
+)
+def preview_generated_assessment_draft(
+    course_id: str,
+    task_id: str,
+    actor: CurrentUser,
+    session: Annotated[Session, Depends(get_db)],
+    expected_revision_id: Annotated[str, Query(min_length=1, max_length=100)],
+):
+    from app.services.assessment.generated_design import generated_assessment_draft
+    from app.services.task_review import TaskReviewError
+
+    try:
+        return generated_assessment_draft(session, actor, course_id, task_id, expected_revision_id)[
+            1
+        ]
+    except TaskReviewError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+    except Exception as error:
+        raise_definition_http_error(error)
+        raise
+
+
+@router.post(
+    "/courses/{course_id}/tasks/{task_id}/generated-assessment-draft",
+    response_model=AssessmentDefinitionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_generated_assessment_draft(
+    course_id: str,
+    task_id: str,
+    educator: CurrentEducator,
+    lms: Lms,
+    definitions: Definitions,
+    expected_revision_id: Annotated[str, Query(min_length=1, max_length=100)],
+):
+    from app.services.assessment.generated_design import generated_assessment_draft
+    from app.services.task_review import TaskReviewError
+
+    try:
+        task, draft = generated_assessment_draft(
+            definitions.session, educator, course_id, task_id, expected_revision_id, lock=True
+        )
+        return create_assessment_definition_draft(
+            course_id, task.learning_outcome_id, draft, educator, lms, definitions
+        )
+    except TaskReviewError as error:
+        definitions.session.rollback()
+        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+    except Exception as error:
+        definitions.session.rollback()
+        raise_definition_http_error(error)
+        raise
+
+
 @router.post(
     "/courses/{course_id}/assessor-eligibility",
     response_model=AssessorEligibilityRead,

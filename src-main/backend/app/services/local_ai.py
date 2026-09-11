@@ -158,6 +158,24 @@ class LocalTaskGenerationClient:
         for index in range(task_count):
             task_type = types[index % len(types)]
             difficulty = difficulties[min(index, len(difficulties) - 1)]
+            if payload.get("generation_mode") == "multipart":
+                from app.services.multipart_generation import local_multipart
+
+                if task_count != 1 or types != ["quantum_circuit"]:
+                    raise ValueError("Multipart generation supports one circuit episode at a time")
+                item = local_multipart(source_rows, outcome)
+                item["marking_criteria"]["generation_design"] = local_design(
+                    task_type, outcome, difficulty, purpose="SUMMATIVE"
+                )
+                tasks.append(
+                    {
+                        **item,
+                        "task_type": task_type,
+                        "difficulty": difficulty,
+                        "learning_outcome_id": outcome_id,
+                    }
+                )
+                continue
             expected_answer, marking_criteria, starter_code = _task_scaffold(
                 task_type,
                 outcome,
