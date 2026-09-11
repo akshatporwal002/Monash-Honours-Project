@@ -292,6 +292,16 @@ class TaskReviewService:
             ):
                 if circuit is not None:
                     self._validate_circuit_payload(circuit)
+        from app.schemas.practice_representations import practice_representations
+
+        try:
+            for representation in practice_representations(
+                task.marking_criteria or {}, task.source_references or []
+            ):
+                if representation.circuit is not None:
+                    self._validate_circuit_payload(representation.circuit)
+        except ValueError as error:
+            raise TaskReviewError(str(error), 422) from error
         from app.schemas.choice_tasks import validate_choice_key
         from app.schemas.structured_tasks import definition_for, response_for
         from app.services.task_types import DEFAULT_TASK_TYPE_REGISTRY

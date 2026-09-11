@@ -19,6 +19,7 @@ from app.api.routes import (
     lms,
     materials,
     misconceptions,
+    practice_representations,
     progress,
     reassessment,
     reminders,
@@ -63,6 +64,7 @@ api_router.include_router(curriculum.router)
 
 api_router.include_router(activity_continuation.router)
 api_router.include_router(misconceptions.router)
+api_router.include_router(practice_representations.router)
 
 
 api_router.include_router(support_preferences.router)

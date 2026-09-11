@@ -398,19 +398,28 @@ class LiveEvidenceCapture:
         teaching = teaching_observations(
             self.session, work_id, when, stage_id=stage_id, task_id=task_id, student_id=student_id
         )
+        from app.services.practice_representations import practice_support_observations
+
+        practice = (
+            practice_support_observations(self.session, task_id, student_id, when)
+            if not work_id and not stage_id
+            else []
+        )
         level = max(
             [
                 0,
                 *(self._receipt_support_level(use) for use in uses),
                 *(item.instructional_support_level for item in teaching),
+                *(item.instructional_support_level for item in practice),
             ]
         )
         return (
             InstructionalSupportLevel(level),
             AccessSupportState.PROVIDED
             if "accessibility" in kinds
+            or any(item.access_support_state == AccessSupportState.PROVIDED for item in practice)
             else AccessSupportState.NOT_DECLARED,
-            (*parents, *(item.id for item in teaching)),
+            (*parents, *(item.id for item in teaching), *(item.id for item in practice)),
         )
 
     def _sources(self, process):
