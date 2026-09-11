@@ -30,8 +30,8 @@ class Config:
     phase_timeout: float = 600
     poll_seconds: float = 2
     max_requests: int = 1000
-    max_cost_aud: str = "1"
-    loop_cost_ceiling_aud: str = "0.10"
+    max_cost_aud: str | None = "1"
+    loop_cost_ceiling_aud: str | None = "0.10"
     target: str = ""
     origin: str = ""
     provider: str = ""
@@ -41,6 +41,7 @@ class Config:
     csrf_cookie: str = "ql_csrf"
     csrf_header: str = "X-CSRF-Token"
     fake: bool = True
+    local_only: bool = False
     versions: dict[str, Any] = field(default_factory=dict)
     runtime: dict[str, Any] = field(default_factory=dict)
 
@@ -65,7 +66,23 @@ class Config:
             raise ValueError("Invalid human observation deadline")
         if type(self.max_requests) is not int or not 1 <= self.max_requests <= 1_000_000:
             raise ValueError("A bounded request budget is required")
-        for value in (self.max_cost_aud, self.loop_cost_ceiling_aud):
+        if self.local_only and (
+            self.fake
+            or self.provider not in {"local", "local-template", "local-deterministic"}
+            or any(
+                urlsplit(url).hostname not in {"127.0.0.1", "::1"}
+                for url in (self.target, self.origin)
+            )
+            or self.runtime.get("external_provider_disabled") is not True
+            or self.max_cost_aud is not None
+            or self.loop_cost_ceiling_aud is not None
+        ):
+            raise ValueError(
+                "Unpaid local runs require loopback, disabled external transport and no monetary approval"
+            )
+        for value in () if self.local_only else (self.max_cost_aud, self.loop_cost_ceiling_aud):
+            if value is None:
+                raise ValueError("External runs require monetary limits")
             amount = Decimal(value)
             if not amount.is_finite() or amount <= 0:
                 raise ValueError(
@@ -94,7 +111,7 @@ class Config:
                     self.provider,
                     self.model,
                     self.synthetic_environment_record,
-                    self.provider_budget_record,
+                    self.local_only or self.provider_budget_record,
                     self.versions,
                     self.runtime,
                 )
@@ -115,6 +132,10 @@ class Budget:
         self.actor_ids = set()
 
     def reserve_loop(self):
+        if self.stopped:
+            raise StopRun("cancelled")
+        if self.config.local_only:
+            return
         ceiling = Decimal(self.config.loop_cost_ceiling_aud)
         if self.stopped or self.reserved_aud + ceiling > Decimal(self.config.max_cost_aud):
             raise StopRun("cost_budget")
@@ -214,9 +235,13 @@ def summarise(manifest, loops, samples):
         "samples": samples,
         "evidence_class": "SYNTHETIC DRY RUN"
         if manifest["config"]["fake"]
+        else "SYNTHETIC LOCAL CAPACITY"
+        if manifest["config"].get("local_only")
         else "synthetic environment observation",
         "production_compliance": "not_established",
-        "external_provider_execution": "pending_usage_reconciliation",
+        "external_provider_execution": "disabled_local_campaign"
+        if manifest["config"].get("local_only")
+        else "pending_usage_reconciliation",
         "assessment_evaluation_target": "pending separate approved target; human wait is separate",
         "cost": {
             "status": "unknown_missing_usage",
@@ -334,7 +359,7 @@ async def campaign(config, roster, adapter_factory, run_id, clock=time.perf_coun
             break
     manifest.update(
         requests=budget.requests,
-        reserved_cost_ceiling_aud=str(budget.reserved_aud),
+        reserved_cost_ceiling_aud=None if config.local_only else str(budget.reserved_aud),
         cancelled=cancelled,
         unstarted_loops=required - len(loops),
     )

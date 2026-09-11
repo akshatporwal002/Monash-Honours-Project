@@ -15,12 +15,25 @@ def extract_snapshot(report, snapshot):
     snapshot = Path(snapshot).resolve(strict=True)
     with snapshot.open("rb") as source:
         snapshot_digest = hashlib.file_digest(source, "sha256").hexdigest()
-    rows = []
+    rows, legacy_metadata, seen_submissions = [], [], set()
     with sqlite3.connect(snapshot.as_uri() + "?mode=ro", uri=True) as db:
         db.row_factory = sqlite3.Row
+        durable_available = (
+            db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='provider_usage'"
+            ).fetchone()
+            is not None
+        )
         for loop in report["loops"]:
             # Submission IDs also recover a workflow when the initial feedback poll failed.
             for submission in loop["submission_ids"]:
+                if submission in seen_submissions:
+                    raise ValueError("A submission cannot belong to multiple benchmark loops")
+                seen_submissions.add(submission)
+                durable = (
+                    _durable_rows(db, submission, loop["loop_id"]) if durable_available else []
+                )
+                rows.extend(durable)
                 records = db.execute(
                     """
                     SELECT f.id, f.workflow_run_id, f.provider, f.model, f.prompt_version,
@@ -39,7 +52,9 @@ def extract_snapshot(report, snapshot):
                     )
                     item["recorded_estimated_cost"] = str(item.pop("estimated_cost"))
                     item["usage_complete"] = bool(item["usage_complete"])
-                    rows.append(item)
+                    (legacy_metadata if durable and item["provider"] not in LOCAL else rows).append(
+                        item
+                    )
                     judges = db.execute(
                         """
                         SELECT id, provider, model, prompt_version, quality_policy_version,
@@ -59,22 +74,73 @@ def extract_snapshot(report, snapshot):
                         )
                         item["recorded_estimated_cost"] = str(item.pop("estimated_cost"))
                         item["usage_complete"] = bool(item["usage_complete"])
-                        rows.append(item)
+                        (
+                            legacy_metadata if durable and item["provider"] not in LOCAL else rows
+                        ).append(item)
     return {
         "schema": "task38.usage.v1",
         "run_id": report["manifest"]["run_id"],
         "snapshot_sha256": snapshot_digest,
         "evidence_class": report["evidence_class"],
         "records": rows,
+        "durable_metering_available": durable_available,
+        "legacy_generation_metadata": legacy_metadata,
         "coverage": {"complete": False, "covered_loop_ids": [], "reconciliation_record": None},
         "pricing": {},
         "fx": {},
         "limitations": [
-            "Database estimates have no currency/provenance field.",
-            "Unpersisted attempts, retries and other agents require provider billing reconciliation.",
+            "Durable attempt records preserve currency, pricing and nullable actuals; legacy generation estimates lack this provenance.",
+            "Durable calls are authoritative for metered submissions; legacy generation metadata is retained separately to avoid double counting.",
+            "Unattributed, pre-migration and other-agent spend still requires provider billing coverage reconciliation.",
             "Learner API does not expose usage. Local records are not zero-cost external evidence.",
         ],
     }
+
+
+def _durable_rows(db, submission, loop_id):
+    records = db.execute(
+        """SELECT id, state, reserved_micros, exposure_micros, estimated_micros,
+        actual_micros, input_tokens, output_tokens, provider_response_id, receipt_id,
+        provenance, created_at FROM provider_usage
+        WHERE json_extract(provenance, '$.context.submission_id') = ? ORDER BY created_at, id""",
+        (submission,),
+    ).fetchall()
+    rows = []
+    for record in records:
+        saved = dict(record)
+        provenance = json.loads(saved.pop("provenance"))
+        judge = provenance.get("schema_name") == "quality_judge_output"
+
+        def monetary(key):
+            return str(Decimal(saved[key]) / 1_000_000) if saved[key] is not None else None
+
+        rows.append(
+            {
+                "id": "provider-usage:" + saved["id"],
+                "loop_id": loop_id,
+                "provider": provenance.get("provider"),
+                "model": provenance.get("model"),
+                "prompt_version": provenance.get("prompt_version"),
+                "feature": "feedback_judge" if judge else "feedback_generation",
+                "agent": "quality_judge" if judge else "feedback",
+                "metering_state": saved["state"],
+                "input_tokens": saved["input_tokens"],
+                "output_tokens": saved["output_tokens"],
+                "usage_complete": saved["input_tokens"] is not None
+                and saved["output_tokens"] is not None,
+                "recorded_estimated_cost": monetary("estimated_micros"),
+                "reserved_cost": monetary("reserved_micros"),
+                "held_exposure": monetary("exposure_micros"),
+                "billed_cost": monetary("actual_micros"),
+                "billing_receipt": saved["receipt_id"],
+                "billing_currency": provenance.get("currency"),
+                "pricing_version": provenance.get("pricing_version"),
+                "budget_policy_version": provenance.get("budget_policy_version"),
+                "provider_response_id": saved["provider_response_id"],
+                "created_at": saved["created_at"],
+            }
+        )
+    return rows
 
 
 def amount(value):
@@ -89,21 +155,28 @@ def cost_report(report, ledger):
         raise ValueError("Usage belongs to another run")
     loops = {r["loop_id"]: r for r in report["loops"]}
     ids, totals, grouped, missing, local_records = set(), {}, {}, [], []
+    billed_ids, not_sent = set(), []
     for row in ledger["records"]:
         identity = row["id"]
         if identity in ids or row["loop_id"] not in loops:
             raise ValueError("Duplicate usage receipt or unknown loop")
         ids.add(identity)
+        if row.get("metering_state") in {"NOT_SENT", "RELEASED"}:
+            if row.get("billed_cost") is not None:
+                raise ValueError("Undispatched records cannot carry billed actuals")
+            not_sent.append(identity)
+            continue
         if (row.get("provider") or "").casefold() in LOCAL:
             local_records.append(identity)
             continue
         if not row.get("usage_complete"):
             missing.append(identity)
-            continue
         if not row.get("provider") or not row.get("model"):
             missing.append(identity)
             continue
         for token in ("input_tokens", "output_tokens"):
+            if row.get(token) is None and not row.get("usage_complete"):
+                continue
             if type(row.get(token)) is not int or row[token] < 0:
                 raise ValueError("Actual token counts must be nonnegative integers")
         price = ledger.get("pricing", {}).get(row["provider"] + "/" + row["model"], {})
@@ -112,6 +185,9 @@ def cost_report(report, ledger):
             missing.append(identity)
             continue
         date.fromisoformat(price["date"])
+        if row.get("pricing_version") and row["pricing_version"] != price["schedule_version"]:
+            missing.append(identity)
+            continue
         if (
             not all(fx.get(k) for k in ("source", "date", "currency", "aud_per_unit"))
             or fx["currency"] != price["currency"]
@@ -128,6 +204,9 @@ def cost_report(report, ledger):
             continue
         # The paid/billable amount comes from a provider receipt, not token estimates.
         billed = amount(row["billed_cost"])
+        if row["billing_receipt"] in billed_ids:
+            raise ValueError("A billing receipt cannot fund multiple usage records")
+        billed_ids.add(row["billing_receipt"])
         rate = amount(fx["aud_per_unit"])
         if rate == 0:
             raise ValueError("Currency conversion must be positive")
@@ -135,8 +214,11 @@ def cost_report(report, ledger):
         totals[row["loop_id"]] = totals.get(row["loop_id"], Decimal(0)) + aud
         key = "/".join((row["agent"], row["feature"], row["provider"], row["model"]))
         group = grouped.setdefault(key, {"input_tokens": 0, "output_tokens": 0, "aud": Decimal(0)})
-        group["input_tokens"] += row["input_tokens"]
-        group["output_tokens"] += row["output_tokens"]
+        group["input_tokens"] += row["input_tokens"] or 0
+        group["output_tokens"] += row["output_tokens"] or 0
+        group["usage_complete"] = group.get("usage_complete", True) and row.get(
+            "usage_complete", False
+        )
         group["aud"] += aud
     coverage = ledger.get("coverage", {})
     complete = (
@@ -146,6 +228,7 @@ def cost_report(report, ledger):
         and not missing
         and bool(totals)
         and not report["manifest"]["config"]["fake"]
+        and not report["manifest"]["config"].get("local_only")
         and all(
             r["loop_id"] in totals
             for r in loops.values()
@@ -191,7 +274,8 @@ def cost_report(report, ledger):
         },
         "threshold_aud": "0.10",
         "scenarios": scenarios,
-        "missing_receipts": missing,
+        "missing_receipts": sorted(set(missing)),
+        "undispatched_receipts_excluded_from_billed_spend": not_sent,
         "local_template_receipts_excluded_from_external_evidence": local_records,
         "by_agent_feature_provider_model": {
             key: {**v, "aud": str(v["aud"])} for key, v in grouped.items()

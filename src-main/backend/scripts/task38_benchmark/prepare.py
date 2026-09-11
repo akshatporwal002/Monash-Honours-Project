@@ -10,6 +10,12 @@ from pathlib import Path
 from uuid import uuid4
 
 
+def new_learner_identity():
+    # example.invalid is rejected by the mounted EmailStr login contract.
+    # example.com is reserved for examples; no mail is sent by this fixture.
+    return f"task38-{uuid4().hex}@example.com", str(uuid4())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", required=True, help="New, absent scratch directory")
@@ -81,9 +87,9 @@ def main():
             }
         ]
         for _ in range(args.learners - 1):
-            password = str(uuid4())
+            email, password = new_learner_identity()
             user = User(
-                email=f"task38-{uuid4().hex}@example.invalid",
+                email=email,
                 full_name="Synthetic Task 38 learner",
                 password_hash=hash_password(password),
                 role=UserRole.STUDENT,
