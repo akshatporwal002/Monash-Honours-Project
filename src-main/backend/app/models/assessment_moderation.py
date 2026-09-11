@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
+    DDL,
     JSON,
     Boolean,
     CheckConstraint,
@@ -13,6 +14,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -130,8 +132,6 @@ def history_guards():
                 f"CREATE TRIGGER IF NOT EXISTS {name} BEFORE {operation} ON {table.name}{condition} BEGIN SELECT RAISE(ABORT, 'Assessment governance history is append-only'); END",
             )
 
-
-from sqlalchemy import DDL, event  # noqa: E402
 
 for _table, _sql in history_guards():
     event.listen(_table, "after_create", DDL(_sql).execute_if(dialect="sqlite"))

@@ -1,6 +1,6 @@
 # LearnLens task progress and remaining work
 
-Updated: **11 September 2026**, after the reviewed reminder and task-read repairs; combined verification is next.
+Updated: **11 September 2026**, after pushed `dff979d`, its failed 50-user campaign and successful frontend CI; backend CI remains running.
 
 **29 of 41 numbered implementations are delivered; 12 tasks still need software or acceptance work.** The unchanged count is **29 completed, 11 partial and one remaining**. It does not mean 12 features have not been built. Read each task's **Progress**, **Next action**, acceptance condition and evidence link before starting work.
 
@@ -10,23 +10,23 @@ Updated: **11 September 2026**, after the reviewed reminder and task-read repair
 | Active software/integration work | 36, 38 | Performance fixes, final integration, publication of local changes and combined verification remain. |
 | Human/external acceptance primarily outstanding | 8, 28, 32, 33, 34, 35, 37, 39, 40, 41 | Tooling largely exists; actual approvals, people, content or an approved environment are missing. Task 39 also depends on final CI; Task 33 may need additional disposal implementation after the data plan is approved. |
 
-Task 30's functional reminder rules remain delivered, but the newly diagnosed reminder worker performance defect is tracked in Task 38. Likewise, Task 22's continuation functionality exists while its load-time queue delay remains unresolved. Completed implementation does not certify performance or release acceptance.
+Task 30's functional reminder rules and measured candidate-scan repair are delivered; remaining campaign performance is tracked in Task 38. Likewise, Task 22's continuation functionality exists while its load-time queue delay remains unresolved; the reviewed decision-scope repair has eight focused checks and awaits combined load measurement. Completed implementation does not certify performance or release acceptance.
 
 ## Source and verification snapshot
 
-This is a dated snapshot, not a live Git status. The candidate following `7dddf9d` includes the reviewed reminder candidate filter, task-read validation scope, complete-loop browser fixture corrections and refreshed draft fingerprints. The simulation reuse and deterministic secret-control fixes are also included. Final combined CI and a new clean 50-user campaign are pending; the earlier results below certify only their named source.
+This is a dated snapshot, not a live Git status. Pushed `dff979d` includes the reviewed reminder candidate filter, task-read validation scope, complete-loop browser fixture corrections and refreshed draft fingerprints. Its clean 50-user campaign failed. Frontend, security and dependency CI jobs passed; backend CI is still running. Subsequent local reviewed feedback-status and continuation-decision optimizations plus import-order cleanup have scoped checks but are not certified by the pushed-source CI. The next full 50-user campaign has not started.
 
 | Evidence | Source and result | Limit |
 | --- | --- | --- |
-| Complete backend CI | `5a57b66`: **2,030 passed**, one warning, **90.16% service coverage**; migrations/recovery/reuse included; OpenAPI/generated contracts current. | Certifies that source, not later edits. |
-| Frontend CI | `5a57b66`: lint/build passed, **395 unit/accessibility tests** and **124 browser checks** passed. | Separate complete-loop test failed; misconception stage did not run. |
-| Security/dependencies | `5a57b66`: dependency audit passed; repository history scan found no secrets. | Synthetic secret-detection control failed, so the overall gate failed. Local deterministic-control repair passed its scanner check and two regression tests. |
-| Local complete-loop browser repair | Explicit assessed start and current assessor labels; **one headless Firefox journey passed in 35.7 s**. | Final four-browser CI remains due. |
-| Local misconception journey | Unchanged journey **passed in headless Firefox in 16.6 s**. | Focused run; no application fix needed. |
-| Local simulation fix | `7dddf9d`: **46 distinct focused checks**, **12/12 numerical scenarios matched**; fresh learner evidence and execution limits preserved. | Identical-input reuse does not prove diverse-input throughput. |
-| Latest 50-user load campaign | Clean `7dddf9d`: **18/50 awaiting human**, 19 continuation timeouts, 13 request timeouts; **ordinary p95 8.024 s** against 2 s. | **Failed**, with 64% journey errors. No human-confirmed completion or actual external billing. |
+| Last completed backend CI | `5a57b66`: **2,030 passed**, one warning, **90.16% service coverage**; migrations/recovery/reuse included; OpenAPI/generated contracts current. | Historical source. Backend CI for `dff979d` is still running. |
+| Frontend CI | `dff979d`: **SUCCESS**, with **395 unit/accessibility tests**, **124 ordinary browser checks** and **four misconception journeys** passed. | Complete-loop journeys: three passed first attempt; Firefox passed on one retry. The actual Firefox flake remains under diagnosis. |
+| Security/dependencies | `dff979d`: security and dependency jobs passed. | Applies to that source; hosted TLS/scanner efficacy and final release acceptance remain separate. |
+| Local feedback-status optimization | After `dff979d`, non-content status responses return before release-context loading: **49 SELECTs to zero**, identical response; **19 focused release/access checks passed in 41.56 s**. | Local scoped evidence; terminal-content release/access checks remain enforced. No new full campaign has started. |
+| Suppression/exclusion audit | [Audit and accountable maintenance roles](docs/learnlens/lint-suppression-audit-2026-09-11.md) recorded; five E402 suppressions removed by moving imports. | Import cleanup has scoped Ruff verification; final combined source still needs CI. |
+| Local simulation fix | `7dddf9d`: **46 distinct focused checks**, **12/12 numerical scenarios matched**; fresh learner evidence and execution limits preserved. | Historical numerical receipt; identical-input reuse does not prove diverse-input throughput. |
+| Latest 50-user load campaign | Clean `dff979d`: **16/50 awaiting human**, 23 continuation timeouts, 10 request timeouts and one feedback failure; **ordinary p95 5.710 s** with three censored observations. | **Failed**, with 68% journey errors. No human-confirmed completion or actual external billing. |
 
-[CI run 34558650591](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34558650591) is overall **failed** despite its passing backend/browser jobs. [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) and [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md) preserve source-specific results, failures and limits. Focused runs overlap; their counts must not be added into a claimed new complete suite.
+The earlier [CI run 34558650591](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34558650591) remains a historical overall failure. The newer frontend/security/dependency successes do not establish overall CI success while backend CI is running. [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) and [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md) retain exact source/run scopes, failures and limits. Focused counts overlap and must not be added into a claimed new complete suite.
 
 The migration/readiness head is `20260911_0055`. The [current requirement matrix](docs/learnlens/implementation-gap-matrix.md) covers **143 requirements: 97 implemented, 33 partial, 13 unverified**. Requirements and numbered tasks use different denominators. The matrix's delivery register and each task's evidence links describe implemented features; older reports retain historical scope.
 
@@ -34,8 +34,8 @@ The migration/readiness head is `20260911_0055`. The [current requirement matrix
 
 1. **Task 38 — reminder candidate scan implemented and reviewed.** The query now filters by the latest effective overdue deadline and active pause/revocation semantics before authoritative send-time validation. All 27 focused reminder checks passed. The same copied-fixture worker diagnostic improved from 2.422 seconds, 2,922 SELECTs and 25 write/commit pairs to **0.016 seconds, one SELECT and zero writes**. The second round correctly skips the scan during its existing idle interval. Continuations still processed; no worker scheduling or timeout change was needed.
 2. **Task 38 — task-read validation scope implemented and reviewed.** Only pure availability/projection runs inside `validation_read_scope`; it ends before TASK_VIEW recording. Seven focused checks passed, preserving complete output, separate view events, learner authorization and fresh publication/source checks after mutations. A narrow 16-actor/32-request mounted-route diagnostic returned all HTTP 200: dashboard p95 **1.824 seconds**, task GET p95 **0.846 seconds**. This excludes login, simulation and background worker load and does not certify the full campaign.
-3. **Task 38 — measure the repaired source.** After focused regressions and independent review, record a clean candidate commit and run one new 50-user campaign without competing local measurements. Require successful pre-human journeys and ordinary/progress/formative-feedback p95 within 2/3/10 seconds. Preserve separate HTTP/journey error denominators, incomplete observations and cleanup evidence. Hosted scaling, diverse circuits and billed human-confirmed loop cost remain separate acceptance; adjust further software only from measured failures.
-4. **Tasks 36/39 — integrate and verify.** Review the existing local simulation, scanner and complete-loop test changes together with the new fixes. Refresh only affected source fingerprints; retain dated numerical receipts and zero expert approvals. Commit/push relevant code and teammate-facing evidence, keeping private scratch/planning local. Collect final combined CI on the resulting source; use focused checks while fixing failures rather than repeatedly duplicating the complete local suite. Update this ledger and matrix from the final results.
+3. **Task 38 - resolve the measured remaining failures.** The `dff979d` campaign failed despite the reminder/task-read improvements. The reviewed local feedback-status early return eliminates repeated release-context work for responses that contain no content (49 SELECTs to zero; 19 focused checks passed). A subsequent pure continuation-decision scope passed eight focused checks and reduced two worker rounds from 448/479 to 103/132 SELECTs; writer acquisition delays still need combined measurement. Firefox retry cause remains unproven because earlier CI did not retain browser failure context; the candidate now retains small failed-attempt artifacts. After integration, run one clean 50-user campaign without competing measurements. Keep API timing separate from browser rendering, conditional stage timings separate from journey success, and missing 5-100 scaling/billed cost evidence explicit.
+4. **Tasks 36/39 - finish combined verification.** Collect the running `dff979d` backend result, retain its frontend retry evidence, integrate reviewed local changes and collect final-source gates. The current Task 35 draft manifest is refreshed; historical numerical receipts remain separate. Do not repeat completed broad checks without a source change or unresolved failure. Update this ledger and matrix from actual results and keep private scratch/planning local.
 
 Approved-host deployment packaging remains unverified. Actual provider spending, study activation and human approvals require their real approved inputs. Task 33's approved data plan may reveal additional record-class disposal work; protected learning/assessment history must remain intact.
 
@@ -461,9 +461,9 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 35. **[Partial] Validate quantum content, feedback, and assessment against expert judgements.**
 
-    **Progress:** Offline tooling has 108 DRAFT cases and blank review forms, zero approved cases and zero included system-output/rating pairs. Live moderation, signed evaluator release/import and ten-dimension human review are implemented. The 7dddf9d candidate has a refreshed 123-entry manifest and a new 12-scenario numerical revalidation receipt, preserving the older receipt/manifest. Quality remains UNVERIFIED and advisory AI release PENDING.
+    **Progress:** Offline tooling retains 108 DRAFT cases and blank review forms, zero approved cases and zero included system-output/rating pairs. Live moderation, signed evaluator release/import and ten-dimension human review are implemented. Current source fingerprints use the refreshed 123-entry draft manifest; historical numerical receipts and their paired manifests remain unchanged. Quality stays UNVERIFIED and advisory AI release PENDING.
 
-    **Verified:** Manifest digest 3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c binds the local candidate; all 12 ideal-circuit scenarios match. Numerical agreement supplies no expert approval.
+    **Verified:** Current draft manifest digest `aadbfb11b4a22e272a0cb9af606f0f8ad27249ade07aad40f280558b9dd5c619`. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
 
     **Next action:** Human/expert input: approve at least 100 cases and source bindings, record actual outputs and independent ratings, calculate agreement/fairness/error measures, and sign separate content and AI-assessment release decisions. Software follow-up: refresh changed-source fingerprints during Task 36.
 
@@ -475,11 +475,11 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 36. **[Partial] Refresh traceability and run the complete automated checks.**
 
-    **Progress:** All 143 requirements are mapped: 97 implemented, 33 partial and 13 unverified. Backend CI on 5a57b66 passed 2,030 tests with 90.16% coverage and current API contracts; frontend lint/build, 395 unit tests and 124 browser cases passed. The complete workflow failed on the secret positive control and separate learning-loop browser fixture. Both have local repairs and focused passing checks; final CI on the later source is still required.
+    **Progress:** All 143 requirements remain mapped: 97 implemented, 33 partial and 13 unverified. Pushed `dff979d` frontend CI succeeded with 395 unit/accessibility tests, 124 browser checks, four misconception journeys and all four complete-loop journeys (Firefox required one retry). Security/dependency jobs passed; backend CI is still running. Local feedback-status and import-order fixes have scoped checks.
 
-    **Verified:** See the source-specific verification table above and the dated integration receipt. Overall CI is not green; passing jobs and local fixes are recorded separately.
+    **Verified:** The last completed backend receipt remains `5a57b66`: 2,030 tests, 90.16% service coverage. Current frontend SUCCESS includes an actual Firefox flake under diagnosis. The suppression/exclusion audit records reasons and maintenance roles; five E402 suppressions were removed by import ordering. Overall current-source CI is not yet established.
 
-    **Next action:** Software/integration: reviewed repairs and affected fingerprint refresh are complete; publish the combined candidate and collect final CI and Task 38 load results. Reuse the dated receipts below; run focused checks for changes and one final integrated gate. Keep private scratch/planning files local.
+    **Next action:** Software/integration: collect running backend CI, resolve the observed browser/load failures, integrate reviewed local changes and collect final-source gates. Preserve historical failures, retry evidence and the separate Task 38 campaign result. Keep private scratch/planning local.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
 
@@ -503,11 +503,11 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 38. **[Partial] Measure load, provider cost, and runtime configuration changes.**
 
-    **Progress:** Shared budget reservation/fencing, frozen pricing, nullable billing reconciliation, runtime controls and the bounded load harness are implemented. Dashboard reads were reduced from 748 to 93 queries; API blocking/submission read amplification and repeated simulation startup have been repaired. The clean 7dddf9d campaign still failed: 18/50 reached human assessment, 19 continuation timeouts and 13 request timeouts, ordinary p95 8.024 seconds. Both measured reminder and task-read repairs are now implemented, independently reviewed and pass focused checks; the combined load campaign remains due. See the precise next-work section above.
+    **Progress:** Shared budgets, runtime controls and the bounded load harness are implemented. Pushed `dff979d` includes reviewed reminder/task-read and repeated-input simulation fixes, but its clean 50-user campaign failed: 16/50 reached human assessment, 23 continuation timeouts, 10 request timeouts and one feedback failure. Ordinary API p95 was 5.710 seconds with three censored observations. The subsequent local feedback-status early return removed 49 SELECTs while preserving its response; 19 focused release/access checks passed.
 
-    **Verified:** Latest measured journey error rate is 64%; HTTP error rate is 0.395% over 4,558 requests. Progress p95 1.375 seconds and feedback p95 6.672 seconds are conditional on surviving journeys. All feedback work drained and owned processes stopped; actual external cost is null and no human-confirmed loop completed.
+    **Verified:** Latest measured journey errors: 68%; HTTP errors: 25/5,336 (0.4685%). Progress p95 1.423 seconds (63 observations) and formative feedback p95 7.369 seconds (16 observations) are conditional on reaching those stages. Feedback work drained and owned processes/listener stopped; continuation work remained incomplete. Actual external cost is null; no human-confirmed loop completed.
 
-    **Next action:** Software: measure one new clean 50-user campaign with the reviewed reminder and task-read fixes; investigate only measured remaining failures. External follow-up: approved hosted/scaling conditions and actual billed human-confirmed complete-loop cost evidence.
+    **Next action:** Software: finish bounded SQLite/continuation diagnosis, integrate reviewed fixes and run the next clean 50-user campaign, which has not started. API timings do not measure browser rendering. Comparable 5-100 scaling, approved hosted conditions and actual billed human-confirmed complete-loop cost remain separate requirements.
 
     Dependencies: Tasks 25, 35, 36, and 37; Task 8, D-12. Suggested owner: platform and operations.
 
@@ -517,11 +517,11 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 39. **[Partial] Complete browser, accessibility, and first-time usability checks.**
 
-    **Progress:** Automated keyboard/reflow/axe coverage and circuit/focus repairs are integrated. On 5a57b66, 395 unit/accessibility tests and 124 browser cases passed; the separate complete-loop stage failed and prevented the misconception stage from running. The corrected complete-loop fixture passed locally in headless Firefox (35.7 seconds), and the unchanged misconception journey passed (16.6 seconds). These focused checks do not replace final four-browser CI or human accessibility/usability trials.
+    **Progress:** Pushed `dff979d` frontend CI succeeded: 395 unit/accessibility tests, 124 ordinary browser checks and four misconception journeys passed. Three complete-loop browsers passed first attempt; Firefox passed on one retry. The real Firefox flake remains under diagnosis; successful retries are retained as such.
 
-    **Verified:** The 124-case suite and the two later focused journeys have different source/run scopes. The initial local misconception attempt stalled before login due to the Windows Firefox mode; the corrected headless run passed without an application change.
+    **Verified:** All configured frontend stages completed for `dff979d`. This is automated Chrome/Edge/Firefox/WebKit evidence, not native Safari, screen-reader/manual WCAG or first-time usability acceptance. Later source changes still require applicable final-source checks.
 
-    **Next action:** Integration: commit the repaired complete-loop fixture and collect final four-browser CI, including the misconception stage. Human input: native Safari, named screen-reader/zoom/contrast observations and first-time educator/learner usability trials.
+    **Next action:** Integration: diagnose the observed Firefox complete-loop flake and retain retry/failure evidence in final CI. Human input: native Safari, named screen-reader/zoom/contrast observations and first-time educator/learner usability trials.
 
     Dependencies: Tasks 24-31 and 36; Task 8, D-12. Suggested owner: accessibility reviewers and product testing.
 

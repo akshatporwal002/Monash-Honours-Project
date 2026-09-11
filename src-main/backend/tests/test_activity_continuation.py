@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import func, select, update
+from sqlalchemy import event, func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
@@ -141,6 +141,60 @@ def next_request(claim):
         claim.correlation_id,
         claim.execution_token,
     )
+
+
+def test_decision_reuses_only_pure_reads_and_keeps_the_complete_result(context, db_session):
+    curriculum, identity, factory, _ = context
+    run_worker(factory)
+    _, _, learner, _, tasks, _, _ = curriculum
+    receipt = db_session.get(ActivityProgress, identity)
+    service = ActivityService(db_session)
+    statements = []
+
+    def observe(conn, cursor, statement, parameters, ctx, many):
+        statements.append(statement.lstrip().split()[0].upper())
+
+    engine = db_session.get_bind()
+    event.listen(engine, "before_cursor_execute", observe)
+    try:
+        original = getattr(ActivityService.decide, "__wrapped__", ActivityService.decide)
+        expected, expected_path = original(service, receipt, tasks[0], learner)
+        baseline = statements.count("SELECT")
+        statements.clear()
+        actual, actual_path = service.decide(receipt, tasks[0], learner)
+        assert actual == expected and actual_path.id == expected_path.id
+        assert 0 < statements.count("SELECT") < baseline
+        assert set(statements) == {"SELECT"}
+        # Once the read phase ends, the next caller must observe changed approval.
+        tasks[1].title = "Changed task instruction after the decision"
+        db_session.commit()
+        changed, _ = service.decide(receipt, tasks[0], learner)
+        assert changed["state"] == "stale_approval"
+    finally:
+        event.remove(engine, "before_cursor_execute", observe)
+
+
+def test_decision_scope_invalidates_if_a_write_occurs_during_options(
+    context, db_session, monkeypatch
+):
+    curriculum, identity, factory, _ = context
+    run_worker(factory)
+    _, _, learner, _, tasks, _, _ = curriculum
+    receipt = db_session.get(ActivityProgress, identity)
+    service = ActivityService(db_session)
+    original = service.options
+
+    def change_after_validation(path, task, actor):
+        assert original(path, task, actor)
+        tasks[1].title = "Changed after the first validation in this operation"
+        db_session.flush()
+        return original(path, task, actor)
+
+    monkeypatch.setattr(service, "options", change_after_validation)
+    decision, _ = service.decide(receipt, tasks[0], learner)
+    assert decision["state"] == "stale_approval"
+    assert decision["options"] == []
+    db_session.rollback()
 
 
 def test_shipped_worker_updates_once_and_choices_survive_reload(context, db_session):

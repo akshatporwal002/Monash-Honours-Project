@@ -51,6 +51,7 @@ from app.services.learner_model.repository import SqlAlchemyLearnerModelReposito
 from app.services.learner_preferences import LearnerPreferenceService
 from app.services.lms import LmsService, LmsServiceError
 from app.services.task_review import TaskReviewError
+from app.services.validation_reads import validation_read_scope
 
 RULE = "approved-activity.v1"
 MODEL_RULE = "continuation-observations.v2"
@@ -417,6 +418,7 @@ class ActivityService:
             options.append(dict(task_id=candidate.id, title=candidate.title, support_level=support))
         return options
 
+    @validation_read_scope
     def decide(self, receipt, task, learner):
         prefs = LearnerPreferenceService(self.session).read(learner)
         head = (

@@ -982,6 +982,210 @@
           "Learner API does not expose usage. Local records are not zero-cost external evidence."
         ]
       }
+    },
+    {
+      "run": "local-50-dff979d",
+      "report_sha256": "7fc3e158e2ea39036ff3a66c1f8d1c254f436a81750e9fcaab3c4c8bf0f8717b",
+      "usage_sha256": "27c7c2d94c5aa559ba64d450740af466f03d4dd832cbe1d378cd1d16aac04325",
+      "evidence_class": "SYNTHETIC LOCAL CAPACITY",
+      "source": {
+        "commit": "dff979d0324e374229304a142233746644bbe59b",
+        "branch": "main",
+        "dirty": false,
+        "harness_sha256": "951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75"
+      },
+      "started_at_utc": "2026-09-11T06:12:31.023873+00:00",
+      "runtime": {
+        "external_provider_disabled": true,
+        "provider_endpoint": "unreachable-loopback",
+        "database_engine": "sqlite",
+        "api_workers": 1,
+        "worker_processes": 1,
+        "rate_limit_enabled": true,
+        "csrf_enabled": true,
+        "research_enabled": false,
+        "material_scanner": "synthetic-test-only; no malware effectiveness evidence",
+        "worker_poll_seconds": 0.1,
+        "worker_heartbeat_seconds": 1,
+        "host": {
+          "os": "Windows",
+          "architecture": "AMD64",
+          "logical_cpus": 12,
+          "python": "3.11.16"
+        }
+      },
+      "bounds": {
+        "users": [
+          50
+        ],
+        "warmup_rounds": 1,
+        "measurement_rounds": 1,
+        "request_timeout": 30,
+        "phase_timeout": 600,
+        "worker_timeout": 90,
+        "human_timeout": 0,
+        "poll_seconds": 1,
+        "max_requests": 15000
+      },
+      "planned_loops": 100,
+      "periods": [
+        {
+          "users": 50,
+          "phase": "warmup",
+          "rounds": 1,
+          "wall_seconds": 288.95453960000305,
+          "peak_active_loops": 50
+        },
+        {
+          "users": 50,
+          "phase": "measurement",
+          "rounds": 1,
+          "wall_seconds": 296.7206720999675,
+          "peak_active_loops": 50
+        }
+      ],
+      "measured_scenarios": [
+        {
+          "users": 50,
+          "report_mode": "50-user",
+          "metrics": {
+            "ordinary": {
+              "count": 266,
+              "p95_seconds": 5.710440099996049,
+              "threshold_seconds": 2,
+              "errors": 3,
+              "censored": 3,
+              "within_threshold_observed": null
+            },
+            "progress": {
+              "count": 63,
+              "p95_seconds": 1.4225840999861248,
+              "threshold_seconds": 3,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": true
+            },
+            "feedback": {
+              "count": 16,
+              "p95_seconds": 7.368817000009585,
+              "threshold_seconds": 10,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": true
+            },
+            "assessed_feedback": {
+              "count": 63,
+              "p95_seconds": 59.56363659998169,
+              "threshold_seconds": null,
+              "errors": 1,
+              "censored": 0,
+              "within_threshold_observed": null
+            }
+          },
+          "loop_count": 50,
+          "complete_loops": 0,
+          "learning_loops": 16,
+          "loop_outcomes": {
+            "request_timeout": 10,
+            "awaiting_human": 16,
+            "continuation_timeout": 23,
+            "feedback_failed": 1
+          },
+          "http_attempts": 5336,
+          "http_errors": 25,
+          "http_error_rate": 0.0046851574212893555,
+          "http_errors_within_threshold": true,
+          "loop_error_rate": 0.68,
+          "error_threshold_exclusive": 0.01
+        }
+      ],
+      "warmup_outcomes": {
+        "awaiting_human": 33,
+        "request_timeout": 14,
+        "simulation_interrupted": 1,
+        "continuation_timeout": 2
+      },
+      "total_http_attempts": 10747,
+      "database_counts": {
+        "submission_attempts": 185,
+        "assessment_attempts": 136,
+        "assessment_decisions": 0,
+        "workflow_runs": 185,
+        "learner_model_snapshots": 175,
+        "provider_usage": 0
+      },
+      "drain": {
+        "remaining_feedback_workflows": 0,
+        "drained": true
+      },
+      "cleanup": {
+        "owned_processes_stopped": true,
+        "listener_closed": true
+      },
+      "production_compliance": "not_established",
+      "external_provider_execution": "disabled_local_campaign",
+      "cost_status": "unknown_or_incomplete",
+      "cost_scenarios": [
+        {
+          "users": 50,
+          "recorded_external_aud_subtotal": null,
+          "complete_loop_denominator": 0,
+          "external_aud_per_complete_loop": null,
+          "within_threshold_observed": null
+        }
+      ],
+      "interpretation": "FAILED overall: 68% measured journey errors; ordinary requests include three censored observations. Progress and feedback latency observations are conditional on reaching those stages, with only 16 formative feedback observations. Repeated simulation inputs do not establish diverse-input capacity.",
+      "simulation_snapshot_counts": {
+        "scope": "Stopped database across warm-up and measurement; not a measurement-only latency denominator",
+        "runs": 166,
+        "outcomes_by_status": {
+          "completed": 164,
+          "interrupted": 2
+        },
+        "errors_by_code": {
+          "simulation_interrupted": 2
+        },
+        "runs_without_outcome": 0
+      },
+      "continuation_snapshot_counts": {
+        "scope": "Stopped database across warm-up and measurement",
+        "outbox_states": {
+          "completed": 175,
+          "pending": 10
+        },
+        "job_states": {
+          "completed": 174,
+          "running": 1
+        },
+        "progress_receipts": 175,
+        "suggestions": 174
+      },
+      "usage_summary": {
+        "snapshot_sha256": "5b43d120b4eab8efc419145dd9b9ec5372d1d064620cbff0be4339e71c7c0b13",
+        "durable_metering_available": true,
+        "record_count": 362,
+        "provider_counts": {
+          "local": 264,
+          "local-deterministic": 98
+        },
+        "feature_counts": {
+          "feedback_generation": 181,
+          "feedback_judge": 181
+        },
+        "legacy_generation_metadata_count": 0,
+        "coverage_complete": false,
+        "covered_loop_count": 0,
+        "reconciliation_record_present": false,
+        "local_template_receipts_excluded_from_external_evidence_count": 362,
+        "missing_receipt_count": 0,
+        "recorded_external_provider_models": [],
+        "limitations": [
+          "Durable attempt records preserve currency, pricing and nullable actuals; legacy generation estimates lack this provenance.",
+          "Durable calls are authoritative for metered submissions; legacy generation metadata is retained separately to avoid double counting.",
+          "Unattributed, pre-migration and other-agent spend still requires provider billing coverage reconciliation.",
+          "Learner API does not expose usage. Local records are not zero-cost external evidence."
+        ]
+      }
     }
   ],
   "isolated_dashboard_diagnostics": [

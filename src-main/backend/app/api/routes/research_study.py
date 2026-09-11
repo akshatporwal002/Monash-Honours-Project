@@ -1,6 +1,6 @@
 """Dedicated study workflows and full study export, separate from technical-v2."""
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -9,8 +9,14 @@ from app.api.research_study_dependencies import invoke
 from app.api.security_dependencies import RequestSecurityGuard, get_request_security_guard
 from app.db.session import get_db_session
 from app.schemas.feedback_api import AuthenticatedActor
-from app.schemas.research_governance import Code
+from app.schemas.research_governance import Code, OperationalField
 from app.schemas.research_instruments import InstrumentReceipt
+from app.schemas.research_operational import (
+    OperationalCapture,
+    OperationalFieldRead,
+    OperationalPreview,
+    OperationalSelection,
+)
 from app.schemas.research_study import (
     StudyAssignmentRead,
     StudyCommand,
@@ -21,6 +27,7 @@ from app.schemas.research_study import (
     StudyReconciliationRead,
     StudySelfResponse,
 )
+from app.services.research.operational import OperationalCollector
 from app.services.research.reconciliation import reconcile
 from app.services.research.study import ResearchStudyService
 
@@ -173,18 +180,6 @@ async def export(
             "X-Research-Export-Id": prepared.export_id,
         },
     )
-
-
-from fastapi import Query  # noqa: E402
-
-from app.schemas.research_governance import OperationalField  # noqa: E402
-from app.schemas.research_operational import (  # noqa: E402
-    OperationalCapture,
-    OperationalFieldRead,
-    OperationalPreview,
-    OperationalSelection,
-)
-from app.services.research.operational import OperationalCollector  # noqa: E402
 
 
 @router.post("/operational/preview", response_model=OperationalPreview)

@@ -384,3 +384,71 @@ The affected 123-entry draft manifest is refreshed to
 The runner retains 108 draft cases, zero approvals and zero included pairs. Quality
 is UNVERIFIED and AI release PENDING. Existing paired numerical receipts are retained;
 no duplicate numerical revalidation was needed for these read-path changes.
+
+
+## `dff979d` verification and status-only feedback polling
+
+The clean `dff979d` campaign remains failed: 16/50 measured journeys reached human
+assessment, 23 timed out waiting for continuation, ten had request timeouts and
+one observed failed feedback. Ordinary p95 was 5.710440 seconds with three censored
+observations among 266; progress p95 1.422584 seconds and formative feedback p95
+7.368817 seconds are conditional on reached stages. HTTP errors were 25/5,336
+(0.469%) while journey errors were 68%. All feedback work drained; owned processes
+stopped and the listener closed. Ten continuation outboxes remained pending.
+The capacity receipt preserves both incomplete work and all prior failures.
+
+[CI run 34568934688](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34568934688)
+has passed dependency and secret scanning. Its completed frontend job passed lint,
+build, 395 unit/accessibility tests, 124 ordinary browser cases and all four
+misconception journeys. Three complete-loop browser runs passed initially; Firefox
+passed on one retry after its first submission response wait timed out. The job is
+successful, but that flake remains explicit. Backend CI is still running.
+
+A separate copied-fixture 50-caller diagnostic completed all 100 task-read and
+simulation requests without SQLite errors. It found foreground thread saturation
+and cumulative writer pressure, with task GET p95 7.047 seconds and simulation p95
+12.093 seconds; this was neither a full campaign nor evidence of a deadlock.
+
+Status-only feedback polling was then measured to repeat 49 SELECTs per response
+before returning no content. Returning that same no-content status before context
+collection removes those reads, with identical complete response JSON. This does
+not skip route authorization or any checks before releasing retained feedback.
+Six new regressions failed before the repair; all 19 focused status, existing
+release and ownership checks passed after it in 41.56 seconds. Independent review
+found no blocker. Five unnecessary E402 suppressions were also removed by moving
+imports to their normal groups; listener registration order is unchanged. The
+[suppression audit](lint-suppression-audit-2026-09-11.md) records remaining justified
+boundaries and inactive maintenance annotations. Changed files pass Ruff checks.
+
+The refreshed draft manifest digest is
+`480a5f0277421fef2ff91d706ea24bf90277f7dafd6804d39207dfc965760422`.
+There remain 108 draft cases, zero approvals and zero included pairs; quality is
+UNVERIFIED and AI release PENDING. Existing numerical receipt/manifest pairs were
+preserved without repeating the unchanged numerical calculation checks. These
+later polling/import changes still require combined-source verification.
+
+
+The subsequent concurrent worker/poll diagnostic located repeated curriculum,
+publication and source checks inside the continuation decision while its claim
+transaction held the writer. A scope around the pure `ActivityService.decide`
+phase now reuses only those successful reads; it ends before category review,
+suggestion persistence and the renewed claim fence. Eight focused checks passed
+in 24.20 seconds, covering complete decision equivalence, source changes between
+calls, invalidation after an in-scope flush, lease expiry, restart, concurrent
+idempotency and retry. Independent review found no blocker.
+
+The same bounded two-round/200-request diagnostic reduced continuation SELECTs
+from 448/479 to 103/132, with unchanged writes and commits. All 200 requests returned
+HTTP 200 and the owned worker stopped. Combined writer-held time fell from 7.812
+to 5.970 seconds, but claim acquisition still waited: this does not establish
+capacity. The diagnostic included 100 explicitly projected status-only claims
+and 100 actual terminal reads; it did not alter persisted workflow content.
+Final combined campaign measurement remains due.
+
+The final candidate draft manifest is now
+`aadbfb11b4a22e272a0cb9af606f0f8ad27249ade07aad40f280558b9dd5c619`;
+the zero-approval/zero-included-pair state and historical numerical pairs remain.
+CI now retains failed-attempt page context and screenshots for seven days, even
+when a retry succeeds, excluding video and trace archives. The earlier Firefox
+flake's actual cause is unproven because its artifacts were not retained; no UI
+or timeout change was made from that incomplete evidence.

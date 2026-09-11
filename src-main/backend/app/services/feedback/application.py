@@ -117,6 +117,12 @@ class FeedbackWorkflowApplication:
 
     async def response(self, claim: WorkflowClaim) -> FeedbackWorkflowResponse:
         """Recheck release timing and human history before returning cached feedback."""
+        result = claim.terminal_result
+        if result is None:
+            # Authorization is checked by the route. Status-only responses carry
+            # no feedback content, so there is no release context to revalidate.
+            return workflow_response(claim)
+
         from app.services.assessment.feedback_context import (
             SqlAlchemyAssessmentFeedbackContextProvider,
         )
@@ -130,9 +136,6 @@ class FeedbackWorkflowApplication:
             return workflow_response(claim)
         resolution = await SqlAlchemyAssessmentFeedbackContextProvider(session).resolve(submission)
         if resolution.status is AssessmentContextStatus.NOT_ASSESSED:
-            return workflow_response(claim)
-        result = claim.terminal_result
-        if result is None:
             return workflow_response(claim)
         current = resolution.context
         generated = result.validated_feedback
