@@ -432,3 +432,34 @@ def test_quality_rejection_retains_audit_without_display_or_grading(db_session, 
     assert db_session.get(EvidenceArtifact, receipt["suggestion_id"]) is not None
     assert suggestions.read(owner, attempt.id)["records"] == []
     assert db_session.scalar(select(AssessmentDecision)) is None
+
+
+def test_suggestion_read_rechecks_blinding_after_waiting_for_course_lock(db_session, monkeypatch):
+    from app.services.assessment.moderation import ModerationService
+
+    attempt, response, criterion, owner, human, admin, service, command = setup(db_session)
+    second = reviewer(db_session, owner, attempt.course_id, "waiting-second")
+    policy(db_session, owner, attempt)
+    release = service.release(admin, attempt.course_id, command)
+    suggestions = AssessorSuggestionService(db_session, human)
+    submitted = reviewed(suggestions, owner, attempt, output(release, response, criterion))
+    suggestions.record(owner, attempt.id, submitted)
+    db_session.commit()
+    assert not ModerationService(db_session).withhold_judgements(second, attempt.id)
+    original_lock = ModerationService.lock
+    arrived = False
+
+    def competing_original_then_lock(moderation, course_id):
+        nonlocal arrived
+        if not arrived:
+            arrived = True
+            # Deterministic READ COMMITTED interleaving: another ORIGINAL becomes
+            # visible after the initial attempt lookup, before this lock returns.
+            record(db_session, human, owner, attempt, response, criterion, "ORIGINAL")
+        original_lock(moderation, course_id)
+
+    monkeypatch.setattr(ModerationService, "lock", competing_original_then_lock)
+    result = suggestions.read(second, attempt.id)
+    assert arrived
+    assert result["status"] == "WITHHELD"
+    assert result["records"] == []

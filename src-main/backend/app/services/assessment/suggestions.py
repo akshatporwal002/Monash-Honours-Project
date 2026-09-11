@@ -254,7 +254,11 @@ class AssessorSuggestionService:
 
     def read(self, actor, attempt_id):
         attempt = self.human._visible(actor, attempt_id)
-        if ModerationService(self.session).withhold_judgements(actor, attempt_id):
+        moderation = ModerationService(self.session)
+        # Read the current moderation stage only after competing review writes
+        # have completed; keep this lock through the suggestion read transaction.
+        moderation.lock(attempt.course_id)
+        if moderation.withhold_judgements(actor, attempt_id):
             return {
                 "status": "WITHHELD",
                 "reason": "Independent second review must be completed first",
