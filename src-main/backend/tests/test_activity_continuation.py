@@ -402,9 +402,9 @@ def test_safe_fallback_never_updates_the_model(context, db_session):
 def test_completed_path_returns_null_and_never_repeats_completed_task(context, db_session):
     curriculum, identity, factory, _ = context
     learner, tasks = curriculum[2], curriculum[4]
-    for task in tasks[1:]:
+    for task, answer in zip(tasks[1:], ('["b"]', "practice"), strict=True):
         LmsService(db_session).submit(
-            learner, task.id, SubmissionCreate(answer="practice", idempotency_key=task.id)
+            learner, task.id, SubmissionCreate(answer=answer, idempotency_key=task.id)
         )
     assert run_worker(factory).state.value == "completed"
     view = ActivityService(db_session).read(learner, identity)
@@ -420,7 +420,7 @@ def test_approved_practice_exit_uses_response_not_legacy_score(context, db_sessi
     LmsService(db_session).submit(
         learner,
         tasks[1].id,
-        SubmissionCreate(answer="unfinished reasoning", idempotency_key="practice-exit"),
+        SubmissionCreate(answer='["b"]', idempotency_key="practice-exit"),
     )
     assert tasks[1].id in pathway_completions(db_session, learner.id, tasks[2])
     LmsService(db_session)._require_unlocked(learner, tasks[2])
