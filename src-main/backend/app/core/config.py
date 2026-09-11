@@ -2,7 +2,7 @@ from decimal import Decimal
 from functools import lru_cache
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEVELOPMENT_PSEUDONYM_SECRET = "development-only-pseudonym-secret-change-before-production"
@@ -76,6 +76,17 @@ class Settings(BaseSettings):
     rag_query_max_chars: int = Field(default=4_000, gt=0)
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @field_validator(
+        "llm_input_cost_per_million",
+        "llm_output_cost_per_million",
+        "llm_budget_limit",
+        mode="before",
+    )
+    @classmethod
+    def missing_monetary_setting(cls, value):
+        # Compose represents an unconfigured optional environment value as empty.
+        return None if isinstance(value, str) and not value.strip() else value
 
     @model_validator(mode="after")
     def validate_configuration(self) -> "Settings":

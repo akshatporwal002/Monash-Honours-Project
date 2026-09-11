@@ -33,6 +33,12 @@ model without matching pricing now stops external dispatch. Production factories
 always attach the durable meter; only an explicitly supplied `httpx.MockTransport`
 can construct the isolated adapter without one.
 
+The Compose deployment forwards the same budget and pricing settings to the API
+and worker. Blank monetary placeholders remain absent; they do not become approved
+zero prices. An explicitly supplied zero price remains valid. Configuration
+validation covers both containers' rendered settings; actual container execution
+still requires the operating-environment checks.
+
 The reservation is the maximum configured input charge plus maximum configured
 output charge, rounded upwards to currency millionths. The text-only adapter
 rejects requests whose serialized UTF-8 byte length plus 1024 framing allowance
