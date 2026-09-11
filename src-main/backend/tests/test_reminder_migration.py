@@ -1,7 +1,10 @@
+import importlib
 from datetime import timedelta
 
 import pytest
 from alembic import command
+from alembic.operations import Operations
+from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -61,12 +64,16 @@ def test_migrated_controls_restore_with_history_and_refuse_destructive_rollback(
                     connection.execute(text("UPDATE deadline_arrangements SET reason='changed'"))
         finally:
             restored_engine.dispose()
-        # Probe rollback only after verifying the current-head backup. SQLite may finish
-        # downgrading newer empty revisions before an older populated-history guard refuses.
-        with pytest.raises(
-            (RuntimeError, ValueError),
-            match="(?i)(preserv|populat|history|records|reminder|arrangement)",
-        ):
+        # Isolate the reminder guard before testing the current release's refusal.
+        migration = importlib.import_module("migrations.versions.20260909_0039_reminder_controls")
+        with engine.connect() as connection:
+            migration_context = MigrationContext.configure(connection)
+            with Operations.context(migration_context):
+                with pytest.raises(
+                    RuntimeError, match="cannot downgrade populated deadline_arrangements"
+                ):
+                    migration.downgrade()
+        with pytest.raises(RuntimeError, match="Intake history is protected"):
             command.downgrade(config, "20260909_0038")
         command.upgrade(config, "head")
         command.check(config)
@@ -83,7 +90,7 @@ def test_migrated_controls_restore_with_history_and_refuse_destructive_rollback(
 
 def test_empty_reminder_migration_round_trip_preserves_prior_schema_data(tmp_path):
     config = migration_config(f"sqlite:///{(tmp_path / 'empty.db').as_posix()}")
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260909_0039")
     command.downgrade(config, "20260909_0038")
     command.upgrade(config, "head")
     command.check(config)

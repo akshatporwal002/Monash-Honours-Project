@@ -234,7 +234,19 @@ def test_evidence_migration_is_append_only_and_preserves_legacy_records(tmp_path
                     )
                 )
         before_failed_downgrade = protected_history_manifest(database_path)
-        with pytest.raises(RuntimeError, match="cannot downgrade populated"):
+        # Exercise the original evidence guard independently of later release guards.
+        import importlib
+
+        from alembic.operations import Operations
+        from alembic.runtime.migration import MigrationContext
+
+        migration = importlib.import_module("migrations.versions.20260816_0019_learning_evidence")
+        with engine.connect() as connection:
+            migration_context = MigrationContext.configure(connection)
+            with Operations.context(migration_context):
+                with pytest.raises(RuntimeError, match="cannot downgrade populated"):
+                    migration.downgrade()
+        with pytest.raises(RuntimeError, match="Intake history is protected"):
             command.downgrade(config, "20260815_0018")
         assert protected_history_manifest(database_path) == before_failed_downgrade
     finally:

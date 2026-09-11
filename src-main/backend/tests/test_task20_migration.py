@@ -11,7 +11,7 @@ from test_migrations import migration_config
 def test_empty_learner_preference_history_can_downgrade(tmp_path: Path) -> None:
     database_url = f"sqlite:///{(tmp_path / 'empty-preferences.db').as_posix()}"
     config = migration_config(database_url)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260908_0033")
 
     command.downgrade(config, "20260908_0032")
 
@@ -30,7 +30,7 @@ def test_empty_learner_preference_history_can_downgrade(tmp_path: Path) -> None:
 def test_populated_learner_preference_history_blocks_downgrade(tmp_path: Path) -> None:
     database_url = f"sqlite:///{(tmp_path / 'populated-preferences.db').as_posix()}"
     config = migration_config(database_url)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260908_0033")
     engine = create_engine(database_url)
     try:
         with engine.begin() as connection:
@@ -46,14 +46,16 @@ def test_populated_learner_preference_history_blocks_downgrade(tmp_path: Path) -
                 {"learner_id": learner_id, "actor": str(learner_id)},
             )
 
-        with pytest.raises(RuntimeError, match="history is protected"):
+        with pytest.raises(
+            RuntimeError, match="cannot downgrade populated learner preference history"
+        ):
             command.downgrade(config, "20260908_0032")
 
         assert "learner_preference_revisions" in inspect(engine).get_table_names()
         with engine.connect() as connection:
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "20260910_0044"
+                == "20260908_0033"
             )
     finally:
         engine.dispose()

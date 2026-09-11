@@ -109,6 +109,7 @@ test('shows scheduled recovery and lets an educator retry after automatic attemp
   await user.click(await screen.findByRole('button', { name: 'Retry processing saved-notes.pdf' }))
   await waitFor(() => expect(screen.getByRole('button', { name: /Define outcomes/ })).toBeEnabled())
   expect(screen.queryByRole('button', { name: /Retry processing/ })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Reprocess and scan saved-notes.pdf' })).toBeEnabled()
   expect(fetchMock.mock.calls.some(([url, init]) => String(url).endsWith('/process?force=true') && init?.method === 'POST')).toBe(true)
 })
 

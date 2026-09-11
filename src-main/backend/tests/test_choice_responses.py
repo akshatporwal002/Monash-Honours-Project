@@ -10,6 +10,8 @@ from test_lms_core_api import login
 
 from app.models import LearningTask, TaskType
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.mark.parametrize("kind", ["multiple_choice", "multiple_answer"])
 def test_choice_api_rejects_noncanonical_writes_and_preserves_history(lms_context, kind):

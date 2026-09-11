@@ -28,6 +28,8 @@ from app.services.assessment.review import (
     AssessmentReviewValidationError,
 )
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def client_for(session, actors, human):
     app = FastAPI()

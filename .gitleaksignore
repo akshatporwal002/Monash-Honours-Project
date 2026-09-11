@@ -13,3 +13,7 @@ a15a497ea448eb1ccc5cc66e5aca29ce37a28c65:src-main/backend/tests/test_learner_mod
 # Synthetic decision helper and deliberate duplicate test the uniqueness constraint.
 d8ba5ac760ccc1815462a2e88cdb4dfb623fc380:src-main/backend/tests/test_assessment_attempt_models.py:generic-api-key:91
 d8ba5ac760ccc1815462a2e88cdb4dfb623fc380:src-main/backend/tests/test_assessment_attempt_models.py:generic-api-key:204
+
+# Reviewed 2026-09-11: synthetic HMAC pseudonymization fixture, offline adapters,
+# temporary test database and research disabled; not external authentication.
+5439ba77be6d070f83e83c6a03bb1ad5c8a32fc5:src-main/backend/tests/test_conditional_programming.py:generic-api-key:240

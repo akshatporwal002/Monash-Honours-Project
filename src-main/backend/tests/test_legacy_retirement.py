@@ -108,8 +108,7 @@ def test_populated_retirement_preserves_every_original_row_and_guards_history(tm
     protected_snapshot = protected_history_manifest(path)
     with pytest.raises(RuntimeError, match="history is protected"):
         command.downgrade(config, "20260910_0043")
-    # Additive empty extensions may downgrade before the older protected step refuses.
-    # Verify every retained record immediately, then restore the exact head manifest.
+    # The current intake guard refuses before any historical records can change.
     assert protected_history_manifest(path) == protected_snapshot
     command.upgrade(config, "head")
     assert database_manifest(path) == snapshot
@@ -120,7 +119,14 @@ def test_replay_keeps_new_unscored_work_and_original_archive(tmp_path):
     path, config, engine = _populated(tmp_path)
     command.upgrade(config, "head")
     with Session(engine) as session:
-        build_assessment_attempt(session, suffix="-after-retirement")
+        from app.models.lms import Course
+        from app.services.course_history import snapshot
+
+        attempt, _, _, _, owner = build_assessment_attempt(session, suffix="-after-retirement")
+        # This low-level historical fixture bypasses LmsService.create_course, so
+        # record the same required creation snapshot for its post-upgrade course.
+        snapshot(session, session.get(Course, attempt.course_id), str(owner.id), "CREATED")
+        session.commit()
     before = database_manifest(path)
     command.stamp(config, "20260910_0043")
     command.upgrade(config, "head")
@@ -157,12 +163,13 @@ def test_failure_after_first_rebuild_rolls_back_schema_archive_and_triggers(tmp_
 
 def test_empty_retirement_round_trip_keeps_one_head(tmp_path):
     config = migration_config(f"sqlite:///{(tmp_path / 'empty.db').as_posix()}")
-    command.upgrade(config, "head")
+    # Exercise the original empty retirement downgrade before irreversible extensions.
+    command.upgrade(config, "20260910_0044")
     command.downgrade(config, "20260910_0043")
     command.upgrade(config, "head")
     engine = create_engine(config.get_main_option("sqlalchemy.url"))
     with engine.connect() as connection:
         assert connection.execute(
             text("SELECT version_num FROM alembic_version")
-        ).scalars().all() == ["20260910_0046"]
+        ).scalars().all() == ["20260911_0051"]
     engine.dispose()

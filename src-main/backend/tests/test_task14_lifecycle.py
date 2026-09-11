@@ -494,7 +494,7 @@ def test_real_migration_history_replay_and_rollback(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260910_0044"
+            == "20260911_0051"
         )
         assert inspect(connection).has_table("episode_checkpoints")
         assert (
@@ -607,7 +607,7 @@ def test_migration_accepts_every_new_type_and_preserves_reviewed_history(tmp_pat
                 text("SELECT name,sql FROM sqlite_master WHERE type='trigger' ORDER BY name")
             )
         )
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260907_0030")
     with engine.begin() as connection:
         assert (
             dict(

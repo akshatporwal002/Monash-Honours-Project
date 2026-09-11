@@ -1,7 +1,11 @@
 """New history survives additive upgrades and blocks destructive downgrades."""
 
+import importlib
+
 import pytest
 from alembic import command
+from alembic.operations import Operations
+from alembic.runtime.migration import MigrationContext
 from sqlalchemy.orm import Session
 from support.migration_assertions import protected_history_manifest
 from test_learner_results import context
@@ -48,7 +52,21 @@ def test_populated_history_blocks_downgrade_without_losing_records(tmp_path, his
                     ),
                 )
         before = protected_history_manifest(path)
-        with pytest.raises(RuntimeError, match="cannot downgrade populated"):
+        # Runtime fixtures require today's schema. Probe each historical guard directly
+        # so a newer unconditional downgrade refusal cannot hide a regression in it.
+        revision = (
+            "20260909_0035_tutor_dialogue"
+            if history == "tutor"
+            else "20260909_0034_appeal_resolutions"
+        )
+        migration = importlib.import_module(f"migrations.versions.{revision}")
+        with engine.connect() as connection:
+            migration_context = MigrationContext.configure(connection)
+            with Operations.context(migration_context):
+                with pytest.raises(RuntimeError, match="cannot downgrade populated"):
+                    migration.downgrade()
+        assert protected_history_manifest(path) == before
+        with pytest.raises(RuntimeError, match="Intake history is protected"):
             command.downgrade(config, "20260908_0033")
         assert protected_history_manifest(path) == before
         command.upgrade(config, "head")

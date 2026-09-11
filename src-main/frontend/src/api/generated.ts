@@ -473,9 +473,9 @@ export type ApiSchemas = {
     "consent_version": string
     "course_id": string
     "decision": "consented" | "declined" | "withdrawn"
-    "fields"?: Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code")>
+    "fields"?: Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code") | ("study.prepare" | "study.allocate" | "study.packet" | "study.rate" | "study.outcome" | "study.read" | "study.export" | "study.record_id" | "study.participant_id" | "study.sequence_id" | "study.stage" | "study.condition" | "study.plan_id" | "study.record_kind" | "study.instrument_record_id" | "study.packet_id" | "study.rubric_code" | "study.value_code" | "study.missing_reason" | "study.redacted_evidence" | "study.provenance") | ("operational.episode" | "operational.adaptation_reasons" | "operational.override_reasons" | "operational.reserved_cost" | "operational.exposure_cost" | "operational.response_text" | "operational.code" | "operational.evidence" | "operational.model_references" | "operational.adaptations" | "operational.overrides" | "operational.source_references" | "operational.ai_output" | "operational.judge_result" | "operational.simulation" | "operational.latency_ms" | "operational.input_tokens" | "operational.output_tokens" | "operational.estimated_cost" | "operational.actual_cost" | "operational.outcome" | "operational.moderation") | ("operational.collect" | "operational.read" | "operational.export")>
     "kind"?: "consent"
-    "purposes"?: Array<"technical_pair" | "provider_processing" | "study_instruments">
+    "purposes"?: Array<"technical_pair" | "provider_processing" | "study_instruments" | "study_operational_evidence">
     "scope_id": string
     "subject_user_id": number
   }
@@ -514,6 +514,22 @@ export type ApiSchemas = {
     "time_zone"?: string
     "title": string
     "updated_at": string
+  }
+  "CourseRestoreRequest": {
+    "expected_version": number
+    "reason": string
+  }
+  "CourseRevisionRead": {
+    "action": string
+    "actor_id": (string) | (null)
+    "context_snapshot": Record<string, unknown>
+    "course_id": string
+    "created_at": string
+    "id": string
+    "metadata_snapshot": Record<string, unknown>
+    "reason": string
+    "restored_from_id": (string) | (null)
+    "version": number
   }
   "CourseState": "draft" | "published" | "archived"
   "CourseUpdate": {
@@ -737,6 +753,7 @@ export type ApiSchemas = {
   "EpisodeHelpUseReceipt": {
     "content": (string) | (null)
     "record": ApiSchemas["EpisodeHelpUseRead"]
+    "representation"?: (ApiSchemas["SupportRepresentation"]) | (null)
   }
   "EpisodeHelpUseWrite": {
     "assessment_work_start_id": string
@@ -766,6 +783,7 @@ export type ApiSchemas = {
   "EpisodeStateRead": {
     "accessibility_support"?: Array<string>
     "prediction_required": boolean
+    "representation_choices"?: Array<ApiSchemas["SupportRepresentationChoice"]>
     "required_responses": Array<"prediction" | "reasoning" | "explanation" | "reflection">
     "schema_version"?: "learnlens.episode-plan.v1"
     "supported_hints"?: Array<string>
@@ -858,6 +876,23 @@ export type ApiSchemas = {
     "status": "OPEN" | "ACKNOWLEDGED" | "ACTIONED" | "RESOLVED" | "CLOSED"
     "task_id": string
     "trigger": string
+  }
+  "EvaluatorValidationReceipt": {
+    "ai_activation": "PENDING"
+    "state": "VALIDATED"
+    "validation_id": string
+  }
+  "EvaluatorValidationStatusRead": {
+    "ai_activation": "PENDING"
+    "fingerprint": string
+    "reason": string
+    "state": "PENDING" | "VALIDATED" | "INVALIDATED"
+    "validation_id": (string) | (null)
+  }
+  "EvaluatorValidationWrite": {
+    "evidence": Record<string, unknown>
+    "expected_fingerprint": string
+    "expires_at": string
   }
   "EvidenceReference": {
     "assessment": ApiSchemas["AssessmentVersionReference"]
@@ -1358,6 +1393,7 @@ export type ApiSchemas = {
     "content_hash": string
     "course_id": string
     "created_at": string
+    "current_scan_id"?: (string) | (null)
     "current_source_revision_id"?: (string) | (null)
     "error_code"?: (string) | (null)
     "extracted_at"?: (string) | (null)
@@ -1376,6 +1412,7 @@ export type ApiSchemas = {
     "processing_retry_at"?: (string) | (null)
     "processing_revision"?: number
     "retired_at"?: (string) | (null)
+    "scan_status"?: string
     "source_url"?: (string) | (null)
     "storage_key"?: (string) | (null)
   }
@@ -1433,6 +1470,12 @@ export type ApiSchemas = {
     "email": string
     "password": string
   }
+  "MatchingDefinition": {
+    "options": Array<ApiSchemas["StructuredItem"]>
+    "prompts": Array<ApiSchemas["StructuredItem"]>
+    "schema_version"?: "learnlens.matching.v1"
+    "task_type"?: "matching"
+  }
   "MaterialIndexStatus": "pending" | "processing" | "extracted" | "indexed" | "failed"
   "MaterialLinkCreate": {
     "module_id"?: (string) | (null)
@@ -1447,6 +1490,7 @@ export type ApiSchemas = {
   "MaterialRead": {
     "course_id": string
     "created_at": string
+    "current_scan_id"?: (string) | (null)
     "error_code"?: (string) | (null)
     "extraction_error"?: (string) | (null)
     "file_size_bytes": (number) | (null)
@@ -1458,7 +1502,20 @@ export type ApiSchemas = {
     "processing_attempts"?: number
     "processing_lease_expires_at"?: (string) | (null)
     "processing_retry_at"?: (string) | (null)
+    "scan_status"?: string
     "source_url": (string) | (null)
+  }
+  "MaterialScanRead": {
+    "code": string
+    "content_hash": string
+    "created_at": string
+    "id": string
+    "material_id": string
+    "policy_version": string
+    "processing_revision": number
+    "scanner": string
+    "scanner_version": string
+    "status": string
   }
   "MetricValue": {
     "denominator": number
@@ -1588,6 +1645,56 @@ export type ApiSchemas = {
     "status"?: "MISSING"
   }
   "ModelSource": "RULE_BASED" | "ADVISORY_MODEL" | "EDUCATOR" | "LEARNER"
+  "ModerationCriterionRead": {
+    "criterion_version_id": string
+    "decision": ApiSchemas["CriterionDecision"]
+    "evidence_ids": Array<string>
+    "reason": string
+  }
+  "ModerationHistoryRead": {
+    "actor_id": number
+    "created_at": string
+    "criteria": Array<ApiSchemas["ModerationCriterionRead"]>
+    "cycle": number
+    "reason": string
+    "result": ApiSchemas["AssessmentResult"]
+    "stage": "ORIGINAL" | "SECOND" | "RESOLUTION" | "DRIFT" | "DRIFT_RESOLUTION"
+  }
+  "ModerationPolicyReceipt": {
+    "policy_id": string
+    "version": number
+  }
+  "ModerationPolicyWrite": {
+    "approval_reference": string
+    "drift_interval": number
+    "expires_at": string
+    "initial_count": number
+    "later_percent": number
+    "training_reference": string
+  }
+  "ModerationQueueRead": {
+    "policy_status": "CONFIGURED" | "POLICY_REQUIRED"
+    "records": Array<ApiSchemas["ModerationRecordRead"]>
+  }
+  "ModerationRecordRead": {
+    "attempt_id": string
+    "cycle": number
+    "drift_check": boolean
+    "formal_state": (ApiSchemas["ResultState"]) | (null)
+    "history": Array<ApiSchemas["ModerationHistoryRead"]>
+    "history_withheld": boolean
+    "next_stage": ("ORIGINAL" | "SECOND" | "RESOLUTION" | "DRIFT" | "DRIFT_RESOLUTION" | "CORRECTION") | (null)
+    "policy_id": string
+    "result": (ApiSchemas["AssessmentResult"]) | (null)
+    "sequence": number
+    "state": "ORIGINAL_REQUIRED" | "SECOND_REQUIRED" | "DISAGREEMENT" | "DRIFT_REQUIRED" | "DRIFT_DISAGREEMENT" | "READY" | "NOT_SAMPLED"
+    "task_family": string
+  }
+  "ModerationReviewReceipt": {
+    "result": ApiSchemas["AssessmentResult"]
+    "review_id": string
+    "stage": "ORIGINAL" | "SECOND" | "RESOLUTION" | "DRIFT" | "DRIFT_RESOLUTION"
+  }
   "ModuleCreate": {
     "description"?: string
     "position": number
@@ -1608,6 +1715,38 @@ export type ApiSchemas = {
     "title"?: (string) | (null)
   }
   "ObservationType": "DIRECT" | "SELF_REPORTED" | "SYSTEM_CAPTURED" | "EDUCATOR_RECORDED"
+  "OperationalCapture": {
+    "allocation_id": string
+    "expected_revision": number
+    "fields": Array<"operational.episode" | "operational.adaptation_reasons" | "operational.override_reasons" | "operational.reserved_cost" | "operational.exposure_cost" | "operational.response_text" | "operational.code" | "operational.evidence" | "operational.model_references" | "operational.adaptations" | "operational.overrides" | "operational.source_references" | "operational.ai_output" | "operational.judge_result" | "operational.simulation" | "operational.latency_ms" | "operational.input_tokens" | "operational.output_tokens" | "operational.estimated_cost" | "operational.actual_cost" | "operational.outcome" | "operational.moderation">
+    "instrument_record_id": string
+    "redactions"?: Array<ApiSchemas["OperationalRedaction"]>
+    "request_key": string
+  }
+  "OperationalFieldRead": {
+    "adapter_version": string
+    "missing_reason"?: ("not_recorded" | "not_applicable" | "usage_incomplete" | "adapter_unavailable" | "redaction_required") | (null)
+    "source_digest": string
+    "source_references": Array<string>
+    "value"?: ApiSchemas["JsonValue"]
+  }
+  "OperationalPreview": {
+    "fields": Partial<Record<string, ApiSchemas["OperationalFieldRead"]>>
+    "production_active"?: false
+  }
+  "OperationalRedaction": {
+    "field": "operational.response_text" | "operational.code" | "operational.ai_output" | "operational.episode" | "operational.adaptation_reasons" | "operational.override_reasons"
+    "review_evidence_reference": string
+    "rule_reference": string
+    "source_digest": string
+    "spans": Array<ApiSchemas["RedactionSpan"]>
+  }
+  "OperationalSelection": {
+    "allocation_id": string
+    "fields": Array<"operational.episode" | "operational.adaptation_reasons" | "operational.override_reasons" | "operational.reserved_cost" | "operational.exposure_cost" | "operational.response_text" | "operational.code" | "operational.evidence" | "operational.model_references" | "operational.adaptations" | "operational.overrides" | "operational.source_references" | "operational.ai_output" | "operational.judge_result" | "operational.simulation" | "operational.latency_ms" | "operational.input_tokens" | "operational.output_tokens" | "operational.estimated_cost" | "operational.actual_cost" | "operational.outcome" | "operational.moderation">
+    "instrument_record_id": string
+    "redactions"?: Array<ApiSchemas["OperationalRedaction"]>
+  }
   "OutcomeCreate": {
     "kind": ApiSchemas["OutcomeKind"]
     "position": number
@@ -1935,6 +2074,10 @@ export type ApiSchemas = {
     "instructional_support_level": number
     "occurred_at": string
   }
+  "RedactionSpan": {
+    "end": number
+    "start": number
+  }
   "ReminderPreferenceRead": {
     "enabled"?: boolean
     "paused_until"?: (string) | (null)
@@ -1959,7 +2102,7 @@ export type ApiSchemas = {
     "authority_reference": string
     "course_id": string
     "evidence_reference": string
-    "fields": Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code")>
+    "fields": Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code") | ("study.prepare" | "study.allocate" | "study.packet" | "study.rate" | "study.outcome" | "study.read" | "study.export" | "study.record_id" | "study.participant_id" | "study.sequence_id" | "study.stage" | "study.condition" | "study.plan_id" | "study.record_kind" | "study.instrument_record_id" | "study.packet_id" | "study.rubric_code" | "study.value_code" | "study.missing_reason" | "study.redacted_evidence" | "study.provenance") | ("operational.episode" | "operational.adaptation_reasons" | "operational.override_reasons" | "operational.reserved_cost" | "operational.exposure_cost" | "operational.response_text" | "operational.code" | "operational.evidence" | "operational.model_references" | "operational.adaptations" | "operational.overrides" | "operational.source_references" | "operational.ai_output" | "operational.judge_result" | "operational.simulation" | "operational.latency_ms" | "operational.input_tokens" | "operational.output_tokens" | "operational.estimated_cost" | "operational.actual_cost" | "operational.outcome" | "operational.moderation") | ("operational.collect" | "operational.read" | "operational.export")>
     "kind"?: "grant"
     "revoked"?: boolean
     "scope_id": string
@@ -2089,6 +2232,11 @@ export type ApiSchemas = {
   }
   "ScopedRoleAssignmentRevoke": {
     "reason": string
+  }
+  "SequencingDefinition": {
+    "items": Array<ApiSchemas["StructuredItem"]>
+    "schema_version"?: "learnlens.sequencing.v1"
+    "task_type"?: "sequencing"
   }
   "SettingsRead": {
     "llm_model": string
@@ -2229,6 +2377,11 @@ export type ApiSchemas = {
     "reference": ApiSchemas["EvidenceReference"]
     "status"?: "STALE"
   }
+  "StructuredItem": {
+    "id": string
+    "source_references": Array<string>
+    "text": string
+  }
   "StudentDashboardRead": {
     "achievements": Array<ApiSchemas["AchievementRead"]>
     "courses": Array<ApiSchemas["CourseProgressRead"]>
@@ -2252,20 +2405,111 @@ export type ApiSchemas = {
     "points": number
     "total_tasks": number
   }
+  "StudyAllocation": {
+    "allocation_evidence_reference": string
+    "condition": string
+    "kind"?: "allocation"
+    "plan_id": string
+    "sequence_key": string
+    "subject_user_id": number
+  }
+  "StudyAssignedForm": {
+    "form": ApiSchemas["FormRead"]
+    "stage": "T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER"
+  }
+  "StudyAssignmentRead": {
+    "allocation_id": string
+    "stages": Array<ApiSchemas["StudyAssignedForm"]>
+  }
+  "StudyCommand": {
+    "decision": (ApiSchemas["StudyPlan"]) | (ApiSchemas["StudyAllocation"]) | (ApiSchemas["StudyPacket"]) | (ApiSchemas["StudyRating"]) | (ApiSchemas["StudyOutcome"])
+    "request_key": string
+  }
+  "StudyExportRequest": {
+    "fields": Array<("study.record_id" | "study.participant_id" | "study.sequence_id" | "study.stage" | "study.condition" | "study.plan_id" | "study.record_kind" | "study.instrument_record_id" | "study.packet_id" | "study.rubric_code" | "study.value_code" | "study.missing_reason") | ("instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code") | ("operational.episode" | "operational.adaptation_reasons" | "operational.override_reasons" | "operational.reserved_cost" | "operational.exposure_cost" | "operational.response_text" | "operational.code" | "operational.evidence" | "operational.model_references" | "operational.adaptations" | "operational.overrides" | "operational.source_references" | "operational.ai_output" | "operational.judge_result" | "operational.simulation" | "operational.latency_ms" | "operational.input_tokens" | "operational.output_tokens" | "operational.estimated_cost" | "operational.actual_cost" | "operational.outcome" | "operational.moderation")>
+    "format": "csv" | "json"
+    "stages": Array<"T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER">
+  }
+  "StudyOutcome": {
+    "interpretation_reference": string
+    "kind"?: "outcome"
+    "missing_reason"?: ("not_collected" | "not_applicable" | "participant_skipped" | "technical_failure" | "not_evaluable" | "outside_window" | "withdrawn" | "not_approved") | (null)
+    "packet_id": string
+    "rating_id": string
+    "value_code"?: (string) | (null)
+  }
+  "StudyPacket": {
+    "allocation_id": string
+    "instrument_record_id": string
+    "kind"?: "packet"
+    "redacted_evidence": string
+    "redaction_evidence_reference": string
+    "reviewer_user_id": number
+    "rubric_code": string
+  }
+  "StudyPacketRead": {
+    "id": string
+    "production_active"?: false
+    "redacted_evidence": string
+    "rubric": ApiSchemas["StudyRubric"]
+    "stage": "T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER"
+  }
+  "StudyPlan": {
+    "allocation_rule_reference": string
+    "authority_reference": string
+    "conditions": Array<string>
+    "evidence_reference": string
+    "expected_revision": number
+    "kind"?: "plan"
+    "redaction_rule_reference": string
+    "rubrics": Array<ApiSchemas["StudyRubric"]>
+    "stages": Array<ApiSchemas["StudyStage"]>
+  }
+  "StudyPlanRead": {
+    "id": string
+    "plan": ApiSchemas["StudyPlan"]
+    "production_active"?: false
+    "revision": number
+  }
+  "StudyRating": {
+    "kind"?: "rating"
+    "missing_reason"?: ("not_collected" | "not_applicable" | "participant_skipped" | "technical_failure" | "not_evaluable" | "outside_window" | "withdrawn" | "not_approved") | (null)
+    "packet_id": string
+    "value_code"?: (string) | (null)
+  }
+  "StudyReceipt": {
+    "id": string
+    "kind": string
+    "production_active"?: false
+    "revision": number
+  }
+  "StudyRubric": {
+    "code": string
+    "values": Array<string>
+    "wording": string
+  }
   "StudyScope": {
     "consent_version": string
     "course_ids": Array<string>
     "data_plan_version": string
     "eligibility_rule_version": string
-    "fields": Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code")>
+    "fields": Array<("case_id" | "pseudonymous_user_id" | "course_id" | "task_id" | "task_type" | "submission_reference" | "experimental_condition" | "judge_decision" | "correctness_score" | "relevance_score" | "grounding_score" | "actionability_score" | "safety_score" | "unsupported_claim_count" | "latency_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "estimated_cost" | "regeneration_count" | "fallback_used" | "status" | "comparable" | "usage_complete" | "measurement_schema_version" | "created_at" | "completed_at" | "processing.technical_pair" | "processing.provider_input" | "processing.generated_output" | "processing.judge_result" | "processing.input_references" | "processing.retrieved_sources" | "processing.simulation_reference") | ("instrument.define" | "instrument.collect" | "instrument.read" | "instrument.export" | "instrument.record_id" | "instrument.participant_id" | "instrument.course_ref" | "instrument.sequence_id" | "instrument.form_id" | "instrument.form_version" | "instrument.item_id" | "instrument.stage" | "instrument.outcome_ref" | "instrument.task_ref" | "instrument.response_ref" | "instrument.choice_code" | "instrument.integer_value" | "instrument.response_text" | "instrument.missing_reason" | "instrument.event_kind" | "instrument.reason_code" | "instrument.revision" | "instrument.supersedes_id" | "instrument.correction_reason_code") | ("study.prepare" | "study.allocate" | "study.packet" | "study.rate" | "study.outcome" | "study.read" | "study.export" | "study.record_id" | "study.participant_id" | "study.sequence_id" | "study.stage" | "study.condition" | "study.plan_id" | "study.record_kind" | "study.instrument_record_id" | "study.packet_id" | "study.rubric_code" | "study.value_code" | "study.missing_reason" | "study.redacted_evidence" | "study.provenance") | ("operational.episode" | "operational.adaptation_reasons" | "operational.override_reasons" | "operational.reserved_cost" | "operational.exposure_cost" | "operational.response_text" | "operational.code" | "operational.evidence" | "operational.model_references" | "operational.adaptations" | "operational.overrides" | "operational.source_references" | "operational.ai_output" | "operational.judge_result" | "operational.simulation" | "operational.latency_ms" | "operational.input_tokens" | "operational.output_tokens" | "operational.estimated_cost" | "operational.actual_cost" | "operational.outcome" | "operational.moderation") | ("operational.collect" | "operational.read" | "operational.export")>
     "kind"?: "scope"
     "processing_researcher_id": number
     "protocol_version": string
-    "purposes": Array<"technical_pair" | "provider_processing" | "study_instruments">
+    "purposes": Array<"technical_pair" | "provider_processing" | "study_instruments" | "study_operational_evidence">
     "retention": Array<ApiSchemas["RetentionClass"]>
     "valid_from": string
     "valid_until": string
     "withdrawal_rule_reference": string
+  }
+  "StudySelfResponse": {
+    "allocation_id": string
+    "record": ApiSchemas["InstrumentRecordWrite"]
+  }
+  "StudyStage": {
+    "form_id": string
+    "stage": "T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER"
   }
   "SubmissionCreate": {
     "answer"?: string
@@ -2276,6 +2520,21 @@ export type ApiSchemas = {
     "idempotency_key"?: (string) | (null)
   }
   "SubmissionState": "NOT_STARTED" | "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "RETURNED" | "COMPLETED"
+  "SupportRepresentation": {
+    "circuit"?: (Record<string, unknown>) | (null)
+    "equivalence_basis": string
+    "instructional_support_level": number
+    "mode": "text" | "visual" | "worked_example" | "circuit" | "stepwise"
+    "source_references": Array<string>
+    "steps"?: Array<string>
+    "text": string
+    "title": string
+  }
+  "SupportRepresentationChoice": {
+    "item_index": number
+    "mode": "text" | "visual" | "worked_example" | "circuit" | "stepwise"
+    "title": string
+  }
   "TaskChoice": {
     "id": string
     "text": string
@@ -2325,6 +2584,7 @@ export type ApiSchemas = {
     "source_references": Array<string>
     "starter_circuit"?: (Record<string, unknown>) | (null)
     "starter_code": (string) | (null)
+    "structured_task"?: ((ApiSchemas["MatchingDefinition"]) | (ApiSchemas["SequencingDefinition"])) | (null)
     "task_type": ApiSchemas["TaskType"]
     "title": string
   }
@@ -2370,7 +2630,7 @@ export type ApiSchemas = {
     "task_id": string
     "version": number
   }
-  "TaskType": "prediction" | "reasoning" | "explanation" | "revision" | "reflection" | "transfer" | "multiple_choice" | "multiple_answer" | "short_answer" | "code_explanation" | "code_completion" | "quantum_circuit" | "quiz" | "code" | "circuit"
+  "TaskType": "matching" | "sequencing" | "prediction" | "reasoning" | "explanation" | "revision" | "reflection" | "transfer" | "multiple_choice" | "multiple_answer" | "short_answer" | "code_explanation" | "code_completion" | "quantum_circuit" | "quiz" | "code" | "circuit"
   "TaskUpdate": {
     "difficulty"?: ("beginner" | "intermediate" | "advanced") | (null)
     "due_at"?: (string) | (null)

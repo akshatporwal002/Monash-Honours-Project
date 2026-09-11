@@ -2,19 +2,10 @@
 
 import json
 from datetime import timedelta
+from decimal import Decimal
 
 import pytest
-from sqlalchemy import (
-    JSON,
-    Column,
-    DateTime,
-    Integer,
-    MetaData,
-    String,
-    Table,
-    insert,
-    update,
-)
+from sqlalchemy import update
 from test_research_governance import governed as governed
 from test_research_instruments import instruments as instruments
 from test_research_instruments import linked_operational_response
@@ -23,10 +14,12 @@ from test_research_study import study as study
 from app.models.enums import FeedbackStatus, WorkflowOutcome, WorkflowStage
 from app.models.lms import SubmissionAttempt
 from app.models.persistence import FeedbackRecord, WorkflowRun
+from app.models.provider_usage import ProviderUsage
 from app.models.research_study import ResearchStudyEvent
 from app.schemas.research_governance import OPERATIONAL_FIELDS
 from app.schemas.research_operational import OperationalCapture, OperationalSelection
 from app.schemas.research_study import StudyExportRequest, StudySelfResponse
+from app.services.provider_usage import MeteringPolicy, ProviderUsageMeter
 from app.services.research.governance import GovernanceDenied
 from app.services.research.operational import OperationalCollector
 
@@ -34,9 +27,18 @@ pytestmark = pytest.mark.parametrize("study", ["operational"], indirect=True)
 
 
 @pytest.fixture
-def operational(study):
+def operational(study, request):
     g = study
     outcome, task, draft, first = linked_operational_response(g)
+    form = None
+    if getattr(request, "param", None) == "moderation":
+        from support.assessment import _assessment_versions, _definition_version
+
+        definition, version = _definition_version(g.session, g.educator, g.course, outcome)
+        bloom, _, rule, form = _assessment_versions(
+            g.session, g.educator, g.course, task, definition, version
+        )
+        g.moderation_versions = (version, bloom, rule, form)
     g.response = SubmissionAttempt(
         draft_id=draft.id,
         student_id=g.student.id,
@@ -47,6 +49,7 @@ def operational(study):
         code="x = 1\npassword = 'do-not-export'\nprint(x)\n",
         feedback="Recorded",
         submitted_at=g.now,
+        task_form_version_id=form.id if form else None,
     )
     g.session.add(g.response)
     g.session.flush()
@@ -128,8 +131,8 @@ def test_preview_exact_lineage_missingness_and_no_raw_prose(operational):
     assert set(fields) == OPERATIONAL_FIELDS
     assert fields["operational.latency_ms"].value == 23
     assert fields["operational.code"].missing_reason == "redaction_required"
-    assert fields["operational.actual_cost"].missing_reason == "adapter_unavailable"
-    assert fields["operational.moderation"].missing_reason == "adapter_unavailable"
+    assert fields["operational.actual_cost"].missing_reason == "not_recorded"
+    assert fields["operational.moderation"].missing_reason == "not_recorded"
     assert fields["operational.evidence"].missing_reason == "not_recorded"
     tokens = fields["operational.input_tokens"].value
     assert tokens[0]["value"] is None and tokens[0]["missing_reason"] == "usage_incomplete"
@@ -267,21 +270,20 @@ def test_unselected_field_and_forged_instrument_anchor_denied(operational):
 
 def test_optional_provider_adapter_exact_join_null_actual_and_source_drift(operational):
     g = operational
-    table = Table(
-        "provider_usage",
-        MetaData(),
-        Column("id", String, primary_key=True),
-        Column("state", String),
-        Column("provenance", JSON),
-        Column("input_tokens", Integer),
-        Column("output_tokens", Integer),
-        Column("reserved_micros", Integer),
-        Column("exposure_micros", Integer),
-        Column("estimated_micros", Integer),
-        Column("actual_micros", Integer),
-        Column("created_at", DateTime),
+    meter = ProviderUsageMeter(
+        g.session.get_bind(),
+        MeteringPolicy(
+            budget_id="synthetic-research-budget",
+            currency="AUD",
+            policy_version="synthetic-budget-v1",
+            limit=Decimal("1"),
+            pricing_version="synthetic-pricing-v1",
+            input_rate=Decimal("2"),
+            output_rate=Decimal("2"),
+            max_input_tokens=2048,
+            max_output_tokens=100,
+        ),
     )
-    table.create(g.session.get_bind())
     exact = {
         "context": {
             "submission_id": g.response.id,
@@ -290,44 +292,154 @@ def test_optional_provider_adapter_exact_join_null_actual_and_source_drift(opera
         },
         "currency": "AUD",
     }
-    g.session.execute(
-        insert(table),
-        [
-            {
-                "id": "correct",
-                "state": "OBSERVED",
-                "provenance": exact,
-                "input_tokens": 7,
-                "output_tokens": 3,
-                "reserved_micros": 50,
-                "exposure_micros": 20,
-                "estimated_micros": 20,
-                "actual_micros": None,
-                "created_at": g.now,
-            },
-            {
-                "id": "foreign",
-                "state": "OBSERVED",
-                "provenance": {**exact, "context": {**exact["context"], "submission_id": "other"}},
-                "input_tokens": 900,
-                "output_tokens": 90,
-                "reserved_micros": 999,
-                "exposure_micros": 999,
-                "estimated_micros": 999,
-                "actual_micros": 999,
-                "created_at": g.now,
-            },
-        ],
-    )
+    # The real meter commits independently, just as it does around provider dispatch.
+    g.session.commit()
+    for key, context in (
+        ("correct", exact["context"]),
+        ("foreign-response", {**exact["context"], "submission_id": "other"}),
+        ("foreign-course", {**exact["context"], "course_id": "other"}),
+        ("foreign-task", {**exact["context"], "task_id": "other"}),
+    ):
+        meter.reserve(key, {"input": "Synthetic request"}, {**exact, "context": context})
+        meter.dispatch(key)
+        meter.observe(key, input_tokens=7 if key == "correct" else 900, output_tokens=3)
+    row = g.session.get(ProviderUsage, "correct")
+    assert row.state == "OBSERVED" and row.actual_micros is None
+    assert row.estimated_micros == 20
     g.session.commit()
     fields = ["operational.actual_cost", "operational.estimated_cost", "operational.input_tokens"]
     receipt = capture(g, fields)
     projected = g.collector.read(g.educator.id, g.study, g.course.id, receipt.id, fields)
     assert projected[fields[0]]["value"][0]["value"] is None
+    assert projected[fields[0]]["value"][0]["missing_reason"] == "not_recorded"
+    assert projected[fields[0]]["value"][0]["currency"] == "AUD"
     assert projected[fields[1]]["value"][0]["value"] == 20
     assert projected[fields[2]]["value"][0]["value"] == 7
     assert len(projected[fields[2]]["value"]) == 1
-    g.session.execute(update(table).where(table.c.id == "correct").values(actual_micros=12))
+    g.session.commit()
+    meter.reconcile(
+        "correct",
+        actual=Decimal("0.000012"),
+        currency="AUD",
+        receipt_id="synthetic-billing-receipt",
+        actor="synthetic-operator",
+    )
+    g.session.expire_all()
+    assert g.session.get(ProviderUsage, "correct").actual_micros == 12
+    with pytest.raises(GovernanceDenied, match="source_changed"):
+        g.collector.read(g.educator.id, g.study, g.course.id, receipt.id, fields)
+
+
+@pytest.mark.parametrize("operational", ["moderation"], indirect=True)
+def test_moderation_adapter_exact_response_join_preserves_cycles_and_detects_append(operational):
+    from app.models.assessment import AssessmentAttempt
+    from app.models.assessment_moderation import (
+        ModerationPolicy,
+        ModerationReview,
+        ModerationSelection,
+    )
+
+    g = operational
+    version, bloom, rule, form = g.moderation_versions
+    foreign = SubmissionAttempt(
+        draft_id=g.response.draft_id,
+        student_id=g.student.id,
+        task_id=g.response.task_id,
+        attempt_number=3,
+        status=g.response.status,
+        answer="Another synthetic response in the same course and task",
+        feedback="Recorded",
+        task_form_version_id=form.id,
+        submitted_at=g.now,
+    )
+    g.session.add(foreign)
+    g.session.flush()
+    attempts = [
+        AssessmentAttempt(
+            course_id=g.course.id,
+            student_id=g.student.id,
+            task_id=g.response.task_id,
+            response_version_id=response.id,
+            assessment_definition_version_id=version.id,
+            task_form_version_id=form.id,
+            bloom_target_version_id=bloom.id,
+            pass_rule_version_id=rule.id,
+            created_at=g.now,
+        )
+        for response in (g.response, foreign)
+    ]
+    policy = ModerationPolicy(
+        course_id=g.course.id,
+        version=1,
+        initial_count=2,
+        later_percent=0,
+        drift_interval=10,
+        approval_reference="synthetic-policy-only",
+        training_reference="synthetic-training-only",
+        actor_id=g.educator.id,
+        expires_at=g.now + timedelta(days=1),
+        created_at=g.now,
+    )
+    g.session.add_all([policy, *attempts])
+    g.session.flush()
+    g.session.add_all(
+        ModerationSelection(
+            attempt_id=attempt.id,
+            policy_id=policy.id,
+            task_family=form.task_family,
+            sequence=index + 1,
+            selected=True,
+            drift_check=False,
+            created_at=g.now,
+        )
+        for index, attempt in enumerate(attempts)
+    )
+    g.session.flush()
+
+    def review(attempt, cycle, stage, result):
+        # Synthetic persisted source records exercise the adapter, not assessor approval.
+        return ModerationReview(
+            attempt_id=attempt.id,
+            cycle=cycle,
+            stage=stage,
+            actor_id=g.educator.id if stage == "ORIGINAL" else g.reviewer.id,
+            result=result,
+            reason="Synthetic private judgement student@example.invalid",
+            criteria=[{"reason": "do-not-export"}],
+            request_key=f"synthetic-{cycle}-{stage}",
+            request_digest="a" * 64,
+            created_at=g.now,
+        )
+
+    g.session.add_all(
+        [
+            review(attempts[0], 1, "ORIGINAL", "INCOMPLETE"),
+            review(attempts[0], 1, "SECOND", "INCOMPLETE"),
+            review(attempts[0], 2, "ORIGINAL", "PASS"),
+            review(attempts[0], 2, "SECOND", "PASS"),
+            review(attempts[1], 9, "ORIGINAL", "PASS"),
+        ]
+    )
+    g.session.commit()
+    fields = ["operational.moderation"]
+    receipt = capture(g, fields)
+    cell = g.collector.read(g.educator.id, g.study, g.course.id, receipt.id, fields)[fields[0]]
+    assert cell["adapter_version"] == "learnlens.assessment-moderation.v1"
+    assert cell["missing_reason"] is None
+    assert {(row["cycle"], row["stage"], row["result"]) for row in cell["value"]} == {
+        (1, "ORIGINAL", "INCOMPLETE"),
+        (1, "SECOND", "INCOMPLETE"),
+        (2, "ORIGINAL", "PASS"),
+        (2, "SECOND", "PASS"),
+    }
+    assert len(cell["value"]) == 4
+    assert len({row["attempt_reference"] for row in cell["value"]}) == 1
+    encoded = json.dumps(cell)
+    assert all(
+        value not in encoded
+        for value in (attempts[0].id, attempts[1].id, "do-not-export", "example.invalid")
+    )
+    g.session.add(review(attempts[0], 3, "ORIGINAL", "INCOMPLETE"))
     g.session.commit()
     with pytest.raises(GovernanceDenied, match="source_changed"):
         g.collector.read(g.educator.id, g.study, g.course.id, receipt.id, fields)

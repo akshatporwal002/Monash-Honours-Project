@@ -1173,7 +1173,7 @@ def test_learner_model_migration_creates_append_only_tables_and_safe_empty_downg
     config.set_main_option("script_location", str(BACKEND_ROOT / "migrations"))
     config.set_main_option("sqlalchemy.url", f"sqlite:///{database_path.as_posix()}")
 
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260816_0020")
     from sqlalchemy import create_engine, inspect
 
     engine = create_engine(f"sqlite:///{database_path.as_posix()}")

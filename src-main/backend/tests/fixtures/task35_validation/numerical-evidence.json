@@ -3,7 +3,7 @@
   "conceptual_approval": "PENDING",
   "provenance": "SYNTHETIC_IDEAL_CIRCUITS",
   "scenario_file_digest": "9aacce7a2d658d92b59b52007187975351068c95f2af7666947292cdd20df825",
-  "manifest_digest": "98208dff46b88f330855b0f420469d4ae69e84466d042c946cb6ba51e98f19c4",
+  "manifest_digest": "aa3b93ddee2ac8dd85dce1b4c951fbaa4b74cb32ef82f98fd30d0bf7eb4a577b",
   "results": [
     {
       "family": "h-zero",

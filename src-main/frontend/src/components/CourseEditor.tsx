@@ -700,7 +700,7 @@ export function CourseEditor() {
                           {material.error && <small className={styles.materialStatus}>{material.error}</small>}
                         </span>
                         {((material.status === 'failed' && !material.retryAt) || material.status === 'indexed') && (
-                          <Button variant="quiet" disabled={busy} onClick={() => retryMaterial(material.id)} aria-label={`Retry processing ${material.filename}`}>
+                          <Button variant="quiet" disabled={busy} onClick={() => retryMaterial(material.id)} aria-label={`${material.status === 'indexed' ? 'Reprocess and scan' : 'Retry processing'} ${material.filename}`}>
                             {material.status === 'indexed' ? 'Reprocess and scan' : 'Retry processing'}
                           </Button>
                         )}

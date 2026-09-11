@@ -415,13 +415,13 @@ def test_new_migration_matches_metadata_and_replays_guards(tmp_path):
 
     url = f"sqlite:///{(tmp_path / 'curriculum.db').as_posix()}"
     config = migration_config(url)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260909_0041")
     engine = create_engine(url)
     with engine.begin() as connection:
         assert inspect(connection).has_table("curriculum_diagnostic_responses")
         connection.execute(text("DROP TRIGGER curriculum_diagnostic_responses_no_delete"))
     command.stamp(config, "20260908_0033")
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260909_0041")
     with engine.connect() as connection:
         assert (
             connection.execute(
@@ -447,7 +447,7 @@ def test_new_migration_matches_metadata_and_replays_guards(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260910_0044"
+            == "20260911_0051"
         )
         assert (
             connection.execute(

@@ -58,6 +58,17 @@ the ignore list must not be extended automatically.
 
 ## CI behavior and scanner provenance
 
+### 11 September integration disposition
+
+The release/reuse delivery introduced one further synthetic finding at
+`5439ba77be6d070f83e83c6a03bb1ad5c8a32fc5`,
+`src-main/backend/tests/test_conditional_programming.py:240`. Independent source
+inspection confirmed a test-only HMAC pseudonymization setting consumed by
+`HmacSha256Pseudonymizer`, with offline worker adapters, research disabled and a
+temporary SQLite database. It supplies no external authentication. The existing
+maintainer-owned ignore list records only this exact historical fingerprint;
+all default rules and future-occurrence review remain required.
+
 The previous `gitleaks/gitleaks-action@v2` selects short event ranges for push/PR
 runs despite `fetch-depth: 0`. The replacement explicitly uses
 `--all --full-history` on every configured event, from the repository root.

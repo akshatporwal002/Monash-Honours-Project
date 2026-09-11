@@ -20,18 +20,17 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 def test_instrument_forward_replay_and_guarded_downgrade(tmp_path):
     path = tmp_path / "synthetic-instruments.db"
     config = migration_config(f"sqlite:///{path.as_posix()}")
-    assert ScriptDirectory.from_config(config).get_heads() == ["20260910_0046"]
+    assert ScriptDirectory.from_config(config).get_heads() == ["20260911_0051"]
     command.upgrade(config, "20260910_0045")
     before = database_manifest(path)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260910_0046")
     after = database_manifest(path)
     assert all(after[key] == value for key, value in before.items() if key != "alembic_version")
     command.stamp(config, "20260910_0045")
-    command.upgrade(config, "head")
-    command.check(config)
+    command.upgrade(config, "20260910_0046")
     assert database_manifest(path) == after
     command.downgrade(config, "20260910_0045")
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260910_0046")
     engine = create_engine(config.get_main_option("sqlalchemy.url"))
     with engine.begin() as connection:
         # Sentinel rows test append-only persistence, not an instrument approval.
@@ -63,6 +62,8 @@ def test_instrument_forward_replay_and_guarded_downgrade(tmp_path):
         assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
         assert "research_instrument_records" in inspect(connection).get_table_names()
     engine.dispose()
+    command.upgrade(config, "head")
+    command.check(config)
 
 
 def test_restore_preserves_instrument_withdrawal_and_no_operational_changes(instruments, tmp_path):

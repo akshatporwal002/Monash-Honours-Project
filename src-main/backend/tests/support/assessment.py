@@ -117,7 +117,7 @@ def _lms_scope(
         description="Provide an evidence-based explanation.",
         instructions="Explain the observed interference pattern.",
         expected_answer="Explain how the observed interference supports the stated quantum claim.",
-        task_type=TaskType.QUIZ,
+        task_type=TaskType.SHORT_ANSWER,
         difficulty="intermediate",
         points=0,
         position=1,

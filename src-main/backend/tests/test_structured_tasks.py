@@ -18,6 +18,8 @@ from app.services.structured_generation import grounded_structure
 from app.services.task_review import TaskReviewError, TaskReviewService
 from app.services.task_types import DEFAULT_TASK_TYPE_REGISTRY, UnsupportedTaskTypeError
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def exercise(kind, source="source"):
     return grounded_structure(

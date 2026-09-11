@@ -40,6 +40,15 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 LEGACY_ASSESSMENT_FIXTURE = BACKEND_ROOT / "tests" / "fixtures" / "legacy_assessment.sql"
 EXPECTED_TABLES = {
+    "provider_budgets",
+    "provider_usage",
+    "research_study_events",
+    "assessment_moderation_policies",
+    "assessment_moderation_selections",
+    "assessment_moderation_reviews",
+    "evaluator_validation_events",
+    "course_revisions",
+    "material_scans",
     "research_instrument_forms",
     "research_instrument_freezes",
     "research_instrument_bindings",
@@ -191,7 +200,7 @@ def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260910_0044"
+            == "20260911_0051"
         )
         assert "task_revision_id" in {
             column["name"] for column in inspect(connection).get_columns("task_form_versions")
@@ -237,7 +246,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260910_0044"
+            == "20260911_0051"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -1179,12 +1188,26 @@ def test_assessment_attempt_database_triggers_reject_direct_bypass_writes(
         with pytest.raises(IntegrityError, match="assessment records are append-only"):
             with engine.begin() as connection:
                 connection.execute(text("DELETE FROM assessor_reviews WHERE id = 'stored-review'"))
+        # Supply a valid transition and matching review so this probe isolates the
+        # immutable-evidence guard regardless of SQLite's trigger execution order.
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO assessor_reviews "
+                    "(id, assessment_decision_id, review_revision, assessor_user_id, action, "
+                    "prior_result, new_result, reason, reviewed_at) VALUES "
+                    "('matching-confirm-review', :decision, 3, :owner, 'CONFIRM', NULL, "
+                    "'PASS', 'Confirm the retained evidence.', CURRENT_TIMESTAMP)"
+                ),
+                {"decision": decision.id, "owner": owner.id},
+            )
         with pytest.raises(IntegrityError, match="evidence and anchors are immutable"):
             with engine.begin() as connection:
                 connection.execute(
                     text(
                         "UPDATE assessment_decisions SET result_state = 'CONFIRMED', "
-                        "assessor_user_id = :owner, reviewed_at = CURRENT_TIMESTAMP, "
+                        "assessor_user_id = :owner, reviewed_at = "
+                        "(SELECT reviewed_at FROM assessor_reviews WHERE id='matching-confirm-review'), "
                         "evidence_references = '{\"rewritten\": true}' WHERE id = :decision"
                     ),
                     {"decision": decision.id, "owner": owner.id},
@@ -1276,7 +1299,7 @@ def test_assessment_attempt_downgrade_restores_prior_audit_actions(tmp_path: Pat
     database_path = tmp_path / "assessment-attempt-downgrade.db"
     database_url = f"sqlite:///{database_path.as_posix()}"
     config = migration_config(database_url)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260815_0017")
     command.downgrade(config, "20260815_0016")
     engine = create_engine(database_url)
     try:
@@ -1894,7 +1917,7 @@ def test_assessment_backup_restore_preserves_counts_links_and_digests(tmp_path: 
 
 def test_assessment_populated_downgrade_restores_verified_backup(tmp_path: Path) -> None:
     database_path, config = _prepare_legacy_assessment_database(tmp_path)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260815_0018")
     before_downgrade = database_manifest(database_path)
     protected_before_downgrade = protected_history_manifest(database_path)
     backup = create_verified_backup(database_path, tmp_path / "downgrade-backups")
@@ -1919,7 +1942,7 @@ def test_numeric_only_populated_history_blocks_downgrade(tmp_path: Path) -> None
     finally:
         engine.dispose()
 
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260815_0018")
     engine = create_engine(f"sqlite:///{database_path.as_posix()}")
     try:
         with engine.connect() as connection:
@@ -2366,14 +2389,22 @@ def test_definition_migration_upgrades_clean_database(tmp_path: Path) -> None:
     engine.dispose()
     command.check(config)
 
-    command.downgrade(config, "base")
-    downgraded_engine = create_engine(database_url)
+    before_downgrade = database_manifest(database_path)
+    with pytest.raises(RuntimeError, match="Intake history is protected"):
+        command.downgrade(config, "base")
+    assert database_manifest(database_path) == before_downgrade
+
+    historical_url = f"sqlite:///{(tmp_path / 'historical-round-trip.db').as_posix()}"
+    historical_config = migration_config(historical_url)
+    command.upgrade(historical_config, "20260910_0046")
+    command.downgrade(historical_config, "base")
+    downgraded_engine = create_engine(historical_url)
     assert inspect(downgraded_engine).get_table_names() == ["alembic_version"]
     downgraded_engine.dispose()
 
-    # Prove the downgrade is reversible, rather than merely destructive.
-    command.upgrade(config, "head")
-    round_trip_engine = create_engine(database_url)
+    # The supported historical round trip can then upgrade to the current head.
+    command.upgrade(historical_config, "head")
+    round_trip_engine = create_engine(historical_url)
     round_trip_inspector = inspect(round_trip_engine)
     assert set(round_trip_inspector.get_table_names()) == EXPECTED_TABLES
     assert {
@@ -2391,7 +2422,7 @@ def test_definition_migration_upgrades_clean_database(tmp_path: Path) -> None:
         "ix_terminal_integration_outbox_correlation",
     }
     round_trip_engine.dispose()
-    command.check(config)
+    command.check(historical_config)
 
 
 def test_default_achievement_seed_preserves_existing_codes_and_fills_missing(
@@ -2578,7 +2609,7 @@ def test_quality_judge_migration_backfills_and_converts_legacy_rejection(
         )
     engine.dispose()
 
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260910_0046")
     upgraded_engine = create_engine(database_url)
     with upgraded_engine.connect() as connection:
         workflow = (

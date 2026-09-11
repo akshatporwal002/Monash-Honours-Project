@@ -3383,10 +3383,71 @@
                     "instrument.correction_reason_code"
                   ],
                   "type": "string"
+                },
+                {
+                  "enum": [
+                    "study.prepare",
+                    "study.allocate",
+                    "study.packet",
+                    "study.rate",
+                    "study.outcome",
+                    "study.read",
+                    "study.export",
+                    "study.record_id",
+                    "study.participant_id",
+                    "study.sequence_id",
+                    "study.stage",
+                    "study.condition",
+                    "study.plan_id",
+                    "study.record_kind",
+                    "study.instrument_record_id",
+                    "study.packet_id",
+                    "study.rubric_code",
+                    "study.value_code",
+                    "study.missing_reason",
+                    "study.redacted_evidence",
+                    "study.provenance"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "operational.episode",
+                    "operational.adaptation_reasons",
+                    "operational.override_reasons",
+                    "operational.reserved_cost",
+                    "operational.exposure_cost",
+                    "operational.response_text",
+                    "operational.code",
+                    "operational.evidence",
+                    "operational.model_references",
+                    "operational.adaptations",
+                    "operational.overrides",
+                    "operational.source_references",
+                    "operational.ai_output",
+                    "operational.judge_result",
+                    "operational.simulation",
+                    "operational.latency_ms",
+                    "operational.input_tokens",
+                    "operational.output_tokens",
+                    "operational.estimated_cost",
+                    "operational.actual_cost",
+                    "operational.outcome",
+                    "operational.moderation"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "operational.collect",
+                    "operational.read",
+                    "operational.export"
+                  ],
+                  "type": "string"
                 }
               ]
             },
-            "maxItems": 64,
+            "maxItems": 128,
             "title": "Fields",
             "type": "array"
           },
@@ -3401,7 +3462,8 @@
               "enum": [
                 "technical_pair",
                 "provider_processing",
-                "study_instruments"
+                "study_instruments",
+                "study_operational_evidence"
               ],
               "type": "string"
             },
@@ -3639,6 +3701,104 @@
           "updated_at"
         ],
         "title": "CourseRead",
+        "type": "object"
+      },
+      "CourseRestoreRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason"
+        ],
+        "title": "CourseRestoreRequest",
+        "type": "object"
+      },
+      "CourseRevisionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "context_snapshot": {
+            "additionalProperties": true,
+            "title": "Context Snapshot",
+            "type": "object"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata_snapshot": {
+            "additionalProperties": true,
+            "title": "Metadata Snapshot",
+            "type": "object"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "restored_from_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restored From Id"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "course_id",
+          "version",
+          "metadata_snapshot",
+          "context_snapshot",
+          "actor_id",
+          "action",
+          "reason",
+          "restored_from_id",
+          "created_at"
+        ],
+        "title": "CourseRevisionRead",
         "type": "object"
       },
       "CourseState": {
@@ -5124,6 +5284,16 @@
           },
           "record": {
             "$ref": "#/components/schemas/EpisodeHelpUseRead"
+          },
+          "representation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupportRepresentation"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -5341,6 +5511,13 @@
           "prediction_required": {
             "title": "Prediction Required",
             "type": "boolean"
+          },
+          "representation_choices": {
+            "items": {
+              "$ref": "#/components/schemas/SupportRepresentationChoice"
+            },
+            "title": "Representation Choices",
+            "type": "array"
           },
           "required_responses": {
             "items": {
@@ -6011,6 +6188,105 @@
           "history"
         ],
         "title": "EscalationStaffRead",
+        "type": "object"
+      },
+      "EvaluatorValidationReceipt": {
+        "properties": {
+          "ai_activation": {
+            "const": "PENDING",
+            "title": "Ai Activation",
+            "type": "string"
+          },
+          "state": {
+            "const": "VALIDATED",
+            "title": "State",
+            "type": "string"
+          },
+          "validation_id": {
+            "title": "Validation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "validation_id",
+          "state",
+          "ai_activation"
+        ],
+        "title": "EvaluatorValidationReceipt",
+        "type": "object"
+      },
+      "EvaluatorValidationStatusRead": {
+        "properties": {
+          "ai_activation": {
+            "const": "PENDING",
+            "title": "Ai Activation",
+            "type": "string"
+          },
+          "fingerprint": {
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "PENDING",
+              "VALIDATED",
+              "INVALIDATED"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "validation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Id"
+          }
+        },
+        "required": [
+          "state",
+          "validation_id",
+          "fingerprint",
+          "reason",
+          "ai_activation"
+        ],
+        "title": "EvaluatorValidationStatusRead",
+        "type": "object"
+      },
+      "EvaluatorValidationWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "expected_fingerprint": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Expected Fingerprint",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_fingerprint",
+          "evidence",
+          "expires_at"
+        ],
+        "title": "EvaluatorValidationWrite",
         "type": "object"
       },
       "EvidenceReference": {
@@ -9284,6 +9560,17 @@
             "title": "Created At",
             "type": "string"
           },
+          "current_scan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Scan Id"
+          },
           "current_source_revision_id": {
             "anyOf": [
               {
@@ -9455,6 +9742,11 @@
               }
             ],
             "title": "Retired At"
+          },
+          "scan_status": {
+            "default": "QUARANTINED",
+            "title": "Scan Status",
+            "type": "string"
           },
           "source_url": {
             "anyOf": [
@@ -9821,6 +10113,47 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "MatchingDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredItem"
+            },
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "Options",
+            "type": "array"
+          },
+          "prompts": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredItem"
+            },
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "Prompts",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "learnlens.matching.v1",
+            "default": "learnlens.matching.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "task_type": {
+            "const": "matching",
+            "default": "matching",
+            "title": "Task Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompts",
+          "options"
+        ],
+        "title": "MatchingDefinition",
+        "type": "object"
+      },
       "MaterialIndexStatus": {
         "enum": [
           "pending",
@@ -9903,6 +10236,17 @@
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "current_scan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Scan Id"
           },
           "error_code": {
             "anyOf": [
@@ -9999,6 +10343,11 @@
             ],
             "title": "Processing Retry At"
           },
+          "scan_status": {
+            "default": "QUARANTINED",
+            "title": "Scan Status",
+            "type": "string"
+          },
           "source_url": {
             "anyOf": [
               {
@@ -10023,6 +10372,66 @@
           "created_at"
         ],
         "title": "MaterialRead",
+        "type": "object"
+      },
+      "MaterialScanRead": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "material_id": {
+            "title": "Material Id",
+            "type": "string"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "processing_revision": {
+            "title": "Processing Revision",
+            "type": "integer"
+          },
+          "scanner": {
+            "title": "Scanner",
+            "type": "string"
+          },
+          "scanner_version": {
+            "title": "Scanner Version",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "material_id",
+          "content_hash",
+          "processing_revision",
+          "policy_version",
+          "scanner",
+          "scanner_version",
+          "status",
+          "code",
+          "created_at"
+        ],
+        "title": "MaterialScanRead",
         "type": "object"
       },
       "MetricValue": {
@@ -10835,6 +11244,318 @@
         "title": "ModelSource",
         "type": "string"
       },
+      "ModerationCriterionRead": {
+        "properties": {
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CriterionDecision"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterion_version_id",
+          "decision",
+          "reason",
+          "evidence_ids"
+        ],
+        "title": "ModerationCriterionRead",
+        "type": "object"
+      },
+      "ModerationHistoryRead": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/ModerationCriterionRead"
+            },
+            "title": "Criteria",
+            "type": "array"
+          },
+          "cycle": {
+            "title": "Cycle",
+            "type": "integer"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AssessmentResult"
+          },
+          "stage": {
+            "enum": [
+              "ORIGINAL",
+              "SECOND",
+              "RESOLUTION",
+              "DRIFT",
+              "DRIFT_RESOLUTION"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "cycle",
+          "actor_id",
+          "result",
+          "reason",
+          "criteria",
+          "created_at"
+        ],
+        "title": "ModerationHistoryRead",
+        "type": "object"
+      },
+      "ModerationPolicyReceipt": {
+        "properties": {
+          "policy_id": {
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "policy_id",
+          "version"
+        ],
+        "title": "ModerationPolicyReceipt",
+        "type": "object"
+      },
+      "ModerationPolicyWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_reference": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Approval Reference",
+            "type": "string"
+          },
+          "drift_interval": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000.0,
+            "title": "Drift Interval",
+            "type": "integer"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "initial_count": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Initial Count",
+            "type": "integer"
+          },
+          "later_percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Later Percent",
+            "type": "integer"
+          },
+          "training_reference": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Training Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "initial_count",
+          "later_percent",
+          "drift_interval",
+          "approval_reference",
+          "training_reference",
+          "expires_at"
+        ],
+        "title": "ModerationPolicyWrite",
+        "type": "object"
+      },
+      "ModerationQueueRead": {
+        "properties": {
+          "policy_status": {
+            "enum": [
+              "CONFIGURED",
+              "POLICY_REQUIRED"
+            ],
+            "title": "Policy Status",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/ModerationRecordRead"
+            },
+            "title": "Records",
+            "type": "array"
+          }
+        },
+        "required": [
+          "policy_status",
+          "records"
+        ],
+        "title": "ModerationQueueRead",
+        "type": "object"
+      },
+      "ModerationRecordRead": {
+        "properties": {
+          "attempt_id": {
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "cycle": {
+            "title": "Cycle",
+            "type": "integer"
+          },
+          "drift_check": {
+            "title": "Drift Check",
+            "type": "boolean"
+          },
+          "formal_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ModerationHistoryRead"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "history_withheld": {
+            "title": "History Withheld",
+            "type": "boolean"
+          },
+          "next_stage": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ORIGINAL",
+                  "SECOND",
+                  "RESOLUTION",
+                  "DRIFT",
+                  "DRIFT_RESOLUTION",
+                  "CORRECTION"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Stage"
+          },
+          "policy_id": {
+            "title": "Policy Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "ORIGINAL_REQUIRED",
+              "SECOND_REQUIRED",
+              "DISAGREEMENT",
+              "DRIFT_REQUIRED",
+              "DRIFT_DISAGREEMENT",
+              "READY",
+              "NOT_SAMPLED"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "task_family": {
+            "title": "Task Family",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "cycle",
+          "task_family",
+          "sequence",
+          "policy_id",
+          "drift_check",
+          "state",
+          "formal_state",
+          "result",
+          "next_stage",
+          "history_withheld",
+          "history"
+        ],
+        "title": "ModerationRecordRead",
+        "type": "object"
+      },
+      "ModerationReviewReceipt": {
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/AssessmentResult"
+          },
+          "review_id": {
+            "title": "Review Id",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "ORIGINAL",
+              "SECOND",
+              "RESOLUTION",
+              "DRIFT",
+              "DRIFT_RESOLUTION"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "review_id",
+          "stage",
+          "result"
+        ],
+        "title": "ModerationReviewReceipt",
+        "type": "object"
+      },
       "ModuleCreate": {
         "additionalProperties": false,
         "properties": {
@@ -10962,6 +11683,271 @@
         ],
         "title": "ObservationType",
         "type": "string"
+      },
+      "OperationalCapture": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Allocation Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "fields": {
+            "items": {
+              "enum": [
+                "operational.episode",
+                "operational.adaptation_reasons",
+                "operational.override_reasons",
+                "operational.reserved_cost",
+                "operational.exposure_cost",
+                "operational.response_text",
+                "operational.code",
+                "operational.evidence",
+                "operational.model_references",
+                "operational.adaptations",
+                "operational.overrides",
+                "operational.source_references",
+                "operational.ai_output",
+                "operational.judge_result",
+                "operational.simulation",
+                "operational.latency_ms",
+                "operational.input_tokens",
+                "operational.output_tokens",
+                "operational.estimated_cost",
+                "operational.actual_cost",
+                "operational.outcome",
+                "operational.moderation"
+              ],
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "instrument_record_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Instrument Record Id",
+            "type": "string"
+          },
+          "redactions": {
+            "items": {
+              "$ref": "#/components/schemas/OperationalRedaction"
+            },
+            "maxItems": 8,
+            "title": "Redactions",
+            "type": "array"
+          },
+          "request_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocation_id",
+          "instrument_record_id",
+          "fields",
+          "request_key",
+          "expected_revision"
+        ],
+        "title": "OperationalCapture",
+        "type": "object"
+      },
+      "OperationalFieldRead": {
+        "additionalProperties": false,
+        "properties": {
+          "adapter_version": {
+            "title": "Adapter Version",
+            "type": "string"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_recorded",
+                  "not_applicable",
+                  "usage_incomplete",
+                  "adapter_unavailable",
+                  "redaction_required"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "source_digest": {
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "source_references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source References",
+            "type": "array"
+          },
+          "value": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        },
+        "required": [
+          "source_digest",
+          "source_references",
+          "adapter_version"
+        ],
+        "title": "OperationalFieldRead",
+        "type": "object"
+      },
+      "OperationalPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/OperationalFieldRead"
+            },
+            "title": "Fields",
+            "type": "object"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "title": "OperationalPreview",
+        "type": "object"
+      },
+      "OperationalRedaction": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "enum": [
+              "operational.response_text",
+              "operational.code",
+              "operational.ai_output",
+              "operational.episode",
+              "operational.adaptation_reasons",
+              "operational.override_reasons"
+            ],
+            "title": "Field",
+            "type": "string"
+          },
+          "review_evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Review Evidence Reference",
+            "type": "string"
+          },
+          "rule_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Rule Reference",
+            "type": "string"
+          },
+          "source_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Source Digest",
+            "type": "string"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/RedactionSpan"
+            },
+            "maxItems": 300,
+            "title": "Spans",
+            "type": "array"
+          }
+        },
+        "required": [
+          "field",
+          "source_digest",
+          "rule_reference",
+          "review_evidence_reference",
+          "spans"
+        ],
+        "title": "OperationalRedaction",
+        "type": "object"
+      },
+      "OperationalSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Allocation Id",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "enum": [
+                "operational.episode",
+                "operational.adaptation_reasons",
+                "operational.override_reasons",
+                "operational.reserved_cost",
+                "operational.exposure_cost",
+                "operational.response_text",
+                "operational.code",
+                "operational.evidence",
+                "operational.model_references",
+                "operational.adaptations",
+                "operational.overrides",
+                "operational.source_references",
+                "operational.ai_output",
+                "operational.judge_result",
+                "operational.simulation",
+                "operational.latency_ms",
+                "operational.input_tokens",
+                "operational.output_tokens",
+                "operational.estimated_cost",
+                "operational.actual_cost",
+                "operational.outcome",
+                "operational.moderation"
+              ],
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "instrument_record_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Instrument Record Id",
+            "type": "string"
+          },
+          "redactions": {
+            "items": {
+              "$ref": "#/components/schemas/OperationalRedaction"
+            },
+            "maxItems": 8,
+            "title": "Redactions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "allocation_id",
+          "instrument_record_id",
+          "fields"
+        ],
+        "title": "OperationalSelection",
+        "type": "object"
       },
       "OutcomeCreate": {
         "additionalProperties": false,
@@ -13057,6 +14043,27 @@
         "title": "RecordedTeachingRead",
         "type": "object"
       },
+      "RedactionSpan": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "exclusiveMinimum": 0.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "RedactionSpan",
+        "type": "object"
+      },
       "ReminderPreferenceRead": {
         "additionalProperties": false,
         "properties": {
@@ -13264,10 +14271,71 @@
                     "instrument.correction_reason_code"
                   ],
                   "type": "string"
+                },
+                {
+                  "enum": [
+                    "study.prepare",
+                    "study.allocate",
+                    "study.packet",
+                    "study.rate",
+                    "study.outcome",
+                    "study.read",
+                    "study.export",
+                    "study.record_id",
+                    "study.participant_id",
+                    "study.sequence_id",
+                    "study.stage",
+                    "study.condition",
+                    "study.plan_id",
+                    "study.record_kind",
+                    "study.instrument_record_id",
+                    "study.packet_id",
+                    "study.rubric_code",
+                    "study.value_code",
+                    "study.missing_reason",
+                    "study.redacted_evidence",
+                    "study.provenance"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "operational.episode",
+                    "operational.adaptation_reasons",
+                    "operational.override_reasons",
+                    "operational.reserved_cost",
+                    "operational.exposure_cost",
+                    "operational.response_text",
+                    "operational.code",
+                    "operational.evidence",
+                    "operational.model_references",
+                    "operational.adaptations",
+                    "operational.overrides",
+                    "operational.source_references",
+                    "operational.ai_output",
+                    "operational.judge_result",
+                    "operational.simulation",
+                    "operational.latency_ms",
+                    "operational.input_tokens",
+                    "operational.output_tokens",
+                    "operational.estimated_cost",
+                    "operational.actual_cost",
+                    "operational.outcome",
+                    "operational.moderation"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "operational.collect",
+                    "operational.read",
+                    "operational.export"
+                  ],
+                  "type": "string"
                 }
               ]
             },
-            "maxItems": 64,
+            "maxItems": 128,
             "minItems": 1,
             "title": "Fields",
             "type": "array"
@@ -14094,6 +15162,37 @@
           "reason"
         ],
         "title": "ScopedRoleAssignmentRevoke",
+        "type": "object"
+      },
+      "SequencingDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StructuredItem"
+            },
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "Items",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "learnlens.sequencing.v1",
+            "default": "learnlens.sequencing.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "task_type": {
+            "const": "sequencing",
+            "default": "sequencing",
+            "title": "Task Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SequencingDefinition",
         "type": "object"
       },
       "SettingsRead": {
@@ -15037,6 +16136,41 @@
         "title": "StaleEvidenceReference",
         "type": "object"
       },
+      "StructuredItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "source_references": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Source References",
+            "type": "array"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "source_references"
+        ],
+        "title": "StructuredItem",
+        "type": "object"
+      },
       "StudentDashboardRead": {
         "additionalProperties": false,
         "properties": {
@@ -15162,6 +16296,663 @@
         "title": "StudentSummaryRead",
         "type": "object"
       },
+      "StudyAllocation": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Allocation Evidence Reference",
+            "type": "string"
+          },
+          "condition": {
+            "pattern": "^[a-z][a-z0-9_]{0,47}$",
+            "title": "Condition",
+            "type": "string"
+          },
+          "kind": {
+            "const": "allocation",
+            "default": "allocation",
+            "title": "Kind",
+            "type": "string"
+          },
+          "plan_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "sequence_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Sequence Key",
+            "type": "string"
+          },
+          "subject_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Subject User Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "subject_user_id",
+          "plan_id",
+          "sequence_key",
+          "condition",
+          "allocation_evidence_reference"
+        ],
+        "title": "StudyAllocation",
+        "type": "object"
+      },
+      "StudyAssignedForm": {
+        "additionalProperties": false,
+        "properties": {
+          "form": {
+            "$ref": "#/components/schemas/FormRead"
+          },
+          "stage": {
+            "enum": [
+              "T0_BASELINE",
+              "T1_STUDY_ACTIVITY",
+              "T1_FORMAL_SUPPORTED",
+              "T1_FORMAL_UNAIDED",
+              "T2_CONCEPTUAL",
+              "T2_TRANSFER",
+              "T3_CONCEPTUAL",
+              "T3_TRANSFER"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "form"
+        ],
+        "title": "StudyAssignedForm",
+        "type": "object"
+      },
+      "StudyAssignmentRead": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_id": {
+            "title": "Allocation Id",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StudyAssignedForm"
+            },
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "allocation_id",
+          "stages"
+        ],
+        "title": "StudyAssignmentRead",
+        "type": "object"
+      },
+      "StudyCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "discriminator": {
+              "mapping": {
+                "allocation": "#/components/schemas/StudyAllocation",
+                "outcome": "#/components/schemas/StudyOutcome",
+                "packet": "#/components/schemas/StudyPacket",
+                "plan": "#/components/schemas/StudyPlan",
+                "rating": "#/components/schemas/StudyRating"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StudyPlan"
+              },
+              {
+                "$ref": "#/components/schemas/StudyAllocation"
+              },
+              {
+                "$ref": "#/components/schemas/StudyPacket"
+              },
+              {
+                "$ref": "#/components/schemas/StudyRating"
+              },
+              {
+                "$ref": "#/components/schemas/StudyOutcome"
+              }
+            ],
+            "title": "Decision"
+          },
+          "request_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_key",
+          "decision"
+        ],
+        "title": "StudyCommand",
+        "type": "object"
+      },
+      "StudyExportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "study.record_id",
+                    "study.participant_id",
+                    "study.sequence_id",
+                    "study.stage",
+                    "study.condition",
+                    "study.plan_id",
+                    "study.record_kind",
+                    "study.instrument_record_id",
+                    "study.packet_id",
+                    "study.rubric_code",
+                    "study.value_code",
+                    "study.missing_reason"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "instrument.record_id",
+                    "instrument.participant_id",
+                    "instrument.course_ref",
+                    "instrument.sequence_id",
+                    "instrument.form_id",
+                    "instrument.form_version",
+                    "instrument.item_id",
+                    "instrument.stage",
+                    "instrument.outcome_ref",
+                    "instrument.task_ref",
+                    "instrument.response_ref",
+                    "instrument.choice_code",
+                    "instrument.integer_value",
+                    "instrument.missing_reason",
+                    "instrument.event_kind",
+                    "instrument.reason_code",
+                    "instrument.revision",
+                    "instrument.supersedes_id",
+                    "instrument.correction_reason_code"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "operational.episode",
+                    "operational.adaptation_reasons",
+                    "operational.override_reasons",
+                    "operational.reserved_cost",
+                    "operational.exposure_cost",
+                    "operational.response_text",
+                    "operational.code",
+                    "operational.evidence",
+                    "operational.model_references",
+                    "operational.adaptations",
+                    "operational.overrides",
+                    "operational.source_references",
+                    "operational.ai_output",
+                    "operational.judge_result",
+                    "operational.simulation",
+                    "operational.latency_ms",
+                    "operational.input_tokens",
+                    "operational.output_tokens",
+                    "operational.estimated_cost",
+                    "operational.actual_cost",
+                    "operational.outcome",
+                    "operational.moderation"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "format": {
+            "enum": [
+              "csv",
+              "json"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "enum": [
+                "T0_BASELINE",
+                "T1_STUDY_ACTIVITY",
+                "T1_FORMAL_SUPPORTED",
+                "T1_FORMAL_UNAIDED",
+                "T2_CONCEPTUAL",
+                "T2_TRANSFER",
+                "T3_CONCEPTUAL",
+                "T3_TRANSFER"
+              ],
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "format",
+          "fields",
+          "stages"
+        ],
+        "title": "StudyExportRequest",
+        "type": "object"
+      },
+      "StudyOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "interpretation_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Interpretation Reference",
+            "type": "string"
+          },
+          "kind": {
+            "const": "outcome",
+            "default": "outcome",
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_collected",
+                  "not_applicable",
+                  "participant_skipped",
+                  "technical_failure",
+                  "not_evaluable",
+                  "outside_window",
+                  "withdrawn",
+                  "not_approved"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "packet_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Packet Id",
+            "type": "string"
+          },
+          "rating_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Rating Id",
+            "type": "string"
+          },
+          "value_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,47}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Code"
+          }
+        },
+        "required": [
+          "packet_id",
+          "rating_id",
+          "interpretation_reference"
+        ],
+        "title": "StudyOutcome",
+        "type": "object"
+      },
+      "StudyPacket": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Allocation Id",
+            "type": "string"
+          },
+          "instrument_record_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Instrument Record Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "packet",
+            "default": "packet",
+            "title": "Kind",
+            "type": "string"
+          },
+          "redacted_evidence": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Redacted Evidence",
+            "type": "string"
+          },
+          "redaction_evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Redaction Evidence Reference",
+            "type": "string"
+          },
+          "reviewer_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Reviewer User Id",
+            "type": "integer"
+          },
+          "rubric_code": {
+            "pattern": "^[a-z][a-z0-9_]{0,47}$",
+            "title": "Rubric Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocation_id",
+          "instrument_record_id",
+          "reviewer_user_id",
+          "rubric_code",
+          "redacted_evidence",
+          "redaction_evidence_reference"
+        ],
+        "title": "StudyPacket",
+        "type": "object"
+      },
+      "StudyPacketRead": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "redacted_evidence": {
+            "title": "Redacted Evidence",
+            "type": "string"
+          },
+          "rubric": {
+            "$ref": "#/components/schemas/StudyRubric"
+          },
+          "stage": {
+            "enum": [
+              "T0_BASELINE",
+              "T1_STUDY_ACTIVITY",
+              "T1_FORMAL_SUPPORTED",
+              "T1_FORMAL_UNAIDED",
+              "T2_CONCEPTUAL",
+              "T2_TRANSFER",
+              "T3_CONCEPTUAL",
+              "T3_TRANSFER"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stage",
+          "rubric",
+          "redacted_evidence"
+        ],
+        "title": "StudyPacketRead",
+        "type": "object"
+      },
+      "StudyPlan": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_rule_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Allocation Rule Reference",
+            "type": "string"
+          },
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "conditions": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,47}$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Conditions",
+            "type": "array"
+          },
+          "evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0.0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "plan",
+            "default": "plan",
+            "title": "Kind",
+            "type": "string"
+          },
+          "redaction_rule_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Redaction Rule Reference",
+            "type": "string"
+          },
+          "rubrics": {
+            "items": {
+              "$ref": "#/components/schemas/StudyRubric"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Rubrics",
+            "type": "array"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StudyStage"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "authority_reference",
+          "evidence_reference",
+          "allocation_rule_reference",
+          "redaction_rule_reference",
+          "conditions",
+          "stages",
+          "rubrics"
+        ],
+        "title": "StudyPlan",
+        "type": "object"
+      },
+      "StudyPlanRead": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/StudyPlan"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "revision",
+          "plan"
+        ],
+        "title": "StudyPlanRead",
+        "type": "object"
+      },
+      "StudyRating": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "rating",
+            "default": "rating",
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "not_collected",
+                  "not_applicable",
+                  "participant_skipped",
+                  "technical_failure",
+                  "not_evaluable",
+                  "outside_window",
+                  "withdrawn",
+                  "not_approved"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "packet_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Packet Id",
+            "type": "string"
+          },
+          "value_code": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{0,47}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Code"
+          }
+        },
+        "required": [
+          "packet_id"
+        ],
+        "title": "StudyRating",
+        "type": "object"
+      },
+      "StudyReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "production_active": {
+            "const": false,
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "revision"
+        ],
+        "title": "StudyReceipt",
+        "type": "object"
+      },
+      "StudyRubric": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "pattern": "^[a-z][a-z0-9_]{0,47}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,47}$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Values",
+            "type": "array"
+          },
+          "wording": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Wording",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "wording",
+          "values"
+        ],
+        "title": "StudyRubric",
+        "type": "object"
+      },
       "StudyScope": {
         "additionalProperties": false,
         "properties": {
@@ -15264,10 +17055,71 @@
                     "instrument.correction_reason_code"
                   ],
                   "type": "string"
+                },
+                {
+                  "enum": [
+                    "study.prepare",
+                    "study.allocate",
+                    "study.packet",
+                    "study.rate",
+                    "study.outcome",
+                    "study.read",
+                    "study.export",
+                    "study.record_id",
+                    "study.participant_id",
+                    "study.sequence_id",
+                    "study.stage",
+                    "study.condition",
+                    "study.plan_id",
+                    "study.record_kind",
+                    "study.instrument_record_id",
+                    "study.packet_id",
+                    "study.rubric_code",
+                    "study.value_code",
+                    "study.missing_reason",
+                    "study.redacted_evidence",
+                    "study.provenance"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "operational.episode",
+                    "operational.adaptation_reasons",
+                    "operational.override_reasons",
+                    "operational.reserved_cost",
+                    "operational.exposure_cost",
+                    "operational.response_text",
+                    "operational.code",
+                    "operational.evidence",
+                    "operational.model_references",
+                    "operational.adaptations",
+                    "operational.overrides",
+                    "operational.source_references",
+                    "operational.ai_output",
+                    "operational.judge_result",
+                    "operational.simulation",
+                    "operational.latency_ms",
+                    "operational.input_tokens",
+                    "operational.output_tokens",
+                    "operational.estimated_cost",
+                    "operational.actual_cost",
+                    "operational.outcome",
+                    "operational.moderation"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "operational.collect",
+                    "operational.read",
+                    "operational.export"
+                  ],
+                  "type": "string"
                 }
               ]
             },
-            "maxItems": 64,
+            "maxItems": 128,
             "minItems": 1,
             "title": "Fields",
             "type": "array"
@@ -15294,7 +17146,8 @@
               "enum": [
                 "technical_pair",
                 "provider_processing",
-                "study_instruments"
+                "study_instruments",
+                "study_operational_evidence"
               ],
               "type": "string"
             },
@@ -15343,6 +17196,57 @@
           "retention"
         ],
         "title": "StudyScope",
+        "type": "object"
+      },
+      "StudySelfResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Allocation Id",
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/InstrumentRecordWrite"
+          }
+        },
+        "required": [
+          "allocation_id",
+          "record"
+        ],
+        "title": "StudySelfResponse",
+        "type": "object"
+      },
+      "StudyStage": {
+        "additionalProperties": false,
+        "properties": {
+          "form_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Form Id",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "T0_BASELINE",
+              "T1_STUDY_ACTIVITY",
+              "T1_FORMAL_SUPPORTED",
+              "T1_FORMAL_UNAIDED",
+              "T2_CONCEPTUAL",
+              "T2_TRANSFER",
+              "T3_CONCEPTUAL",
+              "T3_TRANSFER"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stage",
+          "form_id"
+        ],
+        "title": "StudyStage",
         "type": "object"
       },
       "SubmissionCreate": {
@@ -15426,6 +17330,120 @@
         ],
         "title": "SubmissionState",
         "type": "string"
+      },
+      "SupportRepresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit"
+          },
+          "equivalence_basis": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Equivalence Basis",
+            "type": "string"
+          },
+          "instructional_support_level": {
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Instructional Support Level",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "text",
+              "visual",
+              "worked_example",
+              "circuit",
+              "stepwise"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "source_references": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Source References",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Steps",
+            "type": "array"
+          },
+          "text": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instructional_support_level",
+          "mode",
+          "title",
+          "text",
+          "source_references",
+          "equivalence_basis"
+        ],
+        "title": "SupportRepresentation",
+        "type": "object"
+      },
+      "SupportRepresentationChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "item_index": {
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Item Index",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "text",
+              "visual",
+              "worked_example",
+              "circuit",
+              "stepwise"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item_index",
+          "title",
+          "mode"
+        ],
+        "title": "SupportRepresentationChoice",
+        "type": "object"
       },
       "TaskChoice": {
         "additionalProperties": false,
@@ -15756,6 +17774,31 @@
             ],
             "title": "Starter Code"
           },
+          "structured_task": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "matching": "#/components/schemas/MatchingDefinition",
+                    "sequencing": "#/components/schemas/SequencingDefinition"
+                  },
+                  "propertyName": "task_type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/MatchingDefinition"
+                  },
+                  {
+                    "$ref": "#/components/schemas/SequencingDefinition"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structured Task"
+          },
           "task_type": {
             "$ref": "#/components/schemas/TaskType"
           },
@@ -16050,6 +18093,8 @@
       },
       "TaskType": {
         "enum": [
+          "matching",
+          "sequencing",
           "prediction",
           "reasoning",
           "explanation",
@@ -18735,6 +20780,91 @@
         ]
       }
     },
+    "/api/v1/assessment/attempts/{attempt_id}/moderation/{stage}": {
+      "post": {
+        "operationId": "record_review_api_v1_assessment_attempts__attempt_id__moderation__stage__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "stage",
+            "required": true,
+            "schema": {
+              "enum": [
+                "ORIGINAL",
+                "SECOND",
+                "RESOLUTION",
+                "DRIFT",
+                "DRIFT_RESOLUTION",
+                "CORRECTION"
+              ],
+              "title": "Stage",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanAssessmentWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModerationReviewReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Review",
+        "tags": [
+          "assessment moderation"
+        ]
+      }
+    },
     "/api/v1/assessment/courses/{course_id}/assessor-candidates": {
       "get": {
         "operationId": "read_assessor_candidates_api_v1_assessment_courses__course_id__assessor_candidates_get",
@@ -19201,6 +21331,256 @@
         "summary": "Publish Assessment Definition",
         "tags": [
           "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/evaluator-validation": {
+      "get": {
+        "operationId": "evaluator_status_api_v1_assessment_courses__course_id__evaluator_validation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluatorValidationStatusRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluator Status",
+        "tags": [
+          "assessment moderation"
+        ]
+      },
+      "post": {
+        "operationId": "record_validation_api_v1_assessment_courses__course_id__evaluator_validation_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluatorValidationWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluatorValidationReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Validation",
+        "tags": [
+          "assessment moderation"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/moderation": {
+      "get": {
+        "operationId": "moderation_queue_api_v1_assessment_courses__course_id__moderation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModerationQueueRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Moderation Queue",
+        "tags": [
+          "assessment moderation"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/moderation-policy": {
+      "post": {
+        "operationId": "record_policy_api_v1_assessment_courses__course_id__moderation_policy_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModerationPolicyWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModerationPolicyReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Policy",
+        "tags": [
+          "assessment moderation"
         ]
       }
     },
@@ -21972,6 +24352,100 @@
         ]
       }
     },
+    "/api/v1/courses/{course_id}/materials/{material_id}/scans": {
+      "get": {
+        "operationId": "material_scan_history_api_v1_courses__course_id__materials__material_id__scans_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "material_id",
+            "required": true,
+            "schema": {
+              "title": "Material Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MaterialScanRead"
+                  },
+                  "title": "Response Material Scan History Api V1 Courses  Course Id  Materials  Material Id  Scans Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Material Scan History",
+        "tags": [
+          "learning materials"
+        ]
+      }
+    },
     "/api/v1/courses/{course_id}/modules": {
       "get": {
         "operationId": "list_modules_api_v1_courses__course_id__modules_get",
@@ -22223,6 +24697,212 @@
         "summary": "Search Course Content",
         "tags": [
           "retrieval"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/revisions": {
+      "get": {
+        "operationId": "course_history_api_v1_courses__course_id__revisions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CourseRevisionRead"
+                  },
+                  "title": "Response Course History Api V1 Courses  Course Id  Revisions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Course History",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/revisions/{revision_id}": {
+      "get": {
+        "operationId": "course_revision_api_v1_courses__course_id__revisions__revision_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision_id",
+            "required": true,
+            "schema": {
+              "title": "Revision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRevisionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Course Revision",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/revisions/{revision_id}/restore": {
+      "post": {
+        "operationId": "restore_course_api_v1_courses__course_id__revisions__revision_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revision_id",
+            "required": true,
+            "schema": {
+              "title": "Revision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRestoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restore Course",
+        "tags": [
+          "learning management"
         ]
       }
     },
@@ -26956,6 +29636,946 @@
         "summary": "Read Record",
         "tags": [
           "research instruments"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/decisions": {
+      "post": {
+        "operationId": "decision_api_v1_research_instruments__study_id___course_id__study_decisions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Decision",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/exports": {
+      "post": {
+        "operationId": "export_api_v1_research_instruments__study_id___course_id__study_exports_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudyExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/my-forms": {
+      "get": {
+        "operationId": "my_forms_api_v1_research_instruments__study_id___course_id__study_my_forms_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudyAssignmentRead"
+                  },
+                  "title": "Response My Forms Api V1 Research Instruments  Study Id   Course Id  Study My Forms Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "My Forms",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/my-responses": {
+      "post": {
+        "operationId": "self_response_api_v1_research_instruments__study_id___course_id__study_my_responses_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudySelfResponse"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Self Response",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/operational/preview": {
+      "post": {
+        "operationId": "operational_preview_api_v1_research_instruments__study_id___course_id__study_operational_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationalSelection"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Operational Preview",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/operational/snapshots": {
+      "post": {
+        "operationId": "operational_capture_api_v1_research_instruments__study_id___course_id__study_operational_snapshots_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperationalCapture"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Operational Capture",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/operational/snapshots/{snapshot_id}": {
+      "get": {
+        "operationId": "operational_read_api_v1_research_instruments__study_id___course_id__study_operational_snapshots__snapshot_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "snapshot_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Snapshot Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fields",
+            "required": true,
+            "schema": {
+              "items": {
+                "enum": [
+                  "operational.episode",
+                  "operational.adaptation_reasons",
+                  "operational.override_reasons",
+                  "operational.reserved_cost",
+                  "operational.exposure_cost",
+                  "operational.response_text",
+                  "operational.code",
+                  "operational.evidence",
+                  "operational.model_references",
+                  "operational.adaptations",
+                  "operational.overrides",
+                  "operational.source_references",
+                  "operational.ai_output",
+                  "operational.judge_result",
+                  "operational.simulation",
+                  "operational.latency_ms",
+                  "operational.input_tokens",
+                  "operational.output_tokens",
+                  "operational.estimated_cost",
+                  "operational.actual_cost",
+                  "operational.outcome",
+                  "operational.moderation"
+                ],
+                "type": "string"
+              },
+              "maxItems": 32,
+              "minItems": 1,
+              "title": "Fields",
+              "type": "array"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/OperationalFieldRead"
+                  },
+                  "title": "Response Operational Read Api V1 Research Instruments  Study Id   Course Id  Study Operational Snapshots  Snapshot Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Operational Read",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/packets/{packet_id}": {
+      "get": {
+        "operationId": "packet_api_v1_research_instruments__study_id___course_id__study_packets__packet_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "packet_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Packet Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyPacketRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Packet",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/plan": {
+      "get": {
+        "operationId": "plan_api_v1_research_instruments__study_id___course_id__study_plan_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/StudyPlanRead"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Plan Api V1 Research Instruments  Study Id   Course Id  Study Plan Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Plan",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/records": {
+      "get": {
+        "operationId": "records_api_v1_research_instruments__study_id___course_id__study_records_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "type": "object"
+                  },
+                  "title": "Response Records Api V1 Research Instruments  Study Id   Course Id  Study Records Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Records",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/responses": {
+      "post": {
+        "operationId": "researcher_response_api_v1_research_instruments__study_id___course_id__study_responses_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudySelfResponse"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Researcher Response",
+        "tags": [
+          "research instruments",
+          "study workflows"
         ]
       }
     },

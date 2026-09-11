@@ -521,7 +521,7 @@ def test_migration_replay_protects_populated_activity_history(tmp_path):
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260910_0044"
+            == "20260911_0051"
         )
         assert (
             connection.execute(text("SELECT COUNT(*) FROM activity_suggestions")).scalar_one() == 1

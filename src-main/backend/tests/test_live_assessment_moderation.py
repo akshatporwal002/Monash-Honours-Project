@@ -24,6 +24,8 @@ from app.services.assessment.review import (
     AssessmentReviewValidationError,
 )
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def reviewer(session, owner, course_id, suffix, role=UserRole.EDUCATOR):
     actor = User(
@@ -493,8 +495,10 @@ def test_forward_migration_preserves_history_and_live_submission_sampling(tmp_pa
     from app.models.assessment_moderation import ModerationSelection
     from app.models.lms import Course
     from app.schemas.lms import SubmissionCreate
+    from scripts.verify_sqlite_backup import database_manifest
 
-    url = f"sqlite:///{(tmp_path / 'm.db').as_posix()}"
+    path = tmp_path / "m.db"
+    url = f"sqlite:///{path.as_posix()}"
     config = migration_config(url)
     command.upgrade(config, "20260910_0046")
     engine = create_engine(url)
@@ -504,12 +508,39 @@ def test_forward_migration_preserves_history_and_live_submission_sampling(tmp_pa
 
         old_attempt, _, _, _, _ = build_assessment_attempt(session)
         session.commit()
-        before = session.execute(text("SELECT count(*) FROM assessment_attempts")).scalar_one()
         old_id = old_attempt.id
+        old_course_id = old_attempt.course_id
+    before = database_manifest(path)
     command.upgrade(config, "20260911_0049")
+    after = database_manifest(path)
+    assert all(after[key] == value for key, value in before.items() if key != "alembic_version")
+    with Session(engine) as session:
+        from support.assessment import assign_assessor
+
+        owner = session.get(User, session.get(Course, old_course_id).educator_id)
+        assign_assessor(session, owner, old_course_id, owner)
+        ModerationService(session).configure(
+            owner,
+            old_course_id,
+            initial_count=1,
+            later_percent=100,
+            drift_interval=3,
+            approval_reference="SYNTHETIC historical migration policy",
+            training_reference="SYNTHETIC training",
+            expires_at=datetime.now(UTC) + timedelta(days=1),
+        )
+        session.commit()
+    populated = database_manifest(path)
+    with pytest.raises(RuntimeError, match="populated"):
+        command.downgrade(config, "20260910_0046")
+    assert database_manifest(path) == populated
+
+    # Today's publication and scanner runtime requires the complete current schema.
+    command.upgrade(config, "head")
     with Session(engine) as session:
         assert (
-            session.execute(text("SELECT count(*) FROM assessment_attempts")).scalar_one() == before
+            session.execute(text("SELECT count(*) FROM assessment_attempts")).scalar_one()
+            == before["assessment_attempts"].row_count
         )
         assert session.get(AssessmentAttempt, old_id)
         lms, student, task, started = setup_episode(session)
@@ -550,8 +581,10 @@ def test_forward_migration_preserves_history_and_live_submission_sampling(tmp_pa
                 {"id": attempt.id},
             )
         session.rollback()
-    with pytest.raises(RuntimeError, match="populated"):
+    populated_head = database_manifest(path)
+    with pytest.raises(RuntimeError, match="Intake history is protected"):
         command.downgrade(config, "20260910_0046")
+    assert database_manifest(path) == populated_head
     engine.dispose()
 
 

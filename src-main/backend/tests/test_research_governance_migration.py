@@ -17,7 +17,7 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 def test_governance_forward_replay_and_populated_downgrade(tmp_path):
     path = tmp_path / "synthetic-forward.db"
     config = migration_config(f"sqlite:///{path.as_posix()}")
-    assert ScriptDirectory.from_config(config).get_heads() == ["20260910_0046"]
+    assert ScriptDirectory.from_config(config).get_heads() == ["20260911_0051"]
     command.upgrade(config, "20260910_0044")
     engine = create_engine(config.get_main_option("sqlalchemy.url"))
     with Session(engine) as session:
@@ -31,7 +31,7 @@ def test_governance_forward_replay_and_populated_downgrade(tmp_path):
         session.commit()
         user_id = user.id
     before = database_manifest(path)
-    command.upgrade(config, "head")
+    command.upgrade(config, "20260910_0045")
     after = database_manifest(path)
     for name, manifest in before.items():
         if name != "alembic_version":
@@ -51,11 +51,9 @@ def test_governance_forward_replay_and_populated_downgrade(tmp_path):
         session.commit()
     populated = database_manifest(path)
     command.stamp(config, "20260910_0044")
-    command.upgrade(config, "head")
-    command.check(config)
+    command.upgrade(config, "20260910_0045")
     assert database_manifest(path) == populated
-    # Empty later tables may downgrade; isolate the populated 0045 history guard.
-    command.downgrade(config, "20260910_0045")
+    # Exercise the original populated 0045 guard before later irreversible steps.
     populated = database_manifest(path)
     with pytest.raises(RuntimeError, match="populated"):
         command.downgrade(config, "20260910_0044")
@@ -75,6 +73,8 @@ def test_governance_forward_replay_and_populated_downgrade(tmp_path):
             "research_export_eligibility",
         }
     engine.dispose()
+    command.upgrade(config, "head")
+    command.check(config)
 
 
 def test_restore_preserves_withdrawal_and_revocation(governed, tmp_path):
