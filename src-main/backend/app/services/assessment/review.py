@@ -670,13 +670,12 @@ class AssessmentReviewService:
                 raise AssessmentReviewValidationError("only a provisional result can be confirmed")
         elif request.action is AssessorReviewAction.OVERRIDE:
             if (
-                decision.result_state not in {ResultState.PROVISIONAL, ResultState.CONFIRMED}
+                decision.result_state
+                not in {ResultState.PROVISIONAL, ResultState.CONFIRMED, ResultState.OVERRIDDEN}
                 or request.new_result is None
                 or request.new_result is decision.result
             ):
-                raise AssessmentReviewValidationError(
-                    "override must change a provisional or confirmed result"
-                )
+                raise AssessmentReviewValidationError("override must change an active result")
         elif request.action is AssessorReviewAction.VOID:
             if (
                 decision.result_state

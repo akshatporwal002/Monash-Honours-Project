@@ -25,12 +25,26 @@ the human assessment form. Each stage retains actor, time, result, reasons and e
 criterion/evidence references. The second reviewer must be a different authorised
 assessor. A third assessor resolves a PASS/INCOMPLETE disagreement. Drift disagreement
 has a separate resolution stage and invalidates a previously validated evaluator.
+Prospective second reviewers receive no prior judgement history or criterion decisions
+from the moderation queue and human evidence response until they submit their independent
+decision. Drift resolution excludes the authors of both sides of that disagreement.
+
+After formal confirmation, **Start correction review** opens another numbered moderation
+cycle. It records the proposed correction as a new original decision, requires another
+independent second review and any disagreement resolution, and then permits a separate
+human confirmation/override. The existing learner-visible formal result remains in place
+while correction is pending. Original cycles remain immutable, and repeated corrections
+retain separate action keys and request digests.
 
 Moderation decisions do not confirm a formal result. Both ordinary review actions and
 human criterion confirmation enforce required moderation stages and the resolved
 result. Learners cannot see these provisional moderation records. Scoped grants are
 rechecked under the course write lock, and history cannot be updated, deleted or
 replaced. Repeating an identical recorded stage returns its existing receipt.
+Policy, review and evaluator-validation writes also append correlated platform audit
+events in the same transaction, including actor, result and relevant policy/rule/model
+version information. All five moderation/validation endpoints expose typed response
+models for generated API contracts.
 
 When no policy has ever been activated, the moderation queue reports
 `POLICY_REQUIRED`; established human confirmation continues without being labelled
@@ -53,8 +67,9 @@ The fingerprint covers task and teaching-review versions, source revision/passag
 approval identities, retrieval chunks, Bloom targets, criteria, pass rules, outcome and
 curriculum versions, persisted settings, configured model/retrieval settings, and
 backend Python prompt/runtime code. Code paths are relative and line endings are
-normalised. Row ordering is fixed. Operational timestamps, local storage keys and
-processing tokens are excluded; retirement/revocation presence remains semantic.
+normalised. Row ordering is fixed. Operational timestamps, local storage keys, the
+upload-directory mount setting and processing tokens are excluded; retrieval policy
+and retirement/revocation presence remain semantic.
 Validation history itself is excluded. Only dependency digests are retained.
 
 ORM material changes append an `INVALIDATED` event in the changing transaction.
@@ -77,6 +92,9 @@ coordinator.
 Migration `20260911_0049` adds four tables without backfilled approvals. Downgrade
 refuses populated governance history. Its predecessor must follow the coordinator's
 integrated migration ordering.
+The migration also permits another reasoned override of an already overridden result,
+while retaining the requirement for a matching append-only assessor action and a changed
+result. Its original lifecycle trigger is restored only on an empty-governance downgrade.
 
 Focused tests in `test_live_assessment_moderation.py` cover policy eligibility,
 independent reviewers, original/second/resolved decisions, both confirmation entry
@@ -85,6 +103,11 @@ stable reads, exact source history, and populated forward migration with real su
 sampling. Reviewer component tests cover absent policy values, disagreement/access
 states and moderation submission without formal confirmation. Existing human-review
 and assessor-review tests remain passing.
+Review follow-up regressions in `test_moderation_review_followups.py` cover repeated
+correction cycles on a migrated database, blind second-review responses, drift conflict
+of interest, correlated audit atomicity and typed response contracts. A deferred-response
+panel test verifies that changing course clears prior selection/policy state and rejects
+late responses from the previous course.
 
 Actual sampling approvals, trained named reviewers, shared anchors, external validation
 measurements, signed release evidence and operational activation records remain required.

@@ -103,7 +103,15 @@ class HumanAssessmentService:
         return tuple(self._detail(attempt) for attempt in attempts)
 
     def detail(self, actor: User, *, assessment_attempt_id: str):
-        return self._detail(self._visible(actor, assessment_attempt_id))
+        detail = self._detail(self._visible(actor, assessment_attempt_id))
+        from app.services.assessment.moderation import ModerationService
+
+        if ModerationService(self.session).withhold_judgements(actor, assessment_attempt_id):
+            detail["history"] = []
+            detail["criteria"] = [
+                {**criterion, "decision": None, "reason": None} for criterion in detail["criteria"]
+            ]
+        return detail
 
     def _visible(self, actor: User, attempt_id: str) -> AssessmentAttempt:
         attempt = self.session.get(AssessmentAttempt, attempt_id, populate_existing=True)

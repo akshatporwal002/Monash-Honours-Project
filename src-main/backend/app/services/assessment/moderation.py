@@ -1,15 +1,17 @@
 """Policy-bound live moderation; every mutation shares the course decision lock."""
 
+import json
 from dataclasses import asdict
 from datetime import UTC, datetime
 from hashlib import sha256
+from uuid import uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 
 from app.domain.assessment import AssessmentResult, ResultState
 from app.models.assessment import AssessmentAttempt, AssessmentDecision, TaskFormVersion
 from app.models.assessment_moderation import ModerationPolicy, ModerationReview, ModerationSelection
-from app.models.lms import Course
+from app.models.lms import Course, PlatformAuditEvent
 from app.services.assessment.access import RoleAssignmentService
 from app.services.assessment.review import (
     AssessmentReviewConflictError,
@@ -21,9 +23,19 @@ def utc(value):
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
+NEXT_STAGE = {
+    "ORIGINAL_REQUIRED": "ORIGINAL",
+    "SECOND_REQUIRED": "SECOND",
+    "DISAGREEMENT": "RESOLUTION",
+    "DRIFT_REQUIRED": "DRIFT",
+    "DRIFT_DISAGREEMENT": "DRIFT_RESOLUTION",
+}
+
+
 class ModerationService:
-    def __init__(self, session):
+    def __init__(self, session, *, correlation_id=None):
         self.session = session
+        self.correlation_id = correlation_id or str(uuid4())
 
     def lock(self, course_id):
         self.session.execute(
@@ -79,6 +91,24 @@ class ModerationService:
         )
         self.session.add(policy)
         self.session.flush()
+        self.session.add(
+            PlatformAuditEvent(
+                actor_id=actor.id,
+                action="assessment_moderation.policy_recorded",
+                resource_type="assessment_moderation_policy",
+                resource_id=policy.id,
+                correlation_id=self.correlation_id,
+                details={
+                    "course_id": course_id,
+                    "policy_id": policy.id,
+                    "policy_version": policy.version,
+                    "result": "CONFIGURED",
+                    "initial_count": initial_count,
+                    "later_percent": later_percent,
+                    "drift_interval": drift_interval,
+                },
+            )
+        )
         return policy
 
     def select_attempt(self, attempt):
@@ -120,14 +150,45 @@ class ModerationService:
         return row
 
     def reviews(self, attempt_id):
+        cycle = (
+            self.session.scalar(
+                select(func.max(ModerationReview.cycle)).where(
+                    ModerationReview.attempt_id == attempt_id
+                )
+            )
+            or 1
+        )
         return {
             row.stage: row
             for row in self.session.scalars(
                 select(ModerationReview)
-                .where(ModerationReview.attempt_id == attempt_id)
+                .where(ModerationReview.attempt_id == attempt_id, ModerationReview.cycle == cycle)
                 .order_by(ModerationReview.created_at, ModerationReview.id)
             )
         }
+
+    @staticmethod
+    def excluded_reviewers(stage, reviews):
+        if stage == "SECOND":
+            return {reviews["ORIGINAL"].actor_id}
+        if stage == "RESOLUTION":
+            return {reviews["ORIGINAL"].actor_id, reviews["SECOND"].actor_id}
+        if stage == "DRIFT_RESOLUTION":
+            prior = (
+                {reviews["RESOLUTION"].actor_id}
+                if "RESOLUTION" in reviews
+                else {reviews["ORIGINAL"].actor_id, reviews["SECOND"].actor_id}
+            )
+            return prior | {reviews["DRIFT"].actor_id}
+        return set()
+
+    def withhold_judgements(self, actor, attempt_id):
+        reviews = self.reviews(attempt_id)
+        return bool(
+            "ORIGINAL" in reviews
+            and "SECOND" not in reviews
+            and actor.id != reviews["ORIGINAL"].actor_id
+        )
 
     def capture_if_configured(self, attempt):
         policy = self.policy(attempt.course_id)
@@ -196,50 +257,59 @@ class ModerationService:
         decision = self.session.scalar(
             select(AssessmentDecision).where(AssessmentDecision.assessment_attempt_id == attempt.id)
         )
-        if decision and decision.result_state != ResultState.PROVISIONAL:
-            raise AssessmentReviewConflictError("Moderation must precede formal confirmation")
+        if decision and decision.result_state == ResultState.VOID:
+            raise AssessmentReviewConflictError("A void result cannot be moderated")
         reviews = self.reviews(attempt.id)
-        if stage in reviews:
-            saved = reviews[stage]
-            entries = [asdict(entry) for entry in request.criteria]
-            for entry in entries:
-                entry["evidence_ids"] = list(entry["evidence_ids"])
-            if (
-                saved.actor_id == actor.id
-                and saved.reason == request.reason.strip()
-                and saved.criteria == entries
-            ):
+        request_digest = sha256(
+            json.dumps(
+                {"stage": stage, "request": asdict(request)}, sort_keys=True, default=str
+            ).encode()
+        ).hexdigest()
+        saved = self.session.scalar(
+            select(ModerationReview).where(
+                ModerationReview.attempt_id == attempt.id,
+                ModerationReview.request_key == request.idempotency_key,
+            )
+        )
+        if saved:
+            if saved.actor_id == actor.id and saved.request_digest == request_digest:
                 return saved
-            raise AssessmentReviewConflictError("This moderation decision is already recorded")
+            raise AssessmentReviewConflictError("This moderation action key was already used")
         state, _ = self.status(selection)
-        expected = {
-            "ORIGINAL_REQUIRED": "ORIGINAL",
-            "SECOND_REQUIRED": "SECOND",
-            "DISAGREEMENT": "RESOLUTION",
-            "DRIFT_REQUIRED": "DRIFT",
-            "DRIFT_DISAGREEMENT": "DRIFT_RESOLUTION",
-        }.get(state)
+        expected = NEXT_STAGE.get(state)
+        cycle = max((row.cycle for row in reviews.values()), default=1)
+        if stage == "CORRECTION":
+            if (
+                state != "READY"
+                or not decision
+                or decision.result_state not in {ResultState.CONFIRMED, ResultState.OVERRIDDEN}
+            ):
+                raise AssessmentReviewConflictError(
+                    "Finish the current moderation and formal review before opening a correction"
+                )
+            cycle += 1
+            stage = "ORIGINAL"
+            expected = "ORIGINAL"
         if stage != expected:
             raise AssessmentReviewConflictError(
                 "Reload the current moderation stage before recording a decision"
             )
-        if stage == "SECOND" and actor.id == reviews["ORIGINAL"].actor_id:
-            raise AssessmentReviewValidationError(
+        if actor.id in self.excluded_reviewers(stage, reviews):
+            message = (
                 "A different authorised assessor must provide the independent second review"
+                if stage == "SECOND"
+                else "A third authorised assessor outside the disagreement must resolve it"
             )
-        if stage in {"RESOLUTION", "DRIFT_RESOLUTION"} and actor.id in {
-            reviews["ORIGINAL"].actor_id,
-            reviews["SECOND"].actor_id,
-        }:
-            raise AssessmentReviewValidationError(
-                "A third authorised assessor must resolve the disagreement"
-            )
+            raise AssessmentReviewValidationError(message)
         outcome, _references = human_service.evaluate_request(actor, attempt, request)
         drift_disagrees = stage == "DRIFT" and outcome.result.value != self.status(selection)[1]
         entries = [asdict(entry) for entry in request.criteria]
         row = ModerationReview(
             attempt_id=attempt.id,
             stage=stage,
+            cycle=cycle,
+            request_key=request.idempotency_key,
+            request_digest=request_digest,
             actor_id=actor.id,
             result=outcome.result.value,
             reason=request.reason.strip(),
@@ -247,10 +317,35 @@ class ModerationService:
         )
         self.session.add(row)
         self.session.flush()
+        policy = self.session.get(ModerationPolicy, selection.policy_id)
+        self.session.add(
+            PlatformAuditEvent(
+                actor_id=actor.id,
+                action="assessment_moderation.review_recorded",
+                resource_type="assessment_moderation_review",
+                resource_id=row.id,
+                correlation_id=self.correlation_id,
+                details={
+                    "course_id": attempt.course_id,
+                    "assessment_attempt_id": attempt.id,
+                    "policy_id": selection.policy_id,
+                    "policy_version": policy.version,
+                    "stage": stage,
+                    "cycle": cycle,
+                    "result": row.result,
+                    "assessment_definition_version_id": attempt.assessment_definition_version_id,
+                    "task_form_version_id": attempt.task_form_version_id,
+                    "bloom_target_version_id": attempt.bloom_target_version_id,
+                    "pass_rule_version_id": attempt.pass_rule_version_id,
+                },
+            )
+        )
         if drift_disagrees:
             from app.services.assessment.evaluator_release import EvaluatorReleaseService
 
-            EvaluatorReleaseService(self.session).invalidate_for_drift(attempt.course_id, row.id)
+            EvaluatorReleaseService(
+                self.session, correlation_id=self.correlation_id
+            ).invalidate_for_drift(attempt.course_id, row.id)
         return row
 
     def queue(self, actor, course_id):
@@ -279,21 +374,29 @@ class ModerationService:
             if not selection.selected:
                 continue
             reviews = self.reviews(attempt.id)
-            next_stage = {
-                "ORIGINAL_REQUIRED": "ORIGINAL",
-                "SECOND_REQUIRED": "SECOND",
-                "DISAGREEMENT": "RESOLUTION",
-                "DRIFT_REQUIRED": "DRIFT",
-                "DRIFT_DISAGREEMENT": "DRIFT_RESOLUTION",
-            }.get(state)
+            next_stage = NEXT_STAGE.get(state)
+            if (
+                state == "READY"
+                and decision
+                and decision.result_state in {ResultState.CONFIRMED, ResultState.OVERRIDDEN}
+            ):
+                next_stage = "CORRECTION"
             eligible = actor.id != attempt.student_id
-            if next_stage == "SECOND":
-                eligible &= actor.id != reviews["ORIGINAL"].actor_id
-            if next_stage in {"RESOLUTION", "DRIFT_RESOLUTION"}:
-                eligible &= actor.id not in {
-                    reviews["ORIGINAL"].actor_id,
-                    reviews["SECOND"].actor_id,
-                }
+            eligible &= actor.id not in self.excluded_reviewers(next_stage, reviews)
+            withheld = self.withhold_judgements(actor, attempt.id)
+            history = (
+                []
+                if withheld
+                else list(
+                    self.session.scalars(
+                        select(ModerationReview)
+                        .where(ModerationReview.attempt_id == attempt.id)
+                        .order_by(
+                            ModerationReview.cycle, ModerationReview.created_at, ModerationReview.id
+                        )
+                    )
+                )
+            )
             rows.append(
                 {
                     "attempt_id": attempt.id,
@@ -302,19 +405,22 @@ class ModerationService:
                     "policy_id": selection.policy_id,
                     "drift_check": selection.drift_check,
                     "state": state,
+                    "cycle": max((review.cycle for review in reviews.values()), default=1),
                     "formal_state": decision.result_state.value if decision else None,
                     "result": result,
                     "next_stage": next_stage if eligible else None,
+                    "history_withheld": withheld,
                     "history": [
                         {
                             "stage": r.stage,
+                            "cycle": r.cycle,
                             "actor_id": r.actor_id,
                             "result": r.result,
                             "reason": r.reason,
                             "criteria": r.criteria,
                             "created_at": r.created_at,
                         }
-                        for r in reviews.values()
+                        for r in history
                     ],
                 }
             )

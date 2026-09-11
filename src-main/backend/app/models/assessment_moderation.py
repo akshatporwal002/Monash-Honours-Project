@@ -60,7 +60,9 @@ class ModerationSelection(Base):
 class ModerationReview(Base):
     __tablename__ = "assessment_moderation_reviews"
     __table_args__ = (
-        UniqueConstraint("attempt_id", "stage"),
+        UniqueConstraint("attempt_id", "cycle", "stage"),
+        UniqueConstraint("attempt_id", "request_key"),
+        CheckConstraint("cycle > 0 AND length(request_digest) = 64", name="review_cycle_receipt"),
         CheckConstraint(
             "stage IN ('ORIGINAL', 'SECOND', 'RESOLUTION', 'DRIFT', 'DRIFT_RESOLUTION')",
             name="review_stage",
@@ -72,6 +74,9 @@ class ModerationReview(Base):
         ForeignKey("assessment_moderation_selections.attempt_id", ondelete="RESTRICT")
     )
     stage: Mapped[str] = mapped_column(String(20))
+    cycle: Mapped[int] = mapped_column(Integer)
+    request_key: Mapped[str] = mapped_column(String(128))
+    request_digest: Mapped[str] = mapped_column(String(64))
     actor_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     result: Mapped[str] = mapped_column(String(12))
     reason: Mapped[str] = mapped_column(Text)

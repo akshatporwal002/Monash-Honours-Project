@@ -460,7 +460,8 @@ def test_routes_enforce_scoped_reviewer_and_admin_release_roles(db_session):
     )
     assert (
         client.post(
-            f"/assessment/attempts/{attempt.id}/moderation/SECOND", json=payload
+            f"/assessment/attempts/{attempt.id}/moderation/SECOND",
+            json={**payload, "idempotency_key": "independent-second-attempt"},
         ).status_code
         == 422
     )
@@ -623,3 +624,26 @@ def test_validation_expiry_is_durable_and_cannot_reactivate_ai(db_session, monke
     assert status["state"] == "INVALIDATED" and status["reason"] == "Validation expired"
     assert status["ai_activation"] == "PENDING"
     assert release.latest(attempt.course_id).evidence["prior_validation_id"] == original.id
+
+
+def test_upload_mount_relocation_preserves_validation_but_retrieval_policy_does_not(
+    db_session, monkeypatch
+):
+    attempt, _, release, original = validated(db_session)
+    for location in ("D:/relocated/uploads", "/srv/learnlens/uploads"):
+        monkeypatch.setattr(settings, "rag_upload_dir", location)
+        status = release.status(attempt.course_id)
+        db_session.commit()
+        assert status["fingerprint"] == original.fingerprint
+        assert status["state"] == "VALIDATED"
+        assert status["validation_id"] == original.id
+    assert len(list(db_session.scalars(select(EvaluatorValidationEvent)))) == 1
+
+    monkeypatch.setattr(settings, "rag_default_top_k", settings.rag_default_top_k + 1)
+    status = release.status(attempt.course_id)
+    db_session.commit()
+    assert status["fingerprint"] != original.fingerprint
+    assert status["state"] == "INVALIDATED"
+    assert release.latest(attempt.course_id).evidence["changed_dependencies"] == [
+        "retrieval_settings"
+    ]

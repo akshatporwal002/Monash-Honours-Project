@@ -4,6 +4,7 @@ import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
 from sqlalchemy import event, inspect, select
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.base import Base
 from app.models.assessment_moderation import EvaluatorValidationEvent
+from app.models.lms import PlatformAuditEvent
 from app.models.user import UserRole
 from app.services.assessment.moderation import ModerationService, utc
 from app.services.assessment.review import (
@@ -57,8 +59,36 @@ def semantic_record(row):
 
 
 class EvaluatorReleaseService:
-    def __init__(self, session):
+    def __init__(self, session, *, correlation_id=None):
         self.session = session
+        if correlation_id:
+            session.info["assessment_governance_correlation_id"] = correlation_id
+        self.correlation_id = (
+            correlation_id
+            or session.info.get("assessment_governance_correlation_id")
+            or str(uuid4())
+        )
+
+    def _audit(self, row):
+        self.session.add(
+            PlatformAuditEvent(
+                actor_id=row.actor_id,
+                action=f"assessment_evaluator.{row.state.lower()}",
+                resource_type="evaluator_validation",
+                resource_id=row.id,
+                correlation_id=self.correlation_id,
+                details={
+                    "course_id": row.course_id,
+                    "validation_revision": row.revision,
+                    "result": row.state,
+                    "fingerprint": row.fingerprint,
+                    "model_version": settings.llm_model,
+                    "provider": settings.llm_provider,
+                    "dependency_versions": row.dependencies,
+                    "reason": row.reason,
+                },
+            )
+        )
 
     def dependencies(self, course_id):
         dependencies = {}
@@ -85,7 +115,12 @@ class EvaluatorReleaseService:
             }
         )
         dependencies["retrieval_settings"] = digest(
-            {key: value for key, value in configured.items() if key.startswith("rag_")}
+            {
+                key: value
+                for key, value in configured.items()
+                # Relocating identical stored uploads does not change retrieval policy.
+                if key.startswith("rag_") and key != "rag_upload_dir"
+            }
         )
         app = Path(__file__).resolve().parents[2]
         paths = set(app.rglob("*.py"))
@@ -119,6 +154,7 @@ class EvaluatorReleaseService:
         if latest.fingerprint != digest(current) or expired:
             changed = sorted(key for key in current if current[key] != latest.dependencies.get(key))
             row = EvaluatorValidationEvent(
+                id=str(uuid4()),
                 course_id=course_id,
                 revision=latest.revision + 1,
                 state="INVALIDATED",
@@ -131,6 +167,7 @@ class EvaluatorReleaseService:
                 actor_id=None,
             )
             self.session.add(row)
+            self._audit(row)
             return row
         return latest
 
@@ -153,18 +190,19 @@ class EvaluatorReleaseService:
         if latest is None or latest.state != "VALIDATED":
             return
         current = self.dependencies(course_id)
-        self.session.add(
-            EvaluatorValidationEvent(
-                course_id=course_id,
-                revision=latest.revision + 1,
-                state="INVALIDATED",
-                fingerprint=digest(current),
-                dependencies=current,
-                evidence={"prior_validation_id": latest.id, "moderation_review_id": review_id},
-                reason="Live moderation drift disagreement requires evaluator revalidation",
-                actor_id=None,
-            )
+        row = EvaluatorValidationEvent(
+            id=str(uuid4()),
+            course_id=course_id,
+            revision=latest.revision + 1,
+            state="INVALIDATED",
+            fingerprint=digest(current),
+            dependencies=current,
+            evidence={"prior_validation_id": latest.id, "moderation_review_id": review_id},
+            reason="Live moderation drift disagreement requires evaluator revalidation",
+            actor_id=None,
         )
+        self.session.add(row)
+        self._audit(row)
 
     def validate(self, actor, course_id, *, expected_fingerprint, evidence, expires_at):
         if actor.role is not UserRole.ADMINISTRATOR or not actor.is_active:
@@ -220,6 +258,7 @@ class EvaluatorReleaseService:
         )
         self.session.add(row)
         self.session.flush()
+        self._audit(row)
         return row
 
 

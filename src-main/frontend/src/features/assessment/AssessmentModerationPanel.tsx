@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, request } from '../../app/api'
 import { Button, Card, CodeBlock } from '../../components/ui'
 import { AssessorReviewUnresolved } from './AssessorReviewUnresolved'
 
 type ModerationRow = {
   attempt_id: string; task_family: string; sequence: number; policy_id: string
-  drift_check: boolean; state: string; formal_state?: string | null; next_stage: string | null; history: unknown[]
+  drift_check: boolean; state: string; formal_state?: string | null; next_stage: string | null; history: unknown[]; history_withheld?: boolean
 }
 type Queue = { policy_status: string; records: ModerationRow[] }
 type Validation = { state: string; reason: string; ai_activation: string }
@@ -16,46 +16,76 @@ const stages: Record<string, string> = {
   READY: 'Moderation complete; formal confirmation still required',
 }
 
-export function AssessmentModerationPanel({ courseId, onCheckAccess, onAccessRevoked, onRecorded }: {
+type PanelProps = {
   courseId: string; onCheckAccess: (courseId: string) => Promise<boolean>
   onAccessRevoked: () => void; onRecorded: () => void
-}) {
+}
+const emptyPolicy = { initial_count: '', later_percent: '', drift_interval: '', approval_reference: '', training_reference: '', expires_at: '' }
+
+export function AssessmentModerationPanel(props: PanelProps) {
+  // Changing course discards all prior review selection and policy form state.
+  return <CourseModerationPanel key={props.courseId} {...props} />
+}
+
+function CourseModerationPanel({ courseId, onCheckAccess, onAccessRevoked, onRecorded }: PanelProps) {
   const [queue, setQueue] = useState<Queue | null>(null)
   const [validation, setValidation] = useState<Validation | null>(null)
   const [selected, setSelected] = useState<ModerationRow | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(true)
-  const [policy, setPolicy] = useState({ initial_count: '', later_percent: '', drift_interval: '', approval_reference: '', training_reference: '', expires_at: '' })
+  const [policy, setPolicy] = useState(emptyPolicy)
+  const generation = useRef(0)
+  const mounted = useRef(false)
   const base = `/assessment/courses/${encodeURIComponent(courseId)}`
+  const deny = useCallback(() => {
+    if (!mounted.current) return
+    generation.current += 1
+    setQueue(null); setSelected(null); setValidation(null); setPolicy(emptyPolicy); setBusy(false)
+    setError('Moderation could not be loaded. Check assessor access and reload.')
+    onAccessRevoked()
+  }, [onAccessRevoked])
   const load = useCallback(async () => {
+    const current = ++generation.current
+    const isCurrent = () => mounted.current && current === generation.current
     try {
-      if (!(await onCheckAccess(courseId))) throw new ApiError('Assessor access required', 403)
+      const permitted = await onCheckAccess(courseId)
+      if (!isCurrent()) return
+      if (!permitted) throw new ApiError('Assessor access required', 403)
       const [nextQueue, nextValidation] = await Promise.all([
         request<Queue>(`${base}/moderation`), request<Validation>(`${base}/evaluator-validation`),
       ])
+      if (!isCurrent()) return
       setQueue(nextQueue); setValidation(nextValidation); setSelected(null); setError('')
     } catch (caught) {
+      if (!isCurrent()) return
       if (caught instanceof ApiError && [403, 404].includes(caught.status)) {
-        setQueue(null); setSelected(null); setValidation(null); onAccessRevoked()
+        deny()
+        return
       }
       setError('Moderation could not be loaded. Check assessor access and reload.')
-    } finally { setBusy(false) }
-  }, [base, courseId, onAccessRevoked, onCheckAccess])
+    } finally { if (isCurrent()) setBusy(false) }
+  }, [base, courseId, deny, onCheckAccess])
   useEffect(() => {
+    mounted.current = true
     let active = true
     void Promise.resolve().then(() => { if (active) return load() })
-    return () => { active = false }
+    return () => { active = false; mounted.current = false; generation.current += 1 }
   }, [load])
   const savePolicy = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setError('')
+    const current = ++generation.current
+    const isCurrent = () => mounted.current && current === generation.current
     try {
       await request(`${base}/moderation-policy`, { method: 'POST', body: JSON.stringify({
         ...policy, initial_count: Number(policy.initial_count), later_percent: Number(policy.later_percent),
         drift_interval: Number(policy.drift_interval), expires_at: new Date(policy.expires_at).toISOString(),
       }) })
-      await load()
-    } catch { setError('Policy was not saved. Supply the approved values, references and a future expiry.') }
-    finally { setBusy(false) }
+      if (isCurrent()) await load()
+    } catch (caught) {
+      if (!isCurrent()) return
+      if (caught instanceof ApiError && [403, 404].includes(caught.status)) deny()
+      else setError('Policy was not saved. Supply the approved values, references and a future expiry.')
+    } finally { if (isCurrent()) setBusy(false) }
   }
   return <Card heading="Assessment moderation" eyebrow="Independent review">
     <p>Sampling uses a recorded approved course policy. Learners see no provisional result. Independent review and disagreement resolution precede formal confirmation.</p>
@@ -80,10 +110,10 @@ export function AssessmentModerationPanel({ courseId, onCheckAccess, onAccessRev
     </details>
     <ul>{queue?.records.map(row => <li key={row.attempt_id}>
       <p>{row.task_family}, response {row.sequence}: {row.state === 'READY' && ['CONFIRMED', 'OVERRIDDEN'].includes(row.formal_state ?? '') ? 'Moderation complete; formal result confirmed' : stages[row.state] ?? row.state}</p>
-      {row.next_stage && <Button variant="secondary" disabled={busy} onClick={() => setSelected(row)}>Review {row.attempt_id}</Button>}
+      {row.next_stage && <Button variant="secondary" disabled={busy} onClick={() => setSelected(row)}>{row.next_stage === 'CORRECTION' ? 'Start correction review for' : 'Review'} {row.attempt_id}</Button>}
       {!row.next_stage && row.state !== 'READY' && <p>Another authorised assessor is required.</p>}
-      <details><summary>Preserved moderation history</summary><CodeBlock code={JSON.stringify(row.history, null, 2)} label="Original, independent and resolved decisions" /></details>
+      {row.history_withheld ? <p>Prior judgements are withheld until the independent second review is recorded.</p> : <details><summary>Preserved moderation history</summary><CodeBlock code={JSON.stringify(row.history, null, 2)} label="Original, independent and resolved decisions" /></details>}
     </li>)}</ul>
-    {selected?.next_stage && <AssessorReviewUnresolved key={`${selected.attempt_id}-${selected.next_stage}`} courseId={courseId} moderation={{ attemptId: selected.attempt_id, stage: selected.next_stage }} onCheckAccess={onCheckAccess} onAccessRevoked={onAccessRevoked} onFinalised={() => { void load(); onRecorded() }} />}
+    {selected?.next_stage && <AssessorReviewUnresolved key={`${selected.attempt_id}-${selected.next_stage}`} courseId={courseId} moderation={{ attemptId: selected.attempt_id, stage: selected.next_stage }} onCheckAccess={onCheckAccess} onAccessRevoked={deny} onFinalised={() => { if (mounted.current) { void load(); onRecorded() } }} />}
   </Card>
 }

@@ -1,9 +1,9 @@
 """Assessor moderation and administrator-recorded evaluator validation evidence."""
 
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
@@ -11,6 +11,14 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.roles import CurrentAdministrator, CurrentUser
 from app.api.routes.assessment import HumanAssessmentWrite, get_human_assessment_service
 from app.db.session import get_db
+from app.schemas.assessment_moderation import (
+    EvaluatorValidationReceipt,
+    EvaluatorValidationStatusRead,
+    ModerationAction,
+    ModerationPolicyReceipt,
+    ModerationQueueRead,
+    ModerationReviewReceipt,
+)
 from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
 from app.services.assessment.evaluator_release import EvaluatorReleaseService
 from app.services.assessment.evidence import EvidenceValidationError
@@ -77,31 +85,45 @@ def execute(session, operation):
         ) from error
 
 
-@router.get("/courses/{course_id}/moderation")
-def moderation_queue(course_id: str, actor: CurrentUser, session: Database):
-    return execute(session, lambda: ModerationService(session).queue(actor, course_id))
+@router.get("/courses/{course_id}/moderation", response_model=ModerationQueueRead)
+def moderation_queue(
+    course_id: str, actor: CurrentUser, session: Database, request: Request
+) -> ModerationQueueRead:
+    return execute(
+        session,
+        lambda: ModerationService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        ).queue(actor, course_id),
+    )
 
 
-@router.post("/courses/{course_id}/moderation-policy")
+@router.post("/courses/{course_id}/moderation-policy", response_model=ModerationPolicyReceipt)
 def record_policy(
-    course_id: str, payload: ModerationPolicyWrite, actor: CurrentUser, session: Database
-):
+    course_id: str,
+    payload: ModerationPolicyWrite,
+    actor: CurrentUser,
+    session: Database,
+    request: Request,
+) -> ModerationPolicyReceipt:
     def operation():
-        row = ModerationService(session).configure(actor, course_id, **payload.model_dump())
+        row = ModerationService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        ).configure(actor, course_id, **payload.model_dump())
         return {"policy_id": row.id, "version": row.version}
 
     return execute(session, operation)
 
 
-@router.post("/attempts/{attempt_id}/moderation/{stage}")
+@router.post("/attempts/{attempt_id}/moderation/{stage}", response_model=ModerationReviewReceipt)
 def record_review(
     attempt_id: str,
-    stage: Literal["ORIGINAL", "SECOND", "RESOLUTION", "DRIFT", "DRIFT_RESOLUTION"],
+    stage: ModerationAction,
     payload: HumanAssessmentWrite,
     actor: CurrentUser,
     session: Database,
     human: Human,
-):
+    http_request: Request,
+) -> ModerationReviewReceipt:
     def operation():
         attempt = human._visible(actor, attempt_id)
         request = HumanAssessmentRequest(
@@ -118,30 +140,41 @@ def record_review(
                 for entry in payload.criteria
             ),
         )
-        row = ModerationService(session).record(actor, attempt, stage, request, human)
+        row = ModerationService(
+            session, correlation_id=getattr(http_request.state, "correlation_id", None)
+        ).record(actor, attempt, stage, request, human)
         return {"review_id": row.id, "stage": row.stage, "result": row.result}
 
     return execute(session, operation)
 
 
-@router.get("/courses/{course_id}/evaluator-validation")
-def evaluator_status(course_id: str, actor: CurrentUser, session: Database):
+@router.get(
+    "/courses/{course_id}/evaluator-validation", response_model=EvaluatorValidationStatusRead
+)
+def evaluator_status(
+    course_id: str, actor: CurrentUser, session: Database, request: Request
+) -> EvaluatorValidationStatusRead:
     def operation():
         RoleAssignmentService(session).require_assessor_access(actor, course_id)
-        return EvaluatorReleaseService(session).status(course_id)
+        return EvaluatorReleaseService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        ).status(course_id)
 
     return execute(session, operation)
 
 
-@router.post("/courses/{course_id}/evaluator-validation")
+@router.post("/courses/{course_id}/evaluator-validation", response_model=EvaluatorValidationReceipt)
 def record_validation(
     course_id: str,
     payload: EvaluatorValidationWrite,
     actor: CurrentAdministrator,
     session: Database,
-):
+    request: Request,
+) -> EvaluatorValidationReceipt:
     def operation():
-        row = EvaluatorReleaseService(session).validate(actor, course_id, **payload.model_dump())
+        row = EvaluatorReleaseService(
+            session, correlation_id=getattr(request.state, "correlation_id", None)
+        ).validate(actor, course_id, **payload.model_dump())
         return {"validation_id": row.id, "state": row.state, "ai_activation": "PENDING"}
 
     return execute(session, operation)

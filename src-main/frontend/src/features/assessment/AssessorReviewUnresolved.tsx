@@ -147,8 +147,9 @@ export function AssessorReviewUnresolved({ courseId, reviewedAttemptId, onCheckA
     } finally { setBusy(false) }
   }
 
-  return <Card heading={moderation ? 'Independent moderation decision' : 'Unresolved assessment attempts'} eyebrow="Human criterion decisions">
+  return <Card heading={moderation?.stage === 'CORRECTION' ? 'Proposed correction for independent review' : moderation ? 'Independent moderation decision' : 'Unresolved assessment attempts'} eyebrow="Human criterion decisions">
     <p>{moderation ? 'Inspect the frozen evidence and approved anchors. Record your own criterion decisions. This action does not confirm a formal result.' : 'These attempts have no formal decision. Technical faults remain under review without a learner penalty.'}</p>
+    {moderation?.stage === 'CORRECTION' && <p>The existing formal result remains in place while a new moderation cycle reviews the proposed correction.</p>}
     {moderation ? <Button variant="secondary" onClick={() => void inspect(moderation.attemptId)} disabled={busy}>Inspect moderation evidence</Button> : <Button variant="secondary" onClick={() => void load()} disabled={busy || !courseId}>Reload unresolved work</Button>}
     {error && <p role="alert" className={styles.alert}>{error}</p>}
     <p role={status ? "status" : undefined} ref={receiptRef} tabIndex={-1}>{status}</p>

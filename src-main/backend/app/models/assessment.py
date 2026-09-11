@@ -1038,10 +1038,16 @@ def _validate_assessment_decision_transition(
     allowed = {
         ResultState.PROVISIONAL: {ResultState.CONFIRMED, ResultState.OVERRIDDEN, ResultState.VOID},
         ResultState.CONFIRMED: {ResultState.OVERRIDDEN, ResultState.VOID},
-        ResultState.OVERRIDDEN: {ResultState.VOID},
+        ResultState.OVERRIDDEN: {ResultState.OVERRIDDEN, ResultState.VOID},
     }
     if target.result_state not in allowed.get(prior_state, set()):
         raise ImmutableAssessmentVersionError("assessment decision lifecycle transition is invalid")
+    if prior_state is ResultState.OVERRIDDEN and target.result_state is ResultState.OVERRIDDEN:
+        prior_result = connection.execute(
+            select(AssessmentDecision.result).where(AssessmentDecision.id == target.id)
+        ).scalar_one()
+        if target.result == prior_result:
+            raise ImmutableAssessmentVersionError("an additional correction must change the result")
 
 
 def _prevent_faulted_attempt_decision(
@@ -1410,7 +1416,8 @@ def _validate_pending_decision_transitions(session: Session) -> None:
         if not isinstance(decision, AssessmentDecision):
             continue
         state_history = inspect(decision).attrs.result_state.history
-        if not state_history.has_changes():
+        result_history = inspect(decision).attrs.result.history
+        if not state_history.has_changes() and not result_history.has_changes():
             continue
         prior_state = (
             state_history.deleted[0]
@@ -1420,7 +1427,6 @@ def _validate_pending_decision_transitions(session: Session) -> None:
             ).scalar_one()
         )
         prior_state = ResultState(prior_state)
-        result_history = inspect(decision).attrs.result.history
         prior_result = (
             result_history.deleted[0]
             if result_history.deleted
