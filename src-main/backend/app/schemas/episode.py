@@ -8,7 +8,11 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from app.schemas.assessment import EvidenceReference, OpaqueId
-from app.schemas.support_representations import SupportRepresentation, SupportRepresentationChoice
+from app.schemas.support_representations import (
+    AccessRepresentation,
+    SupportRepresentation,
+    SupportRepresentationChoice,
+)
 
 Text = Annotated[str, Field(strict=True, max_length=100_000)]
 NonBlankText = Annotated[str, Field(strict=True, min_length=1, max_length=100_000)]
@@ -92,6 +96,7 @@ class FrozenResponseRead(EpisodeContract):
 
 
 class EpisodeTransferPlanV1(EpisodeContract):
+    access_representations: tuple[AccessRepresentation, ...] = Field(default=(), max_length=20)
     part_id: OpaqueId = "transfer"
     prompt: NonBlankText
     instructions: Text = "Complete this fresh application without instructional hints."
@@ -101,6 +106,7 @@ class EpisodeTransferPlanV1(EpisodeContract):
 
 
 class EpisodePlanV1(EpisodeContract):
+    access_representations: tuple[AccessRepresentation, ...] = Field(default=(), max_length=20)
     support_representations: tuple[SupportRepresentation, ...] = Field(default=(), max_length=20)
     schema_version: Literal["learnlens.episode-plan.v1"] = "learnlens.episode-plan.v1"
     supported_part_id: OpaqueId = "supported"
@@ -123,6 +129,12 @@ class EpisodePlanV1(EpisodeContract):
     def valid_parts(self) -> EpisodePlanV1:
         if len(self.supported_hints) + len(self.support_representations) > 100:
             raise ValueError("At most 100 reviewed support items are allowed")
+        if (
+            len(self.accessibility_support)
+            + max(len(self.access_representations), len(self.transfer.access_representations))
+            > 100
+        ):
+            raise ValueError("At most 100 reviewed access items are allowed per stage")
         if self.supported_part_id == self.transfer.part_id:
             raise ValueError("Supported and transfer part IDs must differ")
         if len(set(self.required_responses)) != len(self.required_responses):
@@ -147,6 +159,7 @@ class EpisodeTransferRead(EpisodeContract):
 
 
 class EpisodeStateRead(EpisodeContract):
+    access_representation_choices: list[SupportRepresentationChoice] = Field(default_factory=list)
     representation_choices: list[SupportRepresentationChoice] = Field(default_factory=list)
     schema_version: Literal["learnlens.episode-plan.v1"] = "learnlens.episode-plan.v1"
     supported_part_id: OpaqueId
@@ -195,6 +208,6 @@ class EpisodeHelpUsePage(EpisodeContract):
 
 
 class EpisodeHelpUseReceipt(EpisodeContract):
-    representation: SupportRepresentation | None = None
+    representation: SupportRepresentation | AccessRepresentation | None = None
     record: EpisodeHelpUseRead
     content: Text | None

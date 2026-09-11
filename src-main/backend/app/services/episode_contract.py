@@ -57,9 +57,24 @@ def learner_episode_plan(plan: EpisodePlanV1) -> dict[str, Any]:
                 "item_index": len(plan.supported_hints) + index,
                 "title": f"{item.mode.replace('_', ' ').capitalize()} support {index + 1}",
                 "mode": item.mode,
+                "explanation_detail": item.explanation_detail,
             }
             for index, item in enumerate(plan.support_representations)
         ],
         "accessibility_support": list(plan.accessibility_support),
+        "access_representation_choices": access_representation_choices(plan),
         "transfer_part_id": plan.transfer.part_id,
     }
+
+
+def access_representation_choices(plan, *, transfer=False):
+    items = plan.transfer.access_representations if transfer else plan.access_representations
+    return [
+        {
+            "item_index": len(plan.accessibility_support) + index,
+            "title": f"{item.mode.replace('_', ' ').capitalize()} access {index + 1}",
+            "mode": item.mode,
+            "explanation_detail": item.explanation_detail,
+        }
+        for index, item in enumerate(items)
+    ]
