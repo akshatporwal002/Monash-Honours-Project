@@ -1,8 +1,10 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from support.alignment import next_action_contract
 from support.assessment import assign_assessor
 from support.task_review import approve_sourced_fixture_task
 
@@ -121,7 +123,7 @@ def _draft(
         contradicting_evidence={"observable": ["reverses the evidence relationship"]},
         insufficient_evidence={"observable": ["names evidence without analysis"]},
         task_conditions={"response_mode": "written"},
-        next_action_contract={"when_incomplete": "offer reassessment when approved"},
+        next_action_contract=next_action_contract("evidence_to_claim"),
         purpose=AssessmentPurpose.SUMMATIVE,
         permitted_tools={"allowed": ["course notes"]},
         instructional_support={"maximum_level": "approved"},
@@ -358,6 +360,61 @@ def test_approval_is_atomic_and_keeps_prior_versions(db_session: Session) -> Non
     assert second.version == 2
     assert db_session.scalars(select(TaskApproval)).all()
     assert len(db_session.scalars(select(TaskApproval)).all()) == 2
+
+
+def test_missing_feedback_alignment_blocks_only_new_approval_atomically(db_session: Session):
+    course_id, outcome_id, owner_id, outcome_version_id = _setup(db_session)
+    service = _service(db_session)
+    draft = _draft(outcome_version_id=outcome_version_id, task_id=_task_id(db_session))
+    legacy_policy = {"when_incomplete": "offer reassessment when approved"}
+    first = service.create_draft(
+        course_id=course_id,
+        learning_outcome_id=outcome_id,
+        actor_user_id=owner_id,
+        draft=replace(draft, next_action_contract=legacy_policy),
+    )
+    with pytest.raises(AssessmentDefinitionValidationError, match="next_action_contract alignment"):
+        service.approve(
+            course_id=course_id,
+            assessment_definition_id=first.assessment_definition_id,
+            expected_version=1,
+            actor_user_id=owner_id,
+            approval_reason="Reviewed policy.",
+        )
+    assert first.approval_state is AssessmentApprovalState.DRAFT
+    assert all(
+        row.approval_state is AssessmentApprovalState.DRAFT for row in service._components(first)
+    )
+    assert db_session.scalars(select(TaskApproval)).all() == []
+
+    # Seed a persisted pre-gate approval, as a historical database would contain.
+    for row in [first, *service._components(first)]:
+        row.approval_state = AssessmentApprovalState.APPROVED
+        row.approved_at = NOW
+        row.approved_by_user_id = owner_id
+    db_session.commit()
+    second = service.update_draft(
+        course_id=course_id,
+        assessment_definition_id=first.assessment_definition_id,
+        expected_version=1,
+        actor_user_id=owner_id,
+        draft=draft,
+    )
+    service.approve(
+        course_id=course_id,
+        assessment_definition_id=first.assessment_definition_id,
+        expected_version=2,
+        actor_user_id=owner_id,
+        approval_reason="Complete prospective links.",
+    )
+    history = service.repository.list_versions(
+        course_id=course_id,
+        assessment_definition_id=first.assessment_definition_id,
+    )
+    assert history[0].next_action_contract == legacy_policy
+    assert history[0].approval_state is AssessmentApprovalState.APPROVED
+    assert history[1].next_action_contract == draft.next_action_contract
+    assert second.approval_state is AssessmentApprovalState.APPROVED
 
 
 @pytest.mark.parametrize(

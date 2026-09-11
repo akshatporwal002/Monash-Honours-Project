@@ -91,6 +91,35 @@ test('pass rule preview has no score weight or percentage language', () => {
   expect(preview).not.toHaveTextContent(/score|weight|percentage|%/i)
 })
 
+test('a saved setup opens its matching complete policy editor without inventing alignment', async () => {
+  let saved: Record<string, unknown> = {}
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const url = String(input)
+    if (url.includes('/definitions') && init?.method === 'POST') {
+      const body = JSON.parse(String(init.body))
+      saved = { ...createdDefinition, ...body, outcome_id: 'outcome-1',
+        criteria: body.criteria.map((criterion: object, index: number) => ({ ...criterion, id: `criterion-${index}`, version: 1 })),
+        task_forms: body.task_forms.map((form: object, index: number) => ({ ...form, id: `form-${index}`, version: 1 })),
+      }
+      return response(saved, 201)
+    }
+    if (url.includes('/course-1/definitions/definition-1/history')) return response([saved])
+    throw new Error(`Unexpected request: ${url}`)
+  })
+  const user = userEvent.setup()
+  renderSetup()
+  await fillRequiredFields(user)
+  await user.click(screen.getByRole('button', { name: 'Save assessment draft' }))
+  const complete = await screen.findByRole('button', { name: 'Complete feedback and adaptation in definition editor' })
+  await user.click(complete)
+  await screen.findByText('Latest definition loaded.')
+  expect(screen.getByLabelText('Learner description — required_evidence')).toHaveValue('The learner applies the gate and explains the observed state.')
+  expect(saved.next_action_contract).not.toHaveProperty('alignment')
+  expect(screen.getByLabelText('Next action and review policy policy')).toHaveValue(JSON.stringify(saved.next_action_contract, null, 2))
+  expect(screen.getByLabelText('Required alignment JSON')).toHaveTextContent('required_evidence')
+  expect(fetchSpy.mock.calls.some(([input]) => String(input).includes('/publish'))).toBe(false)
+}, 15_000)
+
 test('setup requires explicit Bloom and access verification before creating a draft', async () => {
   const fetchSpy = vi.spyOn(globalThis, 'fetch')
   const user = userEvent.setup()
@@ -227,6 +256,7 @@ test('edited values must be saved as a new version before publication', async ()
   await user.type(screen.getByLabelText('Claim'), 'Revised claim.')
 
   expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'Complete feedback and adaptation in definition editor' })).toBeDisabled()
   expect(screen.getByText(/Save the current changes as a new draft version/)).toBeInTheDocument()
   expect(screen.getByLabelText('Assigned course')).toBeDisabled()
   expect(screen.getByLabelText('Outcome ID')).toBeDisabled()

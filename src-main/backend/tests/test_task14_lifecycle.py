@@ -4,6 +4,7 @@ from dataclasses import replace
 
 import pytest
 from sqlalchemy import select
+from support.alignment import next_action_contract
 from support.task_review import approve_fixture_task, bootstrap_reviewed_demo
 from test_assessment_definitions import _draft, _service, _setup
 
@@ -87,6 +88,7 @@ def setup_episode(
     draft = replace(
         draft,
         criteria=criteria,
+        next_action_contract=next_action_contract(*(c.stable_key for c in criteria)),
         pass_rule_expression={
             "operator": "ALL_OF",
             "clauses": [{"criterion": criterion.stable_key} for criterion in criteria],

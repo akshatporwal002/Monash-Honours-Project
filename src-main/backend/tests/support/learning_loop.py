@@ -22,6 +22,7 @@ from app.schemas.episode import EpisodePlanV1
 from app.services.assessment.definitions import AssessmentDefinitionService
 from app.services.curriculum import CurriculumService
 from app.services.lms import LmsService
+from support.alignment import next_action_contract
 from support.assessment_authoring import seed_authoring_context
 from support.task_review import approve_sourced_fixture_task
 
@@ -134,6 +135,7 @@ def seed_learning_loop(session):
             bloom_process=BloomProcess.APPLY,
             formal_result_eligible=True,
             criteria=criteria,
+            next_action_contract=next_action_contract(*(c.stable_key for c in criteria)),
             pass_rule_expression={
                 "operator": "ALL_OF",
                 "clauses": [{"criterion": c.stable_key} for c in criteria],

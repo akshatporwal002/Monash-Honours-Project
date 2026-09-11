@@ -20,6 +20,7 @@ from app.services.assessment.definitions import (
     TaskFormDraft,
 )
 from app.services.lms import LmsService
+from support.alignment import next_action_contract
 from support.assessment import build_provisional_decision
 from support.assessment_authoring import seed_authoring_context
 from support.task_review import approve_sourced_fixture_task
@@ -91,7 +92,7 @@ def seed_review_context(
             contradicting_evidence={"observable": ["reverses the relationship"]},
             insufficient_evidence={"observable": ["names the observation without explanation"]},
             task_conditions={"response_mode": "written"},
-            next_action_contract={"when_incomplete": "request a fresh approved task"},
+            next_action_contract=next_action_contract("evidence_to_claim"),
             purpose=AssessmentPurpose.SUMMATIVE,
             permitted_tools={"allowed": ["course notes"]},
             instructional_support={"allowed": ["approved conceptual hints"]},

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 from sqlalchemy import select
+from support.alignment import next_action_contract
 from support.assessment import assign_assessor
 from support.task37_fixture import synthetic_assessor_decision
 from support.task_review import approve_sourced_fixture_task
@@ -193,6 +194,7 @@ def test_episode_freezes_conditional_evidence_and_reuses_assessment(
         bloom_process=BloomProcess.APPLY,
         formal_result_eligible=True,
         criteria=criteria,
+        next_action_contract=next_action_contract(*(c.stable_key for c in criteria)),
         supporting_evidence={"observable": [c.met_rule for c in criteria]},
         contradicting_evidence={"observable": [c.not_met_rule for c in criteria]},
         transfer_rule={"required": True, "independence": "unaided delivery example"},

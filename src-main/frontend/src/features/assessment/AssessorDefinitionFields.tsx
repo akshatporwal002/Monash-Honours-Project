@@ -6,6 +6,7 @@ import type { CriterionDraft } from './definitionEditing'
 import { assessmentPurposeValues, bloomKnowledgeValues, bloomProcessValues } from './types'
 import styles from './assessment.module.css'
 import { AssessorPassRule } from './AssessorPassRule'
+import { ApprovalAlignmentHelp } from './ApprovalAlignmentHelp'
 
 function StructuredField({ label, value, onChange, onValidity, arrayOnly = false, objectOnly = false }: {
   label: string, value: unknown, onChange: (value: never) => void,
@@ -100,7 +101,9 @@ export function AssessorDefinitionFields({ draft, onChange, onValidity, reserved
     </Card>
     <Card heading="Policies and task forms">
       <p>Review access preservation, Bloom elicitation, tool limits and transfer conditions before approving a new version.</p>
+      <p>Before approval, complete the feedback and adaptation plan under Next action and review policy.</p>
       {policyFields.map(([key, label]) => <details key={key}><summary>{label}</summary>
+        {key === 'next_action_contract' && <ApprovalAlignmentHelp criteria={draft.criteria} />}
         <StructuredField label={`${label} policy`} value={draft[key]} onValidity={onValidity} onChange={(value) => update(key, value)} />
       </details>)}
       <p>Saving uses the task's current teaching revision and refreshes its source digest. Published versions retain their frozen task forms.</p>

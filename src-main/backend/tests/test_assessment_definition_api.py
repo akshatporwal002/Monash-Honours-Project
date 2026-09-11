@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from support.alignment import next_action_contract
 from support.task_review import approve_sourced_fixture_task, bootstrap_reviewed_demo
 
 from app.db.base import Base
@@ -65,7 +66,7 @@ def _definition_payload(task_id: str, *, eligible: bool = True) -> dict[str, obj
         "contradicting_evidence": {"observable": ["reverses the evidence relationship"]},
         "insufficient_evidence": {"observable": ["names evidence without analysis"]},
         "task_conditions": {"response_mode": "written"},
-        "next_action_contract": {"when_incomplete": "offer reassessment when approved"},
+        "next_action_contract": next_action_contract("evidence_to_claim"),
         "purpose": "SUMMATIVE",
         "permitted_tools": {"allowed": ["course notes"]},
         "instructional_support": {"maximum_level": "approved"},

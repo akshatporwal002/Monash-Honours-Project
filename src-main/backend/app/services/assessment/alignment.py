@@ -7,6 +7,7 @@ from typing import Any
 
 from app.domain.assessment import BloomProcess
 from app.models.assessment import CriterionEvaluatorType, CriterionVersion, TaskFormVersion
+from app.services.assessment.alignment_contract import validate_next_action_alignment
 from app.services.assessment.circuit_rules import CircuitRuleSettings
 from app.services.assessment.rule_settings import RuleSettings, validate_rule_settings
 
@@ -101,6 +102,23 @@ def validate_definition_alignment(
             raise AssessmentAlignmentError(
                 "task form does not declare evidence for the target Bloom process"
             )
+
+
+def validate_feedback_adaptation_alignment(
+    next_action_contract: Any, criteria: Iterable[CriterionVersion]
+) -> None:
+    """Require prospective BP3 links when approving a new definition version.
+
+    Keep this separate from construct checks reused for equivalent forms of
+    already approved historical definitions.
+    """
+    try:
+        validate_next_action_alignment(
+            next_action_contract,
+            {row.criterion.stable_key: row.evidence_source_types for row in criteria},
+        )
+    except ValueError as error:
+        raise AssessmentAlignmentError(f"next_action_contract alignment: {error}") from error
 
 
 def _validate_access_modes(value: Any) -> None:

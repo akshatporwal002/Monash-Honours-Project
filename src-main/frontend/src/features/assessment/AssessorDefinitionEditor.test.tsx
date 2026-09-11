@@ -60,6 +60,28 @@ test('loads and edits a multi-criterion draft without losing opaque metadata or 
   expect(original.criteria[1].learner_description).toBe('Describe circuit')
 })
 
+test('shows current criterion alignment shape and preserves explicit assessor plans on save', async () => {
+  const original = await open()
+  expect(screen.getByText(/Before approval, complete the feedback and adaptation plan/)).toBeInTheDocument()
+  const shape = JSON.parse(screen.getByLabelText('Required alignment JSON').textContent ?? '{}')
+  expect(shape.criterion_feedback.map((entry: { criterion_key: string }) => entry.criterion_key)).toEqual(['explanation', 'circuit'])
+  expect(shape.criterion_feedback[0]).toMatchObject({ evidence_source_types: ['learner_response', 'simulation'], met: '', not_met: '', not_evaluable: '' })
+  expect(shape.result_adaptation).toEqual({ PASS: { feedback: '', adaptation: '' }, INCOMPLETE: { feedback: '', adaptation: '' } })
+  const policy = { ...original.next_action_contract, alignment: {
+    ...shape,
+    criterion_feedback: shape.criterion_feedback.map((entry: object) => ({ ...entry, met: 'Explain matching evidence.', not_met: 'Explain missing evidence.', not_evaluable: 'Explain evidence limitations.' })),
+    result_adaptation: {
+      PASS: { feedback: 'Explain the satisfied rule.', adaptation: 'No further task for this claim.' },
+      INCOMPLETE: { feedback: 'Explain the unsatisfied rule.', adaptation: 'Review missing evidence before fresh reassessment.' },
+    },
+  } }
+  const save = vi.spyOn(definitionEditingApi, 'save').mockResolvedValue({ ...original, id: 'version-4', version: 4, next_action_contract: policy })
+  fireEvent.change(screen.getByLabelText('Next action and review policy policy'), { target: { value: JSON.stringify(policy) } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save new draft version' }))
+  await screen.findByText('Draft version 4 saved. It has not been approved.')
+  expect(save.mock.calls[0][1]).toEqual({ ...definitionToDraft(original), next_action_contract: policy })
+})
+
 test('criterion deletion requires removing its pass-rule references and new mandatory criteria need references', async () => {
   await open()
   const save = vi.spyOn(definitionEditingApi, 'save')

@@ -14,6 +14,7 @@ from app.models.source_history import SourcePassage, SourceRevision
 from app.models.user import UserRole
 from app.schemas.episode import EpisodePlanV1
 from app.services.lms import LmsService
+from support.alignment import next_action_contract
 from support.task_review import (
     approve_fixture_task,
     approve_sourced_fixture_task,
@@ -74,6 +75,7 @@ def setup_task16_episode(session, task_type=TaskType.QUANTUM_CIRCUIT):
     draft = replace(
         draft,
         criteria=criteria,
+        next_action_contract=next_action_contract(*(c.stable_key for c in criteria)),
         pass_rule_expression={
             "operator": "ALL_OF",
             "clauses": [{"criterion": criterion.stable_key} for criterion in criteria],

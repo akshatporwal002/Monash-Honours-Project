@@ -36,6 +36,7 @@ from app.services.assessment.access import RoleAssignmentService, ScopedRoleAcce
 from app.services.assessment.alignment import (
     AssessmentAlignmentError,
     validate_definition_alignment,
+    validate_feedback_adaptation_alignment,
 )
 from app.services.assessment.repository import (
     AssessmentDefinitionNotFoundError,
@@ -608,6 +609,9 @@ class AssessmentDefinitionService:
             else self._invalid_bloom_target(),
             criteria=version.criterion_versions,
             task_forms=version.task_form_versions,
+        )
+        validate_feedback_adaptation_alignment(
+            version.next_action_contract, version.criterion_versions
         )
 
     @staticmethod
