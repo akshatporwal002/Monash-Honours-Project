@@ -240,6 +240,7 @@ def test_task_generation_uses_current_timeout_and_non_nested_connect_retry(db_se
 
     monkeypatch.setattr(settings, "llm_api_key", SecretStr("synthetic-recording-only"))
     monkeypatch.setattr(settings, "llm_model", "synthetic-recording-model")
+    _synthetic_budget(monkeypatch)
     calls = []
 
     def transport(req):
@@ -269,6 +270,7 @@ def test_feedback_transport_does_not_multiply_worker_retry_ceiling(db_session, m
 
     monkeypatch.setattr(settings, "llm_api_key", SecretStr("synthetic-recording-only"))
     monkeypatch.setattr(settings, "llm_model", "synthetic-recording-model")
+    _synthetic_budget(monkeypatch)
     calls = []
 
     def fail(req):
@@ -406,6 +408,10 @@ def test_persistent_worker_uses_updated_policy_in_actual_provider_requests(
     lms, student, task, payload = practice(db_session)
     monkeypatch.setattr(settings, "llm_api_key", SecretStr("synthetic-recording-only"))
     monkeypatch.setattr(settings, "research_enabled", False)
+    _synthetic_budget(monkeypatch)
+    selection = runtime.runtime_model_selection(db_session)
+    monkeypatch.setattr(settings, "llm_pricing_provider", selection.provider)
+    monkeypatch.setattr(settings, "llm_pricing_model", selection.model)
     calls = []
 
     def transport(req):
@@ -469,6 +475,14 @@ def test_persistent_worker_uses_updated_policy_in_actual_provider_requests(
         assert stored.regeneration_count == (0 if judge_accepts else 1)
     assert calls == [11] * (2 if judge_accepts else 4) + [4] * (2 if judge_accepts else 4)
     assert len(set(identities)) == 2
+    from app.models.provider_usage import ProviderUsage
+
+    usage = db_session.scalars(select(ProviderUsage)).all()
+    assert len(usage) == len(calls)
+    assert all(row.actual_micros is None and row.input_tokens == 10 for row in usage)
+    assert {
+        row.provenance["workflow_runtime_policy"]["max_infrastructure_attempts"] for row in usage
+    } == {1, 3}
     assert db_session.scalar(select(func.count()).select_from(FeedbackRecord)) == (
         2 if judge_accepts else 6
     )
@@ -517,3 +531,21 @@ def test_every_configurable_persistent_pass_reloads_policy(db_session, monkeypat
         assert len(observed) == 5
         assert all(item[1] == attempts for item in observed)
         assert all(item[2] in (None, timeout) for item in observed)
+
+
+def _synthetic_budget(monkeypatch):
+    from decimal import Decimal
+
+    for key, value in {
+        "llm_budget_id": "synthetic-runtime-budget",
+        "llm_budget_policy_version": "synthetic-budget-v1",
+        "llm_budget_limit": Decimal("1"),
+        "llm_cost_currency": "AUD",
+        "llm_pricing_version": "synthetic-pricing-v1",
+        "llm_pricing_provider": settings.llm_provider,
+        "llm_pricing_model": settings.llm_model,
+        "llm_pricing_base_url": settings.llm_api_base_url,
+        "llm_input_cost_per_million": Decimal("1"),
+        "llm_output_cost_per_million": Decimal("1"),
+    }.items():
+        monkeypatch.setattr(settings, key, value)

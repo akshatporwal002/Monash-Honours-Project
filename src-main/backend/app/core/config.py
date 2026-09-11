@@ -26,8 +26,18 @@ class Settings(BaseSettings):
     llm_api_base_url: str = "https://api.openai.com/v1"
     llm_provider: str = "openai"
     llm_model: str = ""
-    llm_input_cost_per_million: Decimal = Field(default=Decimal("0"), ge=0)
-    llm_output_cost_per_million: Decimal = Field(default=Decimal("0"), ge=0)
+    llm_input_cost_per_million: Decimal | None = Field(default=None, ge=0)
+    llm_output_cost_per_million: Decimal | None = Field(default=None, ge=0)
+    llm_budget_id: str = ""
+    llm_budget_policy_version: str = ""
+    llm_budget_limit: Decimal | None = Field(default=None, ge=0)
+    llm_cost_currency: str = ""
+    llm_pricing_version: str = ""
+    llm_pricing_provider: str = ""
+    llm_pricing_model: str = ""
+    llm_pricing_base_url: str = ""
+    llm_max_input_tokens: int = Field(default=32_768, ge=1, le=1_000_000)
+    llm_max_output_tokens: int = Field(default=4_096, ge=1, le=1_000_000)
     learning_event_pseudonym_secret: SecretStr | None = SecretStr(DEVELOPMENT_PSEUDONYM_SECRET)
     feedback_job_lease_seconds: int = Field(default=300, ge=30, le=3600)
     provider_timeout_seconds: int = Field(default=60, ge=1, le=60)

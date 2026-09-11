@@ -12,7 +12,9 @@ import json
 import math
 from dataclasses import dataclass
 from decimal import Decimal
+from hashlib import sha256
 from typing import Any
+from uuid import uuid4
 
 import httpx
 from sqlalchemy import select
@@ -25,6 +27,7 @@ from app.services.feedback.contracts import (
     StructuredLlmRequest,
     StructuredLlmResponse,
 )
+from app.services.provider_usage import ProviderBudgetError, ProviderUsageMeter
 from app.services.rag.contracts import (
     TaskGenerationRequest,
     TaskGenerationResponse,
@@ -80,6 +83,8 @@ class ResponsesStructuredLlmClient:
         input_cost_per_million: Decimal = Decimal("0"),
         output_cost_per_million: Decimal = Decimal("0"),
         transport: httpx.AsyncBaseTransport | None = None,
+        meter: ProviderUsageMeter | None = None,
+        runtime_policy_provenance: dict | None = None,
     ) -> None:
         if not api_key.strip() or not model.strip():
             raise ValueError("Model credentials and a model name are required.")
@@ -99,6 +104,13 @@ class ResponsesStructuredLlmClient:
         self._input_cost = input_cost_per_million
         self._output_cost = output_cost_per_million
         self._transport = transport
+        self._meter = meter
+        self._runtime_policy_provenance = runtime_policy_provenance or {}
+        if meter is None and not isinstance(transport, httpx.MockTransport):
+            raise ProviderBudgetError("External provider transport requires durable metering.")
+        if meter is not None:
+            self._input_cost = meter.policy.input_rate
+            self._output_cost = meter.policy.output_rate
 
     async def generate_structured(
         self,
@@ -126,6 +138,11 @@ class ResponsesStructuredLlmClient:
                 }
             },
         }
+        meter = self._meter
+        logical_key = request.metering_key or str(uuid4())
+        active_key = None
+        if meter:
+            payload["max_output_tokens"] = meter.policy.max_output_tokens
         try:
             async with (
                 asyncio.timeout(self._timeout),
@@ -136,6 +153,28 @@ class ResponsesStructuredLlmClient:
                 ) as client,
             ):
                 for attempt in range(self._max_attempts):
+                    active_key = None
+                    if meter:
+                        key = f"{logical_key}:{attempt + 1}"
+                        await asyncio.to_thread(
+                            meter.reserve,
+                            key,
+                            payload,
+                            {
+                                "provider": self._provider,
+                                "model": self._model,
+                                "endpoint_sha256": sha256(self._endpoint.encode()).hexdigest(),
+                                "prompt_version": request.prompt_version,
+                                "schema_name": request.schema_name,
+                                "transport_attempt": attempt + 1,
+                                "timeout_seconds": self._timeout,
+                                "max_infrastructure_attempts": self._max_attempts,
+                                "workflow_runtime_policy": self._runtime_policy_provenance,
+                                "context": request.metering_context or {},
+                            },
+                        )
+                        await asyncio.to_thread(meter.dispatch, key)
+                        active_key = key
                     try:
                         response = await client.post(
                             self._endpoint,
@@ -147,16 +186,46 @@ class ResponsesStructuredLlmClient:
                         )
                         break
                     except (httpx.ConnectError, httpx.ConnectTimeout):
+                        if meter and active_key:
+                            await asyncio.to_thread(meter.connection_failed, active_key)
+                            active_key = None
                         # Retry only before request dispatch. Read/write ambiguity,
                         # HTTP errors and malformed output never replay a model call.
                         if attempt + 1 == self._max_attempts:
                             raise
                         await asyncio.sleep(0.05 * (2**attempt))
-                response.raise_for_status()
                 body = response.json()
+                if not isinstance(body, dict):
+                    raise ValueError("Model response must be an object.")
+                # Persist usage before status/output validation, including billed
+                # failures. Missing or malformed usage remains explicitly unknown.
+                if meter and active_key:
+                    raw_usage = body.get("usage")
+                    raw_usage = raw_usage if isinstance(raw_usage, dict) else {}
+                    await asyncio.to_thread(
+                        meter.observe,
+                        active_key,
+                        input_tokens=_observed_count(raw_usage.get("input_tokens")),
+                        output_tokens=_observed_count(raw_usage.get("output_tokens")),
+                        response_id=body.get("id") if isinstance(body.get("id"), str) else None,
+                    )
+                response.raise_for_status()
             output = json.loads(_output_text(body))
             usage = _usage(body)
-        except (TimeoutError, httpx.HTTPError, KeyError, TypeError, ValueError) as error:
+        except asyncio.CancelledError:
+            if meter and active_key:
+                await asyncio.to_thread(meter.observe, active_key)
+            raise
+        except (
+            TimeoutError,
+            httpx.HTTPError,
+            KeyError,
+            TypeError,
+            ValueError,
+            ProviderBudgetError,
+        ) as error:
+            if meter and active_key:
+                await asyncio.to_thread(meter.observe, active_key)
             raise StructuredModelError(
                 "The configured model could not complete the request."
             ) from error
@@ -199,6 +268,11 @@ one supplied chunk ID and include an expected answer or marking criteria.
                 response_schema=_task_generation_schema(),
                 schema_name="quantumlearn_tasks",
                 prompt_version=request.prompt_version,
+                metering_context={
+                    key: value
+                    for key in ("course_id", "module_id")
+                    if isinstance((value := request.payload.get(key)), str)
+                },
             )
         )
         tasks = response.output.get("tasks")
@@ -226,13 +300,23 @@ def _output_text(body: dict[str, Any]) -> str:
     raise ValueError("Model response did not contain structured output.")
 
 
+def _observed_count(value: Any) -> int | None:
+    return value if type(value) is int and 0 <= value <= 2**63 - 1 else None
+
+
 def _usage(body: dict[str, Any]) -> TokenUsage:
+    if not isinstance(body, dict):
+        raise ValueError("Model response must be an object.")
     raw = body.get("usage")
     if not isinstance(raw, dict):
         raise ValueError("Model response did not contain usage.")
-    input_tokens = int(raw.get("input_tokens", 0))
-    output_tokens = int(raw.get("output_tokens", 0))
-    total_tokens = int(raw.get("total_tokens", input_tokens + output_tokens))
+    input_tokens = raw.get("input_tokens")
+    output_tokens = raw.get("output_tokens")
+    if any(type(value) is not int or value < 0 for value in (input_tokens, output_tokens)):
+        raise ValueError("Model response usage is incomplete or invalid.")
+    total_tokens = raw.get("total_tokens", input_tokens + output_tokens)
+    if type(total_tokens) is not int:
+        raise ValueError("Model response total usage is invalid.")
     return TokenUsage(
         input_tokens=input_tokens,
         output_tokens=output_tokens,

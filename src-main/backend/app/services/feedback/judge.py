@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 
 from pydantic import ValidationError
 
@@ -72,6 +73,14 @@ class LlmFeedbackJudge:
         feedback: GeneratedFeedback,
     ) -> JudgeEvaluationOutcome:
         request = self._prompt_builder.build(context, feedback)
+        request = replace(
+            request,
+            metering_context={
+                "submission_id": context.submission.submission_id,
+                "task_id": context.task.task_id,
+                "course_id": context.task.course_id,
+            },
+        )
         try:
             response = await self._client.generate_structured(request)
         except Exception:

@@ -9,6 +9,7 @@ from app.services.llm import (
     runtime_model_selection,
 )
 from app.services.local_ai import LocalTaskGenerationClient
+from app.services.provider_usage import configured_meter
 from app.services.rag.contracts import TaskGenerationClient
 from app.services.rag.local_retrieval import LocalCourseRetrievalService
 from app.services.rag.task_generation import GroundedTaskGenerationService
@@ -31,8 +32,11 @@ def configured_task_generation_client(session: Session) -> TaskGenerationClient:
             provider=selection.provider,
             timeout_seconds=policy.provider_timeout_seconds,
             max_infrastructure_attempts=policy.max_infrastructure_attempts,
-            input_cost_per_million=settings.llm_input_cost_per_million,
-            output_cost_per_million=settings.llm_output_cost_per_million,
+            meter=configured_meter(session, provider=selection.provider, model=selection.model),
+            runtime_policy_provenance={
+                "provider_timeout_seconds": policy.provider_timeout_seconds,
+                "max_infrastructure_attempts": policy.max_infrastructure_attempts,
+            },
         )
     )
 

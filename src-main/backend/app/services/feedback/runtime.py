@@ -42,6 +42,7 @@ from app.services.llm import (
     runtime_model_selection,
 )
 from app.services.local_ai import LocalFeedbackGenerator, LocalFeedbackJudge
+from app.services.provider_usage import configured_meter
 from app.services.quantum import SIMULATION_POLICY_VERSION, CircuitOperation, QuantumSimulationError
 from app.services.rag.feedback_adapter import RagFeedbackRetrievalProvider
 from app.services.rag.local_retrieval import LocalCourseRetrievalService
@@ -270,8 +271,11 @@ def _configured_model_client(
         timeout_seconds=policy.provider_timeout_seconds,
         # Durable feedback owns its retry ceiling; never multiply it in transport.
         max_infrastructure_attempts=1,
-        input_cost_per_million=settings.llm_input_cost_per_million,
-        output_cost_per_million=settings.llm_output_cost_per_million,
+        meter=configured_meter(session, provider=selection.provider, model=selection.model),
+        runtime_policy_provenance={
+            "provider_timeout_seconds": policy.provider_timeout_seconds,
+            "max_infrastructure_attempts": policy.max_infrastructure_attempts,
+        },
     )
 
 
