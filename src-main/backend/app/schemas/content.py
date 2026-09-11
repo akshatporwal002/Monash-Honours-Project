@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from pydantic import (
     AnyUrl,
@@ -40,8 +41,8 @@ class LearningMaterialCreate(ContentSchema):
 
     @field_validator("source_url")
     @classmethod
-    def require_https(cls, value: AnyUrl | None) -> AnyUrl | None:
-        if value is not None and value.scheme != "https":
+    def require_https(cls, value: AnyUrl | str | None) -> AnyUrl | str | None:
+        if value is not None and urlsplit(str(value)).scheme != "https":
             raise ValueError("source_url must use HTTPS")
         return value
 
