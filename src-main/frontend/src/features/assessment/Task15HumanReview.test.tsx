@@ -1,13 +1,14 @@
 ﻿import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ApiError } from '../../app/api'
+import { ApiError, request } from '../../app/api'
 import { AssessorReviewUnresolved } from './AssessorReviewUnresolved'
 import { AssessorReviewResponse } from './AssessorReviewResponse'
 import { humanReviewApi } from './assessmentReviewApi'
 import type { UnresolvedAssessment } from './assessmentReviewApi'
 
 vi.mock('./assessmentReviewApi', () => ({ humanReviewApi: { queue: vi.fn(), detail: vi.fn(), finalise: vi.fn() } }))
+vi.mock('../../app/api', async importOriginal => ({ ...await importOriginal<typeof import('../../app/api')>(), request: vi.fn() }))
 
 const record: UnresolvedAssessment = {
   assessment_attempt_id: 'attempt-15', course_id: 'course-15', state: 'PENDING',
@@ -44,6 +45,24 @@ beforeEach(() => {
 })
 
 describe('Task 15 human assessment', () => {
+  it('records independent moderation without confirming or loading the unresolved queue', async () => {
+    const finalised = vi.fn()
+    vi.mocked(request).mockResolvedValue({ review_id: 'second-review', stage: 'SECOND', result: 'PASS' })
+    render(<AssessorReviewUnresolved courseId="course-15" moderation={{ attemptId: 'attempt-15', stage: 'SECOND' }} onCheckAccess={vi.fn().mockResolvedValue(true)} onAccessRevoked={vi.fn()} onFinalised={finalised} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect moderation evidence' }))
+    await screen.findByText('My original prediction')
+    const group = screen.getByRole('group', { name: 'Explain your circuit choice (required)' })
+    fireEvent.change(within(group).getByRole('combobox'), { target: { value: 'MET' } })
+    fireEvent.change(within(group).getByLabelText(/Criterion reason/), { target: { value: 'Independent evidence review.' } })
+    fireEvent.click(within(group).getByRole('checkbox'))
+    fireEvent.change(screen.getByLabelText('Moderation reason'), { target: { value: 'My independent assessment.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Record moderation decision' }))
+    await waitFor(() => expect(finalised).toHaveBeenCalledOnce())
+    expect(request).toHaveBeenCalledWith('/assessment/attempts/attempt-15/moderation/SECOND', expect.objectContaining({ method: 'POST' }))
+    expect(humanReviewApi.finalise).not.toHaveBeenCalled()
+    expect(humanReviewApi.queue).not.toHaveBeenCalled()
+    expect(screen.getByText(/Formal confirmation remains a separate assessor action/)).toBeVisible()
+  })
   it('shows the preserved teaching level and content beside the response', () => {
     const response = frozenRecord().response!
     response.recorded_teaching = [{

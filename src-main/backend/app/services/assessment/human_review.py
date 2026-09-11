@@ -297,37 +297,11 @@ class HumanAssessmentService:
             detail = self._detail(attempt)
             if not detail["can_finalise"]:
                 raise AssessmentReviewConflictError(" ".join(detail["issues"]))
-            bundle = self._bundle(attempt)
+            outcome, references = self.evaluate_request(actor, attempt, request)
+            from app.services.assessment.moderation import ModerationService
+
+            ModerationService(self.session).require_ready(actor, attempt, outcome.result)
             self._claim_job(attempt)
-            by_id = {entry.criterion_version_id: entry for entry in request.criteria}
-            if len(by_id) != len(request.criteria) or set(by_id) != {
-                criterion.id for criterion in bundle.criteria
-            }:
-                raise AssessmentReviewValidationError(
-                    "Provide exactly one decision for every frozen pass-rule criterion"
-                )
-            references = {}
-            for criterion in bundle.criteria:
-                entry = by_id[criterion.id]
-                references[criterion.id] = FrozenEvidenceValidator().resolve_and_validate(
-                    AssessmentEvidencePort(self.resolver),
-                    assessment=bundle.reference,
-                    evidence_ids=entry.evidence_ids,
-                    allowed_types=criterion.evidence_source_types,
-                )
-            outcome = PassRuleEngine().evaluate(
-                PassRuleEvaluationRequest(
-                    expression=bundle.rule.expression,
-                    approved_criterion_version_ids=frozenset(by_id),
-                    mandatory_criterion_version_ids=frozenset(
-                        criterion.id for criterion in bundle.criteria if criterion.mandatory
-                    ),
-                    criterion_outcomes=tuple(
-                        CriterionRuleOutcome(entry.criterion_version_id, entry.decision)
-                        for entry in request.criteria
-                    ),
-                )
-            )
             decision = self.session.scalar(
                 select(AssessmentDecision).where(
                     AssessmentDecision.assessment_attempt_id == attempt.id
@@ -426,6 +400,48 @@ class HumanAssessmentService:
         except Exception:
             self.session.rollback()
             raise
+
+    def evaluate_request(self, actor, attempt, request):
+        self._validate_request(request)
+        self.assignments.require_assessor_access(actor, attempt.course_id)
+        if request.expected_token != self._token(attempt):
+            raise AssessmentReviewConflictError(
+                "Assessment evidence changed. Reload before review."
+            )
+        detail = self._detail(attempt)
+        if not detail["can_finalise"]:
+            raise AssessmentReviewConflictError(" ".join(detail["issues"]))
+        bundle = self._bundle(attempt)
+        by_id = {entry.criterion_version_id: entry for entry in request.criteria}
+        if len(by_id) != len(request.criteria) or set(by_id) != {
+            criterion.id for criterion in bundle.criteria
+        }:
+            raise AssessmentReviewValidationError(
+                "Provide exactly one decision for every frozen pass-rule criterion"
+            )
+        references = {}
+        for criterion in bundle.criteria:
+            entry = by_id[criterion.id]
+            references[criterion.id] = FrozenEvidenceValidator().resolve_and_validate(
+                AssessmentEvidencePort(self.resolver),
+                assessment=bundle.reference,
+                evidence_ids=entry.evidence_ids,
+                allowed_types=criterion.evidence_source_types,
+            )
+        outcome = PassRuleEngine().evaluate(
+            PassRuleEvaluationRequest(
+                expression=bundle.rule.expression,
+                approved_criterion_version_ids=frozenset(by_id),
+                mandatory_criterion_version_ids=frozenset(
+                    criterion.id for criterion in bundle.criteria if criterion.mandatory
+                ),
+                criterion_outcomes=tuple(
+                    CriterionRuleOutcome(entry.criterion_version_id, entry.decision)
+                    for entry in request.criteria
+                ),
+            )
+        )
+        return outcome, references
 
     def _claim_job(self, attempt):
         job = self.session.get(AssessmentEvaluationJob, attempt.id, populate_existing=True)

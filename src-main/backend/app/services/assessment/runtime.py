@@ -47,6 +47,11 @@ class SqlAlchemyRuleCriterionEvaluationPort:
         bloom_process: BloomProcess,
         criterion: CriterionVersion,
     ) -> EvaluatorOutcome:
+        from app.services.assessment.evaluator_release import EvaluatorReleaseService
+
+        # Recheck deployed/configured dependencies at point of use. Validation
+        # never activates AI by itself; the operational adapter remains gated.
+        EvaluatorReleaseService(self._session).observe(assessment.course_id)
         from app.services.misconception_support import response_teaching, teaching_result_issue
 
         saved_response = self._session.get(SubmissionAttempt, assessment.response_version_id)

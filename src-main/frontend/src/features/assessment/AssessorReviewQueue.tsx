@@ -15,6 +15,7 @@ import { useAssessorReviewQueue } from './useAssessorReviewQueue'
 import { AssessorReviewUnresolved } from './AssessorReviewUnresolved'
 import { AssessorAppeals } from './AssessorAppeals'
 import { ReassessmentPanel } from './ReassessmentPanel'
+import { AssessmentModerationPanel } from './AssessmentModerationPanel'
 import styles from './assessment.module.css'
 
 function activeFilterSummary(filters: ReviewFilters): string {
@@ -41,6 +42,7 @@ export function AssessorReviewQueue({
   onAccessRevoked: () => void
 }) {
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
+  const [moderationOpen, setModerationOpen] = useState(false)
   const queue = useAssessorReviewQueue({ assignments, onCheckAccess, onAccessRevoked })
   /* The AlertDialog opens without a Radix trigger, so focus returns to the
      opening action button manually when the dialog closes (NFR4, AT24).
@@ -88,6 +90,10 @@ export function AssessorReviewQueue({
         {diagnosticsOpen && <CurriculumPanel key={queue.filters.courseId} courseId={queue.filters.courseId} staff />}
       </>}
       {queue.error && <p className={styles.alert} role="alert">{queue.error}</p>}
+      {queue.accessReady && queue.filters.courseId && <>
+        <Button variant="secondary" onClick={() => setModerationOpen(value => !value)}>{moderationOpen ? 'Close assessment moderation' : 'Open assessment moderation'}</Button>
+        {moderationOpen && <AssessmentModerationPanel key={queue.filters.courseId} courseId={queue.filters.courseId} onCheckAccess={onCheckAccess} onAccessRevoked={onAccessRevoked} onRecorded={() => void queue.refreshQueue()} />}
+      </>}
       {queue.accessReady && queue.filters.courseId && <AssessorAppeals key={`appeals-${queue.filters.courseId}`} courseId={queue.filters.courseId} onOpenDecision={queue.reloadCurrentDetail} />}
       {queue.status && <p className={styles.status} role="status">{queue.status}</p>}
       <ReviewFiltersPanel
