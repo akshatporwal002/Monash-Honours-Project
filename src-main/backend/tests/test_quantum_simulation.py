@@ -104,7 +104,11 @@ def test_timeout_terminates_and_reaps_the_simulation_child(monkeypatch) -> None:
 
     monkeypatch.setattr(subprocess, "Popen", tracked_popen)
     with pytest.raises(QuantumSimulationError) as caught:
-        simulate_circuit(qubits=1, operations=[CircuitOperation("h", (0,))], timeout_seconds=0.05)
+        # Use a fresh numerical key so this exercises a real child timeout,
+        # independently of successful simulations cached by earlier tests.
+        simulate_circuit(
+            qubits=1, operations=[CircuitOperation("h", (0,))], seed=980031, timeout_seconds=0.05
+        )
     assert caught.value.code == "simulation_timeout"
     assert len(children) == 1
     assert children[0].poll() is not None

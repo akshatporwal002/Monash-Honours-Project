@@ -7,13 +7,22 @@ import argparse
 import json
 import os
 import re
-import secrets
 import subprocess
 import tempfile
 from pathlib import Path
 
 VERSION = "8.28.0"
 LOG_OPTIONS = ["--all", "--full-history", "--no-ext-diff", "--no-textconv"]
+
+
+def positive_control_value():
+    """Never-issued fixture with fixed entropy above the pinned rule's threshold.
+
+    Each hex symbol occurs three times: Shannon entropy is exactly four bits.
+    This ordering also avoids the pinned generic rule's hex-only stopwords.
+    It is detection test data, not a credential or a source of randomness.
+    """
+    return "".join(format((index * 7) % 16, "x") for index in range(48))
 
 
 def git(repo, *args):
@@ -161,7 +170,7 @@ def main():
         fixture = Path(temp)
         target = fixture / "src-main/backend/tests/support/assessment.py"
         target.parent.mkdir(parents=True)
-        value = secrets.token_hex(24)
+        value = positive_control_value()
         target.write_text(
             "\n" * 309 + f'evaluation_idempotency_key="{value}"\n', encoding="utf-8"
         )

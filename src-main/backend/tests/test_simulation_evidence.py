@@ -76,6 +76,38 @@ def test_changed_input_cannot_reuse_request_key(evidence):
         service.prepare(**{**inputs, "seed": 7})
 
 
+def test_exact_compute_reuse_retains_separate_learner_run_evidence(
+    db_session, evidence, monkeypatch
+):
+    from app.services import quantum
+
+    service, inputs, _ = evidence
+    other = User(
+        email="other-circuit@example.test",
+        password_hash="unused",
+        full_name="Other circuit learner",
+        role=UserRole.STUDENT,
+    )
+    db_session.add(other)
+    db_session.commit()
+    original = quantum.subprocess.run
+    calls = []
+
+    def execute(*args, **kwargs):
+        calls.append(True)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(quantum.subprocess, "run", execute)
+    first = service.execute(**{**inputs, "seed": 43210, "shots": 3})
+    second = service.execute(**{**inputs, "owner_id": other.id, "seed": 43210, "shots": 3})
+    assert first["status"] == second["status"] == "completed"
+    assert first["result"] == second["result"]
+    assert first["run_id"] != second["run_id"] and len(calls) == 1
+    assert db_session.get(SimulationRun, first["run_id"]).owner_id == inputs["owner_id"]
+    assert db_session.get(SimulationRun, second["run_id"]).owner_id == other.id
+    assert db_session.scalar(select(func.count()).select_from(SimulationOutcome)) == 2
+
+
 def test_circuit_version_reused_but_each_run_retained(db_session, evidence):
     service, inputs, _ = evidence
     first, _ = service.prepare(**inputs)

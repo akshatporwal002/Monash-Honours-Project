@@ -615,6 +615,183 @@
           "Learner API does not expose usage. Local records are not zero-cost external evidence."
         ]
       }
+    },
+    {
+      "run": "local-50-5a57b66",
+      "report_sha256": "8882f229f642923eb1be1e44ed803196b42a2ad22e45d1b8861af72212fcbfe5",
+      "usage_sha256": "7e2d61ccdcd0c6b6c629095e21f7d2f155a20bcb9089834863ebdbd1cd7e1cf8",
+      "evidence_class": "SYNTHETIC LOCAL CAPACITY",
+      "source": {
+        "commit": "5a57b666a1e7a50a249fcf6436f65b3dfd79f5c9",
+        "branch": "main",
+        "dirty": false,
+        "harness_sha256": "951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75"
+      },
+      "started_at_utc": "2026-09-11T03:30:21.088589+00:00",
+      "runtime": {
+        "external_provider_disabled": true,
+        "provider_endpoint": "unreachable-loopback",
+        "database_engine": "sqlite",
+        "api_workers": 1,
+        "worker_processes": 1,
+        "rate_limit_enabled": true,
+        "csrf_enabled": true,
+        "research_enabled": false,
+        "material_scanner": "synthetic-test-only; no malware effectiveness evidence",
+        "worker_poll_seconds": 0.1,
+        "worker_heartbeat_seconds": 1,
+        "host": {
+          "os": "Windows",
+          "architecture": "AMD64",
+          "logical_cpus": 12,
+          "python": "3.11.16"
+        }
+      },
+      "bounds": {
+        "users": [
+          50
+        ],
+        "warmup_rounds": 1,
+        "measurement_rounds": 1,
+        "request_timeout": 30,
+        "phase_timeout": 600,
+        "worker_timeout": 90,
+        "human_timeout": 0,
+        "poll_seconds": 1,
+        "max_requests": 15000
+      },
+      "planned_loops": 100,
+      "periods": [
+        {
+          "users": 50,
+          "phase": "warmup",
+          "rounds": 1,
+          "wall_seconds": 88.26878890005173,
+          "peak_active_loops": 50
+        },
+        {
+          "users": 50,
+          "phase": "measurement",
+          "rounds": 1,
+          "wall_seconds": 108.18068270001095,
+          "peak_active_loops": 50
+        }
+      ],
+      "measured_scenarios": [
+        {
+          "users": 50,
+          "report_mode": "50-user",
+          "metrics": {
+            "ordinary": {
+              "count": 224,
+              "p95_seconds": 7.8030994000146165,
+              "threshold_seconds": 2,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": false
+            },
+            "progress": {
+              "count": 58,
+              "p95_seconds": 1.3320445999852382,
+              "threshold_seconds": 3,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": true
+            },
+            "feedback": {
+              "count": 8,
+              "p95_seconds": 3.28734749997966,
+              "threshold_seconds": 10,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": true
+            },
+            "assessed_feedback": {
+              "count": 16,
+              "p95_seconds": 15.12860900000669,
+              "threshold_seconds": null,
+              "errors": 0,
+              "censored": 0,
+              "within_threshold_observed": null
+            }
+          },
+          "loop_count": 50,
+          "complete_loops": 0,
+          "learning_loops": 8,
+          "loop_outcomes": {
+            "awaiting_human": 8,
+            "simulation_timed_out": 40,
+            "request_timeout": 2
+          },
+          "http_attempts": 998,
+          "http_errors": 2,
+          "http_error_rate": 0.002004008016032064,
+          "http_errors_within_threshold": true,
+          "loop_error_rate": 0.84,
+          "error_threshold_exclusive": 0.01
+        }
+      ],
+      "warmup_outcomes": {
+        "simulation_timed_out": 44,
+        "simulation_interrupted": 1,
+        "awaiting_human": 5
+      },
+      "total_http_attempts": 1720,
+      "database_counts": {
+        "submission_attempts": 39,
+        "assessment_attempts": 26,
+        "assessment_decisions": 0,
+        "workflow_runs": 39,
+        "learner_model_snapshots": 39,
+        "provider_usage": 0
+      },
+      "drain": {
+        "remaining_feedback_workflows": 0,
+        "drained": true
+      },
+      "cleanup": {
+        "owned_processes_stopped": true,
+        "listener_closed": true
+      },
+      "production_compliance": "not_established",
+      "external_provider_execution": "disabled_local_campaign",
+      "cost_status": "unknown_or_incomplete",
+      "cost_scenarios": [
+        {
+          "users": 50,
+          "recorded_external_aud_subtotal": null,
+          "complete_loop_denominator": 0,
+          "external_aud_per_complete_loop": null,
+          "within_threshold_observed": null
+        }
+      ],
+      "interpretation": "FAILED overall: 84% measured journey errors; progress and feedback latency observations are conditional on journeys reaching those stages, with only eight formative feedback observations.",
+      "usage_summary": {
+        "snapshot_sha256": "a17e33854a6cda2a8444c1dc3150e615ce888582bfc002cef2ea5441887d3971",
+        "durable_metering_available": true,
+        "record_count": 78,
+        "provider_counts": {
+          "local": 52,
+          "local-deterministic": 26
+        },
+        "feature_counts": {
+          "feedback_generation": 39,
+          "feedback_judge": 39
+        },
+        "legacy_generation_metadata_count": 0,
+        "coverage_complete": false,
+        "covered_loop_count": 0,
+        "reconciliation_record_present": false,
+        "local_template_receipts_excluded_from_external_evidence_count": 78,
+        "missing_receipt_count": 0,
+        "recorded_external_provider_models": [],
+        "limitations": [
+          "Durable attempt records preserve currency, pricing and nullable actuals; legacy generation estimates lack this provenance.",
+          "Durable calls are authoritative for metered submissions; legacy generation metadata is retained separately to avoid double counting.",
+          "Unattributed, pre-migration and other-agent spend still requires provider billing coverage reconciliation.",
+          "Learner API does not expose usage. Local records are not zero-cost external evidence."
+        ]
+      }
     }
   ],
   "isolated_dashboard_diagnostics": [

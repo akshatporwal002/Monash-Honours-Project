@@ -106,7 +106,7 @@
       "src-main/backend/app/services/practice_representations.py": "be9d2060f4567886940975203b64b45c3144323ec7e56316049e7d41073984c1",
       "src-main/backend/app/services/progress_indicators.py": "0272661406fd16674cda8103287758f76ba894530648e6478e19f7a7cf2d8f9d",
       "src-main/backend/app/services/provider_usage.py": "939d95fbbb33ef6e9f8e3bd8260a4ae30ddc1f6436c1ccdbddd69c8759909631",
-      "src-main/backend/app/services/quantum.py": "100549b807c6587ba3d55bbc28af564bc8f05bdd5fe98f1234075dee8b922254",
+      "src-main/backend/app/services/quantum.py": "6bc4b6be94674a8d0499a74a2321451d2673b917b41d8318ad0ef1ee461cec0c",
       "src-main/backend/app/services/quantum_runner.py": "0f9fffca970b62052b5558830060db1637c9db575953ca28515a87b0731a65d9",
       "src-main/backend/app/services/rag/contracts.py": "df256211ec9f383715ba8d307c37064f74110bb5a372f4725e4c99d1b105bf56",
       "src-main/backend/app/services/rag/feedback_adapter.py": "b5c492b896e15e436b6ef8215bcaf368cf4bd5c2b6e3469af18c30690d579146",

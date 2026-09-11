@@ -97,7 +97,7 @@ absence of error/unexpected warning diagnostics, a freshly written JSON array,
 zero findings, and scanner exit zero. It repeats the Git inventory to catch ref
 changes during the scan. Reports include the head and expected commit identities.
 
-The isolated positive control generates a nonfunctional random hex value at
+The isolated positive control constructs a nonfunctional balanced hex value at
 `src-main/backend/tests/support/assessment.py:310`, the same path/line as an
 exclusion. With the repository exclusions loaded, `generic-api-key` must still
 report exactly that finding, return exit one, and redact the value. The temporary
@@ -168,6 +168,28 @@ synthetic finding. CI's earlier 291 text commits reflect its smaller fetched ref
 inventory. The local inventory and scanner count agree; no fixed count was used
 to bypass coverage. Evidence is retained in ignored scratch reports. This verifies
 the local correction; a subsequent hosted CI result is separate evidence.
+
+## 2026-09-11 positive-control stability repair
+
+CI run `34558650591`, job `103136623973`, at commit
+`5a57b666a1e7a50a249fcf6436f65b3dfd79f5c9` completed its history scan with
+zero findings but found nothing in the random positive control. Its redacted
+artifact retains no fixture value, so the exact cause cannot be established.
+The pinned generic rule requires entropy above 3.5 and ignores certain substrings,
+including hexadecimal words `dead` and `feed`; either can affect random hex data.
+
+The control now deterministically constructs 48 hexadecimal characters, with each
+symbol occurring three times (entropy exactly 4), in an order avoiding the pinned
+rule's hexadecimal stopwords. This is never-issued detection data. The path, line
+310, scanner/configuration, expected rule/count/exit, redaction assertions and
+complete-history checks are unchanged; no exclusions were added.
+
+Two regression checks passed for stable entropy and stopword avoidance. One full
+local gate run at that head passed over **298 text-bearing commits** out of
+**397 reachable commits**, processing **21,118,949 bytes** with zero history
+findings. The control produced exactly one redacted `generic-api-key` finding at
+the required path and line. Reports remain private in ignored evidence storage.
+This is local validation of the pending script change, not a new hosted CI result.
 
 ## Remaining limits
 

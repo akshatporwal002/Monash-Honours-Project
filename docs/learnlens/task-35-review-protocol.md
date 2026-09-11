@@ -40,6 +40,10 @@ Experts must expand coverage for any intended release that includes those topics
   for provider/model execution and retrieval.
 - [Numerical receipt](../../src-main/backend/tests/fixtures/task35_validation/numerical-evidence.json):
   local ideal circuit calculations only, bound to scenario and manifest digests.
+- [11 September numerical revalidation](../../src-main/backend/tests/fixtures/task35_validation/numerical-revalidation-20260911.json):
+  all 12 ideal-circuit scenarios match after bounded exact-result simulation reuse,
+  bound to its [saved manifest](../../src-main/backend/tests/fixtures/task35_validation/numerical-revalidation-manifest-20260911.json).
+  This supplies numerical evidence only; conceptual approval remains pending.
 
 The candidate feedback controls are proposals, not guaranteed high-quality feedback.
 Experts may find them insufficiently specific. The judge flaw label, the six feedback

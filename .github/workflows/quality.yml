@@ -210,6 +210,7 @@ jobs:
       - name: Verify full history and secret detection
         working-directory: ${{ github.workspace }}
         run: |
+          python3 .github/scripts/test_secret_scan.py
           python3 .github/scripts/secret_scan.py \
             --gitleaks "$RUNNER_TEMP/gitleaks-8.28.0/gitleaks" \
             --report-dir "$RUNNER_TEMP/secret-scan"

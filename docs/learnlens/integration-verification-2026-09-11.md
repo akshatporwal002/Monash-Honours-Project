@@ -277,3 +277,43 @@ pairs. Quality remains UNVERIFIED and AI release PENDING. Both the numerical
 receipt and its original manifest remain byte-for-byte unchanged. Canonical API
 contracts remain current; Ruff checks passed and formatting was normalized across
 the five files reported by the final check. No full local suite was duplicated.
+
+## Combined `5a57b66` campaign and simulation repair
+
+The clean 50-user campaign reached human assessment for eight measured journeys;
+40 ended with simulation timeouts and two with request timeouts. Ordinary-request
+p95 was 7.803099 seconds. Progress p95 of 1.332045 seconds and formative feedback
+p95 of 3.287348 seconds are conditional observations from surviving journeys;
+they do not establish complete-loop acceptance. The overall journey error rate
+was 84%. Owned processes stopped, the listener closed and feedback work drained.
+The [capacity receipt](task-38-local-capacity-20260911.md) preserves the exact
+counts, limits and hashes. No external billing or human confirmations occurred.
+
+A bounded diagnostic reproduced fresh Qiskit process startup exhausting the
+shared queue/execution deadline, with at most two children alive concurrently.
+Twelve callers with a three-second diagnostic budget produced four completions,
+six busy responses and two timeouts. The repair keeps the existing two process
+slots and 15-second production budget, reuses only successful exact seeded
+numerical results in a 128-entry LRU, and shares concurrent identical work.
+Keys include ordered circuit inputs, shots, seed, policy and installed engine
+versions. Returned results are detached copies. Every learner operation still
+creates its own scoped durable run and outcome; no learner evidence is cached.
+
+Forty-six distinct focused checks passed across three overlapping receipts,
+including follower deadlines, failed-owner wakeups, retry after child failures,
+eviction, deep-copy isolation, genuine child timeout and separate learner runs.
+Both independent read-only reviews found no remaining blocker. Repeating the
+bounded diagnostic from a cleared cache completed all 12 callers in 1.141 seconds
+with one child execution. This is repeated-input evidence; diverse circuits still
+use the bounded child execution path. A new complete load campaign remains due.
+
+Numerical revalidation matched all 12 ideal-circuit scenarios after this boundary
+change. Its new receipt and saved manifest preserve the prior numerical artifacts.
+The refreshed 123-entry manifest digest is
+`3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`.
+The draft runner retains 108 draft cases, zero approvals and zero included pairs;
+quality is UNVERIFIED and AI release remains PENDING. Combined CI on `5a57b66`
+is still running. Its repository history scan found no secrets, but the synthetic
+positive control failed. A deterministic control now passes local detection and
+two regression checks without weakening history coverage or detection assertions;
+the [secret-gate receipt](secret-scan-gate-2026-09-10.md) records the scope.
