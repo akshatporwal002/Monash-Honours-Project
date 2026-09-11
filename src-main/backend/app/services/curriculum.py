@@ -439,29 +439,60 @@ class CurriculumService:
 
 def pathway_progress(session, learner_id, task):
     """Only current practice graphs can grant prerequisite bypass or optional fading."""
-    if not task.learning_outcome_id:
-        return set(), set(task.prerequisite_task_ids or []), None
-    service = CurriculumService(session)
-    path = service._latest(task.learning_outcome_id)
-    if not path:
-        return set(), set(task.prerequisite_task_ids or []), None
-    step = next((item for item in path.payload["steps"] if item["task_id"] == task.id), None)
-    if not step or path.bindings[task.id]["assessment"]:
-        return set(), set(task.prerequisite_task_ids or []), None
-    # Revalidate approvals before applying a consequential pathway effect.
-    service._current(path)
-    rows = session.execute(
-        select(DiagnosticSession, DiagnosticConfirmation)
-        .join(DiagnosticConfirmation, DiagnosticConfirmation.session_id == DiagnosticSession.id)
-        .where(DiagnosticSession.pathway_id == path.id, DiagnosticSession.learner_id == learner_id)
-    ).all()
-    bypassed = set()
-    for diagnostic, confirmation in rows:
-        if confirmation.payload["decision"] == "advance":
-            bypassed.update(service._bypass_tasks(path, diagnostic.payload["target_task_id"]))
-    faded = bool(bypassed & set(step["prerequisites"]))
-    support = step["faded_support_level"] if faded else step["support_level"]
-    return bypassed, set(step["prerequisites"]), support
+    return PathwayProgressReader(session, learner_id).read(task)
+
+
+class PathwayProgressReader:
+    """Validate each pathway once within one learner dashboard read.
+
+    Create a new reader for every operation; never retain it across requests or
+    mutations. No approval or learner evidence is cached on the session/service.
+    """
+
+    def __init__(self, session, learner_id):
+        self.session = session
+        self.learner_id = learner_id
+        self.service = CurriculumService(session)
+        self.paths = {}
+        self.bypasses = {}
+
+    def read(self, task):
+        fallback = (set(), set(task.prerequisite_task_ids or []), None)
+        if not task.learning_outcome_id:
+            return fallback
+        if task.learning_outcome_id not in self.paths:
+            self.paths[task.learning_outcome_id] = self.service._latest(task.learning_outcome_id)
+        path = self.paths[task.learning_outcome_id]
+        if not path:
+            return fallback
+        step = next((item for item in path.payload["steps"] if item["task_id"] == task.id), None)
+        if not step or path.bindings[task.id]["assessment"]:
+            return fallback
+        if path.id not in self.bypasses:
+            # The original approval checks still run before any bypass is used.
+            self.service._current(path)
+            rows = self.session.execute(
+                select(DiagnosticSession, DiagnosticConfirmation)
+                .join(
+                    DiagnosticConfirmation,
+                    DiagnosticConfirmation.session_id == DiagnosticSession.id,
+                )
+                .where(
+                    DiagnosticSession.pathway_id == path.id,
+                    DiagnosticSession.learner_id == self.learner_id,
+                )
+            ).all()
+            bypassed = set()
+            for diagnostic, confirmation in rows:
+                if confirmation.payload["decision"] == "advance":
+                    bypassed.update(
+                        self.service._bypass_tasks(path, diagnostic.payload["target_task_id"])
+                    )
+            self.bypasses[path.id] = bypassed
+        bypassed = self.bypasses[path.id]
+        faded = bool(bypassed & set(step["prerequisites"]))
+        support = step["faded_support_level"] if faded else step["support_level"]
+        return set(bypassed), set(step["prerequisites"]), support
 
 
 def pathway_completions(session, learner_id, task):
