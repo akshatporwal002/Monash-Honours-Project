@@ -53,8 +53,8 @@ actuals require exact precision of at most six decimal places.
 
 Migration `20260911_0047`, initially following `20260910_0046`, adds
 `provider_budgets` and `provider_usage` without inserting approvals or backfilling
-unknown history. The coordinator orders migrations and updates the readiness pin
-and canonical exact-table assertions (`tests/test_migrations.py:EXPECTED_TABLES`).
+unknown history. The integrated migration chain ends at `20260911_0051`; readiness
+and the exact table assertions (`tests/test_migrations.py:EXPECTED_TABLES`) match it.
 Downgrade refuses to delete a populated budget ledger; retain history and use the
 verified backup/recovery procedure. The migration and exercised database are SQLite.
 

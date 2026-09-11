@@ -29,8 +29,8 @@ Tutor dialogue creates a normal-priority review case for repeated answer-only re
 
 - New schemas: `structured_tasks.py`, `generated_task_design.py`, `support_representations.py`.
 - Public additions: `TaskType` values, `TaskRead.structured_task`, `EpisodeStateRead.representation_choices`, `EpisodeHelpUseReceipt.representation` and reviewed `EpisodePlanV1.support_representations`.
-- Migration `20260911_0050` expands the task CHECK constraint. It preserves rows, indexes, triggers and foreign keys and is replay-safe. Downgrade requires restoring a verified backup. The coordinator sets its final predecessor and readiness pin.
-- The coordinator regenerates final API/frontend contracts after integration. Provider accounting, moderation and study/export behavior belong to their respective deliveries.
+- Migration `20260911_0050` expands the task CHECK constraint, follows `20260911_0049`, and is included in head `20260911_0051`. It preserves rows, indexes, triggers and foreign keys and is replay-safe. Downgrade requires restoring a verified backup.
+- API/frontend contracts are regenerated during integration. Provider accounting, moderation and study/export behavior are documented in their respective deliveries.
 
 ## Review follow-ups
 

@@ -24,9 +24,11 @@ _STATEMENTS = (
 
 
 def upgrade():
-    existing_columns = set() if context.is_offline_mode() else {
-        column["name"] for column in inspect(op.get_bind()).get_columns("learning_materials")
-    }
+    existing_columns = (
+        set()
+        if context.is_offline_mode()
+        else {column["name"] for column in inspect(op.get_bind()).get_columns("learning_materials")}
+    )
     for statement in _STATEMENTS:
         if statement.startswith("ALTER TABLE") and statement.split()[5] in existing_columns:
             continue

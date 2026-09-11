@@ -896,6 +896,100 @@
         "title": "AssessmentAttemptState",
         "type": "string"
       },
+      "AssessmentAuthoringCriterionRead": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_anchors": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Approved Anchors"
+          },
+          "critical_error_rules": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              }
+            ],
+            "title": "Critical Error Rules"
+          },
+          "evaluator_type": {
+            "$ref": "#/components/schemas/CriterionEvaluatorType"
+          },
+          "evidence_description": {
+            "title": "Evidence Description",
+            "type": "string"
+          },
+          "evidence_source_types": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Source Types",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "learner_description": {
+            "title": "Learner Description",
+            "type": "string"
+          },
+          "mandatory": {
+            "title": "Mandatory",
+            "type": "boolean"
+          },
+          "met_rule": {
+            "title": "Met Rule",
+            "type": "string"
+          },
+          "not_evaluable_rule": {
+            "title": "Not Evaluable Rule",
+            "type": "string"
+          },
+          "not_met_rule": {
+            "title": "Not Met Rule",
+            "type": "string"
+          },
+          "stable_key": {
+            "title": "Stable Key",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "stable_key",
+          "version",
+          "learner_description",
+          "evidence_description",
+          "mandatory",
+          "evidence_source_types",
+          "met_rule",
+          "not_met_rule",
+          "not_evaluable_rule",
+          "evaluator_type",
+          "approved_anchors",
+          "critical_error_rules"
+        ],
+        "title": "AssessmentAuthoringCriterionRead",
+        "type": "object"
+      },
       "AssessmentAuthoringTaskRead": {
         "additionalProperties": false,
         "properties": {
@@ -909,6 +1003,11 @@
               }
             ],
             "title": "Content Digest"
+          },
+          "generated_assessment_candidate": {
+            "default": false,
+            "title": "Generated Assessment Candidate",
+            "type": "boolean"
           },
           "issues": {
             "items": {
@@ -1688,7 +1787,7 @@
           },
           "criteria": {
             "items": {
-              "$ref": "#/components/schemas/AssessmentTaskCriterionRead"
+              "$ref": "#/components/schemas/AssessmentAuthoringCriterionRead"
             },
             "title": "Criteria",
             "type": "array"
@@ -1762,6 +1861,10 @@
               }
             ],
             "title": "Next Action Contract"
+          },
+          "outcome_id": {
+            "title": "Outcome Id",
+            "type": "string"
           },
           "outcome_version_id": {
             "title": "Outcome Version Id",
@@ -1844,6 +1947,7 @@
           "assessment_definition_id",
           "course_id",
           "outcome_version_id",
+          "outcome_id",
           "version",
           "approval_state",
           "purpose",
@@ -2419,72 +2523,6 @@
           "task_form_version_id"
         ],
         "title": "AssessmentStartWrite",
-        "type": "object"
-      },
-      "AssessmentTaskCriterionRead": {
-        "additionalProperties": false,
-        "properties": {
-          "evaluator_type": {
-            "$ref": "#/components/schemas/CriterionEvaluatorType"
-          },
-          "evidence_description": {
-            "title": "Evidence Description",
-            "type": "string"
-          },
-          "evidence_source_types": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Evidence Source Types",
-            "type": "array"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "learner_description": {
-            "title": "Learner Description",
-            "type": "string"
-          },
-          "mandatory": {
-            "title": "Mandatory",
-            "type": "boolean"
-          },
-          "met_rule": {
-            "title": "Met Rule",
-            "type": "string"
-          },
-          "not_evaluable_rule": {
-            "title": "Not Evaluable Rule",
-            "type": "string"
-          },
-          "not_met_rule": {
-            "title": "Not Met Rule",
-            "type": "string"
-          },
-          "stable_key": {
-            "title": "Stable Key",
-            "type": "string"
-          },
-          "version": {
-            "title": "Version",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "stable_key",
-          "version",
-          "learner_description",
-          "evidence_description",
-          "mandatory",
-          "evidence_source_types",
-          "met_rule",
-          "not_met_rule",
-          "not_evaluable_rule",
-          "evaluator_type"
-        ],
-        "title": "AssessmentTaskCriterionRead",
         "type": "object"
       },
       "AssessmentTaskFormDraft": {
@@ -7284,6 +7322,15 @@
             },
             "title": "Difficulty Levels",
             "type": "array"
+          },
+          "generation_mode": {
+            "default": "basic",
+            "enum": [
+              "basic",
+              "multipart"
+            ],
+            "title": "Generation Mode",
+            "type": "string"
           },
           "learning_outcome_id": {
             "maxLength": 255,
@@ -12671,6 +12718,326 @@
         "title": "PathwayRead",
         "type": "object"
       },
+      "PracticeRepresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit"
+          },
+          "equivalence_basis": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Equivalence Basis",
+            "type": "string"
+          },
+          "explanation_detail": {
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "title": "Explanation Detail",
+            "type": "string"
+          },
+          "instructional_support_level": {
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Instructional Support Level",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "text",
+              "visual",
+              "worked_example",
+              "circuit",
+              "stepwise"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "representation_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Representation Id",
+            "type": "string"
+          },
+          "source_references": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Source References",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Steps",
+            "type": "array"
+          },
+          "support_kind": {
+            "enum": [
+              "instructional",
+              "accessibility"
+            ],
+            "title": "Support Kind",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instructional_support_level",
+          "mode",
+          "title",
+          "text",
+          "source_references",
+          "equivalence_basis",
+          "representation_id",
+          "explanation_detail",
+          "support_kind"
+        ],
+        "title": "PracticeRepresentation",
+        "type": "object"
+      },
+      "PracticeRepresentationCatalog": {
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/PracticeRepresentationChoice"
+            },
+            "title": "Choices",
+            "type": "array"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "on_request": {
+            "title": "On Request",
+            "type": "boolean"
+          },
+          "preference_version": {
+            "title": "Preference Version",
+            "type": "integer"
+          },
+          "recommended_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Id"
+          },
+          "review_event_id": {
+            "title": "Review Event Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "selected_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Id"
+          },
+          "selection": {
+            "enum": [
+              "preference",
+              "override"
+            ],
+            "title": "Selection",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision_id",
+          "review_event_id",
+          "preference_version",
+          "on_request",
+          "recommended_id",
+          "selected_id",
+          "selection",
+          "explanation",
+          "choices"
+        ],
+        "title": "PracticeRepresentationCatalog",
+        "type": "object"
+      },
+      "PracticeRepresentationChoice": {
+        "properties": {
+          "explanation_detail": {
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "title": "Explanation Detail",
+            "type": "string"
+          },
+          "instructional_support_level": {
+            "title": "Instructional Support Level",
+            "type": "integer"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "representation_id": {
+            "title": "Representation Id",
+            "type": "string"
+          },
+          "support_kind": {
+            "enum": [
+              "instructional",
+              "accessibility"
+            ],
+            "title": "Support Kind",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "representation_id",
+          "title",
+          "mode",
+          "explanation_detail",
+          "support_kind",
+          "instructional_support_level"
+        ],
+        "title": "PracticeRepresentationChoice",
+        "type": "object"
+      },
+      "PracticeRepresentationReceipt": {
+        "properties": {
+          "delivered_at": {
+            "format": "date-time",
+            "title": "Delivered At",
+            "type": "string"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "preference_version": {
+            "title": "Preference Version",
+            "type": "integer"
+          },
+          "representation": {
+            "$ref": "#/components/schemas/PracticeRepresentation"
+          },
+          "review_event_id": {
+            "title": "Review Event Id",
+            "type": "string"
+          },
+          "revision_id": {
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "selection": {
+            "enum": [
+              "preference",
+              "override"
+            ],
+            "title": "Selection",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "revision_id",
+          "review_event_id",
+          "preference_version",
+          "selection",
+          "delivered_at",
+          "representation"
+        ],
+        "title": "PracticeRepresentationReceipt",
+        "type": "object"
+      },
+      "PracticeRepresentationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "preference_version": {
+            "minimum": 0.0,
+            "title": "Preference Version",
+            "type": "integer"
+          },
+          "representation_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Representation Id",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Request Key",
+            "type": "string"
+          },
+          "revision_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "selection": {
+            "enum": [
+              "preference",
+              "override"
+            ],
+            "title": "Selection",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision_id",
+          "representation_id",
+          "preference_version",
+          "request_key",
+          "selection"
+        ],
+        "title": "PracticeRepresentationRequest",
+        "type": "object"
+      },
       "PreferenceFormat": {
         "enum": [
           "NO_PREFERENCE",
@@ -17601,6 +17968,15 @@
             ],
             "title": "Due At"
           },
+          "generation_mode": {
+            "default": "basic",
+            "enum": [
+              "basic",
+              "multipart"
+            ],
+            "title": "Generation Mode",
+            "type": "string"
+          },
           "learning_outcome_id": {
             "maxLength": 36,
             "minLength": 36,
@@ -17610,7 +17986,7 @@
           "task_count": {
             "default": 6,
             "maximum": 6.0,
-            "minimum": 3.0,
+            "minimum": 1.0,
             "title": "Task Count",
             "type": "integer"
           },
@@ -21960,6 +22336,160 @@
         "summary": "Review Requests",
         "tags": [
           "learner results"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/tasks/{task_id}/generated-assessment-draft": {
+      "get": {
+        "operationId": "preview_generated_assessment_draft_api_v1_assessment_courses__course_id__tasks__task_id__generated_assessment_draft_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_revision_id",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Expected Revision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDefinitionDraftCreate"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Generated Assessment Draft",
+        "tags": [
+          "assessment"
+        ]
+      },
+      "post": {
+        "operationId": "save_generated_assessment_draft_api_v1_assessment_courses__course_id__tasks__task_id__generated_assessment_draft_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "expected_revision_id",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Expected Revision Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentDefinitionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Generated Assessment Draft",
+        "tags": [
+          "assessment"
         ]
       }
     },
@@ -28197,6 +28727,132 @@
         "summary": "Update Outcome",
         "tags": [
           "learning management"
+        ]
+      }
+    },
+    "/api/v1/practice-representations/tasks/{task_id}": {
+      "get": {
+        "operationId": "catalog_api_v1_practice_representations_tasks__task_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeRepresentationCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Catalog",
+        "tags": [
+          "practice representations"
+        ]
+      }
+    },
+    "/api/v1/practice-representations/tasks/{task_id}/deliver": {
+      "post": {
+        "operationId": "deliver_api_v1_practice_representations_tasks__task_id__deliver_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PracticeRepresentationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeRepresentationReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deliver",
+        "tags": [
+          "practice representations"
         ]
       }
     },

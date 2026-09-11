@@ -50,7 +50,7 @@ jobs:
         working-directory: src-main/backend
         run: uv run --frozen ruff format --check .
 
-      - name: Backend tests
+      - name: Backend tests including migrations
         working-directory: src-main/backend
         env:
           APP_ENV: test
@@ -61,13 +61,6 @@ jobs:
           --cov=app.services
           --cov-report=term-missing
           --cov-fail-under=80
-
-      - name: Alembic clean, legacy, and round-trip checks
-        working-directory: src-main/backend
-        env:
-          APP_ENV: test
-          LEARNING_EVENT_PSEUDONYM_SECRET: ci-only-pseudonym-secret-32-bytes-minimum
-        run: uv run --frozen pytest tests/test_migrations.py
 
       - name: OpenAPI contract drift
         working-directory: src-main/backend

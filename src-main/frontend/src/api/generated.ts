@@ -139,8 +139,24 @@ export type ApiSchemas = {
   }
   "AssessmentApprovalState": "DRAFT" | "APPROVED" | "RETIRED"
   "AssessmentAttemptState": "PENDING" | "EVALUATED" | "FAULTED" | "VOID"
+  "AssessmentAuthoringCriterionRead": {
+    "approved_anchors": (Record<string, unknown>) | (Array<unknown>)
+    "critical_error_rules": (Record<string, unknown>) | (Array<unknown>)
+    "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
+    "evidence_description": string
+    "evidence_source_types": Array<string>
+    "id": string
+    "learner_description": string
+    "mandatory": boolean
+    "met_rule": string
+    "not_evaluable_rule": string
+    "not_met_rule": string
+    "stable_key": string
+    "version": number
+  }
   "AssessmentAuthoringTaskRead": {
     "content_digest": (string) | (null)
+    "generated_assessment_candidate"?: boolean
     "issues": Array<string>
     "outcome_id": string
     "outcome_statement": string
@@ -237,7 +253,7 @@ export type ApiSchemas = {
     "claim": string
     "contradicting_evidence": (Record<string, unknown>) | (Array<unknown>)
     "course_id": string
-    "criteria": Array<ApiSchemas["AssessmentTaskCriterionRead"]>
+    "criteria": Array<ApiSchemas["AssessmentAuthoringCriterionRead"]>
     "evidence_sufficiency": (Record<string, unknown>) | (Array<unknown>)
     "formal_result_eligible": (boolean) | (null)
     "id": string
@@ -245,6 +261,7 @@ export type ApiSchemas = {
     "insufficient_evidence": (Record<string, unknown>) | (Array<unknown>)
     "knowledge_dimension": ApiSchemas["BloomKnowledge"]
     "next_action_contract": (Record<string, unknown>) | (Array<unknown>)
+    "outcome_id": string
     "outcome_version_id": string
     "pass_rule_expression": Record<string, unknown>
     "permitted_tools": (Record<string, unknown>) | (Array<unknown>)
@@ -333,19 +350,6 @@ export type ApiSchemas = {
   }
   "AssessmentStartWrite": {
     "task_form_version_id": string
-  }
-  "AssessmentTaskCriterionRead": {
-    "evaluator_type": ApiSchemas["CriterionEvaluatorType"]
-    "evidence_description": string
-    "evidence_source_types": Array<string>
-    "id": string
-    "learner_description": string
-    "mandatory": boolean
-    "met_rule": string
-    "not_evaluable_rule": string
-    "not_met_rule": string
-    "stable_key": string
-    "version": number
   }
   "AssessmentTaskFormDraft": {
     "constraints": (Record<string, unknown>) | (Array<unknown>)
@@ -1043,6 +1047,7 @@ export type ApiSchemas = {
   "GenerateTasksRequest": {
     "allowed_task_types": Array<ApiSchemas["TaskType"]>
     "difficulty_levels": Array<string>
+    "generation_mode"?: "basic" | "multipart"
     "learning_outcome_id": string
     "learning_outcome_text": string
     "module_id"?: (string) | (null)
@@ -1858,6 +1863,54 @@ export type ApiSchemas = {
     "title": string
     "version": number
   }
+  "PracticeRepresentation": {
+    "circuit"?: (Record<string, unknown>) | (null)
+    "equivalence_basis": string
+    "explanation_detail": "brief" | "detailed"
+    "instructional_support_level": number
+    "mode": "text" | "visual" | "worked_example" | "circuit" | "stepwise"
+    "representation_id": string
+    "source_references": Array<string>
+    "steps"?: Array<string>
+    "support_kind": "instructional" | "accessibility"
+    "text": string
+    "title": string
+  }
+  "PracticeRepresentationCatalog": {
+    "choices": Array<ApiSchemas["PracticeRepresentationChoice"]>
+    "explanation": string
+    "on_request": boolean
+    "preference_version": number
+    "recommended_id": (string) | (null)
+    "review_event_id": string
+    "revision_id": string
+    "selected_id": (string) | (null)
+    "selection": "preference" | "override"
+  }
+  "PracticeRepresentationChoice": {
+    "explanation_detail": "brief" | "detailed"
+    "instructional_support_level": number
+    "mode": string
+    "representation_id": string
+    "support_kind": "instructional" | "accessibility"
+    "title": string
+  }
+  "PracticeRepresentationReceipt": {
+    "delivered_at": string
+    "evidence_id": string
+    "preference_version": number
+    "representation": ApiSchemas["PracticeRepresentation"]
+    "review_event_id": string
+    "revision_id": string
+    "selection": "preference" | "override"
+  }
+  "PracticeRepresentationRequest": {
+    "preference_version": number
+    "representation_id": string
+    "request_key": string
+    "revision_id": string
+    "selection": "preference" | "override"
+  }
   "PreferenceFormat": "NO_PREFERENCE" | "TEXT" | "VISUAL" | "WORKED_EXAMPLE" | "CIRCUIT" | "STEPWISE"
   "PreferenceHistory": {
     "items": Array<ApiSchemas["PreferenceRevision"]>
@@ -2558,6 +2611,7 @@ export type ApiSchemas = {
   }
   "TaskGenerateRequest": {
     "due_at"?: (string) | (null)
+    "generation_mode"?: "basic" | "multipart"
     "learning_outcome_id": string
     "task_count"?: number
     "task_types"?: Array<ApiSchemas["TaskType"]>

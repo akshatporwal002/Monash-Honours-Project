@@ -60,3 +60,46 @@ in this batch. The [task ledger](../../LearnLens_Remaining_Tasks.md) retains
 12 unfinished numbered tasks and separates software from acceptance records.
 The [operational checklist](operational-acceptance-checklist.md) identifies the
 actual owner records still required.
+
+## Follow-up integration
+
+Source `72392d9` includes practice representations (`70ea786`, `c26bcae`),
+submission review cues (`ba95955`, `99becc1`), multipart generation (`7f12e3e`,
+`95b66a3`) and versioned assessor editing (`067f476`, `daed691`). These deliveries
+add no migration beyond head 0051. Their delivery notes retain their scoped
+owner checks; overlapping reruns are not added to the first-batch counts.
+
+Independent review identified and corrected cross-task instructional support
+during active transfer, fresh-input disclosure in generated public criteria,
+scaffolding false positives in review cues, wrong-course editor access checks,
+and obsolete generated-save callbacks. Each correction has a focused regression.
+The editor owner records 28 passing affected UI cases and six backend checks.
+
+Three additional checks passed against the integrated source:
+
+| Integration boundary | Result |
+| --- | --- |
+| Course-wide transfer: instruction and replay blocked, approved access preserved | 1 passed, 5.32 seconds |
+| Submission review cues against migrated immutable storage | 1 passed, 8.48 seconds |
+| Generated-draft bridge with final authoring response | 1 passed, 3.81 seconds |
+
+Canonical OpenAPI/TypeScript contracts and draft validation fingerprints were
+refreshed. Ruff check/format passes across 607 files, the 143-row matrix is valid,
+and frontend TypeScript, production build and lint pass. The build first found
+invalid Windows-encoded ellipses in two study pages; those characters are now
+UTF-8. Two Python files received formatting-only corrections. The build retains
+a non-blocking large-bundle warning.
+
+The draft report remains **108 DRAFT, zero approved, quality UNVERIFIED and AI
+release PENDING**. The numerical receipt is deliberately retained from `fbf9ca6`:
+its 12 matches belong to that recorded manifest. Quantum implementation and
+scenario fixtures are unchanged; no new numerical execution is claimed and its
+manifest digest has not been rewritten to imply one.
+
+The full application/coverage/browser suite is delegated to the repository's
+Quality and release gate on the pushed source. **CI result: pending.** The duplicate
+standalone migration invocation was removed from CI because the full backend
+suite already includes that file; all migration tests and the 80% service coverage
+gate remain. This avoids an extra full local run followed by identical CI work.
+Actual hosted, paid-provider, expert and human accessibility acceptance remains
+outside these synthetic checks.

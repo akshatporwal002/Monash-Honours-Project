@@ -30,7 +30,7 @@ GET/POST `/api/v1/assessment/courses/{course_id}/tasks/{task_id}/generated-asses
 
 The saved definition is DRAFT, with `formal_result_eligible: false`, access review required, and no verified elicited Bloom processes. The existing approval service rejects it until the required design review is completed. No approval or deployment is performed by this bridge.
 
-The panel currently previews and saves; it does not itself edit or publish the saved multi-criterion definition. The coordinator has assigned lossless editing of existing definitions to the separate assessment-UI delivery. Integration should pass the returned `assessment_definition_id` and course to that editor. The existing read route is `/api/v1/assessment/courses/{course_id}/definitions/{assessment_definition_id}/history`. Keep all criteria/forms when handing off; the older single-criterion `SetupValues` form is not a lossless target.
+Saving opens the [versioned definition editor](assessor-definition-editor.md) automatically using the returned definition and course identity. It loads full authoring history and preserves all criteria, forms, anchors and policy metadata. Obsolete save responses cannot replace another editor's unsaved work. Approval requires a separate explicit review of the saved version.
 
 ## Remaining software and human work
 
@@ -41,7 +41,7 @@ The panel currently previews and saves; it does not itself edit or publish the s
 - Support representation delivery, practice preferences and integrity cues remain owned by their separate implementations. This generator creates no support representations.
 - Actual source/task/form approval, assessor eligibility, access-equivalence decisions and Bloom verification remain human records. Synthetic test approvals do not establish any of them.
 
-No migration is needed. The coordinator owns final OpenAPI/frontend contract regeneration, fingerprints and combined checks. Public changes include optional generation modes, one-task multipart request validation, `AssessmentAuthoringTaskRead.generated_assessment_candidate`, the generated-draft endpoints and SUMMATIVE as a proposed generated-design purpose.
+No migration is needed. OpenAPI/frontend contracts and validation fingerprints were refreshed during integration. Public changes include optional generation modes, one-task multipart request validation, `AssessmentAuthoringTaskRead.generated_assessment_candidate`, the generated-draft endpoints and SUMMATIVE as a proposed generated-design purpose.
 
 ## Focused verification
 

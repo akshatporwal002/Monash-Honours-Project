@@ -335,10 +335,13 @@ def test_student_admin_and_cross_course_users_are_denied(
     _logout(client)
     _login(client, "admin")
     assert _publish(client, course, definition).status_code == 403
-    assert client.get(
-        f"/api/v1/assessment/courses/{course['id']}/definitions/"
-        f"{definition['assessment_definition_id']}/history"
-    ).status_code == 404
+    assert (
+        client.get(
+            f"/api/v1/assessment/courses/{course['id']}/definitions/"
+            f"{definition['assessment_definition_id']}/history"
+        ).status_code
+        == 404
+    )
 
     _logout(client)
     _login(client, "educator")
@@ -347,15 +350,19 @@ def test_student_admin_and_cross_course_users_are_denied(
     ).json()
     _assign_assessor(client, session, str(course["id"]))
     assert _publish(client, other_course, definition).status_code == 403
-    assert client.get(
-        f"/api/v1/assessment/courses/{other_course['id']}/definitions/"
-        f"{definition['assessment_definition_id']}/history"
-    ).status_code == 404
+    assert (
+        client.get(
+            f"/api/v1/assessment/courses/{other_course['id']}/definitions/"
+            f"{definition['assessment_definition_id']}/history"
+        ).status_code
+        == 404
+    )
 
 
 @pytest.mark.parametrize("published", [False, True])
 def test_authoring_history_roundtrips_private_criterion_metadata(
-    assessment_api_context: tuple[TestClient, Session], published: bool,
+    assessment_api_context: tuple[TestClient, Session],
+    published: bool,
 ) -> None:
     client, session = assessment_api_context
     _login(client, "educator")
@@ -372,9 +379,7 @@ def test_authoring_history_roundtrips_private_criterion_metadata(
     read = client.get(path).json()[0]
     assert read["outcome_id"]
     assert read["criteria"][0]["approved_anchors"] == {"met": ["valid explanation"]}
-    assert read["criteria"][0]["critical_error_rules"] == {
-        "errors": ["reverses the relationship"]
-    }
+    assert read["criteria"][0]["critical_error_rules"] == {"errors": ["reverses the relationship"]}
     learner_fields = AssessmentTaskCriterionRead.model_fields
     learner_read = AssessmentTaskCriterionRead.model_validate(
         {key: value for key, value in read["criteria"][0].items() if key in learner_fields}
@@ -398,7 +403,8 @@ def test_authoring_history_roundtrips_private_criterion_metadata(
     payload["expected_version"] = read["version"]
     revised = client.put(
         f"/api/v1/assessment/courses/{course['id']}/outcomes/{read['outcome_id']}/definitions/"
-        f"{read['assessment_definition_id']}", json=payload,
+        f"{read['assessment_definition_id']}",
+        json=payload,
     )
     assert revised.status_code == 200, revised.text
     saved = revised.json()
