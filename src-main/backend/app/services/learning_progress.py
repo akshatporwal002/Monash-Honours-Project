@@ -22,6 +22,7 @@ from app.models.lms import (
     Enrollment,
     EnrollmentStatus,
     LearningOutcome,
+    PlatformAuditEvent,
     SubmissionAttempt,
 )
 from app.models.misconceptions import MisconceptionHypothesis
@@ -42,6 +43,7 @@ from app.services.curriculum import CurriculumService
 class LearningProgressService:
     def __init__(self, session):
         self.session = session
+        self._review_reasons = {}
 
     def scope(self, actor, course_id, *, learner_id=None):
         if not actor.is_active or actor.role not in {UserRole.STUDENT, UserRole.EDUCATOR}:
@@ -184,6 +186,9 @@ class LearningProgressService:
         return None
 
     def _scope(self, course_id, learner_id, outcome_id):
+        from app.services.progress_indicators import indicators
+
+        indicator_rows, truncated = indicators(self.session, course_id, learner_id, outcome_id)
         scope = [
             LearningEvidence.course_id == course_id,
             LearningEvidence.learner_id == learner_id,
@@ -246,7 +251,7 @@ class LearningProgressService:
                         dimension=estimate.dimension.value,
                         status=estimate.inference_status.value,
                         uncertainty=estimate.uncertainty,
-                        reason=estimate.reason_code,
+                        reason=self._review_reason(estimate.reason_code, course_id),
                         occurred_at=snapshot.occurred_at,
                         evidence=[
                             {"evidence_id": key, "relation": relation.value}
@@ -342,6 +347,9 @@ class LearningProgressService:
             )
         return ProgressScopeRead(
             learner_id=learner_id,
+            snapshot_version=snapshots[0].record_version if snapshots else 0,
+            indicators=indicator_rows,
+            indicator_evidence_truncated=truncated,
             learner_name=learner.full_name,
             outcome_id=outcome_id,
             outcome_title=outcome.title if outcome else "Saved outcome history",
@@ -378,3 +386,19 @@ class LearningProgressService:
                 )
             ),
         )
+
+    def _review_reason(self, code, course_id):
+        if not code.startswith("reviewed-profile."):
+            return code
+        if (course_id, code) in self._review_reasons:
+            return self._review_reasons[course_id, code]
+        audit = self.session.scalar(
+            select(PlatformAuditEvent).where(
+                PlatformAuditEvent.action == "learner_profile.reviewed",
+                PlatformAuditEvent.details["course_id"].as_string() == course_id,
+                PlatformAuditEvent.details["reason_code"].as_string() == code,
+            )
+        )
+        value = audit.details["reason"] if audit else code
+        self._review_reasons[course_id, code] = value
+        return value

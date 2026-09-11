@@ -2,17 +2,64 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.roles import CurrentUser
+from app.api.dependencies.roles import CurrentEducator, CurrentUser
+from app.api.security_dependencies import RequestSecurityGuard, get_request_security_guard
 from app.db.session import get_db
-from app.schemas.progress import LearningProgressPage, ProgressEvidenceDetail, ProgressTrendPage
+from app.schemas.feedback_api import AuthenticatedActor
+from app.schemas.progress import (
+    LearningProgressPage,
+    ProfileReviewReceipt,
+    ProfileReviewRequest,
+    ProgressEvidenceDetail,
+    ProgressTrendPage,
+)
+from app.services.learner_model.profile_reviews import review_profile
+from app.services.learner_model.safety import LearnerModelConflictError, LearnerModelSafetyError
 from app.services.learning_progress import LearningProgressService
 from app.services.progress_evidence import read_progress_evidence
 from app.services.progress_trends import contributing_records, records_query
 
 router = APIRouter(prefix="/progress", tags=["learning progress"])
+
+
+@router.post(
+    "/{course_id}/learners/{learner_id}/outcomes/{outcome_id}/reviews",
+    response_model=ProfileReviewReceipt,
+)
+async def record_profile_review(
+    course_id: str,
+    learner_id: int,
+    outcome_id: str,
+    payload: ProfileReviewRequest,
+    actor: CurrentEducator,
+    request: Request,
+    response: Response,
+    session: Session = Depends(get_db),
+    security: RequestSecurityGuard = Depends(get_request_security_guard),
+):
+    response.headers["Cache-Control"] = "no-store"
+    await security.enforce(
+        request,
+        AuthenticatedActor(actor_reference=str(actor.id), role=actor.role.value),
+        "learner-model-corrections",
+        mutating=True,
+    )
+    try:
+        return review_profile(
+            session, actor, course_id, learner_id, outcome_id, payload, request.state.correlation_id
+        )
+    except LearnerModelConflictError:
+        session.rollback()
+        raise HTTPException(409, "The profile changed; refresh before reviewing it") from None
+    except LearnerModelSafetyError:
+        session.rollback()
+        raise HTTPException(422, "The profile review could not be recorded") from None
+    except HTTPException:
+        session.rollback()
+        raise
 
 
 @router.get("/{course_id}/records", response_model=ProgressTrendPage)

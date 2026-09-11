@@ -296,11 +296,62 @@ class LearnerModelBuildService:
             evidence_signals=cumulative_signals,
         )
         try:
-            payload = self._builder.build(cumulative_command, observations)
+            reviewed_ids = {
+                key
+                for item in (head.estimates if head else ())
+                if item.reason_code.startswith("reviewed-profile.")
+                for key, _ in item.evidence_links
+            }
+            rule_ids = {item.evidence_id for item in incoming} | {
+                key
+                for item in (head.estimates if head else ())
+                if not item.reason_code.startswith("reviewed-profile.")
+                for key, _ in item.evidence_links
+            }
+            # A human relation about one dimension is not a rule adjudication of
+            # every other dimension that happens to consume that evidence type.
+            rule_observations = tuple(
+                item for item in observations if item.evidence_id not in reviewed_ids - rule_ids
+            )
+            payload = self._builder.build(cumulative_command, rule_observations)
         except Exception:
             return LearnerModelBuildResult(LearnerModelBuildState.PROVIDER_UNAVAILABLE)
         if payload is None:
             return LearnerModelBuildResult(LearnerModelBuildState.NO_INFERENCE)
+        if head:
+            # New rule observations cannot silently replace an educator's scoped
+            # interpretation. Retain its evidence time and uncertainty; the prior
+            # snapshot chain preserves who made that review.
+            reviewed = [
+                item for item in head.estimates if item.reason_code.startswith("reviewed-profile.")
+            ]
+            dimensions = {item.dimension for item in reviewed}
+            retained = tuple(
+                LearnerOutcomeEstimatePayload(
+                    estimate_id=str(
+                        uuid5(_ESTIMATE_NAMESPACE, f"{payload.snapshot_id}:{item.dimension.value}")
+                    ),
+                    dimension=item.dimension,
+                    inference_status=item.inference_status,
+                    uncertainty=item.uncertainty,
+                    reason_code=item.reason_code,
+                    evidence_observed_at=item.evidence_observed_at,
+                    evidence_signals=tuple(
+                        LearnerModelEvidenceSignal(evidence_id=key, relation=relation)
+                        for key, relation in item.evidence_links
+                    ),
+                )
+                for item in reviewed
+            )
+            payload = payload.model_copy(
+                update={
+                    "estimates": tuple(
+                        item for item in payload.estimates if item.dimension not in dimensions
+                    )
+                    + retained,
+                    "occurred_at": max(payload.occurred_at, head.occurred_at),
+                }
+            )
         if accepted:
             affected = {item.dimension for item in accepted if item.dimension is not None}
             payload = payload.model_copy(

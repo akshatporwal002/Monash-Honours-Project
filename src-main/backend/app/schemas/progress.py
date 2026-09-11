@@ -1,12 +1,15 @@
 """Progress keeps observed activity, uncertain estimates and released results separate."""
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 from app.domain.assessment import AssessmentResult
+from app.domain.platform_enums import InferenceStatus, LearnerModelDimension
 from app.schemas.activity_continuation import ActivityHistory
+from app.services.learner_model.contracts import LearnerModelEvidenceSignal
+from app.services.learner_model.safety import require_safe_claim_text
 
 
 def _utc_instant(value: datetime) -> datetime:
@@ -103,6 +106,48 @@ class ProgressScopeRead(ProgressContract):
     outcome_results: list[ProgressOutcome]
     adaptations: list[ProgressAdaptation]
     misconception_ids: list[str]
+    snapshot_version: int = 0
+    indicators: list["ProgressIndicator"] = Field(default_factory=list)
+    indicator_evidence_truncated: bool = False
+
+
+class ProgressIndicator(ProgressContract):
+    id: str
+    kind: Literal["feedback_revision", "feedback_transfer", "question_clarification"]
+    status: Literal["REVIEW_REQUIRED"] = "REVIEW_REQUIRED"
+    explanation: str
+    evidence_ids: list[str]
+    occurred_at: ProgressTimestamp
+    uncertainty: float = 1
+    rule_version: str = "progress-indicators.v1"
+
+
+class ProfileReviewRequest(ProgressContract):
+    expected_version: int = Field(ge=0)
+    dimension: LearnerModelDimension
+    status: InferenceStatus
+    uncertainty: float = Field(ge=0, le=1, allow_inf_nan=False)
+    reason: str = Field(min_length=10, max_length=500)
+    evidence: list[LearnerModelEvidenceSignal] = Field(min_length=1, max_length=30)
+    idempotency_key: str = Field(min_length=1, max_length=100)
+
+    @field_validator("reason")
+    @classmethod
+    def safe_reason(cls, value):
+        return require_safe_claim_text(value.strip())
+
+    @field_validator("evidence")
+    @classmethod
+    def unique_evidence(cls, value):
+        if len({item.evidence_id for item in value}) != len(value):
+            raise ValueError("Evidence references must be distinct")
+        return value
+
+
+class ProfileReviewReceipt(ProgressContract):
+    snapshot_id: str
+    version: int
+    created: bool
 
 
 class LearningProgressPage(ProgressContract):
