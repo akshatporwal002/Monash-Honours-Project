@@ -306,8 +306,7 @@ def test_plan_replacement_and_idempotency(study):
     assert g.write("plan", key="replacement", **{**g.plan_data, "expected_revision": 1}).id == a.id
     with pytest.raises(GovernanceConflict):
         g.write("plan", **g.plan_data)
-    with pytest.raises(GovernanceDenied, match="replaced"):
-        g.workflow.participant_forms(g.student.id, g.study, g.course.id)
+    assert g.workflow.participant_forms(g.student.id, g.study, g.course.id) == []
 
 
 def test_missing_outcomes_are_explicit_and_history_immutable(study):
@@ -358,6 +357,7 @@ def test_mounted_study_routes_auth_csrf_self_and_export_fields(study):
         assert forms.status_code == 200, forms.text
         assert forms.headers["cache-control"] == "no-store"
         assert client.get(base + "/plan").status_code == 403
+        assert client.get(base + "/reconciliation").status_code == 403
         body = {"allocation_id": g.allocation.id, "record": g.command.model_dump(mode="json")}
         assert client.post(base + "/my-responses", json=body).status_code == 403
         headers = {
@@ -375,6 +375,10 @@ def test_mounted_study_routes_auth_csrf_self_and_export_fields(study):
         )
         headers[settings.csrf_header_name] = client.cookies.get(settings.csrf_cookie_name)
         assert client.get(base + "/plan").status_code == 200
+        reconciled = client.get(base + "/reconciliation")
+        assert reconciled.status_code == 200, reconciled.text
+        assert reconciled.headers["cache-control"] == "no-store"
+        assert reconciled.json()["rows"][0]["status"] == "response"
         payload = {
             "fields": ["study.condition", "instrument.stage"],
             "stages": ["T0_BASELINE"],

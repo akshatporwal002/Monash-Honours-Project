@@ -91,7 +91,7 @@ class InstrumentDefinition(GovernanceContract):
     schema_version: Literal["learnlens.instrument-definition.v1"] = (
         "learnlens.instrument-definition.v1"
     )
-    synthetic_only: Literal[True] = True
+    synthetic_only: bool = True
     review_status: Literal["DRAFT_FOR_REVIEW"] = "DRAFT_FOR_REVIEW"
     title: str = Field(min_length=1, max_length=200)
     instrument_kind: Literal[
@@ -127,11 +127,13 @@ class FormFreeze(GovernanceContract):
 
 class FormRead(GovernanceContract):
     id: str
+    instrument_key: str
     version: int
     content_digest: str
     definition: InstrumentDefinition
     frozen_for_synthetic_validation: bool
-    production_active: Literal[False] = False
+    frozen: bool = False
+    production_active: bool = False
 
 
 class InstrumentAnswer(GovernanceContract):
@@ -203,7 +205,7 @@ class InstrumentReceipt(GovernanceContract):
     id: str
     revision: int
     recorded_at: AwareDatetime
-    production_active: Literal[False] = False
+    production_active: bool = False
 
 
 class InstrumentReadRequest(GovernanceContract):

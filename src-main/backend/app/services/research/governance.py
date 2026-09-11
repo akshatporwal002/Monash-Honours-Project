@@ -12,17 +12,23 @@ from app.schemas.research_governance import (
     PROCESSING_FIELDS,
     ApprovalDecision,
     ConsentDecision,
+    DisposalAuthorization,
+    DisposalExecution,
     EligibilityDecision,
     GovernanceCommand,
+    InstrumentApprovalDecision,
     ResearchGrant,
     RetentionHold,
+    StudyReleaseDecision,
     StudyScope,
 )
 
 
 def research_processing_approved() -> bool:
-    """Intentionally closed for Task 33. Configuration is never institutional approval."""
-    return False
+    """Deployment opt-in only; every live study also requires its audited release."""
+    from app.core.config import settings
+
+    return settings.research_release_enabled
 
 
 def utc(value):
@@ -127,6 +133,8 @@ class ResearchGovernanceService:
         return event
 
     def _validate(self, decision, events):
+        if isinstance(decision, DisposalExecution):
+            raise GovernanceDenied("disposal_execution_route_required")
         if isinstance(decision, StudyScope):
             if self.session.get(User, decision.processing_researcher_id) is None:
                 raise GovernanceDenied("unknown_processing_researcher")
@@ -151,11 +159,26 @@ class ResearchGovernanceService:
             and self.session.get(User, decision.subject_user_id) is None
         ):
             raise GovernanceDenied("unknown_subject")
-        if isinstance(decision, ApprovalDecision | ResearchGrant):
+        if isinstance(
+            decision,
+            ApprovalDecision | ResearchGrant | InstrumentApprovalDecision | StudyReleaseDecision,
+        ):
             if not (
                 scope.valid_from <= decision.valid_from < decision.valid_until <= scope.valid_until
             ):
                 raise GovernanceDenied("invalid_access_window")
+        if isinstance(decision, InstrumentApprovalDecision) and decision.state == "approved":
+            from app.services.research.release import approved_form
+
+            approved_form(self, scope_event.study_id, decision, current=False)
+        if isinstance(decision, StudyReleaseDecision) and decision.state == "active":
+            from app.services.research.release import validate_release
+
+            validate_release(self, scope_event.study_id, decision)
+        if isinstance(decision, DisposalAuthorization) and decision.state == "authorized":
+            from app.services.research.disposal import validate_authorization
+
+            validate_authorization(self, scope_event.study_id, decision)
         if isinstance(decision, ConsentDecision) and not withdrawing:
             self.approved(scope_event.study_id)
             if decision.consent_version != scope.consent_version or not set(
@@ -193,6 +216,30 @@ class ResearchGovernanceService:
         if any(item.review_at <= now for item in scope.retention):
             raise GovernanceDenied("retention_review_due")
         return scope_event, scope, events
+
+    def require_release(self, study_id):
+        from app.services.research.release import require_release
+
+        return require_release(self, study_id)
+
+    def release_active(self, study_id):
+        try:
+            self.require_release(study_id)
+            return True
+        except GovernanceDenied:
+            return False
+
+    def require_form_release(self, study_id, form):
+        _, _, events = self.require_release(study_id)
+        release = next(
+            self.decision(event) for event in reversed(events) if event.kind == "release"
+        )
+        if not any(
+            event.id in release.instrument_approval_ids and self.decision(event).form_id == form.id
+            for event in events
+            if event.kind == "instrument_approval"
+        ):
+            raise GovernanceDenied("release_instrument_missing")
 
     def participant(self, study_id, course_id, user_id, *, fields, purposes):
         scope_event, scope, events = self.approved(study_id)
@@ -283,6 +330,7 @@ class ResearchGovernanceService:
         studies = self.session.scalars(select(ResearchGovernanceEvent.study_id).distinct()).all()
         for study in studies:
             try:
+                self.require_release(study)
                 participant = self.participant(
                     study,
                     course_id,
@@ -316,6 +364,7 @@ class ResearchGovernanceService:
         if binding is None:
             raise GovernanceDenied("legacy_case_unapproved")
         consent_event = self.session.get(ResearchGovernanceEvent, binding.consent_id)
+        self.require_release(consent_event.study_id)
         consent = self.decision(consent_event)
         scope, current_consent = self.participant(
             consent_event.study_id,

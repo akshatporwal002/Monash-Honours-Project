@@ -86,6 +86,8 @@ class ResearchInstrumentService:
         if live and not governance.research_processing_approved():
             raise GovernanceDenied("research_governance_pending")
         scope, definition, _ = self.policy.approved(study_id)
+        if live:
+            self.policy.require_release(study_id)
         if "study_instruments" not in definition.purposes:
             raise GovernanceDenied("instrument_purpose_not_approved")
         self.policy.grant(study_id, course_id, actor_id, set(fields) | {"instrument." + operation})
@@ -177,10 +179,14 @@ class ResearchInstrumentService:
         )
         return FormRead(
             id=form.id,
+            instrument_key=form.instrument_key,
             version=form.version,
             content_digest=form.content_digest,
             definition=form.definition,
-            frozen_for_synthetic_validation=frozen is not None,
+            frozen_for_synthetic_validation=frozen is not None
+            and form.definition.get("synthetic_only", True),
+            frozen=frozen is not None,
+            production_active=self.policy.release_active(form.study_id),
         )
 
     def read_form(self, actor_id, study_id, course_id, form_id):
@@ -347,6 +353,7 @@ class ResearchInstrumentService:
                 )
             ):
                 raise GovernanceDenied("instrument_not_frozen")
+            self.policy.require_form_release(study_id, form)
             self._validate_links(command, course_id, consent.recorded_at)
             data, restricted = self._validate_data(
                 command, InstrumentDefinition.model_validate(form.definition)
@@ -443,16 +450,23 @@ class ResearchInstrumentService:
         finally:
             self.session.rollback()
 
-    @staticmethod
-    def receipt(record):
+    def receipt(self, record):
+        form = self.session.get(ResearchInstrumentForm, record.form_id)
         return InstrumentReceipt(
-            id=record.id, revision=record.revision, recorded_at=utc(record.recorded_at)
+            id=record.id,
+            revision=record.revision,
+            recorded_at=utc(record.recorded_at),
+            production_active=self.policy.release_active(form.study_id),
         )
 
     def _readable(self, actor_id, study_id, course_id, record, fields, operation):
         scope = self._scope(actor_id, study_id, course_id, fields, operation)
         if not fields or not set(fields) <= EXPORT_FIELDS or record is None:
             raise GovernanceDenied("instrument_fields_denied")
+        from app.services.research.disposal import disposed
+
+        if disposed(self.policy, study_id, record.id):
+            raise GovernanceDenied("instrument_evidence_disposed")
         form = self._form(record.form_id, study_id, course_id, scope)
         binding = self.session.get(ResearchInstrumentBinding, record.binding_id)
         if binding.scope_id != scope.id or binding.course_id != course_id:

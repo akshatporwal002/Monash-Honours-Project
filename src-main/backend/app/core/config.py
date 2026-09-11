@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     worker_heartbeat_seconds: float = Field(default=30, gt=0, le=300)
     worker_adapter_factory: str = ""
     research_enabled: bool = True
+    research_release_enabled: bool = False
     production_adapters_ready: bool = False
     session_secret_key: SecretStr = SecretStr(DEVELOPMENT_SESSION_SECRET)
     session_ttl_minutes: int = Field(default=60, gt=0, le=1440)

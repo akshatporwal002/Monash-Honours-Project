@@ -128,7 +128,7 @@ class StudyReceipt(GovernanceContract):
     id: str
     kind: str
     revision: int
-    production_active: Literal[False] = False
+    production_active: bool = False
 
 
 class StudyPacketRead(GovernanceContract):
@@ -136,14 +136,14 @@ class StudyPacketRead(GovernanceContract):
     stage: Stage
     rubric: StudyRubric
     redacted_evidence: str
-    production_active: Literal[False] = False
+    production_active: bool = False
 
 
 class StudyPlanRead(GovernanceContract):
     id: str
     revision: int
     plan: StudyPlan
-    production_active: Literal[False] = False
+    production_active: bool = False
 
 
 class StudyAssignedForm(GovernanceContract):
@@ -154,3 +154,31 @@ class StudyAssignedForm(GovernanceContract):
 class StudyAssignmentRead(GovernanceContract):
     allocation_id: str
     stages: list[StudyAssignedForm]
+
+
+class StudyObservationStatus(GovernanceContract):
+    record_id: str
+    kind: str
+    missing_reason: str | None
+    reason_code: str | None
+    missing_item_count: int
+
+
+class StudyStageStatus(GovernanceContract):
+    allocation_id: str
+    participant_id: str
+    sequence_id: str
+    stage: Stage
+    form_id: str
+    status: Literal["unrecorded", "response", "explicit_gap", "ambiguous"]
+    observations: list[StudyObservationStatus]
+    packet_ids: list[str]
+    rating_ids: list[str]
+    outcome_ids: list[str]
+
+
+class StudyReconciliationRead(GovernanceContract):
+    plan_id: str | None
+    rows: list[StudyStageStatus]
+    excluded_counts: dict[str, int]
+    production_active: bool = False

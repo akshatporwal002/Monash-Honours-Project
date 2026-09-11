@@ -18,11 +18,29 @@ from app.schemas.research_study import (
     StudyPacketRead,
     StudyPlanRead,
     StudyReceipt,
+    StudyReconciliationRead,
     StudySelfResponse,
 )
+from app.services.research.reconciliation import reconcile
 from app.services.research.study import ResearchStudyService
 
 router = APIRouter(prefix="/study", tags=["study workflows"])
+
+
+@router.get("/reconciliation", response_model=StudyReconciliationRead)
+def reconciliation(
+    study_id: Code,
+    course_id: Code,
+    response: Response,
+    actor: AuthenticatedActor = Depends(require_actor),
+    session: Session = Depends(get_db_session),
+):
+    response.headers["Cache-Control"] = "no-store"
+    return invoke(
+        lambda: reconcile(
+            ResearchStudyService(session), int(actor.actor_reference), study_id, course_id
+        )
+    )
 
 
 @router.get("/plan", response_model=StudyPlanRead | None)

@@ -42,6 +42,8 @@ class ResearchStudyService:
         if live and not governance.research_processing_approved():
             raise GovernanceDenied("research_governance_pending")
         scope, definition, _ = self.policy.approved(study)
+        if live:
+            self.policy.require_release(study)
         if "study_instruments" not in definition.purposes:
             raise GovernanceDenied("instrument_purpose_not_approved")
         self.policy.grant(study, course, actor, set(fields) | {"study." + operation})
@@ -98,6 +100,8 @@ class ResearchStudyService:
         return row, plan
 
     def packet_source(self, packet, scope):
+        from app.services.research.disposal import disposed
+
         record = self.session.get(ResearchInstrumentRecord, packet.data["instrument_record_id"])
         if (
             record is None
@@ -105,6 +109,8 @@ class ResearchStudyService:
             or record.stage != packet.data["stage"]
         ):
             raise GovernanceDenied("study_stage_link_denied")
+        if disposed(self.policy, packet.study_id, record.id):
+            raise GovernanceDenied("instrument_evidence_disposed")
         self.instruments._form(record.form_id, packet.study_id, packet.course_id, scope)
         if self.session.scalar(
             select(ResearchInstrumentRecord.id).where(
@@ -147,7 +153,7 @@ class ResearchStudyService:
                     form = self.instruments._form(stage.form_id, study, course, scope)
                     if (
                         stage.stage not in form.definition["stages"]
-                        or not self.instruments.form_read(form).frozen_for_synthetic_validation
+                        or not self.instruments.form_read(form).frozen
                     ):
                         raise GovernanceDenied("study_form_stage_denied")
                 slot = "plan"
@@ -179,7 +185,8 @@ class ResearchStudyService:
                 sequence = self.instruments._pseudonym(
                     study,
                     "sequence",
-                    f"{self.instruments._pseudonym(study, 'participant', subject)}:{decision.sequence_key}",
+                    f"{self.instruments._pseudonym(study, 'participant', subject)}:"
+                    f"{decision.sequence_key}:{decision.plan_id}:{consent_id}",
                 )
                 data.pop("subject_user_id")
                 data.pop("sequence_key")
@@ -297,13 +304,18 @@ class ResearchStudyService:
         finally:
             self.session.rollback()
 
-    @staticmethod
-    def receipt(row):
-        return StudyReceipt(id=row.id, kind=row.kind, revision=row.revision)
+    def receipt(self, row):
+        return StudyReceipt(
+            id=row.id,
+            kind=row.kind,
+            revision=row.revision,
+            production_active=self.policy.release_active(row.study_id),
+        )
 
     def participant_forms(self, actor, study, course):
         if not governance.research_processing_approved():
             raise GovernanceDenied("research_governance_pending")
+        self.policy.require_release(study)
         scope, _ = self.policy.participant(
             study, course, actor, fields=STUDY_EXPORT_FIELDS, purposes={"study_instruments"}
         )
@@ -321,7 +333,16 @@ class ResearchStudyService:
         ).all()
         result = []
         for row in rows:
-            allocation, plan = self.allocation(row.id, study, course, scope)
+            try:
+                allocation, plan = self.allocation(row.id, study, course, scope)
+            except GovernanceDenied as error:
+                if str(error) not in {"study_plan_replaced", "record_consent_version_changed"}:
+                    raise
+                continue
+            for stage in plan.stages:
+                self.policy.require_form_release(
+                    study, self.instruments._form(stage.form_id, study, course, scope)
+                )
             result.append(
                 {
                     "allocation_id": row.id,
@@ -396,6 +417,7 @@ class ResearchStudyService:
             stage=packet.data["stage"],
             redacted_evidence=packet.data["redacted_evidence"],
             rubric=next(r for r in plan.rubrics if r.code == packet.data["rubric_code"]),
+            production_active=self.policy.release_active(study),
         )
 
     def project(self, row, fields):
@@ -459,7 +481,7 @@ class ResearchStudyService:
                 "id": row.id,
                 "revision": row.revision,
                 "plan": row.data,
-                "production_active": False,
+                "production_active": self.policy.release_active(study),
             }
         )
 

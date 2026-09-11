@@ -5,9 +5,10 @@ import { StudyParticipationPage } from '../features/research/StudyParticipationP
 import { ResearchStudyPage } from '../features/research/ResearchStudyPage'
 import { studyApi } from '../features/research/api'
 import type { AuthUser } from '../app/types'
+import { ApiError } from '../app/api'
 
 vi.mock('../features/research/api', async importOriginal => ({ ...await importOriginal<typeof import('../features/research/api')>(), studyApi: {
-  researcherResponse: vi.fn(), operationalPreview: vi.fn(), operationalCapture: vi.fn(), participation: vi.fn(), forms: vi.fn(), submit: vi.fn(), governance: vi.fn(), plan: vi.fn(), packet: vi.fn(), decision: vi.fn(), records: vi.fn(), export: vi.fn(),
+  disposalPreview: vi.fn(), disposalExecute: vi.fn(), readForm: vi.fn(), governanceHistory: vi.fn(), reconciliation: vi.fn(), researcherResponse: vi.fn(), operationalPreview: vi.fn(), operationalCapture: vi.fn(), participation: vi.fn(), forms: vi.fn(), submit: vi.fn(), governance: vi.fn(), plan: vi.fn(), packet: vi.fn(), decision: vi.fn(), records: vi.fn(), export: vi.fn(),
 } }))
 const student: AuthUser = { id: 3, role: 'student', email: 'synthetic@example.invalid', full_name: 'Synthetic', scoped_assignments: [] }
 const researcher: AuthUser = { ...student, id: 4, role: 'educator', scoped_assignments: [{ id: 'grant', course_id: 'course', role: 'research', version: 1, valid_from: '', valid_until: null }] }
@@ -97,4 +98,57 @@ test('researcher records a missing stage with an explicit reason and allocation'
   fireEvent.change(screen.getByLabelText('Missing observation reason'), { target: { value: 'technical_failure' } })
   fireEvent.click(screen.getByRole('button', { name: 'Record study status' }))
   await waitFor(() => expect(studyApi.researcherResponse).toHaveBeenCalledWith('study', 'course', expect.objectContaining({ allocation_id: 'allocation', record: expect.objectContaining({ subject_user_id: 3, stage: 'T0_BASELINE', form_version_id: 'form', kind: 'missingness', missing_reason: 'technical_failure', answers: [] }) })))
+})
+
+test('reconciliation shows expected stages, explicit gaps and review references without inventing results', async () => {
+  vi.mocked(studyApi.reconciliation).mockResolvedValue({ plan_id: 'plan', excluded_counts: { consent_inactive: 1 }, rows: [{
+    allocation_id: 'allocation', participant_id: 'pseudonym', sequence_id: 'sequence', stage: 'T2_TRANSFER', form_id: 'form', status: 'explicit_gap',
+    observations: [{ record_id: 'missing-receipt', kind: 'missingness', missing_reason: 'technical_failure', reason_code: 'supplied_code', missing_item_count: 0 }],
+    packet_ids: [], rating_ids: [], outcome_ids: [],
+  }] })
+  page(true)
+  fireEvent.click(screen.getByRole('button', { name: 'Reconcile participant stages' }))
+  expect(await screen.findByText('explicit_gap')).toBeInTheDocument()
+  expect(screen.getByText(/missing-receipt/)).toHaveTextContent('technical_failure')
+  expect(screen.getByText(/Excluded: consent_inactive/)).toBeInTheDocument()
+  expect(studyApi.decision).not.toHaveBeenCalled()
+})
+
+test('research permission denial clears previously loaded private packet evidence', async () => {
+  vi.mocked(studyApi.packet).mockResolvedValue({ id: 'packet', stage: 'T0_BASELINE', rubric: { code: 'rubric', wording: 'Supplied rubric', values: ['observed'] }, redacted_evidence: 'Private reviewed evidence' })
+  vi.mocked(studyApi.reconciliation).mockRejectedValue(new ApiError('grant_revoked', 403))
+  page(true)
+  fireEvent.change(screen.getByLabelText('Packet reference'), { target: { value: 'packet' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Open assigned packet' }))
+  await screen.findByText('Private reviewed evidence')
+  fireEvent.click(screen.getByRole('button', { name: 'Reconcile participant stages' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Private study content has been cleared')
+  expect(screen.queryByText('Private reviewed evidence')).not.toBeInTheDocument()
+})
+
+test('administrator previews exact inventory and must acknowledge a separate authorization before execution', async () => {
+  vi.mocked(studyApi.disposalPreview).mockResolvedValue({ manifest_digest: 'sha256:synthetic', disposal_permitted: false })
+  vi.mocked(studyApi.disposalExecute).mockResolvedValue({ id: 'receipt', disposed_count: 2 })
+  page(true, { ...researcher, role: 'admin' })
+  const execute = screen.getByRole('button', { name: 'Execute authorized restricted-text disposal' })
+  expect(execute).toBeDisabled()
+  fireEvent.change(screen.getByLabelText('Disposal instrument response receipts'), { target: { value: 'record-one, record-two' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Preview disposal inventory' }))
+  await screen.findByText(/sha256:synthetic/)
+  expect(studyApi.disposalPreview).toHaveBeenCalledWith('study', ['record-one', 'record-two'])
+  expect(studyApi.disposalExecute).not.toHaveBeenCalled()
+  fireEvent.change(screen.getByLabelText('Disposal authorization receipt'), { target: { value: 'authorization' } })
+  expect(execute).toBeDisabled()
+  fireEvent.click(screen.getByLabelText(/I am the named executor/))
+  fireEvent.click(execute)
+  await waitFor(() => expect(studyApi.disposalExecute).toHaveBeenCalledWith('study', 'authorization', expect.any(String)))
+  expect(studyApi.governance).not.toHaveBeenCalled()
+})
+
+test('researchers have no disposal control and a recorded active release is displayed', async () => {
+  vi.mocked(studyApi.plan).mockResolvedValue({ id: 'plan', revision: 1, production_active: true, plan: { conditions: [], stages: [], rubrics: [] } })
+  page(true)
+  expect(await screen.findByText(/This study has an active recorded release/)).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Preview disposal inventory' })).not.toBeInTheDocument()
+  expect(studyApi.governance).not.toHaveBeenCalled()
 })

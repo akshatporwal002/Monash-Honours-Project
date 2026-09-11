@@ -37,6 +37,7 @@ class GovernedResearchExportService:
 
         if not research_processing_approved():
             raise GovernanceDenied("research_governance_pending")
+        self.policy.require_release(self.study_id)
         if (
             not self.study_id
             or not self.fields
