@@ -76,8 +76,10 @@ export function AppShell({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [mobileOpen])
 
-  const items =
-    user.role === 'educator' && hasAssessorAccess ? [...navigation.educator, ...assessorNavigation] : navigation[user.role]
+  const items = [...(user.role === 'educator' && hasAssessorAccess ? [...navigation.educator, ...assessorNavigation] : navigation[user.role])]
+  if (user.role === 'student' || user.role === 'admin' || user.scoped_assignments.some(a => a.role === 'research')) {
+    items.push({ to: '/research', label: user.role === 'student' ? 'Study participation' : 'Study workspace', icon: <ClipboardList size={iconSize} /> })
+  }
 
   return (
     <div className={cx('ll-root', styles.shell)}>

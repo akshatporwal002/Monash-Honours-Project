@@ -159,3 +159,8 @@ async def export(
             "X-Research-Export-Id": prepared.export_id,
         },
     )
+
+# Mount after invoke and handlers are defined to share the scoped instrument prefix.
+from app.api.routes import research_study  # noqa: E402
+
+router.include_router(research_study.router)

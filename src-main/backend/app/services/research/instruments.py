@@ -313,11 +313,26 @@ class ResearchInstrumentService:
             "missing_reason": command.missing_reason,
         }, restricted
 
-    def collect(self, actor_id, study_id, course_id, command):
+    def collect(
+        self,
+        actor_id,
+        study_id,
+        course_id,
+        command,
+        *,
+        participant_self=False,
+        allocated_sequence=None,
+    ):
         try:
             lock_governance_write(self.session)
             fields = self._fields(command)
-            scope = self._scope(actor_id, study_id, course_id, fields, "collect")
+            collector_id = actor_id
+            if participant_self:
+                if command.subject_user_id != actor_id:
+                    raise GovernanceDenied("participant_self_required")
+                _, definition, _ = self.policy.approved(study_id)
+                collector_id = definition.processing_researcher_id
+            scope = self._scope(collector_id, study_id, course_id, fields, "collect")
             _, consent = self.policy.participant(
                 study_id,
                 course_id,
@@ -362,7 +377,7 @@ class ResearchInstrumentService:
                 )
                 self.session.add(binding)
                 self.session.flush()
-            sequence = self._pseudonym(
+            sequence = allocated_sequence or self._pseudonym(
                 study_id, "sequence", f"{binding.participant_id}:{command.sequence_key}"
             )
             previous = (

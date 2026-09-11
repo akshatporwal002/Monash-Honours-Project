@@ -28,6 +28,8 @@ import { LearnerPreferencesPage } from './features/preferences/LearnerPreference
 import { LearningProgress } from './features/progress/LearningProgress'
 import { LearningEvidenceDetail } from './features/progress/LearningEvidenceDetail'
 import { ProgressRecordList } from './features/progress/ProgressRecordList'
+import { ResearchStudyPage, StudyEntryPage } from './features/research/ResearchStudyPage'
+import { StudyParticipationPage } from './features/research/StudyParticipationPage'
 
 type SessionState = 'checking' | 'anonymous' | 'authenticated'
 
@@ -227,6 +229,9 @@ function AppRoutes() {
       <Route path="/login" element={<Navigate to={homePath(user.role)} replace />} />
       <Route path="/" element={<Navigate to={homePath(user.role)} replace />} />
       <Route element={<AppShell user={user} hasAssessorAccess={assessorAccess} onLogout={logout} />}>
+        <Route path="/research" element={guard(user.role === 'student' || user.role === 'admin' || user.scoped_assignments.some(a => a.role === 'research'), <StudyEntryPage user={user} />)} />
+        <Route path="/study/:studyId/:courseId" element={guard(user.role === 'student', <StudyParticipationPage user={user} />)} />
+        <Route path="/research/:studyId/:courseId" element={guard(user.role === 'admin' || user.scoped_assignments.some(a => a.role === 'research'), <ResearchStudyPage user={user} />)} />
         <Route path="/student" element={guard(user.role === 'student', studentHome)} />
         <Route path="/student/learner-model" element={guard(user.role === 'student', <LearnerModelTimeline />)} />
         <Route path="/student/progress" element={guard(user.role === 'student', <LearningProgress role="student" />)} />
