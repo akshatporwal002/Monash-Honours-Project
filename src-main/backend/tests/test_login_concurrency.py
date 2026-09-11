@@ -3,6 +3,7 @@
 import asyncio
 
 import httpx
+import pytest
 from fastapi import Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -12,6 +13,7 @@ from app.core.config import settings
 from app.core.security import hash_password
 from app.db.session import create_session_factory, get_db
 from app.main import create_app
+from app.models import StudentProfile
 from app.models.lms import PlatformAuditEvent
 from app.models.user import User, UserRole
 
@@ -52,7 +54,10 @@ def test_async_database_wait_does_not_starve_other_request_completion(db_session
     assert all(response.status_code == 200 for response in responses), failures
 
 
-def test_fifty_concurrent_logins_release_connections_and_preserve_audit(db_session):
+@pytest.mark.parametrize("follow_dashboard", [False, True])
+def test_fifty_concurrent_logins_release_connections_and_preserve_audit(
+    db_session, follow_dashboard
+):
     password = "synthetic-concurrency-only"
     encoded = hash_password(password)
     users = [
@@ -65,6 +70,10 @@ def test_fifty_concurrent_logins_release_connections_and_preserve_audit(db_sessi
         for index in range(50)
     ]
     db_session.add_all(users)
+    db_session.flush()
+    db_session.add_all(
+        StudentProfile(user_id=user.id, display_name=user.full_name) for user in users
+    )
     db_session.commit()
     factory = create_session_factory(db_session.get_bind())
     failures = []
@@ -88,21 +97,28 @@ def test_fifty_concurrent_logins_release_connections_and_preserve_audit(db_sessi
     app.dependency_overrides[get_db] = database
     app.user_middleware.append(Middleware(Capture))
 
-    async def exercise():
+    async def learner(user):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app), base_url="http://test"
         ) as client:
-            return await asyncio.gather(
-                *(
-                    client.post(
-                        "/api/v1/auth/login", json={"email": user.email, "password": password}
-                    )
-                    for user in users
-                )
+            response = await client.post(
+                "/api/v1/auth/login", json={"email": user.email, "password": password}
             )
+            if follow_dashboard:
+                dashboard = await client.get("/api/v1/students/me/dashboard")
+                if dashboard.status_code != 200:
+                    failures.append(f"dashboard_http_{dashboard.status_code}")
+                assert dashboard.status_code == 200, failures
+            return response
+
+    async def exercise():
+        return await asyncio.gather(*(learner(user) for user in users), return_exceptions=True)
 
     responses = asyncio.run(exercise())
-    assert all(response.status_code == 200 for response in responses), failures
+    assert all(
+        isinstance(response, httpx.Response) and response.status_code == 200
+        for response in responses
+    ), failures
     assert len({response.json()["id"] for response in responses}) == 50
     assert all(settings.csrf_cookie_name in response.cookies for response in responses)
     assert (

@@ -197,6 +197,9 @@ class LmsService:
         self.task_types = task_type_registry
 
     def list_courses(self, actor: User) -> list[CourseRead]:
+        return [self._course_read(course) for course in self._courses_for_actor(actor)]
+
+    def _courses_for_actor(self, actor: User) -> list[Course]:
         statement = select(Course)
         if actor.role is UserRole.EDUCATOR:
             statement = statement.where(Course.educator_id == actor.id)
@@ -210,10 +213,7 @@ class LmsService:
                 )
                 .distinct()
             )
-        return [
-            self._course_read(course)
-            for course in self.session.scalars(statement.order_by(Course.created_at.desc())).all()
-        ]
+        return list(self.session.scalars(statement.order_by(Course.created_at.desc())).all())
 
     def get_course_for_actor(self, actor: User, course_id: str) -> CourseRead:
         return self._course_read(self._require_course_read(actor, course_id))
@@ -1228,11 +1228,35 @@ class LmsService:
             self._commit()
 
     def student_dashboard(self, student: User) -> StudentDashboardRead:
+        from app.services.curriculum import PathwayProgressReader
+        from app.services.progress_activity import completed_practice_tasks
+
         profile = self._require_profile(student)
         tasks = self._student_tasks(student)
-        task_reads = [self._task_read(task, student) for task in tasks]
+        pathway_reader = PathwayProgressReader(self.session, student.id)
+        course_tasks: dict[str, set[str]] = {}
+        for task_id, course_id in self.session.execute(
+            select(LearningTask.id, LearningTask.course_id).where(
+                LearningTask.course_id.in_({task.course_id for task in tasks})
+            )
+        ):
+            course_tasks.setdefault(course_id, set()).add(task_id)
+        completed_ids = completed_practice_tasks(
+            self.session, student.id, [task_id for ids in course_tasks.values() for task_id in ids]
+        )
+        task_reads = [
+            self._task_read(
+                task,
+                student,
+                pathway_reader=pathway_reader,
+                completed_ids=completed_ids & course_tasks.get(task.course_id, set()),
+            )
+            for task in tasks
+        ]
         completed = [task for task in task_reads if task.access_status == "completed"]
-        course_rows = self.list_courses(student)
+        # This response uses the current learner's task progress below. Avoid
+        # calculating every classmate's course aggregate only to discard it.
+        course_rows = self._courses_for_actor(student)
         course_progress = []
         for course in course_rows:
             course_tasks = [task for task in task_reads if task.course_id == course.id]
@@ -2091,7 +2115,14 @@ class LmsService:
             self.session.flush()
         return draft
 
-    def _task_read(self, task: LearningTask, student: User | None = None) -> TaskRead:
+    def _task_read(
+        self,
+        task: LearningTask,
+        student: User | None = None,
+        *,
+        pathway_reader=None,
+        completed_ids=None,
+    ) -> TaskRead:
         criteria = task.marking_criteria if isinstance(task.marking_criteria, dict) else {}
         choices: list[TaskChoice] = []
         for index, value in enumerate(criteria.get("choices", [])):
@@ -2123,13 +2154,18 @@ class LmsService:
             from app.services.curriculum import pathway_progress
             from app.services.progress_activity import completed_practice_tasks
 
-            related_ids = list(
-                self.session.scalars(
-                    select(LearningTask.id).where(LearningTask.course_id == task.course_id)
+            if completed_ids is None:
+                related_ids = list(
+                    self.session.scalars(
+                        select(LearningTask.id).where(LearningTask.course_id == task.course_id)
+                    )
                 )
+                completed_ids = completed_practice_tasks(self.session, student.id, related_ids)
+            bypassed, prerequisites, _ = (
+                pathway_reader.read(task)
+                if pathway_reader is not None
+                else pathway_progress(self.session, student.id, task)
             )
-            completed_ids = completed_practice_tasks(self.session, student.id, related_ids)
-            bypassed, prerequisites, _ = pathway_progress(self.session, student.id, task)
             if task.id in completed_ids:
                 access_status = "completed"
             elif prerequisites - completed_ids - bypassed:
