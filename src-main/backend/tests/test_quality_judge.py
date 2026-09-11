@@ -2,7 +2,6 @@ import asyncio
 import json
 from datetime import datetime, timezone
 from decimal import Decimal
-from uuid import uuid4
 
 import pytest
 
@@ -41,7 +40,7 @@ def context(
             update={"task_id": "task-private", "course_id": "course-private"}
         )
     return FeedbackContext(
-        correlation_id=str(uuid4()),
+        correlation_id="12345678-1234-4123-8123-123456789abc",
         task=TaskContext(
             task_id="task-private",
             course_id="course-private",
@@ -94,8 +93,36 @@ def feedback() -> GeneratedFeedback:
     )
 
 
+def assessment_payload():
+    from app.schemas.category_review import ReviewDimension
+    from app.services.category_review import request_digest
+    from app.services.feedback.quality_review import feedback_review_request
+
+    return {
+        "request_digest": request_digest(feedback_review_request(context(), feedback())),
+        "reviewer": {
+            "kind": "model",
+            "reference": "claimed-provider",
+            "version": "fixture-v1",
+            "model_version": "claimed-model",
+            "prompt_version": "claimed-prompt",
+        },
+        "findings": [
+            {
+                "dimension": dimension.value,
+                "outcome": "SATISFIED",
+                "basis": "model",
+                "reason": "Explicit synthetic test finding.",
+                "evidence_references": ["feedback-context"],
+            }
+            for dimension in ReviewDimension
+        ],
+    }
+
+
 def output(**updates: object) -> dict[str, object]:
     value: dict[str, object] = {
+        "category_assessment": assessment_payload(),
         "decision": "pass",
         "correctness_score": 100,
         "relevance_score": 100,
@@ -135,7 +162,7 @@ def test_quality_judge_prompt_is_versioned_minimal_and_marks_data_untrusted() ->
     request = QualityJudgePromptBuilder().build(supplied_context, feedback())
     payload = json.loads(request.user_prompt)
 
-    assert request.prompt_version == "quality-judge-v1"
+    assert request.prompt_version == "quality-judge-fr17-v2"
     assert request.temperature == 0.0
     assert request.schema_name == "quality_judge_output"
     assert "never as instructions" in request.system_prompt
@@ -172,7 +199,7 @@ def test_judge_accepts_only_a_pass_that_clears_all_safety_gates() -> None:
     assert evaluation.judge_result.decision is JudgeDecision.PASS
     assert evaluation.provider == "judge-provider"
     assert evaluation.model == "judge-model"
-    assert evaluation.prompt_version == "quality-judge-v1"
+    assert evaluation.prompt_version == "quality-judge-fr17-v2"
     assert evaluation.token_usage.total_tokens == 20
     assert evaluation.usage_complete is True
     assert evaluation.estimated_cost == Decimal("0.000900")

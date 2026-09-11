@@ -195,7 +195,15 @@ def test_learning_event_metadata_is_allow_listed_and_private() -> None:
     }
 
 
-def test_research_schema_validates_measurements_and_completion() -> None:
+@pytest.mark.parametrize(
+    "policy_version",
+    [
+        "quality-policy-v1",
+        "quality-policy-fr17-v2",
+        "quality-policy-structural-v2",
+    ],
+)
+def test_research_schema_validates_measurements_and_completion(policy_version) -> None:
     completed_at = datetime.now(timezone.utc)
     workflow_id = uuid_string()
     schema = ResearchEvaluationCreate(
@@ -224,10 +232,23 @@ def test_research_schema_validates_measurements_and_completion() -> None:
         retrieval_hit_count=1,
         status=ResearchStatus.COMPLETED,
         completed_at=completed_at,
+        final_judge_status=JudgeEvaluationStatus.VALID,
+        final_judge_decision=JudgeDecision.PASS,
+        correctness_score=90,
+        relevance_score=90,
+        grounding_score=90,
+        actionability_score=90,
+        safety_score=100,
+        unsupported_claim_count=0,
+        quality_policy_version=policy_version,
     )
     assert schema.total_tokens == 30
     assert schema.workflow_run_id == schema.case_id
     assert schema.usage_complete is True
+    assert schema.quality_policy_version == policy_version
+    for altered in ({"quality_policy_version": "unknown-policy"}, {"safety_score": 99}):
+        with pytest.raises(ValidationError, match="final judge pass violates"):
+            ResearchEvaluationCreate.model_validate({**schema.model_dump(), **altered})
 
     with pytest.raises(ValidationError):
         ResearchEvaluationCreate(

@@ -83,6 +83,15 @@ def test_exact_frozen_feedback_passes_without_assessment_decisions(grounded_cont
     assert view["criteria"][0]["evidence"][0]["path"] == "content.answer"
     assert "response_classification" not in generated.feedback_content
     assert "decision" not in str(view)
+    from app.services.feedback.quality_review import require_current_review
+
+    evaluation = asyncio.run(
+        AssessedFeedbackJudge(NoDelegate()).evaluate(grounded_context, generated)
+    )
+    require_current_review(grounded_context, generated, evaluation)
+    assert evaluation.quality_review.scope == "approved_assessment_selection"
+    assert "inherited approved content" in evaluation.quality_review.limitations
+    assert not hasattr(evaluation.quality_review, "assessment")
 
 
 @pytest.mark.parametrize(

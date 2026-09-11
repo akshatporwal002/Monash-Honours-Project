@@ -73,7 +73,7 @@ def test_migrated_controls_restore_with_history_and_refuse_destructive_rollback(
                     RuntimeError, match="cannot downgrade populated deadline_arrangements"
                 ):
                     migration.downgrade()
-        with pytest.raises(RuntimeError, match="Category review history is protected"):
+        with pytest.raises(RuntimeError, match="Feedback review history is protected"):
             command.downgrade(config, "20260909_0038")
         command.upgrade(config, "head")
         command.check(config)

@@ -25,7 +25,15 @@ from app.models.enums import (
     WorkflowOutcome,
     WorkflowStage,
 )
-from app.schemas.feedback import QUALITY_POLICY_VERSION, QUALITY_SCORE_THRESHOLD
+from app.schemas.feedback import (
+    FR17_QUALITY_POLICY_VERSION,
+    QUALITY_POLICY_VERSION,
+    QUALITY_SCORE_THRESHOLD,
+    STRUCTURAL_QUALITY_POLICY_VERSION,
+    FeedbackQualityReview,
+    JudgeResult,
+    quality_policy_passes,
+)
 from app.schemas.learning_events import validate_learning_event_metadata
 
 ExternalId = Annotated[
@@ -257,6 +265,7 @@ class JudgeEvaluationCreate(PersistenceSchema):
     model: ExternalId | None = None
     prompt_version: ShortLabel | None = None
     quality_policy_version: ShortLabel = "quality-policy-v1"
+    quality_review: FeedbackQualityReview | None = None
     input_tokens: NonNegativeInt = 0
     output_tokens: NonNegativeInt = 0
     total_tokens: NonNegativeInt = 0
@@ -283,19 +292,21 @@ class JudgeEvaluationCreate(PersistenceSchema):
                 raise ValueError("valid judge evaluations cannot include an error category")
             if self.provider is None or self.model is None or self.prompt_version is None:
                 raise ValueError("valid judge evaluations require provider metadata")
-            policy_passes = (
-                self.quality_policy_version == QUALITY_POLICY_VERSION
-                and self.reported_decision is JudgeDecision.PASS
-                and self.correctness_score is not None
-                and self.correctness_score >= QUALITY_SCORE_THRESHOLD
-                and self.relevance_score is not None
-                and self.relevance_score >= QUALITY_SCORE_THRESHOLD
-                and self.grounding_score is not None
-                and self.grounding_score >= QUALITY_SCORE_THRESHOLD
-                and self.actionability_score is not None
-                and self.actionability_score >= QUALITY_SCORE_THRESHOLD
-                and self.safety_score == 100
-                and not self.unsupported_claims
+            policy_passes = quality_policy_passes(
+                self.reported_decision,
+                JudgeResult(
+                    decision=self.decision,
+                    correctness_score=self.correctness_score,
+                    relevance_score=self.relevance_score,
+                    grounding_score=self.grounding_score,
+                    actionability_score=self.actionability_score,
+                    safety_score=self.safety_score,
+                    reason=self.reason,
+                    unsupported_claims=self.unsupported_claims,
+                    regeneration_instructions=self.regeneration_instructions,
+                ),
+                self.quality_policy_version,
+                self.quality_review,
             )
             expected = JudgeDecision.PASS if policy_passes else JudgeDecision.FAIL
             if self.decision is not expected:
@@ -570,7 +581,13 @@ class ResearchEvaluationCreate(PersistenceSchema):
 
     def _final_policy_passes(self) -> bool:
         return (
-            self.quality_policy_version == QUALITY_POLICY_VERSION
+            # Measurements record a policy outcome; this does not authorise feedback release.
+            self.quality_policy_version
+            in {
+                QUALITY_POLICY_VERSION,
+                FR17_QUALITY_POLICY_VERSION,
+                STRUCTURAL_QUALITY_POLICY_VERSION,
+            }
             and self.correctness_score is not None
             and self.correctness_score >= QUALITY_SCORE_THRESHOLD
             and self.relevance_score is not None

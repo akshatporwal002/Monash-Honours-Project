@@ -52,6 +52,43 @@ content use their separately integrated release/approval paths.
 
 ## Focused evidence
 
+### Live feedback follow-up (2026-09-11)
+
+New external feedback uses `quality-policy-fr17-v2`: the judge must return the
+common ten-dimension assessment, bound to the exact candidate, generation
+provenance and complete collected context. Actual transport metadata identifies
+the reviewer. Missing, stale, violated or unverified findings withhold release,
+even when all five existing numeric gates pass. FR18 still permits only one
+regeneration before the fixed safe fallback. The pipeline and persistence boundary
+both recheck the receipt before accepting a new output.
+
+Migration `20260911_0055` adds nullable `judge_evaluations.quality_review`; it does
+not backfill or reinterpret existing judgements. Receipt-bearing judgements and
+their feedback are protected against update, deletion and replacement, including
+replacement through another unique key. A legacy row cannot acquire a receipt by
+update. Historical `quality-policy-v1` remains readable but cannot authorise new
+feedback release. Internal storage DTOs and research measurements retain the
+specific policy version; recording a measurement confers no release authority.
+
+Local feedback instead uses `quality-policy-structural-v2`, requiring the exact
+non-evaluative template. Assessed feedback requires the exact frozen approved
+selection, verified quotations and authorised hints. Their receipts explicitly
+record structural limits and inherited content, without fabricating a fresh
+semantic review, empirical validity or learner result. These private receipts
+remain separate from the learner's allow-listed feedback response. Shared test
+doubles declare synthetic review provenance; they are not runtime reviewers.
+
+The combined focused follow-up run passed 131 cases. Its checks cover missing
+dimensions, every unverified dimension,
+stale output/source/learner/answer/provenance, receipt persistence and replay,
+private response filtering, immutable history, legacy-read/new-release separation,
+one-regeneration fallback, deterministic template boundaries and policy-version
+DTO compatibility. After adding direct-persistence numeric revalidation, the 31
+affected receipt cases passed again; this is not an additional distinct-case count.
+No live model quality or institutional approval is claimed.
+
+### Earlier category-review delivery
+
 - Common contract: 25 passing cases covering all dimensions, complete receipt
   binding, unavailable/failed reviewers, stale output/source/version/scope, evidence
   and provenance validation, and refusal of structural semantic approval.

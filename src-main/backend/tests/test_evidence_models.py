@@ -246,7 +246,7 @@ def test_evidence_migration_is_append_only_and_preserves_legacy_records(tmp_path
             with Operations.context(migration_context):
                 with pytest.raises(RuntimeError, match="cannot downgrade populated"):
                     migration.downgrade()
-        with pytest.raises(RuntimeError, match="Category review history is protected"):
+        with pytest.raises(RuntimeError, match="Feedback review history is protected"):
             command.downgrade(config, "20260815_0018")
         assert protected_history_manifest(database_path) == before_failed_downgrade
     finally:

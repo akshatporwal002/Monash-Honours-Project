@@ -41,6 +41,7 @@ from app.models.enums import (
     WorkflowOutcome,
     WorkflowStage,
 )
+from app.models.feedback_review_history import install_feedback_review_guards
 
 
 def utc_now() -> datetime:
@@ -333,6 +334,7 @@ class JudgeEvaluation(Base):
         nullable=False,
         default="quality-policy-v1",
     )
+    quality_review: Mapped[dict[str, Any] | None] = mapped_column(JSON(none_as_null=True))
     input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -353,6 +355,9 @@ class JudgeEvaluation(Base):
     )
 
     feedback_record: Mapped[FeedbackRecord] = relationship(back_populates="judge_evaluation")
+
+
+install_feedback_review_guards(JudgeEvaluation.__table__)
 
 
 class FeedbackReport(Base):

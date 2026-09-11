@@ -149,7 +149,13 @@ class FakeFeedbackJudge:
         if self.call_count in self._errors:
             raise self._errors[self.call_count]
         result_index = min(self.call_count - 1, len(self._results) - 1)
-        return self._results[result_index].model_copy(deep=True)
+        outcome = self._results[result_index].model_copy(deep=True)
+        if (
+            outcome.evaluation_status is JudgeEvaluationStatus.VALID
+            and outcome.quality_review is None
+        ):
+            outcome = synthetic_review_outcome(context, feedback, outcome)
+        return outcome
 
     @staticmethod
     def _as_outcome(
@@ -166,3 +172,44 @@ class FakeFeedbackJudge:
             model="fake-judge-model",
             prompt_version="quality-judge-v1",
         )
+
+
+def synthetic_review_outcome(context, feedback, outcome):
+    """Explicit test-double review, never installed in the runtime provider chain."""
+    from app.schemas.category_review import (
+        CategoryAssessment,
+        DimensionFinding,
+        ReviewDimension,
+        ReviewProvenance,
+    )
+    from app.schemas.feedback import FR17_QUALITY_POLICY_VERSION
+    from app.services.category_review import request_digest, review_output
+    from app.services.feedback.quality_review import feedback_review_request
+
+    request = feedback_review_request(context, feedback)
+    assessment = CategoryAssessment(
+        request_digest=request_digest(request),
+        reviewer=ReviewProvenance(
+            kind="model",
+            reference=outcome.provider,
+            version="synthetic-test-fixture-v1",
+            model_version=outcome.model,
+            prompt_version=outcome.prompt_version,
+        ),
+        findings=tuple(
+            DimensionFinding(
+                dimension=dimension,
+                outcome="SATISFIED",
+                basis="model",
+                reason="Explicit synthetic reviewer fixture; not evidence of real semantic quality.",
+                evidence_references=("feedback-context",),
+            )
+            for dimension in ReviewDimension
+        ),
+    )
+    return outcome.model_copy(
+        update={
+            "quality_policy_version": FR17_QUALITY_POLICY_VERSION,
+            "quality_review": review_output(request, lambda _: assessment),
+        }
+    )

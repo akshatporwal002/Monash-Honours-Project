@@ -21,6 +21,7 @@ from app.schemas.feedback import (
     TokenUsage,
 )
 from app.schemas.generated_task_design import local_design
+from app.services.feedback.quality_review import feedback_output, structural_review
 from app.services.rag.contracts import (
     TaskGenerationRequest,
     TaskGenerationResponse,
@@ -90,30 +91,28 @@ class LocalFeedbackJudge:
         context: FeedbackContext,
         feedback: GeneratedFeedback,
     ) -> JudgeEvaluationOutcome:
-        content = feedback.feedback_content
-        allowed_sources = {item.source_id for item in context.retrieval_context}
-        grounded = set(feedback.source_references).issubset(allowed_sources)
-        actionable = bool(
-            content.get("recommended_next_step") or content.get("improvement_actions")
+        expected = await LocalFeedbackGenerator().generate(context)
+        revised = expected.model_copy(deep=True)
+        revised.feedback_content["explanation"] += (
+            " This revision applies the quality-check guidance."
         )
-        passed = grounded and actionable and bool(content.get("explanation"))
+        passed = feedback_output(feedback) in (feedback_output(expected), feedback_output(revised))
         decision = JudgeDecision.PASS if passed else JudgeDecision.FAIL
         result = JudgeResult(
             decision=decision,
-            correctness_score=90 if passed else 60,
-            relevance_score=90 if passed else 60,
-            grounding_score=90 if grounded else 40,
-            actionability_score=90 if actionable else 40,
-            safety_score=100,
+            correctness_score=100 if passed else 0,
+            relevance_score=100 if passed else 0,
+            grounding_score=100 if passed else 0,
+            actionability_score=100 if passed else 0,
+            safety_score=100 if passed else 0,
             reason=(
-                "The feedback is grounded, relevant, actionable, and safe."
+                "Exact non-evaluative local template verified; structural checks only, "
+                "not a semantic review or assessment of the learner's answer."
                 if passed
-                else "The feedback needs stronger grounding or an actionable next step."
+                else "Candidate differs from the bounded local template."
             ),
-            unsupported_claims=[] if grounded else ["An unavailable source was referenced."],
-            regeneration_instructions=(
-                [] if passed else ["Use only supplied evidence and add one concrete action."]
-            ),
+            unsupported_claims=[] if passed else ["Content is outside the local template."],
+            regeneration_instructions=[] if passed else ["Rebuild the exact local template."],
         )
         return JudgeEvaluationOutcome(
             evaluation_status=JudgeEvaluationStatus.VALID,
@@ -123,7 +122,8 @@ class LocalFeedbackJudge:
             provider="local-deterministic",
             model="quantumlearn-judge-v1",
             prompt_version="quality-judge-v1",
-            quality_policy_version="quality-policy-v1",
+            quality_policy_version="quality-policy-structural-v2",
+            quality_review=structural_review(context, feedback, assessed=False, passed=passed),
             token_usage=TokenUsage(),
             estimated_cost=Decimal("0"),
             usage_complete=True,

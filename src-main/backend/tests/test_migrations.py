@@ -201,7 +201,7 @@ def test_publication_migration_preserves_legacy_without_inventing_approval(tmp_p
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260911_0054"
+            == "20260911_0055"
         )
         assert "task_revision_id" in {
             column["name"] for column in inspect(connection).get_columns("task_form_versions")
@@ -247,7 +247,7 @@ def test_simulation_migration_replay_preserves_evidence_and_blocks_downgrade(tmp
     with engine.connect() as connection:
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260911_0054"
+            == "20260911_0055"
         )
     with pytest.raises(IntegrityError, match="append-only"):
         with engine.begin() as connection:
@@ -2391,7 +2391,7 @@ def test_definition_migration_upgrades_clean_database(tmp_path: Path) -> None:
     command.check(config)
 
     before_downgrade = database_manifest(database_path)
-    with pytest.raises(RuntimeError, match="Category review history is protected"):
+    with pytest.raises(RuntimeError, match="Feedback review history is protected"):
         command.downgrade(config, "base")
     assert database_manifest(database_path) == before_downgrade
 

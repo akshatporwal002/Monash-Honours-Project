@@ -582,7 +582,7 @@ def test_forward_migration_preserves_history_and_live_submission_sampling(tmp_pa
             )
         session.rollback()
     populated_head = database_manifest(path)
-    with pytest.raises(RuntimeError, match="Category review history is protected"):
+    with pytest.raises(RuntimeError, match="Feedback review history is protected"):
         command.downgrade(config, "20260910_0046")
     assert database_manifest(path) == populated_head
     engine.dispose()

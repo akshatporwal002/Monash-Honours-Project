@@ -353,7 +353,15 @@ class FeedbackPipeline:
                 if isinstance(evaluated, JudgeEvaluationOutcome)
                 else evaluated
             )
-            return JudgeEvaluationOutcome.model_validate(payload)
+            evaluation = JudgeEvaluationOutcome.model_validate(payload)
+            if (
+                evaluation.judge_result is not None
+                and evaluation.judge_result.decision is JudgeDecision.PASS
+            ):
+                from app.services.feedback.quality_review import require_current_review
+
+                require_current_review(context, feedback, evaluation)
+            return evaluation
         except Exception:
             return provider_error_outcome()
 
@@ -367,6 +375,7 @@ class FeedbackPipeline:
                 evaluation.reported_decision,
                 evaluation.judge_result,
                 evaluation.quality_policy_version,
+                evaluation.quality_review,
             )
         )
 
@@ -480,6 +489,7 @@ class FeedbackPipeline:
                 course_id=context.task.course_id,
                 task_id=context.task.task_id,
                 terminal_integrations=terminal_integrations,
+                feedback_context=context,
             )
         )
         if saved is not result:

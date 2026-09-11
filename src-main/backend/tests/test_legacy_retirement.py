@@ -171,5 +171,5 @@ def test_empty_retirement_round_trip_keeps_one_head(tmp_path):
     with engine.connect() as connection:
         assert connection.execute(
             text("SELECT version_num FROM alembic_version")
-        ).scalars().all() == ["20260911_0054"]
+        ).scalars().all() == ["20260911_0055"]
     engine.dispose()

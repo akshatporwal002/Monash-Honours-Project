@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import func, select
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -316,7 +316,8 @@ def test_successful_pipeline_persists_and_returns_validated_feedback(db_session:
     assert feedback.estimated_cost == Decimal("0.001500")
     assert feedback.judge_evaluation is not None
     assert feedback.judge_evaluation.decision is JudgeDecision.PASS
-    assert feedback.judge_evaluation.quality_policy_version == "quality-policy-v1"
+    assert feedback.judge_evaluation.quality_policy_version == "quality-policy-fr17-v2"
+    assert feedback.judge_evaluation.quality_review is not None
 
 
 def test_duplicate_request_returns_stored_result_without_provider_calls(
@@ -561,7 +562,8 @@ def test_failed_first_attempt_releases_only_judge_approved_regeneration(
     regeneration = generator.regenerations[1]
     assert regeneration is not None
     assert regeneration.previous_feedback == generated_feedback()
-    assert regeneration.judge_evaluation == first_judge
+    assert regeneration.judge_evaluation.judge_result == first_judge.judge_result
+    assert regeneration.judge_evaluation.quality_review is not None
 
     records = db_session.scalars(
         select(FeedbackRecord).order_by(FeedbackRecord.generation_attempt)
@@ -705,7 +707,7 @@ def test_database_failure_rolls_back_the_complete_aggregate(
         ("quality_policy_version", "quality-policy-v0"),
     ],
 )
-def test_corrupted_passing_judge_aggregate_raises_sanitized_persistence_error(
+def test_reviewed_passing_judge_aggregate_rejects_mutation(
     db_session: Session,
     field: str,
     value: object,
@@ -715,15 +717,14 @@ def test_corrupted_passing_judge_aggregate_raises_sanitized_persistence_error(
     evaluation = db_session.scalar(select(JudgeEvaluation))
     assert evaluation is not None
     setattr(evaluation, field, value)
-    db_session.commit()
-    db_session.expire_all()
-
-    with pytest.raises(PipelinePersistenceError) as exc_info:
-        SqlAlchemyFeedbackWorkflowRepository(db_session).get_by_submission(
-            result.submission_id,
-        )
-
-    assert "PRIVATE UNSUPPORTED CLAIM" not in str(exc_info.value)
+    with pytest.raises(IntegrityError, match="Feedback review history is immutable"):
+        db_session.commit()
+    db_session.rollback()
+    replay = SqlAlchemyFeedbackWorkflowRepository(db_session).get_by_submission(
+        result.submission_id
+    )
+    assert replay is not None
+    assert replay.judge_result == result.judge_result
 
 
 def test_duplicate_save_race_returns_the_winning_result(db_session: Session) -> None:
@@ -746,6 +747,9 @@ def test_duplicate_save_race_returns_the_winning_result(db_session: Session) -> 
                         attempts=request.attempts,
                         started_at=request.started_at,
                         completed_at=request.completed_at,
+                        course_id=request.course_id,
+                        task_id=request.task_id,
+                        feedback_context=request.feedback_context,
                     )
                 )
             return super().save_result(request)

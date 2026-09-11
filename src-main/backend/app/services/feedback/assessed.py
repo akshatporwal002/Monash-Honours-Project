@@ -27,6 +27,7 @@ from app.schemas.feedback import (
 )
 from app.services.episode_evidence import canonical_response_digest, extract_response_evidence
 from app.services.feedback.contracts import FeedbackGenerator, FeedbackJudge
+from app.services.feedback.quality_review import structural_review
 
 MODEL_VERSION = "bounded-extractive-v1"
 PROMPT_VERSION = "assessed-feedback-template-v1"
@@ -391,7 +392,8 @@ class AssessedFeedbackJudge:
             )
         decision = JudgeDecision.PASS if valid else JudgeDecision.FAIL
         reason = (
-            "The candidate contains only verified bounded feedback."
+            "Exact frozen approved-content selection and structural checks passed; "
+            "no fresh semantic quality review or assessment decision was performed."
             if valid
             else f"Assessed feedback rejected: {reason_code}."
         )
@@ -416,5 +418,7 @@ class AssessedFeedbackJudge:
             provider="local",
             model=MODEL_VERSION,
             prompt_version=RULE_POLICY_VERSION,
+            quality_policy_version="quality-policy-structural-v2",
+            quality_review=structural_review(context, feedback, assessed=True, passed=valid),
             usage_complete=True,
         )

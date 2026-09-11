@@ -66,7 +66,7 @@ def test_populated_history_blocks_downgrade_without_losing_records(tmp_path, his
                 with pytest.raises(RuntimeError, match="cannot downgrade populated"):
                     migration.downgrade()
         assert protected_history_manifest(path) == before
-        with pytest.raises(RuntimeError, match="Category review history is protected"):
+        with pytest.raises(RuntimeError, match="Feedback review history is protected"):
             command.downgrade(config, "20260908_0033")
         assert protected_history_manifest(path) == before
         command.upgrade(config, "head")

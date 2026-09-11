@@ -955,6 +955,24 @@ class SqlAlchemyFeedbackWorkflowRepository:
             judge_result = released.judge_evaluation.judge_result
             if judge_result is None or judge_result.decision is not JudgeDecision.PASS:
                 raise PipelinePersistenceError(result.submission_id)
+            from app.services.feedback.quality_review import require_current_review
+
+            if request.feedback_context is None:
+                raise PipelinePersistenceError(result.submission_id)
+            if (
+                request.feedback_context.submission.submission_id != result.submission_id
+                or request.feedback_context.task.course_id != request.course_id
+                or request.feedback_context.task.task_id != request.task_id
+            ):
+                raise PipelinePersistenceError(result.submission_id)
+            try:
+                require_current_review(
+                    request.feedback_context,
+                    released.generated_feedback,
+                    released.judge_evaluation,
+                )
+            except ValueError as error:
+                raise PipelinePersistenceError(result.submission_id) from error
             expected_attempt = 2 if result.regeneration_count else 1
             if released.generation_attempt != expected_attempt:
                 raise PipelinePersistenceError(result.submission_id)
@@ -1089,6 +1107,11 @@ class SqlAlchemyFeedbackWorkflowRepository:
             model=evaluation.model,
             prompt_version=evaluation.prompt_version,
             quality_policy_version=evaluation.quality_policy_version,
+            quality_review=(
+                evaluation.quality_review.model_dump(mode="json")
+                if evaluation.quality_review is not None
+                else None
+            ),
             input_tokens=evaluation.token_usage.input_tokens,
             output_tokens=evaluation.token_usage.output_tokens,
             total_tokens=evaluation.token_usage.total_tokens,
@@ -1154,6 +1177,7 @@ class SqlAlchemyFeedbackWorkflowRepository:
                     model=judge.model,
                     prompt_version=judge.prompt_version,
                     quality_policy_version=judge.quality_policy_version,
+                    quality_review=judge.quality_review,
                     token_usage=usage,
                     estimated_cost=judge.estimated_cost,
                     usage_complete=judge.usage_complete,
@@ -1166,6 +1190,7 @@ class SqlAlchemyFeedbackWorkflowRepository:
                 model=judge.model,
                 prompt_version=judge.prompt_version,
                 quality_policy_version=judge.quality_policy_version,
+                quality_review=judge.quality_review,
                 token_usage=usage,
                 estimated_cost=judge.estimated_cost,
                 usage_complete=judge.usage_complete,

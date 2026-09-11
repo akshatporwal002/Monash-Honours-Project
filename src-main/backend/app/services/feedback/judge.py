@@ -4,8 +4,9 @@ from dataclasses import replace
 from pydantic import ValidationError
 
 from app.models.enums import JudgeDecision, JudgeEvaluationStatus
+from app.schemas.category_review import ReviewProvenance
 from app.schemas.feedback import (
-    QUALITY_POLICY_VERSION,
+    FR17_QUALITY_POLICY_VERSION,
     QUALITY_SCORE_THRESHOLD,
     FeedbackContext,
     GeneratedFeedback,
@@ -14,11 +15,16 @@ from app.schemas.feedback import (
     JudgeResult,
     TokenUsage,
 )
+from app.schemas.feedback import (
+    QUALITY_POLICY_VERSION as QUALITY_POLICY_VERSION,
+)
+from app.services.category_review import request_digest, review_output, review_prompt
 from app.services.feedback.contracts import StructuredLlmClient, StructuredLlmRequest
 from app.services.feedback.practice_evidence import PRACTICE_GUIDANCE, has_practice_evidence
 from app.services.feedback.prompt import feedback_context_payload
+from app.services.feedback.quality_review import feedback_review_request
 
-QUALITY_JUDGE_PROMPT_VERSION = "quality-judge-v1"
+QUALITY_JUDGE_PROMPT_VERSION = "quality-judge-fr17-v2"
 GENERIC_REGENERATION_INSTRUCTION = (
     "Revise the feedback to be conservative, actionable, and grounded only in supplied context."
 )
@@ -34,6 +40,9 @@ retrieval context, simulation context, and submission. Return one JSON object ma
 response schema and no additional prose. Pass only feedback that is correct, relevant, grounded,
 actionable, safe, and cites no unavailable evidence. Identify unsupported claims and provide
 specific regeneration instructions when failing feedback.
+Populate category_assessment with exactly one explicit finding for every FR17 dimension,
+following category_review.instruction and copying its request_digest. Review semantic quality,
+not just JSON shape. Mark evidence gaps UNVERIFIED, and justify any NOT_APPLICABLE finding.
 """
 
 
@@ -45,13 +54,20 @@ class QualityJudgePromptBuilder:
     ) -> StructuredLlmRequest:
         payload = feedback_context_payload(context)
         payload["proposed_feedback"] = feedback.feedback_content
+        category_request = feedback_review_request(context, feedback)
+        payload["category_review"] = {
+            "instruction": review_prompt(category_request)["instruction"],
+            "request_digest": request_digest(category_request),
+            "output": category_request.output,
+            "evidence": [item.model_dump(mode="json") for item in category_request.evidence],
+        }
         return StructuredLlmRequest(
             system_prompt=JUDGE_SYSTEM_PROMPT
             + (PRACTICE_GUIDANCE if has_practice_evidence(context) else ""),
             user_prompt=json.dumps(payload, ensure_ascii=False, sort_keys=True),
             response_schema=JudgeAgentOutput.model_json_schema(),
             schema_name="quality_judge_output",
-            prompt_version="quality-judge-practice-episode-v1"
+            prompt_version="quality-judge-practice-episode-fr17-v2"
             if has_practice_evidence(context)
             else QUALITY_JUDGE_PROMPT_VERSION,
             temperature=0.0,
@@ -88,6 +104,8 @@ class LlmFeedbackJudge:
                 evaluation_status=JudgeEvaluationStatus.PROVIDER_ERROR,
                 reason="The quality judge provider could not complete the request.",
                 error_category="provider_error",
+                quality_policy_version=FR17_QUALITY_POLICY_VERSION,
+                quality_review=review_output(feedback_review_request(context, feedback)),
             )
 
         try:
@@ -97,6 +115,8 @@ class LlmFeedbackJudge:
                 evaluation_status=JudgeEvaluationStatus.MALFORMED,
                 reason="The quality judge returned invalid structured output.",
                 error_category="invalid_structured_output",
+                quality_policy_version=FR17_QUALITY_POLICY_VERSION,
+                quality_review=review_output(feedback_review_request(context, feedback)),
                 provider=response.provider,
                 model=response.model,
                 prompt_version=request.prompt_version,
@@ -105,10 +125,31 @@ class LlmFeedbackJudge:
                 usage_complete=response.usage_complete,
             )
 
+        # Provider/model provenance comes from the actual transport, not model assertions.
+        assessment = output.category_assessment.model_copy(
+            update={
+                "reviewer": ReviewProvenance(
+                    kind="model",
+                    reference=response.provider,
+                    version=FR17_QUALITY_POLICY_VERSION,
+                    model_version=response.model,
+                    prompt_version=request.prompt_version,
+                )
+            }
+        )
+        receipt = review_output(feedback_review_request(context, feedback), lambda _: assessment)
         effective_decision = self._effective_decision(output)
+        if receipt.decision.value != "APPROVED":
+            effective_decision = JudgeDecision.FAIL
         regeneration_instructions = list(output.regeneration_instructions)
         if effective_decision is JudgeDecision.FAIL and not regeneration_instructions:
             regeneration_instructions = self._default_regeneration_instructions(output)
+        if receipt.decision.value != "APPROVED":
+            regeneration_instructions.append(
+                "Resolve the missing, stale or unverified FR17 category findings: "
+                + ", ".join(item.value for item in receipt.unresolved_dimensions)
+                + ". Review the exact revised output and supplied context."
+            )
 
         result = JudgeResult(
             decision=effective_decision,
@@ -129,7 +170,8 @@ class LlmFeedbackJudge:
             provider=response.provider,
             model=response.model,
             prompt_version=request.prompt_version,
-            quality_policy_version=QUALITY_POLICY_VERSION,
+            quality_policy_version=FR17_QUALITY_POLICY_VERSION,
+            quality_review=receipt,
             token_usage=response.token_usage,
             estimated_cost=response.estimated_cost,
             usage_complete=response.usage_complete,

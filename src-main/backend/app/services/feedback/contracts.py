@@ -122,6 +122,7 @@ class PipelinePersistenceRequest:
     course_id: str | None = None
     task_id: str | None = None
     terminal_integrations: tuple[TerminalIntegrationIntent, ...] = ()
+    feedback_context: FeedbackContext | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -22,6 +22,7 @@ from app.domain.assessment import (
 )
 from app.models.enums import JudgeDecision, JudgeEvaluationStatus
 from app.schemas.assessment import AssessmentVersionReference, EvidenceReference
+from app.schemas.category_review import CategoryAssessment, CategoryReviewRecord
 from app.schemas.episode import FrozenResponseRead
 
 ExternalId = Annotated[
@@ -461,6 +462,25 @@ class GeneratedFeedback(FeedbackContract):
         return value
 
 
+FR17_QUALITY_POLICY_VERSION = "quality-policy-fr17-v2"
+STRUCTURAL_QUALITY_POLICY_VERSION = "quality-policy-structural-v2"
+
+
+class FeedbackStructuralReview(FeedbackContract):
+    """A bounded identity check, deliberately not a semantic category approval."""
+
+    schema_version: Literal["feedback-structural-review.v1"] = "feedback-structural-review.v1"
+    scope: Literal["local_template", "approved_assessment_selection"]
+    context_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
+    output_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
+    passed: bool
+    reason: NonEmptyText
+    limitations: NonEmptyText
+
+
+FeedbackQualityReview = CategoryReviewRecord | FeedbackStructuralReview
+
+
 class JudgeResult(FeedbackContract):
     decision: JudgeDecision
     correctness_score: Score
@@ -480,9 +500,24 @@ def quality_policy_passes(
     reported_decision: JudgeDecision | None,
     result: JudgeResult,
     quality_policy_version: str,
+    quality_review: FeedbackQualityReview | None = None,
 ) -> bool:
     return (
-        quality_policy_version == QUALITY_POLICY_VERSION
+        (
+            quality_policy_version == QUALITY_POLICY_VERSION
+            or (
+                quality_policy_version == FR17_QUALITY_POLICY_VERSION
+                and isinstance(quality_review, CategoryReviewRecord)
+                and quality_review.decision.value == "APPROVED"
+                and quality_review.assessment is not None
+                and not quality_review.unresolved_dimensions
+            )
+            or (
+                quality_policy_version == STRUCTURAL_QUALITY_POLICY_VERSION
+                and isinstance(quality_review, FeedbackStructuralReview)
+                and quality_review.passed
+            )
+        )
         and reported_decision is JudgeDecision.PASS
         and result.correctness_score >= QUALITY_SCORE_THRESHOLD
         and result.relevance_score >= QUALITY_SCORE_THRESHOLD
@@ -505,6 +540,7 @@ class JudgeAgentOutput(FeedbackContract):
     reason: NonEmptyText
     unsupported_claims: list[ShortOutputText] = Field(max_length=50)
     regeneration_instructions: list[ShortOutputText] = Field(max_length=20)
+    category_assessment: CategoryAssessment
 
 
 class JudgeEvaluationOutcome(FeedbackContract):
@@ -517,6 +553,7 @@ class JudgeEvaluationOutcome(FeedbackContract):
     model: ExternalId | None = None
     prompt_version: ExternalId | None = None
     quality_policy_version: ExternalId = "quality-policy-v1"
+    quality_review: FeedbackQualityReview | None = None
     token_usage: TokenUsage = Field(default_factory=TokenUsage)
     estimated_cost: NonNegativeDecimal = Decimal("0")
     usage_complete: bool = False
@@ -547,6 +584,7 @@ class JudgeEvaluationOutcome(FeedbackContract):
                     self.reported_decision,
                     self.judge_result,
                     self.quality_policy_version,
+                    self.quality_review,
                 )
                 else JudgeDecision.FAIL
             )
@@ -645,6 +683,7 @@ class FeedbackPipelineResult(FeedbackContract):
                     final_evaluation.reported_decision,
                     self.judge_result,
                     final_evaluation.quality_policy_version,
+                    final_evaluation.quality_review,
                 )
             ):
                 raise ValueError("released feedback must match the policy-approved judgement")
