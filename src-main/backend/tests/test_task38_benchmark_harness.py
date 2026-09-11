@@ -371,6 +371,22 @@ def test_transport_timeout_is_sanitised_and_counted():
     assert "private secret" not in json.dumps(report)
 
 
+def test_request_wall_timeout_is_not_mislabeled_as_phase_deadline():
+    def build(c, b, samples, result, clock):
+        async def blocked(request):
+            await asyncio.sleep(60)
+
+        client = httpx.AsyncClient(
+            base_url="https://task38.invalid/api/v1/", transport=httpx.MockTransport(blocked)
+        )
+        return LearningLoop(c, b, samples, result, clock, client)
+
+    report = run(Config(users=(1,), warmup_rounds=0, request_timeout=0.01), build)
+    assert report["loops"][0]["status"] == "request_timeout"
+    assert report["scenarios"][0]["http_errors"] == 1
+    assert report["samples"][0]["censored"] is True
+
+
 def test_cli_refuses_real_without_acknowledgements_before_network(tmp_path):
     config = tmp_path / "config.json"
     config.write_text("{}")

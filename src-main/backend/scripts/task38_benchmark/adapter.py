@@ -73,7 +73,7 @@ class LearningLoop:
                     response = await self.session.request(
                         method, path.lstrip("/"), json=body, headers=headers
                     )
-            except httpx.TimeoutException:
+            except (TimeoutError, httpx.TimeoutException):
                 raise StopRun("request_timeout") from None
             except httpx.HTTPError:
                 raise StopRun("transport_error") from None
