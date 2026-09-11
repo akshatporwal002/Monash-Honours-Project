@@ -111,15 +111,16 @@ def test_creates_separate_unpublished_content_without_sources_or_approvals(db_se
     "index, answer, correct",
     [
         (0, "cool", True),
-        (0, " WARM ", False),
-        (0, "", False),
-        (0, '["cool", "warm"]', False),
-        (0, " COOL ", True),
+        (0, "warm", False),
+        (0, " WARM ", None),
+        (0, "", None),
+        (0, '["cool", "warm"]', None),
+        (0, " COOL ", None),
         (1, "inclusive", True),
         (1, "strict", False),
         (1, "equal", False),
-        (1, "", False),
-        (1, "__import__('os')", False),
+        (1, "", None),
+        (1, "__import__('os')", None),
     ],
 )
 def test_existing_choice_handler_marks_trace_and_correction(index, answer, correct):
@@ -129,7 +130,13 @@ def test_existing_choice_handler_marks_trace_and_correction(index, answer, corre
     )
     task = drafts[index]
     registry = build_default_task_type_registry()
-    assert registry.is_correct(task.task_type, task, ResponseContent(answer=answer)) is correct
+    if correct is None:
+        from app.services.task_types import InvalidTaskSubmissionError
+
+        with pytest.raises(InvalidTaskSubmissionError):
+            registry.is_correct(task.task_type, task, ResponseContent(answer=answer))
+    else:
+        assert registry.is_correct(task.task_type, task, ResponseContent(answer=answer)) is correct
     episode = drafts[2]
     with pytest.raises(UnsupportedTaskTypeError, match="criterion review"):
         registry.is_correct(episode.task_type, episode, ResponseContent(answer="warm"))
