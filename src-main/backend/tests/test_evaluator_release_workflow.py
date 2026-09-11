@@ -439,12 +439,12 @@ def test_suggestion_read_rechecks_blinding_after_waiting_for_course_lock(db_sess
 
     attempt, response, criterion, owner, human, admin, service, command = setup(db_session)
     second = reviewer(db_session, owner, attempt.course_id, "waiting-second")
-    policy(db_session, owner, attempt)
     release = service.release(admin, attempt.course_id, command)
     suggestions = AssessorSuggestionService(db_session, human)
     submitted = reviewed(suggestions, owner, attempt, output(release, response, criterion))
     suggestions.record(owner, attempt.id, submitted)
     db_session.commit()
+    policy(db_session, owner, attempt)
     assert not ModerationService(db_session).withhold_judgements(second, attempt.id)
     original_lock = ModerationService.lock
     arrived = False
@@ -463,3 +463,32 @@ def test_suggestion_read_rechecks_blinding_after_waiting_for_course_lock(db_sess
     assert arrived
     assert result["status"] == "WITHHELD"
     assert result["records"] == []
+
+
+def test_selected_attempt_withholds_suggestions_until_independent_reviews_are_recorded(db_session):
+    from app.models.assessment_moderation import ModerationSelection
+
+    attempt, response, criterion, owner, human, admin, service, command = setup(db_session)
+    second = reviewer(db_session, owner, attempt.course_id, "prospective-second")
+    release = service.release(admin, attempt.course_id, command)
+    suggestions = AssessorSuggestionService(db_session, human)
+    submitted = reviewed(suggestions, owner, attempt, output(release, response, criterion))
+    receipt = suggestions.record(owner, attempt.id, submitted)
+    db_session.commit()
+    # The ordinary, unselected assessor path retains D-07 suggestion access.
+    assert suggestions.read(owner, attempt.id)["records"][0]["id"] == receipt["suggestion_id"]
+    policy(db_session, owner, attempt)
+    assert db_session.get(ModerationSelection, attempt.id) is None
+    for actor in (owner, second):
+        result = suggestions.read(actor, attempt.id)
+        assert result["status"] == "WITHHELD"
+        assert result["records"] == []
+        with pytest.raises(AssessmentReviewConflictError, match="independent moderation"):
+            suggestions.quality_context(actor, attempt.id, submitted)
+    assert db_session.get(ModerationSelection, attempt.id).selected
+    record(db_session, human, owner, attempt, response, criterion, "ORIGINAL")
+    assert suggestions.read(owner, attempt.id)["records"][0]["id"] == receipt["suggestion_id"]
+    assert suggestions.read(second, attempt.id)["status"] == "WITHHELD"
+    record(db_session, human, second, attempt, response, criterion, "SECOND")
+    assert suggestions.read(second, attempt.id)["records"][0]["id"] == receipt["suggestion_id"]
+    assert db_session.scalar(select(AssessmentDecision)) is None
