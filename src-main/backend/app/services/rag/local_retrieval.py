@@ -89,11 +89,23 @@ class LocalCourseRetrievalService:
                     continue
                 if query.module_id is not None and revision.module_id != query.module_id:
                     continue
+                from app.services.material_scanning import revision_scan_is_clean
+
+                if not revision_scan_is_clean(self.session, revision):
+                    continue
                 labels[passage.id] = passage_label(passage, revision)
                 candidates.append((passage, material))
         else:
             candidates = self.session.execute(statement).all()
         for chunk, material in candidates:
+            if not query.allowed_chunk_ids:
+                from app.services.material_scanning import require_clean_material
+                from app.services.rag.errors import RagError
+
+                try:
+                    require_clean_material(self.session, material)
+                except RagError:
+                    continue
             chunk_terms = _terms(chunk.chunk_text)
             overlap = len(query_terms & chunk_terms)
             if overlap == 0:

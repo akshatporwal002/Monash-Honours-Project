@@ -30,6 +30,8 @@ from app.schemas.lms import DraftWrite, SubmissionCreate
 from app.services.lms import DEMO_PASSWORD, LmsService
 from app.services.task_review import TaskReviewError, TaskReviewService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def setup_work(session):
     course_id, outcome_id, owner_id, outcome_version_id = _setup(session)

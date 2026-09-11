@@ -3,6 +3,7 @@ import io
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -21,6 +22,8 @@ from app.services.rag.fakes import InMemoryVectorStore, StaticDocumentExtractor
 from app.services.rag.ingestion import MaterialProcessor
 from app.services.rag.retrieval import RetrievalService
 from app.services.rag.storage import LocalFileStorage
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 class FlatEmbeddingProvider:
@@ -46,7 +49,7 @@ def _material(session: Session, storage: LocalFileStorage, course_id: str) -> Le
         course_id=course_id,
         original_filename="notes.pdf",
         mime_type="application/pdf",
-        content_hash=f"sha256:{course_id}",
+        content_hash=staged.content_hash,
         indexing_status=MaterialIndexStatus.PENDING,
         file_size_bytes=staged.file_size_bytes,
     )

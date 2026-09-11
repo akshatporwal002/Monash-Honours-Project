@@ -33,6 +33,8 @@ from app.services.misconception_state import active_fresh_check
 from app.services.task_review import TaskReviewError
 from app.services.tutor import TutorService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def test_exit_after_approval_drift_restores_help_and_preserves_history(db_session):
     _, _, educator, _, student, service, opened, saved = context(db_session)

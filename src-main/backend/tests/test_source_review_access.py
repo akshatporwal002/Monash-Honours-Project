@@ -1,3 +1,4 @@
+import pytest
 from sqlalchemy import select
 from test_lms_core_api import lms_context as lms_context
 from test_lms_core_api import login
@@ -9,6 +10,8 @@ from app.models import Course, LearningTask, ScopedRole, User, UserRole
 from app.services.assessment.access import RoleAssignmentService
 from app.services.assessment.eligibility import AssessorEligibilityService
 from app.services.lms import DEMO_PASSWORD
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 def test_source_review_rejects_stale_actions_and_limits_assessors_to_current_read_access(

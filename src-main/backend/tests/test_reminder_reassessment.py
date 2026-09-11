@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from sqlalchemy import select
 from support.assessment_review import seed_review_context
 from test_assessor_review_api import _request
@@ -11,6 +12,8 @@ from app.models.user import User
 from app.schemas.reassessment import OutcomePolicyWrite
 from app.services.assessment.reassessment import ReassessmentService
 from app.services.reminders import ReminderService
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 def test_reminders_require_current_reassessment_authorisation(db_session):

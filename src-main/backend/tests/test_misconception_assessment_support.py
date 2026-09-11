@@ -28,6 +28,8 @@ from app.services.assessment.runtime import SqlAlchemyRuleCriterionEvaluationPor
 from app.services.episode_responses import SqlAlchemyFrozenResponseReader
 from app.services.lms import LmsService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def test_direct_answer_is_visible_to_assessor_and_cannot_finalise_a_later_response(db_session):
     fixture, _, educator, _, student, service, _, saved = context(db_session, support_level=5)

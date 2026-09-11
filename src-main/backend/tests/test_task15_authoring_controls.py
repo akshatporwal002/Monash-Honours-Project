@@ -11,6 +11,8 @@ from test_assessment_definition_api import assessment_api_context as assessment_
 from app.models import LearningTask
 from app.models.assessment import CriterionVersion
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def _circuit_definition(
     client, session, *, evaluator="rules", stage="supported", bloom="APPLY", qubits=1

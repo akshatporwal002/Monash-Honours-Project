@@ -1,5 +1,6 @@
 """Real authentication, CSRF and role checks for the mounted teaching workflow."""
 
+import pytest
 from fastapi.testclient import TestClient
 from test_misconceptions import context
 
@@ -7,6 +8,8 @@ from app.api.security_dependencies import get_request_security_guard
 from app.core.config import settings
 from app.db.session import get_db
 from app.main import create_app
+
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
 
 
 def test_mounted_routes_enforce_authentication_roles_and_csrf(db_session, monkeypatch):

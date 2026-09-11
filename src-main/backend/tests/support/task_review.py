@@ -82,6 +82,9 @@ def approve_sourced_fixture_task(
     )
     session.add(material)
     session.flush()
+    from support.material_scanning import record_synthetic_scan
+
+    record_synthetic_scan(session, material)
     revision = SourceRevision(
         material_id=material.id,
         course_id=task.course_id,

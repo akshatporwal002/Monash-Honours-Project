@@ -26,6 +26,8 @@ from app.services.feedback.contracts import FeedbackReportWrite
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.lms import LmsServiceError
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def setup(session, kind="ASSESSOR"):
     fixture = seed_review_context(session)

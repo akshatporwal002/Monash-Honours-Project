@@ -62,6 +62,8 @@ from app.services.task_review import TaskReviewError
 from app.services.task_types import UnsupportedTaskTypeError, build_default_task_type_registry
 from app.worker import build_database_worker, build_offline_worker_adapters
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture
 def content(db_session):

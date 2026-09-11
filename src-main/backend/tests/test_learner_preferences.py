@@ -25,6 +25,8 @@ from app.services.learner_preferences import (
     effective_preferences,
 )
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def learner(session, email="preferences@example.test", role=UserRole.STUDENT):
     actor = User(email=email, full_name="Preference fixture", password_hash="unused", role=role)

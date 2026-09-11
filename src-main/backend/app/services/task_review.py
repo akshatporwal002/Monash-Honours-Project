@@ -244,7 +244,7 @@ class TaskReviewService:
             raise
 
     def validate_ready(
-        self, task: LearningTask, *, require_sources: bool = False
+        self, task: LearningTask, *, require_sources: bool = False, require_scan: bool = True
     ) -> dict[str, str]:
         module = (
             self.session.get(CourseModule, task.module_id, populate_existing=True)
@@ -291,9 +291,12 @@ class TaskReviewService:
             required=require_sources
             or task.generation_provider is not None
             or task.slug.startswith("generated-"),
+            require_scan=require_scan,
         )
 
-    def source_approvals(self, task: LearningTask, *, required: bool = False) -> dict[str, str]:
+    def source_approvals(
+        self, task: LearningTask, *, required: bool = False, require_scan: bool = True
+    ) -> dict[str, str]:
         if required and not task.source_references:
             raise TaskReviewError("Approved source passages are required for this task", 422)
         approved = {}
@@ -319,6 +322,10 @@ class TaskReviewService:
                 raise TaskReviewError(
                     "Each source passage must have current approval in this course", 422
                 )
+            from app.services.material_scanning import revision_scan_is_clean
+
+            if require_scan and not revision_scan_is_clean(self.session, revision):
+                raise TaskReviewError("Source bytes need a successful malware scan", 422)
             approved[reference] = approval.id
         return approved
 
@@ -334,7 +341,7 @@ class TaskReviewService:
             issues.append("Educator approval is required")
         elif not issues:
             try:
-                sources = self.validate_ready(task)
+                sources = self.validate_ready(task, require_scan=False)
                 if sources != event.source_approvals:
                     issues.append("Source approval changed after the task review")
             except TaskReviewError as error:

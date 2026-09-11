@@ -169,7 +169,7 @@ class MaterialProcessingClaims:
             LearningMaterial.storage_key == claim.storage_key,
         )
 
-    def guard_publication(self, claim: MaterialClaim) -> None:
+    def guard_publication(self, claim: MaterialClaim, *, require_scan: bool = True) -> None:
         # This write takes SQLite's writer lock before changing the current index.
         # Keep that transaction open through the revision and completion writes.
         result = self.session.execute(
@@ -181,6 +181,10 @@ class MaterialProcessingClaims:
         if result.rowcount != 1:
             self.session.rollback()
             raise LostMaterialClaim()
+        if require_scan:
+            from app.services.material_scanning import require_claim_scan
+
+            require_claim_scan(self, claim)
 
     def complete(self, claim: MaterialClaim) -> None:
         self.session.flush()

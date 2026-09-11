@@ -1,5 +1,6 @@
 from decimal import Decimal
 from functools import lru_cache
+from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
@@ -60,9 +61,14 @@ class Settings(BaseSettings):
     session_cookie_name: str = "quantumlearn_session"
     session_cookie_secure: bool = False
 
+    material_scan_policy: Literal["disabled", "required"] = "disabled"
+    material_scan_policy_version: str = ""
+    material_clamscan_path: str = ""
+    material_scan_timeout_seconds: int = Field(default=60, ge=1, le=120)
+    material_scan_database_max_age_days: int = Field(default=7, ge=1, le=30)
     rag_upload_dir: str = "./data/rag/uploads"
 
-    rag_max_file_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
+    rag_max_file_bytes: int = Field(default=20 * 1024 * 1024, gt=0, le=20 * 1024 * 1024)
     material_processing_lease_seconds: int = Field(default=300, ge=5, le=3600)
     material_processing_retry_seconds: int = Field(default=5, ge=0, le=300)
     rag_max_extracted_chars: int = Field(default=2_000_000, gt=0)

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, settings
 from app.models import LearningMaterial, MaterialChunk, MaterialIndexStatus
+from app.services.material_scanning import MalwareScanner, scan_for_extraction
 from app.services.rag.chunking import HeadingAwareChunker, WhitespaceTokenCounter
 from app.services.rag.contracts import (
     DocumentExtractor,
@@ -35,7 +36,9 @@ class MaterialProcessor:
         *,
         now: Callable[[], datetime] = utc_now,
         configured_settings: Settings = settings,
+        scanner: MalwareScanner | None = None,
     ) -> None:
+        self.scanner = scanner
         self.claims = MaterialProcessingClaims(
             session, now=now, configured_settings=configured_settings
         )
@@ -54,6 +57,9 @@ class MaterialProcessor:
         if material.retired_at is not None:
             raise InvalidMaterialStateError()
         if material.indexing_status == MaterialIndexStatus.INDEXED and not force:
+            from app.services.material_scanning import require_clean_material
+
+            require_clean_material(self.session, material, self.claims.config)
             self.session.expire(material, ["chunks"])
             return len(material.chunks), len(material.chunks)
         claim = self.claims.claim(material, backend="semantic", force=force, recover=recover)
@@ -61,7 +67,7 @@ class MaterialProcessor:
             extractor = self.extractors[material.mime_type]
             if not material.storage_key:
                 raise InvalidMaterialStateError()
-            with self.storage.open_read(material.storage_key) as source:
+            with scan_for_extraction(self.claims, claim, self.storage, self.scanner) as source:
                 extracted = extractor.extract(source)
             normalised = [
                 block.__class__(

@@ -23,6 +23,8 @@ from app.models.source_history import SourcePassage, SourceUse
 from app.models.user import User, UserRole
 from app.services.assessment.submissions import AssessmentSubmissionService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def _approved_bundle(session: Session):
     definition, bloom, _, rule, form, owner = _blueprint(session)

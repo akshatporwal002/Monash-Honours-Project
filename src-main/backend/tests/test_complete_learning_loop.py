@@ -23,6 +23,8 @@ from app.models.persistence import FeedbackRecord, WorkflowRun
 from app.schemas.lms import SubmissionCreate
 from app.worker import build_database_worker, build_offline_worker_adapters
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture(autouse=True)
 def local_providers_only(monkeypatch):

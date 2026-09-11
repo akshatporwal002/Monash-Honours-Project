@@ -131,6 +131,15 @@ def record_approval(
     material = session.get(LearningMaterial, material_id, populate_existing=True)
     if state == "APPROVED" and material.retired_at is not None:
         raise RagError("retired_source", "Retired material cannot receive a new approval", 409)
+    if state == "APPROVED":
+        from app.services.material_scanning import revision_scan_is_clean
+
+        if not revision_scan_is_clean(session, revision):
+            raise RagError(
+                "material_quarantined",
+                "Source bytes need a successful malware scan before approval.",
+                409,
+            )
     approval = SourceApproval(
         revision_id=revision_id,
         sequence=previous.sequence + 1 if previous else 1,

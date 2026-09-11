@@ -10,11 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, settings
 from app.models import LearningMaterial, MaterialChunk, MaterialIndexStatus
+from app.services.material_scanning import MalwareScanner, scan_for_extraction
 from app.services.rag.chunking import HeadingAwareChunker, WhitespaceTokenCounter
 from app.services.rag.errors import (
     InvalidMaterialStateError,
 )
 from app.services.rag.extraction.docx import DocxDocumentExtractor
+from app.services.rag.extraction.html import HtmlDocumentExtractor
 from app.services.rag.extraction.pdf import PdfDocumentExtractor
 from app.services.rag.extraction.pptx import PptxDocumentExtractor
 from app.services.rag.normalisation import ensure_document_size, normalise_text
@@ -33,11 +35,13 @@ class OfflineMaterialProcessor:
         *,
         now: Callable[[], datetime] = utc_now,
         configured_settings: Settings = settings,
+        scanner: MalwareScanner | None = None,
     ) -> None:
         self.session = session
         self.storage = storage
         self.now = now
         self.config = configured_settings
+        self.scanner = scanner
 
     def process(
         self, material: LearningMaterial, force: bool = False, *, recover: bool = False
@@ -46,6 +50,9 @@ class OfflineMaterialProcessor:
         if material.retired_at is not None:
             raise InvalidMaterialStateError()
         if material.indexing_status is MaterialIndexStatus.INDEXED and not force:
+            from app.services.material_scanning import require_clean_material
+
+            require_clean_material(self.session, material, self.config)
             count = self._chunk_count(material.id)
             return count, count
         index_material_offline(
@@ -56,6 +63,7 @@ class OfflineMaterialProcessor:
             recover=recover,
             now=self.now,
             configured_settings=self.config,
+            scanner=self.scanner,
         )
         count = self._chunk_count(material.id)
         return count, count
@@ -80,9 +88,11 @@ def index_material_offline(
     recover: bool = False,
     now: Callable[[], datetime] = utc_now,
     configured_settings: Settings = settings,
+    scanner: MalwareScanner | None = None,
 ) -> LearningMaterial:
     """Extract and persist chunks without downloading an embedding model."""
     extractors = {
+        "text/html": HtmlDocumentExtractor(),
         "application/pdf": PdfDocumentExtractor(),
         (
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -95,7 +105,7 @@ def index_material_offline(
     claim = claims.claim(material, backend="offline", force=force, recover=recover)
     try:
         extractor = extractors[material.mime_type]
-        with storage.open_read(material.storage_key) as source:
+        with scan_for_extraction(claims, claim, storage, scanner) as source:
             extracted = extractor.extract(source)
         blocks = tuple(
             block.__class__(

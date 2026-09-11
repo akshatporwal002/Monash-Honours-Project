@@ -13,6 +13,8 @@ from app.db.session import create_db_engine
 from app.schemas.learner_results import AppealResolutionWrite, LearnerAppealWrite
 from app.services.tutor import TutorService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.mark.parametrize("history", ["tutor", "appeal"])
 def test_populated_history_blocks_downgrade_without_losing_records(tmp_path, history):

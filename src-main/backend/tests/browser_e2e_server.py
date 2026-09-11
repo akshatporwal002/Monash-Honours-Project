@@ -247,6 +247,28 @@ def _seed_learning_events(
 
 
 def _build_app(database_url: str):
+    from support.material_scanning import synthetic_scanning_scope
+
+    scope = synthetic_scanning_scope()
+    scope.__enter__()
+    try:
+        app = _build_app_with_synthetic_sources(database_url)
+    except BaseException:
+        scope.__exit__(None, None, None)
+        raise
+    original_cleanup = app.state.browser_e2e_cleanup
+
+    def cleanup():
+        try:
+            original_cleanup()
+        finally:
+            scope.__exit__(None, None, None)
+
+    app.state.browser_e2e_cleanup = cleanup
+    return app
+
+
+def _build_app_with_synthetic_sources(database_url: str):
     command.upgrade(migration_config(database_url), "head")
     engine = create_db_engine(database_url)
     session_factory = create_session_factory(engine)

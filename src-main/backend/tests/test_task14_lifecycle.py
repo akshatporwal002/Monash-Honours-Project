@@ -20,6 +20,8 @@ from app.services.episode_evidence import canonical_response_digest
 from app.services.lms import LmsService
 from app.services.task_review import TaskReviewError
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def setup_episode(session, task_type=TaskType.QUANTUM_CIRCUIT, *, prediction_required=True):
     course_id, outcome_id, owner_id, outcome_version_id = _setup(session)

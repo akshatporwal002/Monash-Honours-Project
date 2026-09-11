@@ -24,6 +24,8 @@ from app.services.assessment.publication import current_form_review, learner_tas
 from app.services.lms import LmsService
 from app.services.task_review import TaskReviewError, TaskReviewService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def _plan():
     return {

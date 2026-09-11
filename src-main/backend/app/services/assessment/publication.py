@@ -11,7 +11,9 @@ from app.services.episode_contract import validate_reviewed_episode_plan
 from app.services.task_review import TaskReviewError, TaskReviewService
 
 
-def current_form_review(session: Session, form: TaskFormVersion) -> TaskReviewEvent:
+def current_form_review(
+    session: Session, form: TaskFormVersion, *, require_scan: bool = True
+) -> TaskReviewEvent:
     """Return the current educator approval or reject a missing or stale binding."""
     task = session.get(LearningTask, form.learning_task_id, populate_existing=True)
     revision = session.get(TaskRevision, form.task_revision_id) if form.task_revision_id else None
@@ -43,7 +45,7 @@ def current_form_review(session: Session, form: TaskFormVersion) -> TaskReviewEv
         raise TaskReviewError(
             "The formal episode does not match its reviewed teaching revision", 409
         ) from error
-    sources = review.validate_ready(task, require_sources=True)
+    sources = review.validate_ready(task, require_sources=True, require_scan=require_scan)
     event = review.latest_event(revision.id)
     if event is None or event.state != "APPROVED" or event.source_approvals != sources:
         raise TaskReviewError("The formal task needs current source and educator approval", 409)
@@ -64,7 +66,7 @@ def current_form_review(session: Session, form: TaskFormVersion) -> TaskReviewEv
 def require_current_publication(
     session: Session, form: TaskFormVersion, approval: TaskApproval
 ) -> None:
-    event = current_form_review(session, form)
+    event = current_form_review(session, form, require_scan=False)
     if (
         approval.task_review_event_id != event.id
         or approval.course_id != form.course_id

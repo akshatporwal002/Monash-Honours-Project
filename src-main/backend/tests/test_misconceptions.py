@@ -18,6 +18,8 @@ from app.services.lms import LmsServiceError
 from app.services.misconceptions import MisconceptionService
 from app.services.tutor import TutorService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def context(session, *, support_level=2):
     fixture, queue, educator, backup, student, feedback, _ = setup(session)

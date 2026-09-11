@@ -232,6 +232,7 @@ from app.models.curriculum import (  # noqa: F401
     DiagnosticSession,
     PathwayVersion,
 )
+from app.models.intake_history import CourseRevision, MaterialScan  # noqa: F401
 from app.models.misconceptions import (  # noqa: F401
     MisconceptionClosure,
     MisconceptionHypothesis,

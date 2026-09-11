@@ -21,6 +21,8 @@ from app.services.assessment.reassessment import ReassessmentService
 from app.services.assessment.review import AssessmentReviewService
 from app.services.lms import LmsService, LmsServiceError
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def context(session, *, rule="LATEST_VALID"):
     fixture = seed_review_context(session, reassessment=True)

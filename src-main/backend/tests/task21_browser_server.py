@@ -20,6 +20,10 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
 
+from support.material_scanning import synthetic_scanning_scope  # noqa: E402
+
+
+@synthetic_scanning_scope()
 def main():
     import uvicorn
     from alembic import command

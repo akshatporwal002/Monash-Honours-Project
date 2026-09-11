@@ -21,6 +21,8 @@ from app.services.feedback.contracts import StructuredLlmResponse
 from app.services.feedback.practice_evidence import PRACTICE_INPUT_LIMIT, practice_response_input
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 class RecordingModel:
     def __init__(self):

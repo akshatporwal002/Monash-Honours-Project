@@ -25,6 +25,8 @@ from app.schemas.curriculum import (
 from app.services.assessment.eligibility import AssessorEligibilityService
 from app.services.curriculum import CurriculumService, pathway_progress
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture
 def curriculum(db_session):

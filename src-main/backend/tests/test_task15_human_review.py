@@ -37,6 +37,8 @@ from app.services.assessment.review import (
 )
 from app.services.episode_contract import FrozenResponseStale
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 class FrozenV1Reader:
     def __init__(self, response):

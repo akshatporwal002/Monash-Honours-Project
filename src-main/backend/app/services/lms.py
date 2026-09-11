@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
@@ -46,6 +46,7 @@ from app.models import (
     WorkflowStage,
 )
 from app.models.assessment_work import AssessmentWorkStart
+from app.models.intake_history import CourseRevision
 from app.schemas.episode import ResponseContent
 from app.schemas.lms import (
     AchievementRead,
@@ -99,6 +100,7 @@ from app.services.assessment.submissions import (
     FrozenAssessmentVersions,
 )
 from app.services.authentication import normalize_email
+from app.services.course_history import FIELDS, preserve_initial, snapshot
 from app.services.episode_contract import learner_episode_plan, validate_reviewed_episode_plan
 from app.services.episode_evidence import canonical_response_digest
 from app.services.episodes import EpisodeService
@@ -227,6 +229,7 @@ class LmsService:
         )
         self.session.add(course)
         self.session.flush()
+        snapshot(self.session, course, str(educator.id), "CREATED")
         self._audit(educator, "course.created", "course", course.id)
         self._commit()
         return self._course_read(course)
@@ -237,15 +240,25 @@ class LmsService:
         course_id: str,
         payload: CourseUpdate,
     ) -> CourseRead:
-        course = self._require_course_owner(educator, course_id)
-        self._require_not_archived(course)
-        for name, value in payload.model_dump(
-            exclude_unset=True,
-            exclude_none=True,
-        ).items():
-            setattr(course, name, value)
-        self._audit(educator, "course.updated", "course", course.id)
-        self._commit()
+        try:
+            course = self._require_course_owner(educator, course_id)
+            self._require_not_archived(course)
+            preserve_initial(self.session, course)
+            self._require_not_archived(course)
+            for name, value in payload.model_dump(
+                exclude_unset=True,
+                exclude_none=True,
+            ).items():
+                setattr(course, name, value)
+            snapshot(self.session, course, str(educator.id), "UPDATED")
+            self._audit(educator, "course.updated", "course", course.id)
+            self._commit()
+        except IntegrityError as error:
+            self.session.rollback()
+            raise _conflict("The change conflicts with an existing record") from error
+        except Exception:
+            self.session.rollback()
+            raise
         return self._course_read(course)
 
     def set_course_state(
@@ -265,16 +278,73 @@ class LmsService:
             if course.state is CourseState.ARCHIVED:
                 raise _conflict("Archived courses cannot be published")
             self._validate_publishable(course)
+        preserve_initial(self.session, course)
         course.state = state
+        snapshot(self.session, course, str(educator.id), "STATE_CHANGED")
         self._audit(educator, f"course.{state.value}", "course", course.id)
         self._commit()
         return self._course_read(course)
 
     def admin_archive_course(self, administrator: User, course_id: str) -> CourseRead:
         course = self._get_course(course_id)
+        preserve_initial(self.session, course)
         course.state = CourseState.ARCHIVED
+        snapshot(self.session, course, str(administrator.id), "ADMIN_ARCHIVED")
         self._audit(administrator, "course.archived", "course", course.id)
         self._commit()
+        return self._course_read(course)
+
+    def course_revisions(self, actor: User, course_id: str) -> list[CourseRevision]:
+        course = self._get_course(course_id)
+        if actor.role is not UserRole.ADMINISTRATOR:
+            self._require_course_owner(actor, course_id)
+        return list(
+            self.session.scalars(
+                select(CourseRevision)
+                .where(CourseRevision.course_id == course.id)
+                .order_by(CourseRevision.version.desc())
+            )
+        )
+
+    def restore_course(
+        self, actor: User, course_id: str, revision_id: str, expected_version: int, reason: str
+    ) -> CourseRead:
+        try:
+            course = self._get_course(course_id)
+            if actor.role is not UserRole.ADMINISTRATOR:
+                self._require_course_owner(actor, course_id)
+            preserve_initial(self.session, course)
+            latest = self.session.scalar(
+                select(func.max(CourseRevision.version)).where(
+                    CourseRevision.course_id == course_id
+                )
+            )
+            if latest != expected_version:
+                raise _conflict("Course history changed; reload before restoring")
+            revision = self.session.get(CourseRevision, revision_id)
+            if revision is None or revision.course_id != course_id:
+                raise _not_found("Course revision")
+            if not reason.strip():
+                raise _unprocessable("A restoration reason is required")
+            if revision.metadata_snapshot["state"] == CourseState.PUBLISHED:
+                self._validate_publishable(course)
+            for name in FIELDS:
+                setattr(course, name, revision.metadata_snapshot[name])
+            snapshot(self.session, course, str(actor.id), "RESTORED", reason.strip(), revision.id)
+            self._audit(
+                actor,
+                "course.restored",
+                "course",
+                course.id,
+                {"revision_id": revision.id, "reason": reason.strip()},
+            )
+            self._commit()
+        except IntegrityError as error:
+            self.session.rollback()
+            raise _conflict("The change conflicts with an existing record") from error
+        except Exception:
+            self.session.rollback()
+            raise
         return self._course_read(course)
 
     def list_modules(self, actor: User, course_id: str) -> list[CourseModule]:
@@ -1598,31 +1668,32 @@ class LmsService:
             module = self._get_module(payload.module_id)
             if module.course_id != course.id:
                 raise _unprocessable("module_id is outside this course")
-        source_url = str(payload.source_url)
-        extension = Path(urlparse(source_url).path).suffix.casefold()
-        mime_types = {
-            ".pdf": "application/pdf",
-            ".docx": ("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-            ".pptx": ("application/vnd.openxmlformats-officedocument.presentationml.presentation"),
-        }
-        content_hash = f"url:{hashlib.sha256(source_url.encode()).hexdigest()}"
+        from app.services.rag.storage import LocalFileStorage
+        from app.services.rag.web import SafeHttpsFetcher
+
+        storage = LocalFileStorage(settings.rag_upload_dir, settings.rag_max_file_bytes)
+        downloaded = SafeHttpsFetcher().fetch(str(payload.source_url))
+        staged = storage.stage_upload(downloaded.filename, io.BytesIO(downloaded.content))
         if self.session.scalar(
-            select(LearningMaterial).where(
+            select(LearningMaterial.id).where(
                 LearningMaterial.course_id == course.id,
-                LearningMaterial.content_hash == content_hash,
+                LearningMaterial.content_hash == staged.content_hash,
             )
         ):
+            staged.temporary_path.unlink(missing_ok=True)
             raise _conflict("This material is already linked to the course")
         material = LearningMaterial(
             course_id=course.id,
             module_id=payload.module_id,
-            source_url=source_url,
-            mime_type=mime_types.get(extension, "text/html"),
-            content_hash=content_hash,
+            source_url=downloaded.url,
+            mime_type=staged.mime_type,
+            content_hash=staged.content_hash,
+            file_size_bytes=staged.file_size_bytes,
             indexing_status=MaterialIndexStatus.PENDING,
         )
         self.session.add(material)
         self.session.flush()
+        material.storage_key = storage.commit(staged, material.id)
         self._audit(educator, "material.linked", "learning_material", material.id)
         self._commit()
         return material
@@ -2381,6 +2452,10 @@ class LmsService:
         if any(not review.summary(task)["available"] for task in tasks):
             raise _conflict("Every task needs current educator approval before publishing")
         for task in tasks:
+            try:
+                review.validate_ready(task)
+            except TaskReviewError as error:
+                raise _conflict(error.detail) from error
             require_learner_task_available(self.session, task)
 
     def _course_read(self, course: Course) -> CourseRead:

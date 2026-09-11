@@ -43,7 +43,10 @@ from scripts.verify_sqlite_backup import database_manifest
 
 
 @pytest.fixture
-def source_context(tmp_path: Path):
+def source_context(tmp_path: Path, monkeypatch):
+    from support.material_scanning import enable_synthetic_scanning
+
+    enable_synthetic_scanning(monkeypatch)
     engine = create_engine(
         f"sqlite:///{(tmp_path / 'sources.db').as_posix()}",
         connect_args={"check_same_thread": False},

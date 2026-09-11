@@ -36,9 +36,22 @@ from app.models import (
 from app.services.lms import DEMO_PASSWORD
 from app.services.rag.storage import LocalFileStorage
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 @pytest.fixture
-def lms_context(tmp_path: Path) -> Generator[tuple[TestClient, Session], None, None]:
+def lms_context(tmp_path: Path, monkeypatch) -> Generator[tuple[TestClient, Session], None, None]:
+    from app.core.config import settings
+    from app.services.rag.web import DownloadedMaterial, SafeHttpsFetcher
+
+    monkeypatch.setattr(settings, "rag_upload_dir", str(tmp_path / "uploads"))
+    monkeypatch.setattr(
+        SafeHttpsFetcher,
+        "fetch",
+        lambda self, url: DownloadedMaterial(
+            url, "source.html", b"<p>Synthetic source about quantum gates and oracle behaviour.</p>"
+        ),
+    )
     database_path = tmp_path / "lms.db"
     engine = create_db_engine(f"sqlite:///{database_path.as_posix()}")
     Base.metadata.create_all(engine)
@@ -271,6 +284,9 @@ def test_course_configuration_scaffolding_and_educator_scope(
     material = material_response.json()
     stored_material = session.get(LearningMaterial, material["id"])
     assert stored_material is not None
+    from support.material_scanning import record_synthetic_scan
+
+    record_synthetic_scan(session, stored_material)
     stored_material.indexing_status = MaterialIndexStatus.INDEXED
     stored_material.chunks.append(
         MaterialChunk(
@@ -413,8 +429,15 @@ def test_uploaded_and_linked_materials_remain_accessible_to_course_members(
         f"/api/v1/courses/{course['id']}/materials/{linked['id']}/content",
         follow_redirects=False,
     )
-    assert redirected.status_code == 307
-    assert redirected.headers["location"] == "https://example.edu/quantum-notes"
+    assert redirected.status_code == 409
+    processed = client.post(f"/api/v1/courses/{course['id']}/materials/{linked['id']}/process")
+    assert processed.status_code == 200, processed.text
+    downloaded_link = client.get(f"/api/v1/courses/{course['id']}/materials/{linked['id']}/content")
+    assert downloaded_link.status_code == 200
+    assert (
+        downloaded_link.content
+        == b"<p>Synthetic source about quantum gates and oracle behaviour.</p>"
+    )
 
     client.post("/api/v1/auth/logout")
     login(client, "student")

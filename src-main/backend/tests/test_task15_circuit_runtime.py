@@ -12,6 +12,8 @@ from app.schemas.lms import SubmissionCreate
 from app.services.assessment.evaluation import CriterionEvaluationUnavailableError
 from app.services.assessment.runtime import SqlAlchemyRuleCriterionEvaluationPort
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def stage_response(session, *, circuit):
     lms, student, task, started = setup_episode(session)

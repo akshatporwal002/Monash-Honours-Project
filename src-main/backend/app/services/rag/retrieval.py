@@ -62,6 +62,13 @@ class RetrievalService:
                 or material.indexing_status != MaterialIndexStatus.INDEXED
             ):
                 continue
+            from app.services.material_scanning import require_clean_material
+            from app.services.rag.errors import RagError
+
+            try:
+                require_clean_material(self.session, material)
+            except RagError:
+                continue
             if query.module_id and material.module_id != query.module_id:
                 continue
             if query.allowed_chunk_ids and chunk.id not in query.allowed_chunk_ids:

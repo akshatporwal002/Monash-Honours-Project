@@ -231,6 +231,7 @@ interface RawDraft {
 }
 
 export interface CourseMaterial {
+  scanStatus?: string
   id: string
   filename: string
   status: string
@@ -240,6 +241,7 @@ export interface CourseMaterial {
 }
 
 interface RawMaterial {
+  scan_status?: string
   id: string
   original_filename: string | null
   source_url: string | null
@@ -409,6 +411,7 @@ function normalizeMaterial(raw: RawMaterial): CourseMaterial {
     id: raw.id,
     filename: raw.original_filename ?? raw.source_url ?? 'Linked learning source',
     status: raw.indexing_status,
+    scanStatus: raw.scan_status,
     error: raw.extraction_error ?? null,
     retryAt: raw.processing_retry_at ?? null,
     processingAttempts: raw.processing_attempts ?? 0,

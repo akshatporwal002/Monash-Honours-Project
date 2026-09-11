@@ -14,6 +14,8 @@ from app.schemas.tutor import TutorTurnWrite
 from app.services.lms import LmsServiceError
 from app.services.tutor import FALLBACK, TutorService
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def send(service, student, task, key, message="I think the gates change the state."):
     state = service.read(student, task.id)

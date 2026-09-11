@@ -13,6 +13,8 @@ from app.models.persistence import LearningTask
 from app.services.assessment.feedback_context import SqlAlchemyAssessmentFeedbackContextProvider
 from app.services.feedback.runtime import LmsSubmissionProvider
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 def resolve(session, attempt):
     submission = asyncio.run(

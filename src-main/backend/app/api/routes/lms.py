@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Generator, Iterator
 from typing import Annotated
 from urllib.parse import quote
@@ -50,6 +51,8 @@ from app.schemas.lms import (
     BulkReminderCreate,
     CourseCreate,
     CourseRead,
+    CourseRestoreRequest,
+    CourseRevisionRead,
     CourseUpdate,
     DraftRead,
     DraftWrite,
@@ -166,6 +169,32 @@ def update_course(
     service: Lms,
 ) -> CourseRead:
     return service.update_course(educator, course_id, payload)
+
+
+@router.get("/courses/{course_id}/revisions", response_model=list[CourseRevisionRead])
+def course_history(course_id: str, actor: CurrentUser, service: Lms):
+    return service.course_revisions(actor, course_id)
+
+
+@router.get("/courses/{course_id}/revisions/{revision_id}", response_model=CourseRevisionRead)
+def course_revision(course_id: str, revision_id: str, actor: CurrentUser, service: Lms):
+    for revision in service.course_revisions(actor, course_id):
+        if revision.id == revision_id:
+            return revision
+    raise HTTPException(status_code=404, detail="Course revision not found")
+
+
+@router.post("/courses/{course_id}/revisions/{revision_id}/restore", response_model=CourseRead)
+def restore_course(
+    course_id: str,
+    revision_id: str,
+    payload: CourseRestoreRequest,
+    actor: CurrentUser,
+    service: Lms,
+):
+    return service.restore_course(
+        actor, course_id, revision_id, payload.expected_version, payload.reason
+    )
 
 
 @router.post("/courses/{course_id}/publish", response_model=CourseRead)
@@ -377,7 +406,10 @@ def link_course_material(
     educator: CurrentEducator,
     service: Lms,
 ):
-    return service.register_material_link(educator, course_id, payload)
+    try:
+        return service.register_material_link(educator, course_id, payload)
+    except RagError as error:
+        raise HTTPException(status_code=error.http_status, detail=error.safe_message) from error
 
 
 @router.post(
@@ -430,7 +462,13 @@ def access_course_material(
     storage: Annotated[FileStorage, Depends(get_lms_material_storage)],
 ):
     material = service.get_material_for_actor(actor, course_id, material_id)
-    if material.source_url:
+    from app.services.material_scanning import require_clean_material
+
+    try:
+        require_clean_material(service.session, material)
+    except RagError as error:
+        raise HTTPException(status_code=error.http_status, detail=error.safe_message) from error
+    if material.source_url and not material.storage_key:
         return RedirectResponse(
             material.source_url,
             status_code=status.HTTP_307_TEMPORARY_REDIRECT,
@@ -443,15 +481,22 @@ def access_course_material(
     filename = material.original_filename or "learning-material"
     encoded_filename = quote(filename, safe="")
     try:
-        with storage.open_read(material.storage_key):
-            pass
+        with storage.open_read(material.storage_key) as source:
+            content = source.read(settings.rag_max_file_bytes + 1)
+        if (
+            len(content) > settings.rag_max_file_bytes
+            or "sha256:" + hashlib.sha256(content).hexdigest() != material.content_hash
+        ):
+            raise HTTPException(
+                status_code=409, detail="Stored content no longer matches its scan receipt"
+            )
     except (FileNotFoundError, OSError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Learning material content is unavailable",
         ) from None
     return StreamingResponse(
-        _stored_blocks(storage, material.storage_key),
+        iter([content]),
         media_type=material.mime_type,
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",

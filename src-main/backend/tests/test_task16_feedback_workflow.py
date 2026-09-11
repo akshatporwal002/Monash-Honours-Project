@@ -17,6 +17,8 @@ from app.services.feedback.pipeline import FeedbackPipeline
 from app.services.feedback.repository import SqlAlchemyFeedbackWorkflowRepository
 from app.services.feedback.runtime import LmsSubmissionProvider
 
+pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
+
 
 class PreservedContextCollector:
     def __init__(self, context):
