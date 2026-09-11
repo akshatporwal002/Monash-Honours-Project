@@ -13,6 +13,77 @@ from app.schemas.lms import DraftWrite
 from app.services.task_review import TaskReviewError
 
 
+@pytest.mark.parametrize("modes,level", [(("stepwise",), 3), (("worked_example", "stepwise"), 4)])
+def test_representation_intensity_propagates_without_contaminating_transfer(
+    db_session, modes, level
+):
+    from test_task14_lifecycle import complete
+
+    from app.schemas.lms import SubmissionCreate
+    from app.schemas.student import SimulationRequest
+
+    lms, student, task, started = setup_episode(
+        db_session, prediction_required=False, support_modes=modes
+    )
+    receipts = []
+    for index, mode in enumerate(modes, 1):
+        receipts.append(
+            lms.episode_help_use(
+                student,
+                task.id,
+                EpisodeHelpUseWrite(
+                    assessment_work_start_id=started.assessment_work_start_id,
+                    kind="conceptual_hint",
+                    item_index=index,
+                    request_key=mode,
+                ),
+            )
+        )
+    lms.simulate_student_circuit(
+        student,
+        SimulationRequest(
+            task_id=task.id,
+            qubits=1,
+            operations=[{"gate": "h", "targets": [0]}],
+            request_key="representation-simulation",
+        ),
+    )
+    payload = complete(lms, student, task, started)
+    lms.submit(
+        student, task.id, SubmissionCreate(**payload.model_dump(), idempotency_key="supported")
+    )
+    from app.models.learning_evidence import EvidenceArtifact, LearningEvidence
+    from app.services.evidence.live import evidence_id
+
+    rows = list(
+        db_session.scalars(select(LearningEvidence).where(LearningEvidence.task_id == task.id))
+    )
+    by_field = {
+        json.loads(db_session.get(EvidenceArtifact, row.artifact_id).content)["context"][
+            "field"
+        ]: row
+        for row in rows
+    }
+    for field in (
+        "prediction",
+        "simulation",
+        "response",
+        "supported:reasoning",
+        "supported:explanation",
+        "supported:reflection",
+    ):
+        assert by_field[field].instructional_support_level == level, field
+    for field in ("transfer", "transfer:reasoning", "transfer:explanation", "transfer:reflection"):
+        assert by_field[field].instructional_support_level == 0, field
+    history = lms.evidence_history(student, task.id).items
+    support_ids = {evidence_id(receipt["record"].id, "support") for receipt in receipts}
+    for field in ("prediction", "simulation", "response"):
+        item = next(item for item in history if item.evidence_id == by_field[field].id)
+        assert support_ids <= set(item.related_evidence_ids)
+    transfer = next(item for item in history if item.evidence_id == by_field["transfer"].id)
+    assert support_ids.isdisjoint(transfer.related_evidence_ids)
+
+
 def test_equivalent_representations_release_reviewed_content_and_hide_it_in_transfer(db_session):
     modes = ("text", "visual", "worked_example", "circuit", "stepwise")
     lms, student, task, started = setup_episode(db_session, support_modes=modes)

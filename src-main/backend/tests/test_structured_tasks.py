@@ -32,6 +32,46 @@ def exercise(kind, source="source"):
 
 
 @pytest.mark.parametrize("kind", ["matching", "sequencing"])
+def test_generated_identifiers_and_display_order_do_not_encode_private_key(monkeypatch, kind):
+    from uuid import UUID
+
+    from app.services import structured_generation
+
+    shuffled = []
+
+    def shuffle(items):
+        shuffled.append(items)
+        # Independently vary prompt and option presentation, without editing the key.
+        if len(shuffled) % 2:
+            items.reverse()
+
+    monkeypatch.setattr(structured_generation, "_shuffle", shuffle)
+    answer, criteria = exercise(kind)
+    definition = criteria["structured_task"]
+    key = json.loads(answer)
+    groups = (
+        [definition["items"]]
+        if kind == "sequencing"
+        else [definition["prompts"], definition["options"]]
+    )
+    ids = [item["id"] for group in groups for item in group]
+    assert len(set(ids)) == len(ids)
+    assert all(UUID(identifier).version == 4 for identifier in ids)
+    assert len(shuffled) == len(groups)
+    if kind == "sequencing":
+        assert key["order"] == [item["id"] for item in reversed(definition["items"])]
+    else:
+        options = {item["id"]: item["text"] for item in definition["options"]}
+        for prompt in definition["prompts"]:
+            assert options[key["pairs"][prompt["id"]]].startswith(
+                prompt["text"].removeprefix("Excerpt beginning: ")
+            )
+    # Serialization/reload keeps the generated identifiers and private relationships stable.
+    reloaded = json.loads(json.dumps(criteria))
+    response_for(definition_for(kind, reloaded, ["source"]), answer, complete=True)
+
+
+@pytest.mark.parametrize("kind", ["matching", "sequencing"])
 def test_typed_definition_validation_and_exact_evaluation(kind):
     answer, criteria = exercise(kind)
     definition = definition_for(kind, criteria, ["source"])
@@ -42,7 +82,8 @@ def test_typed_definition_validation_and_exact_evaluation(kind):
     assert DEFAULT_TASK_TYPE_REGISTRY.is_correct(kind, task, SimpleNamespace(answer=answer))
     raw = json.loads(answer)
     if kind == "matching":
-        raw["pairs"] = {"prompt-1": "item-2", "prompt-2": "item-1"}
+        keys, values = list(raw["pairs"]), list(raw["pairs"].values())
+        raw["pairs"] = dict(zip(keys, reversed(values), strict=True))
     else:
         raw["order"].reverse()
     assert not DEFAULT_TASK_TYPE_REGISTRY.is_correct(
@@ -92,7 +133,8 @@ def test_review_draft_reload_submit_and_revision_keep_structured_evidence(db_ses
     if kind == "sequencing":
         revised["order"].reverse()
     else:
-        revised["pairs"] = {"prompt-1": "item-2", "prompt-2": "item-1"}
+        keys, values = list(revised["pairs"]), list(revised["pairs"].values())
+        revised["pairs"] = dict(zip(keys, reversed(values), strict=True))
     second = lms.submit(student, task.id, SubmissionCreate(answer=json.dumps(revised)))
     assert first.id != second.id
     assert first.answer == answer
