@@ -71,8 +71,62 @@ InstrumentField = Literal[
     "instrument.correction_reason_code",
 ]
 INSTRUMENT_FIELDS = frozenset(get_args(InstrumentField))
-FieldPath = TechnicalPairField | InstrumentField
-ResearchPurpose = Literal["technical_pair", "provider_processing", "study_instruments"]
+StudyField = Literal[
+    "study.prepare",
+    "study.allocate",
+    "study.packet",
+    "study.rate",
+    "study.outcome",
+    "study.read",
+    "study.export",
+    "study.record_id",
+    "study.participant_id",
+    "study.sequence_id",
+    "study.stage",
+    "study.condition",
+    "study.plan_id",
+    "study.record_kind",
+    "study.instrument_record_id",
+    "study.packet_id",
+    "study.rubric_code",
+    "study.value_code",
+    "study.missing_reason",
+    "study.redacted_evidence",
+    "study.provenance",
+]
+STUDY_FIELDS = frozenset(get_args(StudyField))
+OperationalField = Literal[
+    "operational.episode",
+    "operational.adaptation_reasons",
+    "operational.override_reasons",
+    "operational.reserved_cost",
+    "operational.exposure_cost",
+    "operational.response_text",
+    "operational.code",
+    "operational.evidence",
+    "operational.model_references",
+    "operational.adaptations",
+    "operational.overrides",
+    "operational.source_references",
+    "operational.ai_output",
+    "operational.judge_result",
+    "operational.simulation",
+    "operational.latency_ms",
+    "operational.input_tokens",
+    "operational.output_tokens",
+    "operational.estimated_cost",
+    "operational.actual_cost",
+    "operational.outcome",
+    "operational.moderation",
+]
+OperationalPermission = Literal["operational.collect", "operational.read", "operational.export"]
+OPERATIONAL_FIELDS = frozenset(get_args(OperationalField))
+FieldPath = (
+    TechnicalPairField | InstrumentField | StudyField | OperationalField | OperationalPermission
+)
+ResearchPurpose = Literal[
+    "technical_pair", "provider_processing", "study_instruments", "study_operational_evidence"
+]
 
 
 class GovernanceContract(BaseModel):
@@ -98,7 +152,7 @@ class StudyScope(GovernanceContract):
     withdrawal_rule_reference: Code
     processing_researcher_id: int = Field(gt=0)
     course_ids: list[Code] = Field(min_length=1, max_length=100)
-    fields: list[FieldPath] = Field(min_length=1, max_length=64)
+    fields: list[FieldPath] = Field(min_length=1, max_length=128)
     purposes: list[ResearchPurpose] = Field(min_length=1)
     valid_from: AwareDatetime
     valid_until: AwareDatetime
@@ -126,6 +180,11 @@ class StudyScope(GovernanceContract):
             <= classes
         ):
             raise ValueError("instrument retention classes are missing")
+        if (
+            "study_operational_evidence" in self.purposes
+            and "study_operational_manifests" not in classes
+        ):
+            raise ValueError("operational manifest retention class is missing")
         return self
 
 
@@ -146,7 +205,7 @@ class ConsentDecision(GovernanceContract):
     subject_user_id: int = Field(gt=0)
     decision: Literal["consented", "declined", "withdrawn"]
     consent_version: Code
-    fields: list[FieldPath] = Field(default_factory=list, max_length=64)
+    fields: list[FieldPath] = Field(default_factory=list, max_length=128)
     purposes: list[ResearchPurpose] = Field(default_factory=list)
 
 
@@ -166,7 +225,7 @@ class ResearchGrant(GovernanceContract):
     scope_id: Code
     course_id: Code
     subject_user_id: int = Field(gt=0)
-    fields: list[FieldPath] = Field(min_length=1, max_length=64)
+    fields: list[FieldPath] = Field(min_length=1, max_length=128)
     valid_from: AwareDatetime
     valid_until: AwareDatetime
     revoked: bool = False

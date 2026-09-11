@@ -221,6 +221,7 @@ from app.models import (
     assessment_moderation,  # noqa: F401
     provider_usage,  # noqa: F401
     research_instruments,  # noqa: F401
+    research_study,  # noqa: F401
 )
 from app.models.activity_continuation import (  # noqa: F401
     ActivityChoice,
