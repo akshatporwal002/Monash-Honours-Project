@@ -7,7 +7,7 @@ import { Button, Field, Select } from '../../components/ui'
 import type { SetupUpdate } from './AssessorSetupPanels'
 import { GeneratedAssessmentDraft } from './GeneratedAssessmentDraft'
 
-export function AssessmentTaskPicker({ courseId, lockedIdentity, onUpdate }: { courseId: string; lockedIdentity: boolean; onUpdate: SetupUpdate }) {
+export function AssessmentTaskPicker({ courseId, lockedIdentity, onUpdate, onSaved }: { courseId: string; lockedIdentity: boolean; onUpdate: SetupUpdate; onSaved?: (definition: ApiSchemas['AssessmentDefinitionRead']) => void }) {
   const [loaded, setLoaded] = useState<{ courseId: string; rows: (ApiSchemas['AssessmentAuthoringTaskRead'] & { generated_assessment_candidate?: boolean })[]; offset: number } | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [busy, setBusy] = useState(false)
@@ -52,7 +52,7 @@ export function AssessmentTaskPicker({ courseId, lockedIdentity, onUpdate }: { c
         <p>{selected.reviewed ? 'Current teaching review approved.' : 'Teaching review is incomplete.'}</p>
         <ul>{selected.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
         <Button disabled={busy || lockedIdentity || !selected.reviewed || !selected.source_materials.length} onClick={choose}>Use this reviewed task</Button>
-        {selected.generated_assessment_candidate && selected.reviewed && selected.revision_id && !lockedIdentity && <GeneratedAssessmentDraft key={`${courseId}-${selected.task_id}-${selected.revision_id}`} courseId={courseId} taskId={selected.task_id} revisionId={selected.revision_id} />}
+        {selected.generated_assessment_candidate && selected.reviewed && selected.revision_id && !lockedIdentity && <GeneratedAssessmentDraft key={`${courseId}-${selected.task_id}-${selected.revision_id}`} courseId={courseId} taskId={selected.task_id} revisionId={selected.revision_id} onSaved={onSaved} />}
         {lockedIdentity && <p>The saved definition keeps its course and outcome. Start a new definition to change them.</p>}
         {selected.source_materials.map((material) => <Button key={material.material_id} variant="quiet" onClick={() => setMaterialId(material.material_id)}>Read source: {material.label}</Button>)}
         {materialId && <SourceReviewPanel key={`${courseId}-${materialId}`} courseId={courseId} materialId={materialId} readOnly />}

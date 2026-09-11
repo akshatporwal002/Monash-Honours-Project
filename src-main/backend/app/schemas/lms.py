@@ -360,11 +360,17 @@ class AssessmentAuthoringTaskRead(LmsSchema):
     source_materials: list[AssessmentSourceMaterialRead]
 
 
+class AssessmentAuthoringCriterionRead(AssessmentTaskCriterionRead):
+    approved_anchors: dict[str, Any] | list[Any]
+    critical_error_rules: dict[str, Any] | list[Any]
+
+
 class AssessmentDefinitionRead(LmsSchema):
     id: str
     assessment_definition_id: str
     course_id: str
     outcome_version_id: str
+    outcome_id: str
     version: int
     approval_state: AssessmentApprovalState
     purpose: AssessmentPurpose
@@ -381,7 +387,7 @@ class AssessmentDefinitionRead(LmsSchema):
     access_conditions: dict[str, Any] | list[Any]
     transfer_rule: dict[str, Any] | list[Any]
     evidence_sufficiency: dict[str, Any] | list[Any]
-    criteria: list[AssessmentTaskCriterionRead]
+    criteria: list[AssessmentAuthoringCriterionRead]
     pass_rule_expression: dict[str, Any]
     task_forms: list[AssessmentTaskFormRead]
     formal_result_eligible: bool | None

@@ -3,7 +3,7 @@ import { ApiError, api } from '../../app/api'
 import type { ApiSchemas } from '../../api/generated'
 import { Button } from '../../components/ui'
 
-export function GeneratedAssessmentDraft({ courseId, taskId, revisionId }: { courseId: string; taskId: string; revisionId: string }) {
+export function GeneratedAssessmentDraft({ courseId, taskId, revisionId, onSaved }: { courseId: string; taskId: string; revisionId: string; onSaved?: (definition: ApiSchemas['AssessmentDefinitionRead']) => void }) {
   const [draft, setDraft] = useState<ApiSchemas['AssessmentDefinitionDraftCreate'] | null>(null)
   const [saved, setSaved] = useState<ApiSchemas['AssessmentDefinitionRead'] | null>(null)
   const [error, setError] = useState('')
@@ -11,7 +11,11 @@ export function GeneratedAssessmentDraft({ courseId, taskId, revisionId }: { cou
   const act = async (save: boolean) => {
     setBusy(true); setError('')
     try {
-      if (save) setSaved(await api.assessment.saveGeneratedDraft(courseId, taskId, revisionId))
+      if (save) {
+        const definition = await api.assessment.saveGeneratedDraft(courseId, taskId, revisionId)
+        setSaved(definition)
+        onSaved?.(definition)
+      }
       else setDraft(await api.assessment.generatedDraft(courseId, taskId, revisionId))
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'The generated design could not be loaded or saved. Reload the reviewed task and try again.')
