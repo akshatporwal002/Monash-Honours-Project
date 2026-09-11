@@ -16,6 +16,12 @@ from app.models.assessment import AssessmentDefinition, OutcomeVersion
 from app.models.lms import PlatformAuditEvent
 from app.models.persistence import LearningTask
 from app.models.user import RoleAssignment, User
+from app.schemas.lms import (
+    AssessmentCriterionDraft,
+    AssessmentDefinitionDraftCreate,
+    AssessmentTaskCriterionRead,
+    AssessmentTaskFormDraft,
+)
 from app.services.lms import DEMO_PASSWORD
 
 pytestmark = pytest.mark.usefixtures("synthetic_material_scanning")
@@ -329,6 +335,10 @@ def test_student_admin_and_cross_course_users_are_denied(
     _logout(client)
     _login(client, "admin")
     assert _publish(client, course, definition).status_code == 403
+    assert client.get(
+        f"/api/v1/assessment/courses/{course['id']}/definitions/"
+        f"{definition['assessment_definition_id']}/history"
+    ).status_code == 404
 
     _logout(client)
     _login(client, "educator")
@@ -337,6 +347,68 @@ def test_student_admin_and_cross_course_users_are_denied(
     ).json()
     _assign_assessor(client, session, str(course["id"]))
     assert _publish(client, other_course, definition).status_code == 403
+    assert client.get(
+        f"/api/v1/assessment/courses/{other_course['id']}/definitions/"
+        f"{definition['assessment_definition_id']}/history"
+    ).status_code == 404
+
+
+@pytest.mark.parametrize("published", [False, True])
+def test_authoring_history_roundtrips_private_criterion_metadata(
+    assessment_api_context: tuple[TestClient, Session], published: bool,
+) -> None:
+    client, session = assessment_api_context
+    _login(client, "educator")
+    course, original = _draft_definition(client)
+    if published:
+        _assign_assessor(client, session, str(course["id"]))
+        response = _publish(client, course, original)
+        assert response.status_code == 200, response.text
+        original = response.json()
+    path = (
+        f"/api/v1/assessment/courses/{course['id']}/definitions/"
+        f"{original['assessment_definition_id']}/history"
+    )
+    read = client.get(path).json()[0]
+    assert read["outcome_id"]
+    assert read["criteria"][0]["approved_anchors"] == {"met": ["valid explanation"]}
+    assert read["criteria"][0]["critical_error_rules"] == {
+        "errors": ["reverses the relationship"]
+    }
+    learner_fields = AssessmentTaskCriterionRead.model_fields
+    learner_read = AssessmentTaskCriterionRead.model_validate(
+        {key: value for key, value in read["criteria"][0].items() if key in learner_fields}
+    ).model_dump()
+    assert "approved_anchors" not in learner_read
+    assert "critical_error_rules" not in learner_read
+    payload = {key: read[key] for key in AssessmentDefinitionDraftCreate.model_fields}
+    payload["criteria"] = [
+        {key: criterion[key] for key in AssessmentCriterionDraft.model_fields}
+        for criterion in read["criteria"]
+    ]
+    payload["task_forms"] = [
+        {key: form[key] for key in AssessmentTaskFormDraft.model_fields}
+        for form in read["task_forms"]
+    ]
+    payload["criteria"].append({**payload["criteria"][0], "stable_key": "second_evidence"})
+    payload["pass_rule_expression"] = {
+        "operator": "ALL_OF",
+        "clauses": [{"criterion": item["stable_key"]} for item in payload["criteria"]],
+    }
+    payload["expected_version"] = read["version"]
+    revised = client.put(
+        f"/api/v1/assessment/courses/{course['id']}/outcomes/{read['outcome_id']}/definitions/"
+        f"{read['assessment_definition_id']}", json=payload,
+    )
+    assert revised.status_code == 200, revised.text
+    saved = revised.json()
+    assert saved["version"] == read["version"] + 1
+    assert saved["approval_state"] == "DRAFT"
+    assert len(saved["criteria"]) == 2
+    for expected, actual in zip(payload["criteria"], saved["criteria"], strict=True):
+        assert {key: actual[key] for key in AssessmentCriterionDraft.model_fields} == expected
+    versions = client.get(path).json()
+    assert next(item for item in versions if item["id"] == original["id"]) == original
 
 
 def test_publication_requires_bloom_criteria_pass_rule_and_approved_form(

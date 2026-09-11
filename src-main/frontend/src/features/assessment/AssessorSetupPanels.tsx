@@ -28,15 +28,17 @@ function AssessmentTargetFields({
   assignments,
   lockedIdentity,
   onUpdate,
+  onSaved,
 }: {
   values: SetupValues
   assignments: ScopedRoleAssignment[]
   lockedIdentity: boolean
   onUpdate: SetupUpdate
+  onSaved?: (definition: AssessmentDefinition) => void
 }) {
   return (
     <Card eyebrow="Outcome and source">
-      <AssessmentTaskPicker courseId={values.courseId} lockedIdentity={lockedIdentity} onUpdate={onUpdate} />
+      <AssessmentTaskPicker courseId={values.courseId} lockedIdentity={lockedIdentity} onUpdate={onUpdate} onSaved={onSaved} />
       <fieldset className={styles.fieldset}>
         <legend className={styles.legend}>Assessment target</legend>
         <div className={styles.formGrid}>
@@ -280,11 +282,13 @@ export function AssessorSetupFields({
   assignments,
   lockedIdentity,
   onUpdate,
+  onSaved,
 }: {
   values: SetupValues
   assignments: ScopedRoleAssignment[]
   lockedIdentity: boolean
   onUpdate: SetupUpdate
+  onSaved?: (definition: AssessmentDefinition) => void
 }) {
   return (
     <>
@@ -293,6 +297,7 @@ export function AssessorSetupFields({
         assignments={assignments}
         lockedIdentity={lockedIdentity}
         onUpdate={onUpdate}
+        onSaved={onSaved}
       />
       <EvidenceRuleFields values={values} onUpdate={onUpdate} />
       <TaskConditionFields values={values} onUpdate={onUpdate} />

@@ -43,12 +43,12 @@ from app.schemas.assessment_review import (
 )
 from app.schemas.episode import FrozenResponseRead
 from app.schemas.lms import (
+    AssessmentAuthoringCriterionRead,
     AssessmentAuthoringTaskRead,
     AssessmentDefinitionApproval,
     AssessmentDefinitionDraftCreate,
     AssessmentDefinitionDraftUpdate,
     AssessmentDefinitionRead,
-    AssessmentTaskCriterionRead,
     AssessmentTaskFormRead,
     AssessorCandidateRead,
     AssessorEligibilityRead,
@@ -823,6 +823,7 @@ def _definition_read(version: AssessmentDefinitionVersion) -> AssessmentDefiniti
         assessment_definition_id=version.assessment_definition_id,
         course_id=version.course_id,
         outcome_version_id=version.outcome_version_id,
+        outcome_id=version.assessment_definition.learning_outcome_id,
         version=version.version,
         approval_state=version.approval_state,
         purpose=version.purpose,
@@ -840,7 +841,7 @@ def _definition_read(version: AssessmentDefinitionVersion) -> AssessmentDefiniti
         transfer_rule=version.transfer_rule,
         evidence_sufficiency=version.evidence_sufficiency,
         criteria=[
-            AssessmentTaskCriterionRead(
+            AssessmentAuthoringCriterionRead(
                 id=criterion.id,
                 stable_key=criterion.criterion.stable_key,
                 version=criterion.version,
@@ -852,6 +853,8 @@ def _definition_read(version: AssessmentDefinitionVersion) -> AssessmentDefiniti
                 not_met_rule=criterion.not_met_rule,
                 not_evaluable_rule=criterion.not_evaluable_rule,
                 evaluator_type=criterion.evaluator_type,
+                approved_anchors=criterion.approved_anchors,
+                critical_error_rules=criterion.critical_error_rules,
             )
             for criterion in version.criterion_versions
         ],

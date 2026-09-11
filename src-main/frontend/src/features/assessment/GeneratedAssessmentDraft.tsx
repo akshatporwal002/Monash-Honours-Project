@@ -1,22 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ApiError, api } from '../../app/api'
 import type { ApiSchemas } from '../../api/generated'
 import { Button } from '../../components/ui'
 
-export function GeneratedAssessmentDraft({ courseId, taskId, revisionId }: { courseId: string; taskId: string; revisionId: string }) {
+export function GeneratedAssessmentDraft({ courseId, taskId, revisionId, onSaved }: { courseId: string; taskId: string; revisionId: string; onSaved?: (definition: ApiSchemas['AssessmentDefinitionRead']) => void }) {
   const [draft, setDraft] = useState<ApiSchemas['AssessmentDefinitionDraftCreate'] | null>(null)
   const [saved, setSaved] = useState<ApiSchemas['AssessmentDefinitionRead'] | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const requestEpoch = useRef(0)
+  useEffect(() => () => { requestEpoch.current += 1 }, [courseId, taskId, revisionId])
   const act = async (save: boolean) => {
+    const epoch = ++requestEpoch.current
     setBusy(true); setError('')
     try {
-      if (save) setSaved(await api.assessment.saveGeneratedDraft(courseId, taskId, revisionId))
-      else setDraft(await api.assessment.generatedDraft(courseId, taskId, revisionId))
+      if (save) {
+        const definition = await api.assessment.saveGeneratedDraft(courseId, taskId, revisionId)
+        if (requestEpoch.current !== epoch) return
+        setSaved(definition)
+        onSaved?.(definition)
+      }
+      else {
+        const proposal = await api.assessment.generatedDraft(courseId, taskId, revisionId)
+        if (requestEpoch.current !== epoch) return
+        setDraft(proposal)
+      }
     } catch (caught) {
+      if (requestEpoch.current !== epoch) return
       setError(caught instanceof ApiError ? caught.message : 'The generated design could not be loaded or saved. Reload the reviewed task and try again.')
       setDraft(null)
-    } finally { setBusy(false) }
+    } finally { if (requestEpoch.current === epoch) setBusy(false) }
   }
   return <section aria-label="Generated assessment design">
     <Button variant="secondary" disabled={busy || Boolean(saved)} onClick={() => void act(false)}>Preview generated assessment design</Button>

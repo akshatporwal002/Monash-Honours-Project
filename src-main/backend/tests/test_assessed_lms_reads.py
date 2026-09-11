@@ -161,6 +161,9 @@ def test_reads_after_formal_submission(db_session: Session, with_practice: bool,
             "visibility": "withheld",
         }
         assert data["assessment"]["criteria"][0]["mandatory"] is True
+        for criterion in data["assessment"]["criteria"]:
+            assert "approved_anchors" not in criterion
+            assert "critical_error_rules" not in criterion
     elif path == "student_dashboard":
         assert "average_score" not in data["summary"]
         assert data["recommendations"]
