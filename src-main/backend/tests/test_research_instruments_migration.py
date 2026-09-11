@@ -20,7 +20,7 @@ from scripts.verify_sqlite_backup import create_verified_backup, database_manife
 def test_instrument_forward_replay_and_guarded_downgrade(tmp_path):
     path = tmp_path / "synthetic-instruments.db"
     config = migration_config(f"sqlite:///{path.as_posix()}")
-    assert ScriptDirectory.from_config(config).get_heads() == ["20260911_0051"]
+    assert ScriptDirectory.from_config(config).get_heads() == ["20260911_0054"]
     command.upgrade(config, "20260910_0045")
     before = database_manifest(path)
     command.upgrade(config, "20260910_0046")

@@ -331,7 +331,7 @@ def test_migration_preserves_preferences_and_refuses_destructive_downgrade(tmp_p
         )
         assert (
             connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-            == "20260911_0051"
+            == "20260911_0054"
         )
         with pytest.raises(IntegrityError):
             connection.execute(text("DELETE FROM learner_preference_revisions"))

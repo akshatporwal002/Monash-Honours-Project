@@ -181,7 +181,7 @@ def test_real_episode_review_is_lossless_read_only_and_confirmed(migrated):
     assert protected_history_manifest(database_path) == before_downgrade
     assert (
         session.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        == "20260911_0051"
+        == "20260911_0054"
     )
     assert session.execute(text("PRAGMA foreign_key_check")).all() == []
 

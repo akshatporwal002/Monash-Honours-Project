@@ -8,6 +8,17 @@ export type ApiSchemas = {
     "reference_id": string
     "status"?: "ACCESS_DENIED"
   }
+  "AccessRepresentation": {
+    "circuit"?: (Record<string, unknown>) | (null)
+    "equivalence_basis": string
+    "explanation_detail"?: "brief" | "detailed"
+    "instructional_support_level"?: number
+    "mode": "text" | "visual" | "circuit" | "stepwise"
+    "source_references": Array<string>
+    "steps"?: Array<string>
+    "text": string
+    "title": string
+  }
   "AccessSupportState": "NOT_DECLARED" | "APPROVED" | "PROVIDED"
   "AchievementRead": {
     "code": string
@@ -457,6 +468,37 @@ export type ApiSchemas = {
     "student_ids": Array<string>
     "task_id"?: (string) | (null)
   }
+  "CategoryAssessment": {
+    "findings": Array<ApiSchemas["DimensionFinding"]>
+    "request_digest": string
+    "reviewer": ApiSchemas["ReviewProvenance"]
+  }
+  "CategoryReviewRecord": {
+    "assessment": (ApiSchemas["CategoryAssessment"]) | (null)
+    "category": ApiSchemas["OutputCategory"]
+    "course_id": string
+    "decision": ApiSchemas["QualityReviewDecision"]
+    "evidence": Array<Partial<Record<string, (string) | (null)>>>
+    "output_digest": string
+    "policy_version"?: "fr17-complete-review.v1"
+    "reason": string
+    "request_digest": string
+    "reviewed_at": string
+    "schema_version"?: "category-review.v1"
+    "scope": "new_content" | "reviewed_selection"
+    "subject_id": string
+    "unresolved_dimensions": Array<ApiSchemas["ReviewDimension"]>
+    "versions": Partial<Record<string, string>>
+  }
+  "CategoryReviewRequest": {
+    "category": ApiSchemas["OutputCategory"]
+    "course_id": string
+    "evidence"?: Array<ApiSchemas["ReviewEvidence"]>
+    "output": (Record<string, unknown>) | (Array<unknown>) | (string)
+    "scope"?: "new_content" | "reviewed_selection"
+    "subject_id": string
+    "versions": Partial<Record<string, string>>
+  }
   "ConditionMetrics": {
     "average_cost": ApiSchemas["MetricValue"]
     "average_latency_ms": ApiSchemas["MetricValue"]
@@ -614,6 +656,46 @@ export type ApiSchemas = {
     "request_key": string
     "requested_support": "none" | "concept_cue" | "guided"
   }
+  "DimensionFinding": {
+    "basis": "human" | "model" | "structural" | "reviewed_content_inheritance"
+    "dimension": ApiSchemas["ReviewDimension"]
+    "evidence_references"?: Array<string>
+    "outcome": "SATISFIED" | "VIOLATED" | "UNVERIFIED" | "NOT_APPLICABLE"
+    "reason": string
+  }
+  "DisposalAuthorization": {
+    "authority_reference": string
+    "evidence_reference": string
+    "executor_user_id": number
+    "kind"?: "disposal_authorization"
+    "manifest_digest": string
+    "method": "delete_restricted_text"
+    "not_before": string
+    "record_class": "restricted_instrument_evidence"
+    "record_ids": Array<string>
+    "scope_id": string
+    "state": "authorized" | "revoked"
+    "valid_until": string
+  }
+  "DisposalExecute": {
+    "authorization_id": string
+    "request_key": string
+  }
+  "DisposalExecution": {
+    "authorization_id": string
+    "kind"?: "disposal_execution"
+    "manifest_digest": string
+    "records": Array<ApiSchemas["DisposedEvidence"]>
+    "scope_id": string
+  }
+  "DisposalPreview": {
+    "record_ids": Array<string>
+  }
+  "DisposedEvidence": {
+    "content_digest": string
+    "evidence_id": string
+    "record_id": string
+  }
   "DraftRead": {
     "answer": string
     "assessment_work_start_id"?: (string) | (null)
@@ -757,7 +839,7 @@ export type ApiSchemas = {
   "EpisodeHelpUseReceipt": {
     "content": (string) | (null)
     "record": ApiSchemas["EpisodeHelpUseRead"]
-    "representation"?: (ApiSchemas["SupportRepresentation"]) | (null)
+    "representation"?: (ApiSchemas["SupportRepresentation"]) | (ApiSchemas["AccessRepresentation"]) | (null)
   }
   "EpisodeHelpUseWrite": {
     "assessment_work_start_id": string
@@ -776,6 +858,7 @@ export type ApiSchemas = {
     "reason": string
   }
   "EpisodeStageResponseV1": {
+    "application"?: (ApiSchemas["ResponseContent"]) | (null)
     "explanation"?: (string) | (null)
     "prediction"?: (ApiSchemas["ResponseContent"]) | (null)
     "prediction_checkpoint_id"?: (string) | (null)
@@ -785,6 +868,7 @@ export type ApiSchemas = {
     "simulation_references"?: Array<ApiSchemas["SimulationReference"]>
   }
   "EpisodeStateRead": {
+    "access_representation_choices"?: Array<ApiSchemas["SupportRepresentationChoice"]>
     "accessibility_support"?: Array<string>
     "prediction_required": boolean
     "representation_choices"?: Array<ApiSchemas["SupportRepresentationChoice"]>
@@ -881,13 +965,34 @@ export type ApiSchemas = {
     "task_id": string
     "trigger": string
   }
+  "EvaluatorReleaseWrite": {
+    "approval_reference": string
+    "approved_at": string
+    "authority_name": string
+    "authority_role": string
+    "expected_fingerprint": string
+    "expires_at": string
+    "idempotency_key": string
+    "model": string
+    "prompt_version": string
+    "provider": string
+    "retrieval_version": string
+    "task_form_version_ids": Array<string>
+    "validation_id": string
+  }
+  "EvaluatorRevokeWrite": {
+    "authority_reference": string
+    "expected_validation_id": string
+    "idempotency_key": string
+    "reason": string
+  }
   "EvaluatorValidationReceipt": {
     "ai_activation": "PENDING"
     "state": "VALIDATED"
     "validation_id": string
   }
   "EvaluatorValidationStatusRead": {
-    "ai_activation": "PENDING"
+    "ai_activation": "PENDING" | "RELEASED"
     "fingerprint": string
     "reason": string
     "state": "PENDING" | "VALIDATED" | "INVALIDATED"
@@ -897,6 +1002,7 @@ export type ApiSchemas = {
     "evidence": Record<string, unknown>
     "expected_fingerprint": string
     "expires_at": string
+    "idempotency_key"?: (string) | (null)
   }
   "EvidenceReference": {
     "assessment": ApiSchemas["AssessmentVersionReference"]
@@ -966,9 +1072,11 @@ export type ApiSchemas = {
   "FormRead": {
     "content_digest": string
     "definition": ApiSchemas["InstrumentDefinition"]
+    "frozen"?: boolean
     "frozen_for_synthetic_validation": boolean
     "id": string
-    "production_active"?: false
+    "instrument_key": string
+    "production_active"?: boolean
     "version": number
   }
   "FormWrite": {
@@ -1047,11 +1155,42 @@ export type ApiSchemas = {
   "GenerateTasksRequest": {
     "allowed_task_types": Array<ApiSchemas["TaskType"]>
     "difficulty_levels": Array<string>
+    "generation_context"?: (ApiSchemas["GenerationContext"]) | (null)
     "generation_mode"?: "basic" | "multipart"
     "learning_outcome_id": string
     "learning_outcome_text": string
     "module_id"?: (string) | (null)
     "task_count"?: number
+  }
+  "GeneratedCircuit": {
+    "operations": Array<ApiSchemas["GeneratedCircuitOperation"]>
+    "qubits": number
+    "seed"?: number
+    "shots"?: number
+  }
+  "GeneratedCircuitOperation": {
+    "gate": "h" | "x" | "cx"
+    "targets": Array<number>
+  }
+  "GeneratedRepresentation": {
+    "circuit"?: (ApiSchemas["GeneratedCircuit"]) | (null)
+    "equivalence_basis": string
+    "explanation_detail": "brief" | "detailed"
+    "instructional_support_level": number
+    "mode": "text" | "visual" | "worked_example" | "circuit" | "stepwise"
+    "representation_id": string
+    "source_quotes": Array<ApiSchemas["RepresentationSourceQuote"]>
+    "source_references": Array<string>
+    "steps"?: Array<string>
+    "support_kind": "instructional" | "accessibility"
+    "text": string
+    "title": string
+  }
+  "GeneratedRepresentations": {
+    "schema_version"?: "learnlens.generated-representations.v1"
+    "status"?: "DRAFT"
+    "unavailable_modes"?: Array<ApiSchemas["UnavailableRepresentation"]>
+    "variants": Array<ApiSchemas["GeneratedRepresentation"]>
   }
   "GeneratedTaskRead": {
     "difficulty": string
@@ -1063,8 +1202,18 @@ export type ApiSchemas = {
     "task_type": ApiSchemas["TaskType"]
     "title": string
   }
+  "GenerationContext": {
+    "feedback_id"?: (string) | (null)
+    "response_version_id"?: (string) | (null)
+    "variant_revision_id"?: (string) | (null)
+    "variant_task_id"?: (string) | (null)
+  }
+  "GenerationOption": {
+    "context": ApiSchemas["GenerationContext"]
+    "label": string
+  }
   "GovernanceCommand": {
-    "decision": (ApiSchemas["StudyScope"]) | (ApiSchemas["ApprovalDecision"]) | (ApiSchemas["ConsentDecision"]) | (ApiSchemas["EligibilityDecision"]) | (ApiSchemas["ResearchGrant"]) | (ApiSchemas["RetentionHold"])
+    "decision": (ApiSchemas["StudyScope"]) | (ApiSchemas["ApprovalDecision"]) | (ApiSchemas["ConsentDecision"]) | (ApiSchemas["InstrumentApprovalDecision"]) | (ApiSchemas["StudyReleaseDecision"]) | (ApiSchemas["EligibilityDecision"]) | (ApiSchemas["ResearchGrant"]) | (ApiSchemas["RetentionHold"]) | (ApiSchemas["DisposalAuthorization"]) | (ApiSchemas["DisposalExecution"])
     "expected_revision": number
     "reason": string
     "request_key": string
@@ -1074,7 +1223,7 @@ export type ApiSchemas = {
     "command": ApiSchemas["GovernanceCommand"]
     "id": string
     "kind": string
-    "production_active"?: false
+    "production_active"?: boolean
     "recorded_at": string
     "revision": number
     "study_id": string
@@ -1082,7 +1231,7 @@ export type ApiSchemas = {
   "GovernanceReceipt": {
     "id": string
     "kind": string
-    "production_active"?: false
+    "production_active"?: boolean
     "recorded_at": string
     "revision": number
     "study_id": string
@@ -1177,6 +1326,17 @@ export type ApiSchemas = {
     "missing_reason"?: ("not_collected" | "not_applicable" | "participant_skipped" | "technical_failure" | "not_evaluable" | "outside_window" | "withdrawn" | "not_approved") | (null)
     "response_text"?: (string) | (null)
   }
+  "InstrumentApprovalDecision": {
+    "authority_reference": string
+    "content_digest": string
+    "evidence_reference": string
+    "form_id": string
+    "kind"?: "instrument_approval"
+    "scope_id": string
+    "state": "approved" | "suspended" | "revoked"
+    "valid_from": string
+    "valid_until": string
+  }
   "InstrumentDefinition": {
     "event_reason_codes": Array<string>
     "instrument_kind": "conceptual" | "transfer" | "retention" | "learner_experience" | "educator_review" | "process"
@@ -1185,7 +1345,7 @@ export type ApiSchemas = {
     "schema_version"?: "learnlens.instrument-definition.v1"
     "stages": Array<"T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER">
     "support_manifest_reference": string
-    "synthetic_only"?: true
+    "synthetic_only"?: boolean
     "title": string
   }
   "InstrumentExportRequest": {
@@ -1204,7 +1364,7 @@ export type ApiSchemas = {
   }
   "InstrumentReceipt": {
     "id": string
-    "production_active"?: false
+    "production_active"?: boolean
     "recorded_at": string
     "revision": number
   }
@@ -1302,7 +1462,11 @@ export type ApiSchemas = {
     "action": string
     "at": string
   }
-  "LearnerModelDimension": "PRIOR_KNOWLEDGE" | "REASONING_STRENGTH" | "REASONING_GAP" | "POSSIBLE_MISCONCEPTION" | "CONFIDENCE_CALIBRATION" | "FEEDBACK_USE" | "SCAFFOLD_DEPENDENCE" | "INDEPENDENCE" | "TRANSFER" | "EXPLICIT_PREFERENCE"
+  "LearnerModelDimension": "PRIOR_KNOWLEDGE" | "REASONING_STRENGTH" | "REASONING_GAP" | "POSSIBLE_MISCONCEPTION" | "CONFIDENCE_CALIBRATION" | "FEEDBACK_USE" | "SCAFFOLD_DEPENDENCE" | "INDEPENDENCE" | "TRANSFER" | "EXPLICIT_PREFERENCE" | "USEFUL_EXPLANATION_FORM" | "SUCCESSFUL_STRATEGY" | "UNSUCCESSFUL_STRATEGY" | "SUPPORT_NEEDS"
+  "LearnerModelEvidenceSignal": {
+    "evidence_id": string
+    "relation": "SUPPORTS" | "CONTRADICTS"
+  }
   "LearnerModelTimelineCorrection": {
     "annotation": ApiSchemas["LearnerAnnotationPayload"]
     "reviews": Array<ApiSchemas["EducatorCorrectionReviewPayload"]>
@@ -1800,6 +1964,7 @@ export type ApiSchemas = {
     "title"?: (string) | (null)
     "week_number"?: (number) | (null)
   }
+  "OutputCategory": "task" | "explanation" | "suggestion" | "feedback" | "provisional_assessment" | "support_representation"
   "OutputReportWrite": {
     "idempotency_key": string
     "queue_kind": "ASSESSOR" | "TECHNICAL"
@@ -1817,7 +1982,7 @@ export type ApiSchemas = {
   }
   "ParticipationRead": {
     "consent": (ApiSchemas["ConsentDecision"]) | (null)
-    "production_active"?: false
+    "production_active"?: boolean
     "revision": number
     "scope": ApiSchemas["StudyScope"]
     "scope_id": string
@@ -1946,6 +2111,20 @@ export type ApiSchemas = {
     "repeat_practice"?: boolean
     "support_amount"?: "standard" | "on_request"
   }
+  "ProfileReviewReceipt": {
+    "created": boolean
+    "snapshot_id": string
+    "version": number
+  }
+  "ProfileReviewRequest": {
+    "dimension": ApiSchemas["LearnerModelDimension"]
+    "evidence": Array<ApiSchemas["LearnerModelEvidenceSignal"]>
+    "expected_version": number
+    "idempotency_key": string
+    "reason": string
+    "status": ApiSchemas["InferenceStatus"]
+    "uncertainty": number
+  }
   "ProgressAdaptation": {
     "choices": Array<ApiSchemas["ProgressChoice"]>
     "evidence_ids": Array<string>
@@ -1998,6 +2177,16 @@ export type ApiSchemas = {
     "evidence_id": string
     "relation": string
   }
+  "ProgressIndicator": {
+    "evidence_ids": Array<string>
+    "explanation": string
+    "id": string
+    "kind": "feedback_revision" | "feedback_transfer" | "question_clarification"
+    "occurred_at": string
+    "rule_version"?: string
+    "status"?: "REVIEW_REQUIRED"
+    "uncertainty"?: number
+  }
   "ProgressObservation": {
     "confidence"?: (number) | (string) | (null)
     "evidence_id": string
@@ -2026,6 +2215,8 @@ export type ApiSchemas = {
     "adaptations": Array<ApiSchemas["ProgressAdaptation"]>
     "estimates": Array<ApiSchemas["ProgressEstimate"]>
     "independent_responses": number
+    "indicator_evidence_truncated"?: boolean
+    "indicators"?: Array<ApiSchemas["ProgressIndicator"]>
     "learner_id": number
     "learner_name": string
     "misconception_ids": Array<string>
@@ -2035,6 +2226,7 @@ export type ApiSchemas = {
     "outcome_title": string
     "recent_evidence": Array<ApiSchemas["ProgressObservation"]>
     "results": Array<ApiSchemas["ProgressResult"]>
+    "snapshot_version"?: number
     "supported_responses": number
     "weekly_observations": Partial<Record<string, Partial<Record<string, number>>>>
   }
@@ -2150,6 +2342,21 @@ export type ApiSchemas = {
     "task_id": string
     "title": string
   }
+  "RepresentationGenerationRead": {
+    "candidate": ApiSchemas["GeneratedRepresentations"]
+    "model": string
+    "provider": string
+    "revision_id": string
+    "target": "practice" | "supported" | "transfer"
+  }
+  "RepresentationGenerationWrite": {
+    "expected_revision_id": string
+    "target": "practice" | "supported" | "transfer"
+  }
+  "RepresentationSourceQuote": {
+    "quote": string
+    "source_reference": string
+  }
   "ResearchExportFormat": "csv" | "json"
   "ResearchGrant": {
     "authority_reference": string
@@ -2230,6 +2437,21 @@ export type ApiSchemas = {
     "module_id"?: (string) | (null)
     "query": string
     "top_k"?: number
+  }
+  "ReviewDimension": "factual_accuracy" | "grounding_and_source_use" | "relevance" | "outcome_and_bloom_alignment" | "evidence_rule_alignment" | "support_and_answer_leakage" | "clarity_and_next_steps" | "accessibility_and_inclusive_wording" | "bias_and_unsupported_learner_claims" | "reflection_and_independent_work"
+  "ReviewEvidence": {
+    "approval_reference"?: (string) | (null)
+    "content": (Record<string, unknown>) | (Array<unknown>) | (string)
+    "kind": "approved_content" | "observation" | "policy"
+    "reference": string
+    "version": string
+  }
+  "ReviewProvenance": {
+    "kind": "human" | "model" | "deterministic"
+    "model_version"?: (string) | (null)
+    "prompt_version"?: (string) | (null)
+    "reference": string
+    "version": string
   }
   "SafeFallbackView": {
     "explanation": string
@@ -2483,6 +2705,13 @@ export type ApiSchemas = {
     "format": "csv" | "json"
     "stages": Array<"T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER">
   }
+  "StudyObservationStatus": {
+    "kind": string
+    "missing_item_count": number
+    "missing_reason": (string) | (null)
+    "reason_code": (string) | (null)
+    "record_id": string
+  }
   "StudyOutcome": {
     "interpretation_reference": string
     "kind"?: "outcome"
@@ -2502,7 +2731,7 @@ export type ApiSchemas = {
   }
   "StudyPacketRead": {
     "id": string
-    "production_active"?: false
+    "production_active"?: boolean
     "redacted_evidence": string
     "rubric": ApiSchemas["StudyRubric"]
     "stage": "T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER"
@@ -2521,7 +2750,7 @@ export type ApiSchemas = {
   "StudyPlanRead": {
     "id": string
     "plan": ApiSchemas["StudyPlan"]
-    "production_active"?: false
+    "production_active"?: boolean
     "revision": number
   }
   "StudyRating": {
@@ -2533,8 +2762,26 @@ export type ApiSchemas = {
   "StudyReceipt": {
     "id": string
     "kind": string
-    "production_active"?: false
+    "production_active"?: boolean
     "revision": number
+  }
+  "StudyReconciliationRead": {
+    "excluded_counts": Partial<Record<string, number>>
+    "plan_id": (string) | (null)
+    "production_active"?: boolean
+    "rows": Array<ApiSchemas["StudyStageStatus"]>
+  }
+  "StudyReleaseDecision": {
+    "approval_id": string
+    "authority_reference": string
+    "evidence_reference": string
+    "instrument_approval_ids"?: Array<string>
+    "kind"?: "release"
+    "plan_ids"?: Array<string>
+    "scope_id": string
+    "state": "active" | "suspended" | "revoked"
+    "valid_from": string
+    "valid_until": string
   }
   "StudyRubric": {
     "code": string
@@ -2564,6 +2811,18 @@ export type ApiSchemas = {
     "form_id": string
     "stage": "T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER"
   }
+  "StudyStageStatus": {
+    "allocation_id": string
+    "form_id": string
+    "observations": Array<ApiSchemas["StudyObservationStatus"]>
+    "outcome_ids": Array<string>
+    "packet_ids": Array<string>
+    "participant_id": string
+    "rating_ids": Array<string>
+    "sequence_id": string
+    "stage": "T0_BASELINE" | "T1_STUDY_ACTIVITY" | "T1_FORMAL_SUPPORTED" | "T1_FORMAL_UNAIDED" | "T2_CONCEPTUAL" | "T2_TRANSFER" | "T3_CONCEPTUAL" | "T3_TRANSFER"
+    "status": "unrecorded" | "response" | "explicit_gap" | "ambiguous"
+  }
   "SubmissionCreate": {
     "answer"?: string
     "assessment_work_start_id"?: (string) | (null)
@@ -2573,9 +2832,30 @@ export type ApiSchemas = {
     "idempotency_key"?: (string) | (null)
   }
   "SubmissionState": "NOT_STARTED" | "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "RETURNED" | "COMPLETED"
+  "SuggestedCriterion": {
+    "criterion_version_id": string
+    "decision": ApiSchemas["CriterionDecision"]
+    "evidence_ids": Array<string>
+    "reason": string
+  }
+  "SuggestionImportWrite": {
+    "criteria": Array<ApiSchemas["SuggestedCriterion"]>
+    "expected_fingerprint": string
+    "generated_at": string
+    "idempotency_key": string
+    "model": string
+    "output_reference": string
+    "prompt_version": string
+    "provider": string
+    "quality_review"?: (ApiSchemas["CategoryAssessment"]) | (null)
+    "release_id": string
+    "response_digest": string
+    "retrieval_version": string
+  }
   "SupportRepresentation": {
     "circuit"?: (Record<string, unknown>) | (null)
     "equivalence_basis": string
+    "explanation_detail"?: "brief" | "detailed"
     "instructional_support_level": number
     "mode": "text" | "visual" | "worked_example" | "circuit" | "stepwise"
     "source_references": Array<string>
@@ -2584,9 +2864,26 @@ export type ApiSchemas = {
     "title": string
   }
   "SupportRepresentationChoice": {
+    "explanation_detail"?: "brief" | "detailed"
     "item_index": number
     "mode": "text" | "visual" | "worked_example" | "circuit" | "stepwise"
     "title": string
+  }
+  "TaskCategoryReviewContext": {
+    "request": ApiSchemas["CategoryReviewRequest"]
+    "request_digest": string
+    "required": boolean
+  }
+  "TaskCategoryReviewRead": {
+    "id": string
+    "receipt": ApiSchemas["CategoryReviewRecord"]
+    "reviewer_id": number
+    "task_review_event_id": string
+    "task_revision_id": string
+  }
+  "TaskCategoryReviewSubmission": {
+    "findings": Array<ApiSchemas["DimensionFinding"]>
+    "request_digest": string
   }
   "TaskChoice": {
     "id": string
@@ -2611,6 +2908,7 @@ export type ApiSchemas = {
   }
   "TaskGenerateRequest": {
     "due_at"?: (string) | (null)
+    "generation_context"?: (ApiSchemas["GenerationContext"]) | (null)
     "generation_mode"?: "basic" | "multipart"
     "learning_outcome_id": string
     "task_count"?: number
@@ -2656,12 +2954,14 @@ export type ApiSchemas = {
   }
   "TaskReviewHistoryRead": {
     "events": Array<ApiSchemas["TaskReviewEventRead"]>
+    "quality_reviews"?: Array<ApiSchemas["TaskCategoryReviewRead"]>
     "revision": ApiSchemas["TaskRevisionRead"]
   }
   "TaskReviewSummary": {
     "available": boolean
     "content_digest": (string) | (null)
     "issues": Array<string>
+    "quality_review_required"?: boolean
     "review_version": number
     "revision": number
     "revision_id": (string) | (null)
@@ -2670,6 +2970,7 @@ export type ApiSchemas = {
   "TaskReviewWrite": {
     "expected_review_version": number
     "expected_revision_id": string
+    "quality_review"?: (ApiSchemas["TaskCategoryReviewSubmission"]) | (null)
     "reason": string
     "state": "SUBMITTED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
   }
@@ -2737,6 +3038,10 @@ export type ApiSchemas = {
     "expected_revision": number
     "idempotency_key": string
     "message": string
+  }
+  "UnavailableRepresentation": {
+    "mode": "text" | "visual" | "worked_example" | "circuit" | "stepwise"
+    "reason": string
   }
   "UnresolvedAssessmentRead": {
     "assessment_attempt_id": string

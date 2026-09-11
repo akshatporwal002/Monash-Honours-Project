@@ -36,6 +36,94 @@
         "title": "AccessDeniedEvidenceReference",
         "type": "object"
       },
+      "AccessRepresentation": {
+        "additionalProperties": false,
+        "description": "A reviewed equivalent input with no instructional help or worked solution.",
+        "properties": {
+          "circuit": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Circuit"
+          },
+          "equivalence_basis": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Equivalence Basis",
+            "type": "string"
+          },
+          "explanation_detail": {
+            "default": "detailed",
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "title": "Explanation Detail",
+            "type": "string"
+          },
+          "instructional_support_level": {
+            "default": 0,
+            "maximum": 0.0,
+            "minimum": 0.0,
+            "title": "Instructional Support Level",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "text",
+              "visual",
+              "circuit",
+              "stepwise"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "source_references": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Source References",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Steps",
+            "type": "array"
+          },
+          "text": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "title",
+          "text",
+          "source_references",
+          "equivalence_basis"
+        ],
+        "title": "AccessRepresentation",
+        "type": "object"
+      },
       "AccessSupportState": {
         "enum": [
           "NOT_DECLARED",
@@ -3246,6 +3334,217 @@
         "title": "BulkReminderCreate",
         "type": "object"
       },
+      "CategoryAssessment": {
+        "additionalProperties": false,
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/DimensionFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "request_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "reviewer": {
+            "$ref": "#/components/schemas/ReviewProvenance"
+          }
+        },
+        "required": [
+          "request_digest",
+          "reviewer",
+          "findings"
+        ],
+        "title": "CategoryAssessment",
+        "type": "object"
+      },
+      "CategoryReviewRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategoryAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "category": {
+            "$ref": "#/components/schemas/OutputCategory"
+          },
+          "course_id": {
+            "title": "Course Id",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/QualityReviewDecision"
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "output_digest": {
+            "title": "Output Digest",
+            "type": "string"
+          },
+          "policy_version": {
+            "const": "fr17-complete-review.v1",
+            "default": "fr17-complete-review.v1",
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "request_digest": {
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "format": "date-time",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "category-review.v1",
+            "default": "category-review.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "new_content",
+              "reviewed_selection"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "subject_id": {
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "unresolved_dimensions": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewDimension"
+            },
+            "title": "Unresolved Dimensions",
+            "type": "array"
+          },
+          "versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Versions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "category",
+          "course_id",
+          "subject_id",
+          "request_digest",
+          "output_digest",
+          "versions",
+          "evidence",
+          "scope",
+          "decision",
+          "reason",
+          "assessment",
+          "unresolved_dimensions",
+          "reviewed_at"
+        ],
+        "title": "CategoryReviewRecord",
+        "type": "object"
+      },
+      "CategoryReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/OutputCategory"
+          },
+          "course_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Course Id",
+            "type": "string"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReviewEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Output"
+          },
+          "scope": {
+            "default": "new_content",
+            "enum": [
+              "new_content",
+              "reviewed_selection"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "subject_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Subject Id",
+            "type": "string"
+          },
+          "versions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "minProperties": 1,
+            "title": "Versions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "category",
+          "course_id",
+          "subject_id",
+          "output",
+          "versions"
+        ],
+        "title": "CategoryReviewRequest",
+        "type": "object"
+      },
       "ConditionMetrics": {
         "additionalProperties": false,
         "properties": {
@@ -4393,6 +4692,263 @@
         "title": "DiagnosticSubmit",
         "type": "object"
       },
+      "DimensionFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "enum": [
+              "human",
+              "model",
+              "structural",
+              "reviewed_content_inheritance"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "dimension": {
+            "$ref": "#/components/schemas/ReviewDimension"
+          },
+          "evidence_references": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence References",
+            "type": "array"
+          },
+          "outcome": {
+            "enum": [
+              "SATISFIED",
+              "VIOLATED",
+              "UNVERIFIED",
+              "NOT_APPLICABLE"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dimension",
+          "outcome",
+          "basis",
+          "reason"
+        ],
+        "title": "DimensionFinding",
+        "type": "object"
+      },
+      "DisposalAuthorization": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "executor_user_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Executor User Id",
+            "type": "integer"
+          },
+          "kind": {
+            "const": "disposal_authorization",
+            "default": "disposal_authorization",
+            "title": "Kind",
+            "type": "string"
+          },
+          "manifest_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Manifest Digest",
+            "type": "string"
+          },
+          "method": {
+            "const": "delete_restricted_text",
+            "title": "Method",
+            "type": "string"
+          },
+          "not_before": {
+            "format": "date-time",
+            "title": "Not Before",
+            "type": "string"
+          },
+          "record_class": {
+            "const": "restricted_instrument_evidence",
+            "title": "Record Class",
+            "type": "string"
+          },
+          "record_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Record Ids",
+            "type": "array"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "authorized",
+              "revoked"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "record_class",
+          "record_ids",
+          "manifest_digest",
+          "executor_user_id",
+          "state",
+          "method",
+          "authority_reference",
+          "evidence_reference",
+          "not_before",
+          "valid_until"
+        ],
+        "title": "DisposalAuthorization",
+        "type": "object"
+      },
+      "DisposalExecute": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authorization Id",
+            "type": "string"
+          },
+          "request_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorization_id",
+          "request_key"
+        ],
+        "title": "DisposalExecute",
+        "type": "object"
+      },
+      "DisposalExecution": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authorization Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "disposal_execution",
+            "default": "disposal_execution",
+            "title": "Kind",
+            "type": "string"
+          },
+          "manifest_digest": {
+            "title": "Manifest Digest",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/DisposedEvidence"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "authorization_id",
+          "manifest_digest",
+          "records"
+        ],
+        "title": "DisposalExecution",
+        "type": "object"
+      },
+      "DisposalPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "record_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Record Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "record_ids"
+        ],
+        "title": "DisposalPreview",
+        "type": "object"
+      },
+      "DisposedEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "content_digest": {
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "evidence_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "record_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Record Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "record_id",
+          "content_digest"
+        ],
+        "title": "DisposedEvidence",
+        "type": "object"
+      },
       "DraftRead": {
         "additionalProperties": false,
         "properties": {
@@ -5329,9 +5885,13 @@
                 "$ref": "#/components/schemas/SupportRepresentation"
               },
               {
+                "$ref": "#/components/schemas/AccessRepresentation"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Representation"
           }
         },
         "required": [
@@ -5452,6 +6012,16 @@
       "EpisodeStageResponseV1": {
         "additionalProperties": false,
         "properties": {
+          "application": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResponseContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "explanation": {
             "anyOf": [
               {
@@ -5538,6 +6108,13 @@
       "EpisodeStateRead": {
         "additionalProperties": false,
         "properties": {
+          "access_representation_choices": {
+            "items": {
+              "$ref": "#/components/schemas/SupportRepresentationChoice"
+            },
+            "title": "Access Representation Choices",
+            "type": "array"
+          },
           "accessibility_support": {
             "default": [],
             "items": {
@@ -6228,6 +6805,152 @@
         "title": "EscalationStaffRead",
         "type": "object"
       },
+      "EvaluatorReleaseWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_reference": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Approval Reference",
+            "type": "string"
+          },
+          "approved_at": {
+            "format": "date-time",
+            "title": "Approved At",
+            "type": "string"
+          },
+          "authority_name": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Authority Name",
+            "type": "string"
+          },
+          "authority_role": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Authority Role",
+            "type": "string"
+          },
+          "expected_fingerprint": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Expected Fingerprint",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Model",
+            "type": "string"
+          },
+          "prompt_version": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Provider",
+            "type": "string"
+          },
+          "retrieval_version": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Retrieval Version",
+            "type": "string"
+          },
+          "task_form_version_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Task Form Version Ids",
+            "type": "array"
+          },
+          "validation_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Validation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "validation_id",
+          "expected_fingerprint",
+          "authority_name",
+          "authority_role",
+          "approval_reference",
+          "approved_at",
+          "expires_at",
+          "task_form_version_ids",
+          "provider",
+          "model",
+          "prompt_version",
+          "retrieval_version"
+        ],
+        "title": "EvaluatorReleaseWrite",
+        "type": "object"
+      },
+      "EvaluatorRevokeWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_reference": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "expected_validation_id": {
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Expected Validation Id",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "expected_validation_id",
+          "reason",
+          "authority_reference"
+        ],
+        "title": "EvaluatorRevokeWrite",
+        "type": "object"
+      },
       "EvaluatorValidationReceipt": {
         "properties": {
           "ai_activation": {
@@ -6256,7 +6979,10 @@
       "EvaluatorValidationStatusRead": {
         "properties": {
           "ai_activation": {
-            "const": "PENDING",
+            "enum": [
+              "PENDING",
+              "RELEASED"
+            ],
             "title": "Ai Activation",
             "type": "string"
           },
@@ -6317,6 +7043,19 @@
             "format": "date-time",
             "title": "Expires At",
             "type": "string"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "required": [
@@ -6785,6 +7524,11 @@
           "definition": {
             "$ref": "#/components/schemas/InstrumentDefinition"
           },
+          "frozen": {
+            "default": false,
+            "title": "Frozen",
+            "type": "boolean"
+          },
           "frozen_for_synthetic_validation": {
             "title": "Frozen For Synthetic Validation",
             "type": "boolean"
@@ -6793,8 +7537,11 @@
             "title": "Id",
             "type": "string"
           },
+          "instrument_key": {
+            "title": "Instrument Key",
+            "type": "string"
+          },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -6806,6 +7553,7 @@
         },
         "required": [
           "id",
+          "instrument_key",
           "version",
           "content_digest",
           "definition",
@@ -7323,6 +8071,16 @@
             "title": "Difficulty Levels",
             "type": "array"
           },
+          "generation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerationContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "generation_mode": {
             "default": "basic",
             "enum": [
@@ -7371,6 +8129,225 @@
           "difficulty_levels"
         ],
         "title": "GenerateTasksRequest",
+        "type": "object"
+      },
+      "GeneratedCircuit": {
+        "additionalProperties": false,
+        "properties": {
+          "operations": {
+            "items": {
+              "$ref": "#/components/schemas/GeneratedCircuitOperation"
+            },
+            "maxItems": 30,
+            "title": "Operations",
+            "type": "array"
+          },
+          "qubits": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Qubits",
+            "type": "integer"
+          },
+          "seed": {
+            "default": 42,
+            "minimum": 0.0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "shots": {
+            "default": 1024,
+            "maximum": 4096.0,
+            "minimum": 1.0,
+            "title": "Shots",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "qubits",
+          "operations"
+        ],
+        "title": "GeneratedCircuit",
+        "type": "object"
+      },
+      "GeneratedCircuitOperation": {
+        "additionalProperties": false,
+        "properties": {
+          "gate": {
+            "enum": [
+              "h",
+              "x",
+              "cx"
+            ],
+            "title": "Gate",
+            "type": "string"
+          },
+          "targets": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "gate",
+          "targets"
+        ],
+        "title": "GeneratedCircuitOperation",
+        "type": "object"
+      },
+      "GeneratedRepresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "circuit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeneratedCircuit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "equivalence_basis": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Equivalence Basis",
+            "type": "string"
+          },
+          "explanation_detail": {
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "title": "Explanation Detail",
+            "type": "string"
+          },
+          "instructional_support_level": {
+            "maximum": 4.0,
+            "minimum": 0.0,
+            "title": "Instructional Support Level",
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "text",
+              "visual",
+              "worked_example",
+              "circuit",
+              "stepwise"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "representation_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Representation Id",
+            "type": "string"
+          },
+          "source_quotes": {
+            "items": {
+              "$ref": "#/components/schemas/RepresentationSourceQuote"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Source Quotes",
+            "type": "array"
+          },
+          "source_references": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Source References",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Steps",
+            "type": "array"
+          },
+          "support_kind": {
+            "enum": [
+              "instructional",
+              "accessibility"
+            ],
+            "title": "Support Kind",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "explanation_detail",
+          "instructional_support_level",
+          "mode",
+          "title",
+          "text",
+          "source_references",
+          "equivalence_basis",
+          "representation_id",
+          "support_kind",
+          "source_quotes"
+        ],
+        "title": "GeneratedRepresentation",
+        "type": "object"
+      },
+      "GeneratedRepresentations": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "learnlens.generated-representations.v1",
+            "default": "learnlens.generated-representations.v1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "const": "DRAFT",
+            "default": "DRAFT",
+            "title": "Status",
+            "type": "string"
+          },
+          "unavailable_modes": {
+            "items": {
+              "$ref": "#/components/schemas/UnavailableRepresentation"
+            },
+            "maxItems": 5,
+            "title": "Unavailable Modes",
+            "type": "array"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/GeneratedRepresentation"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Variants",
+            "type": "array"
+          }
+        },
+        "required": [
+          "variants"
+        ],
+        "title": "GeneratedRepresentations",
         "type": "object"
       },
       "GeneratedTaskRead": {
@@ -7432,6 +8409,85 @@
         "title": "GeneratedTaskRead",
         "type": "object"
       },
+      "GenerationContext": {
+        "additionalProperties": false,
+        "properties": {
+          "feedback_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Id"
+          },
+          "response_version_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Version Id"
+          },
+          "variant_revision_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Revision Id"
+          },
+          "variant_task_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Task Id"
+          }
+        },
+        "title": "GenerationContext",
+        "type": "object"
+      },
+      "GenerationOption": {
+        "additionalProperties": false,
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/GenerationContext"
+          },
+          "label": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "context"
+        ],
+        "title": "GenerationOption",
+        "type": "object"
+      },
       "GovernanceCommand": {
         "additionalProperties": false,
         "properties": {
@@ -7440,9 +8496,13 @@
               "mapping": {
                 "approval": "#/components/schemas/ApprovalDecision",
                 "consent": "#/components/schemas/ConsentDecision",
+                "disposal_authorization": "#/components/schemas/DisposalAuthorization",
+                "disposal_execution": "#/components/schemas/DisposalExecution",
                 "eligibility": "#/components/schemas/EligibilityDecision",
                 "grant": "#/components/schemas/ResearchGrant",
                 "hold": "#/components/schemas/RetentionHold",
+                "instrument_approval": "#/components/schemas/InstrumentApprovalDecision",
+                "release": "#/components/schemas/StudyReleaseDecision",
                 "scope": "#/components/schemas/StudyScope"
               },
               "propertyName": "kind"
@@ -7458,6 +8518,12 @@
                 "$ref": "#/components/schemas/ConsentDecision"
               },
               {
+                "$ref": "#/components/schemas/InstrumentApprovalDecision"
+              },
+              {
+                "$ref": "#/components/schemas/StudyReleaseDecision"
+              },
+              {
                 "$ref": "#/components/schemas/EligibilityDecision"
               },
               {
@@ -7465,6 +8531,12 @@
               },
               {
                 "$ref": "#/components/schemas/RetentionHold"
+              },
+              {
+                "$ref": "#/components/schemas/DisposalAuthorization"
+              },
+              {
+                "$ref": "#/components/schemas/DisposalExecution"
               }
             ],
             "title": "Decision"
@@ -7515,7 +8587,6 @@
             "type": "string"
           },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -7558,7 +8629,6 @@
             "type": "string"
           },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -8119,6 +9189,77 @@
         "title": "InstrumentAnswer",
         "type": "object"
       },
+      "InstrumentApprovalDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "content_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "title": "Content Digest",
+            "type": "string"
+          },
+          "evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "form_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Form Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "instrument_approval",
+            "default": "instrument_approval",
+            "title": "Kind",
+            "type": "string"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "approved",
+              "suspended",
+              "revoked"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "form_id",
+          "content_digest",
+          "state",
+          "authority_reference",
+          "evidence_reference",
+          "valid_from",
+          "valid_until"
+        ],
+        "title": "InstrumentApprovalDecision",
+        "type": "object"
+      },
       "InstrumentDefinition": {
         "additionalProperties": false,
         "properties": {
@@ -8191,7 +9332,6 @@
             "type": "string"
           },
           "synthetic_only": {
-            "const": true,
             "default": true,
             "title": "Synthetic Only",
             "type": "boolean"
@@ -8367,7 +9507,6 @@
             "type": "string"
           },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -9031,10 +10170,40 @@
           "SCAFFOLD_DEPENDENCE",
           "INDEPENDENCE",
           "TRANSFER",
-          "EXPLICIT_PREFERENCE"
+          "EXPLICIT_PREFERENCE",
+          "USEFUL_EXPLANATION_FORM",
+          "SUCCESSFUL_STRATEGY",
+          "UNSUCCESSFUL_STRATEGY",
+          "SUPPORT_NEEDS"
         ],
         "title": "LearnerModelDimension",
         "type": "string"
+      },
+      "LearnerModelEvidenceSignal": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "relation": {
+            "enum": [
+              "SUPPORTS",
+              "CONTRADICTS"
+            ],
+            "title": "Relation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "relation"
+        ],
+        "title": "LearnerModelEvidenceSignal",
+        "type": "object"
       },
       "LearnerModelTimelineCorrection": {
         "additionalProperties": false,
@@ -12328,6 +13497,18 @@
         "title": "OutcomeUpdate",
         "type": "object"
       },
+      "OutputCategory": {
+        "enum": [
+          "task",
+          "explanation",
+          "suggestion",
+          "feedback",
+          "provisional_assessment",
+          "support_representation"
+        ],
+        "title": "OutputCategory",
+        "type": "string"
+      },
       "OutputReportWrite": {
         "additionalProperties": false,
         "properties": {
@@ -12429,7 +13610,6 @@
             ]
           },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -12810,6 +13990,7 @@
           }
         },
         "required": [
+          "explanation_detail",
           "instructional_support_level",
           "mode",
           "title",
@@ -12817,7 +13998,6 @@
           "source_references",
           "equivalence_basis",
           "representation_id",
-          "explanation_detail",
           "support_kind"
         ],
         "title": "PracticeRepresentation",
@@ -13253,6 +14433,84 @@
         "title": "PreferenceValues",
         "type": "object"
       },
+      "ProfileReviewReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "boolean"
+          },
+          "snapshot_id": {
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "version",
+          "created"
+        ],
+        "title": "ProfileReviewReceipt",
+        "type": "object"
+      },
+      "ProfileReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "dimension": {
+            "$ref": "#/components/schemas/LearnerModelDimension"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/LearnerModelEvidenceSignal"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "expected_version": {
+            "minimum": 0.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 10,
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InferenceStatus"
+          },
+          "uncertainty": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Uncertainty",
+            "type": "number"
+          }
+        },
+        "required": [
+          "expected_version",
+          "dimension",
+          "status",
+          "uncertainty",
+          "reason",
+          "evidence",
+          "idempotency_key"
+        ],
+        "title": "ProfileReviewRequest",
+        "type": "object"
+      },
       "ProgressAdaptation": {
         "additionalProperties": false,
         "properties": {
@@ -13566,6 +14824,66 @@
         "title": "ProgressEvidenceLink",
         "type": "object"
       },
+      "ProgressIndicator": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "feedback_revision",
+              "feedback_transfer",
+              "question_clarification"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurred_at": {
+            "description": "Recorded instant serialized with an explicit UTC offset.",
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "rule_version": {
+            "default": "progress-indicators.v1",
+            "title": "Rule Version",
+            "type": "string"
+          },
+          "status": {
+            "const": "REVIEW_REQUIRED",
+            "default": "REVIEW_REQUIRED",
+            "title": "Status",
+            "type": "string"
+          },
+          "uncertainty": {
+            "default": 1,
+            "title": "Uncertainty",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "explanation",
+          "evidence_ids",
+          "occurred_at"
+        ],
+        "title": "ProgressIndicator",
+        "type": "object"
+      },
       "ProgressObservation": {
         "additionalProperties": false,
         "properties": {
@@ -13746,6 +15064,18 @@
             "title": "Independent Responses",
             "type": "integer"
           },
+          "indicator_evidence_truncated": {
+            "default": false,
+            "title": "Indicator Evidence Truncated",
+            "type": "boolean"
+          },
+          "indicators": {
+            "items": {
+              "$ref": "#/components/schemas/ProgressIndicator"
+            },
+            "title": "Indicators",
+            "type": "array"
+          },
           "learner_id": {
             "title": "Learner Id",
             "type": "integer"
@@ -13796,6 +15126,11 @@
             },
             "title": "Results",
             "type": "array"
+          },
+          "snapshot_version": {
+            "default": 0,
+            "title": "Snapshot Version",
+            "type": "integer"
           },
           "supported_responses": {
             "title": "Supported Responses",
@@ -14539,6 +15874,92 @@
         "title": "ReminderRead",
         "type": "object"
       },
+      "RepresentationGenerationRead": {
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/GeneratedRepresentations"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "revision_id": {
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "practice",
+              "supported",
+              "transfer"
+            ],
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision_id",
+          "target",
+          "candidate",
+          "provider",
+          "model"
+        ],
+        "title": "RepresentationGenerationRead",
+        "type": "object"
+      },
+      "RepresentationGenerationWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Expected Revision Id",
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "practice",
+              "supported",
+              "transfer"
+            ],
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision_id",
+          "target"
+        ],
+        "title": "RepresentationGenerationWrite",
+        "type": "object"
+      },
+      "RepresentationSourceQuote": {
+        "additionalProperties": false,
+        "properties": {
+          "quote": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "source_reference": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Source Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_reference",
+          "quote"
+        ],
+        "title": "RepresentationSourceQuote",
+        "type": "object"
+      },
       "ResearchExportFormat": {
         "enum": [
           "csv",
@@ -15156,6 +16577,144 @@
           "query"
         ],
         "title": "RetrievalSearchRequest",
+        "type": "object"
+      },
+      "ReviewDimension": {
+        "enum": [
+          "factual_accuracy",
+          "grounding_and_source_use",
+          "relevance",
+          "outcome_and_bloom_alignment",
+          "evidence_rule_alignment",
+          "support_and_answer_leakage",
+          "clarity_and_next_steps",
+          "accessibility_and_inclusive_wording",
+          "bias_and_unsupported_learner_claims",
+          "reflection_and_independent_work"
+        ],
+        "title": "ReviewDimension",
+        "type": "string"
+      },
+      "ReviewEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_reference": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Reference"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Content"
+          },
+          "kind": {
+            "enum": [
+              "approved_content",
+              "observation",
+              "policy"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "reference": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Reference",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reference",
+          "version",
+          "kind",
+          "content"
+        ],
+        "title": "ReviewEvidence",
+        "type": "object"
+      },
+      "ReviewProvenance": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "human",
+              "model",
+              "deterministic"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "model_version": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Version"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "reference": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Reference",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "reference",
+          "version"
+        ],
+        "title": "ReviewProvenance",
         "type": "object"
       },
       "SafeFallbackView": {
@@ -16925,6 +18484,54 @@
         "title": "StudyExportRequest",
         "type": "object"
       },
+      "StudyObservationStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing_item_count": {
+            "title": "Missing Item Count",
+            "type": "integer"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_id",
+          "kind",
+          "missing_reason",
+          "reason_code",
+          "missing_item_count"
+        ],
+        "title": "StudyObservationStatus",
+        "type": "object"
+      },
       "StudyOutcome": {
         "additionalProperties": false,
         "properties": {
@@ -17057,7 +18664,6 @@
             "type": "string"
           },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -17184,7 +18790,6 @@
             "$ref": "#/components/schemas/StudyPlan"
           },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -17269,7 +18874,6 @@
             "type": "string"
           },
           "production_active": {
-            "const": false,
             "default": false,
             "title": "Production Active",
             "type": "boolean"
@@ -17285,6 +18889,133 @@
           "revision"
         ],
         "title": "StudyReceipt",
+        "type": "object"
+      },
+      "StudyReconciliationRead": {
+        "additionalProperties": false,
+        "properties": {
+          "excluded_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Excluded Counts",
+            "type": "object"
+          },
+          "plan_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Id"
+          },
+          "production_active": {
+            "default": false,
+            "title": "Production Active",
+            "type": "boolean"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/StudyStageStatus"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "plan_id",
+          "rows",
+          "excluded_counts"
+        ],
+        "title": "StudyReconciliationRead",
+        "type": "object"
+      },
+      "StudyReleaseDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Approval Id",
+            "type": "string"
+          },
+          "authority_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Authority Reference",
+            "type": "string"
+          },
+          "evidence_reference": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "instrument_approval_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 128,
+            "title": "Instrument Approval Ids",
+            "type": "array"
+          },
+          "kind": {
+            "const": "release",
+            "default": "release",
+            "title": "Kind",
+            "type": "string"
+          },
+          "plan_ids": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 128,
+            "title": "Plan Ids",
+            "type": "array"
+          },
+          "scope_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "active",
+              "suspended",
+              "revoked"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope_id",
+          "approval_id",
+          "state",
+          "authority_reference",
+          "evidence_reference",
+          "valid_from",
+          "valid_until"
+        ],
+        "title": "StudyReleaseDecision",
         "type": "object"
       },
       "StudyRubric": {
@@ -17616,6 +19347,93 @@
         "title": "StudyStage",
         "type": "object"
       },
+      "StudyStageStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "allocation_id": {
+            "title": "Allocation Id",
+            "type": "string"
+          },
+          "form_id": {
+            "title": "Form Id",
+            "type": "string"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/StudyObservationStatus"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "outcome_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outcome Ids",
+            "type": "array"
+          },
+          "packet_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Packet Ids",
+            "type": "array"
+          },
+          "participant_id": {
+            "title": "Participant Id",
+            "type": "string"
+          },
+          "rating_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rating Ids",
+            "type": "array"
+          },
+          "sequence_id": {
+            "title": "Sequence Id",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "T0_BASELINE",
+              "T1_STUDY_ACTIVITY",
+              "T1_FORMAL_SUPPORTED",
+              "T1_FORMAL_UNAIDED",
+              "T2_CONCEPTUAL",
+              "T2_TRANSFER",
+              "T3_CONCEPTUAL",
+              "T3_TRANSFER"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unrecorded",
+              "response",
+              "explicit_gap",
+              "ambiguous"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocation_id",
+          "participant_id",
+          "sequence_id",
+          "stage",
+          "form_id",
+          "status",
+          "observations",
+          "packet_ids",
+          "rating_ids",
+          "outcome_ids"
+        ],
+        "title": "StudyStageStatus",
+        "type": "object"
+      },
       "SubmissionCreate": {
         "additionalProperties": false,
         "properties": {
@@ -17698,6 +19516,140 @@
         "title": "SubmissionState",
         "type": "string"
       },
+      "SuggestedCriterion": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion_version_id": {
+            "title": "Criterion Version Id",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/CriterionDecision"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterion_version_id",
+          "decision",
+          "reason",
+          "evidence_ids"
+        ],
+        "title": "SuggestedCriterion",
+        "type": "object"
+      },
+      "SuggestionImportWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "criteria": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestedCriterion"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Criteria",
+            "type": "array"
+          },
+          "expected_fingerprint": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Expected Fingerprint",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "model": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Model",
+            "type": "string"
+          },
+          "output_reference": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Output Reference",
+            "type": "string"
+          },
+          "prompt_version": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "provider": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Provider",
+            "type": "string"
+          },
+          "quality_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CategoryAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "release_id": {
+            "title": "Release Id",
+            "type": "string"
+          },
+          "response_digest": {
+            "pattern": "^sha256:[0-9a-f]{64}$|^[0-9a-f]{64}$",
+            "title": "Response Digest",
+            "type": "string"
+          },
+          "retrieval_version": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Retrieval Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "release_id",
+          "expected_fingerprint",
+          "response_digest",
+          "provider",
+          "model",
+          "prompt_version",
+          "retrieval_version",
+          "output_reference",
+          "generated_at",
+          "criteria"
+        ],
+        "title": "SuggestionImportWrite",
+        "type": "object"
+      },
       "SupportRepresentation": {
         "additionalProperties": false,
         "properties": {
@@ -17717,6 +19669,15 @@
             "maxLength": 2000,
             "minLength": 1,
             "title": "Equivalence Basis",
+            "type": "string"
+          },
+          "explanation_detail": {
+            "default": "detailed",
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "title": "Explanation Detail",
             "type": "string"
           },
           "instructional_support_level": {
@@ -17780,6 +19741,15 @@
       "SupportRepresentationChoice": {
         "additionalProperties": false,
         "properties": {
+          "explanation_detail": {
+            "default": "detailed",
+            "enum": [
+              "brief",
+              "detailed"
+            ],
+            "title": "Explanation Detail",
+            "type": "string"
+          },
           "item_index": {
             "exclusiveMaximum": 100.0,
             "minimum": 0.0,
@@ -17810,6 +19780,83 @@
           "mode"
         ],
         "title": "SupportRepresentationChoice",
+        "type": "object"
+      },
+      "TaskCategoryReviewContext": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/CategoryReviewRequest"
+          },
+          "request_digest": {
+            "title": "Request Digest",
+            "type": "string"
+          },
+          "required": {
+            "title": "Required",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required",
+          "request_digest",
+          "request"
+        ],
+        "title": "TaskCategoryReviewContext",
+        "type": "object"
+      },
+      "TaskCategoryReviewRead": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/CategoryReviewRecord"
+          },
+          "reviewer_id": {
+            "title": "Reviewer Id",
+            "type": "integer"
+          },
+          "task_review_event_id": {
+            "title": "Task Review Event Id",
+            "type": "string"
+          },
+          "task_revision_id": {
+            "title": "Task Revision Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_revision_id",
+          "task_review_event_id",
+          "reviewer_id",
+          "receipt"
+        ],
+        "title": "TaskCategoryReviewRead",
+        "type": "object"
+      },
+      "TaskCategoryReviewSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/DimensionFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "request_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Request Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_digest",
+          "findings"
+        ],
+        "title": "TaskCategoryReviewSubmission",
         "type": "object"
       },
       "TaskChoice": {
@@ -17967,6 +20014,16 @@
               }
             ],
             "title": "Due At"
+          },
+          "generation_context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerationContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "generation_mode": {
             "default": "basic",
@@ -18282,6 +20339,13 @@
             "title": "Events",
             "type": "array"
           },
+          "quality_reviews": {
+            "items": {
+              "$ref": "#/components/schemas/TaskCategoryReviewRead"
+            },
+            "title": "Quality Reviews",
+            "type": "array"
+          },
           "revision": {
             "$ref": "#/components/schemas/TaskRevisionRead"
           }
@@ -18316,6 +20380,11 @@
             },
             "title": "Issues",
             "type": "array"
+          },
+          "quality_review_required": {
+            "default": false,
+            "title": "Quality Review Required",
+            "type": "boolean"
           },
           "review_version": {
             "title": "Review Version",
@@ -18373,6 +20442,16 @@
             "minLength": 1,
             "title": "Expected Revision Id",
             "type": "string"
+          },
+          "quality_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskCategoryReviewSubmission"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reason": {
             "maxLength": 2000,
@@ -18877,6 +20956,34 @@
           "context_token"
         ],
         "title": "TutorTurnWrite",
+        "type": "object"
+      },
+      "UnavailableRepresentation": {
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "enum": [
+              "text",
+              "visual",
+              "worked_example",
+              "circuit",
+              "stepwise"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "reason"
+        ],
+        "title": "UnavailableRepresentation",
         "type": "object"
       },
       "UnresolvedAssessmentRead": {
@@ -21156,6 +23263,192 @@
         ]
       }
     },
+    "/api/v1/assessment/attempts/{attempt_id}/ai-suggestions": {
+      "get": {
+        "operationId": "read_suggestions_api_v1_assessment_attempts__attempt_id__ai_suggestions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Suggestions",
+        "tags": [
+          "assessment moderation"
+        ]
+      },
+      "post": {
+        "operationId": "import_suggestions_api_v1_assessment_attempts__attempt_id__ai_suggestions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionImportWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Suggestions",
+        "tags": [
+          "assessment moderation"
+        ]
+      }
+    },
+    "/api/v1/assessment/attempts/{attempt_id}/ai-suggestions/quality-context": {
+      "post": {
+        "operationId": "suggestion_quality_context_api_v1_assessment_attempts__attempt_id__ai_suggestions_quality_context_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionImportWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggestion Quality Context",
+        "tags": [
+          "assessment moderation"
+        ]
+      }
+    },
     "/api/v1/assessment/attempts/{attempt_id}/moderation/{stage}": {
       "post": {
         "operationId": "record_review_api_v1_assessment_attempts__attempt_id__moderation__stage__post",
@@ -21707,6 +24000,194 @@
         "summary": "Publish Assessment Definition",
         "tags": [
           "assessment"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/evaluator-governance": {
+      "get": {
+        "operationId": "evaluator_governance_api_v1_assessment_courses__course_id__evaluator_governance_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluator Governance",
+        "tags": [
+          "assessment moderation"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/evaluator-release": {
+      "post": {
+        "operationId": "release_evaluator_api_v1_assessment_courses__course_id__evaluator_release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluatorReleaseWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Release Evaluator",
+        "tags": [
+          "assessment moderation"
+        ]
+      }
+    },
+    "/api/v1/assessment/courses/{course_id}/evaluator-revoke": {
+      "post": {
+        "operationId": "revoke_evaluator_api_v1_assessment_courses__course_id__evaluator_revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluatorRevokeWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Evaluator",
+        "tags": [
+          "assessment moderation"
         ]
       }
     },
@@ -23649,6 +26130,77 @@
           }
         },
         "summary": "Generate Tasks",
+        "tags": [
+          "learning management"
+        ]
+      }
+    },
+    "/api/v1/courses/{course_id}/generation-options": {
+      "get": {
+        "operationId": "task_generation_options_api_v1_courses__course_id__generation_options_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "learning_outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Learning Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GenerationOption"
+                  },
+                  "title": "Response Task Generation Options Api V1 Courses  Course Id  Generation Options Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Task Generation Options",
         "tags": [
           "learning management"
         ]
@@ -28856,6 +31408,74 @@
         ]
       }
     },
+    "/api/v1/practice-representations/tasks/{task_id}/generate": {
+      "post": {
+        "operationId": "generate_draft_api_v1_practice_representations_tasks__task_id__generate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepresentationGenerationWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepresentationGenerationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Draft",
+        "tags": [
+          "practice representations"
+        ]
+      }
+    },
     "/api/v1/progress/{course_id}": {
       "get": {
         "operationId": "read_progress_api_v1_progress__course_id__get",
@@ -29032,6 +31652,92 @@
           }
         },
         "summary": "Inspect Evidence",
+        "tags": [
+          "learning progress"
+        ]
+      }
+    },
+    "/api/v1/progress/{course_id}/learners/{learner_id}/outcomes/{outcome_id}/reviews": {
+      "post": {
+        "operationId": "record_profile_review_api_v1_progress__course_id__learners__learner_id__outcomes__outcome_id__reviews_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "learner_id",
+            "required": true,
+            "schema": {
+              "title": "Learner Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "outcome_id",
+            "required": true,
+            "schema": {
+              "title": "Outcome Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileReviewReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Profile Review",
         "tags": [
           "learning progress"
         ]
@@ -29659,6 +32365,142 @@
           }
         },
         "summary": "Record Decision",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/v1/research/governance/{study_id}/disposal/execute": {
+      "post": {
+        "operationId": "disposal_execute_api_v1_research_governance__study_id__disposal_execute_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisposalExecute"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Disposal Execute",
+        "tags": [
+          "research"
+        ]
+      }
+    },
+    "/api/v1/research/governance/{study_id}/disposal/preview": {
+      "post": {
+        "operationId": "disposal_preview_api_v1_research_governance__study_id__disposal_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisposalPreview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Disposal Preview",
         "tags": [
           "research"
         ]
@@ -31061,6 +33903,78 @@
           }
         },
         "summary": "Plan",
+        "tags": [
+          "research instruments",
+          "study workflows"
+        ]
+      }
+    },
+    "/api/v1/research/instruments/{study_id}/{course_id}/study/reconciliation": {
+      "get": {
+        "operationId": "reconciliation_api_v1_research_instruments__study_id___course_id__study_reconciliation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "study_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Study Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "course_id",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Course Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudyReconciliationRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reconciliation",
         "tags": [
           "research instruments",
           "study workflows"
@@ -34169,6 +37083,64 @@
           }
         },
         "summary": "Get History",
+        "tags": [
+          "task review"
+        ]
+      }
+    },
+    "/api/v1/tasks/{task_id}/review/quality": {
+      "get": {
+        "operationId": "get_quality_context_api_v1_tasks__task_id__review_quality_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "quantumlearn_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quantumlearn Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCategoryReviewContext"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Quality Context",
         "tags": [
           "task review"
         ]
