@@ -1,5 +1,5 @@
 import { StructuredTaskEditor } from './StructuredTaskEditor'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '../app/api'
 import type { ApiSchemas } from '../api/generated'
@@ -8,8 +8,10 @@ import { EpisodePlanEditor } from './EpisodePlanEditor'
 import { PracticeRepresentationEditor } from '../features/practice-representations/PracticeRepresentationEditor'
 import { Button, Field, Input, Select, Tag, Textarea } from './ui'
 import styles from './TaskReviewPanel.module.css'
+import { CategoryQualityReview } from './CategoryQualityReview'
+import type { QualitySubmission } from './categoryQualityReviewTypes'
 
-type Summary = ApiSchemas['TaskReviewSummary']
+type Summary = ApiSchemas['TaskReviewSummary'] & { quality_review_required?: boolean }
 type History = ApiSchemas['TaskReviewHistoryRead']
 type Action = ApiSchemas['TaskReviewWrite']['state']
 
@@ -40,6 +42,11 @@ function RevisionReview({ taskId }: { taskId: string }) {
   const [notice, setNotice] = useState('')
   const [reload, setReload] = useState(0)
   const [hasMore, setHasMore] = useState(false)
+  const [quality, setQuality] = useState<QualitySubmission | null>(null)
+  const [qualityReady, setQualityReady] = useState(false)
+  const qualityChanged = useCallback((value: QualitySubmission | null, ready: boolean) => {
+    setQuality(value); setQualityReady(ready)
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -50,6 +57,7 @@ function RevisionReview({ taskId }: { taskId: string }) {
       if (controller.signal.aborted) return
       const snapshot = entries[0]?.revision.snapshot ?? {}
       setSummary(current)
+      setQuality(null); setQualityReady(false)
       setHistory(entries)
       setHasMore(entries.length === 20)
       setForm({
@@ -98,6 +106,7 @@ function RevisionReview({ taskId }: { taskId: string }) {
 
   const record = async (state: Action) => {
     if (!summary?.revision_id || dirty) return
+    if (state === 'APPROVED' && (summary.quality_review_required || history[0]?.revision.provenance === 'GENERATED') && !qualityReady) return
     setBusy(true)
     setError('')
     setNotice('')
@@ -105,6 +114,7 @@ function RevisionReview({ taskId }: { taskId: string }) {
       await api.taskReview.record(taskId, {
         expected_revision_id: summary.revision_id,
         expected_review_version: summary.review_version, state, reason,
+        ...(quality && (state === 'APPROVED' || state === 'REJECTED') ? { quality_review: quality } : {}),
       })
       setSummary(null)
       setReason('')
@@ -160,9 +170,10 @@ function RevisionReview({ taskId }: { taskId: string }) {
       <PracticeRepresentationEditor value={criteria} disabled={busy} onChange={(next) => { setCriteria(next); setCriteriaDirty(true); setDirty(true); setNotice('') }} />
       <Button onClick={() => void save()} disabled={busy || !dirty || !summary.revision_id}>Save task revision</Button>
       <Field label="Review reason" required><Textarea maxLength={2000} disabled={busy} value={reason} onChange={(event) => setReason(event.target.value)} /></Field>
+      {summary.state === 'SUBMITTED' && summary.revision_id && (summary.quality_review_required || history[0]?.revision.provenance === 'GENERATED') && <CategoryQualityReview key={`${summary.revision_id}-${summary.review_version}`} taskId={taskId} revisionId={summary.revision_id} reviewVersion={summary.review_version} disabled={busy || dirty} onChange={qualityChanged} />}
       {dirty && <p>Save your edits before recording a review.</p>}
       <div className={styles.actions}>{actions.map((action) => <Button
-        key={action.state} disabled={busy || dirty || !reason.trim() || !summary.revision_id}
+        key={action.state} disabled={busy || dirty || !reason.trim() || !summary.revision_id || (action.state === 'APPROVED' && (summary.quality_review_required || history[0]?.revision.provenance === 'GENERATED') && !qualityReady)}
         onClick={() => void record(action.state)}
       >{action.label}</Button>)}</div>
       <details>
@@ -178,6 +189,7 @@ function RevisionReview({ taskId }: { taskId: string }) {
           <ol>{entry.events.map((event) => <li key={event.id}>
             {labels[event.state]}: {event.reason} ({new Date(event.created_at).toLocaleString()})
           </li>)}</ol>
+          {'quality_reviews' in entry && <details><summary>Saved quality findings</summary><pre>{JSON.stringify(entry.quality_reviews, null, 2)}</pre></details>}
         </article>)}
         {hasMore && <Button disabled={busy} onClick={() => void moreHistory()}>Load earlier revisions</Button>}
       </details>

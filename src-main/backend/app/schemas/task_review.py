@@ -5,6 +5,24 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.schemas.category_review import (
+    CategoryReviewRecord,
+    CategoryReviewRequest,
+    DimensionFinding,
+)
+
+
+class TaskCategoryReviewSubmission(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
+    findings: list[DimensionFinding]
+
+
+class TaskCategoryReviewContext(BaseModel):
+    required: bool
+    request_digest: str
+    request: CategoryReviewRequest
+
 
 class TaskReviewWrite(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -13,9 +31,11 @@ class TaskReviewWrite(BaseModel):
     expected_review_version: int = Field(ge=0, strict=True)
     state: Literal["SUBMITTED", "APPROVED", "REJECTED", "WITHDRAWN"]
     reason: str = Field(min_length=1, max_length=2000)
+    quality_review: TaskCategoryReviewSubmission | None = None
 
 
 class TaskReviewSummary(BaseModel):
+    quality_review_required: bool = False
     revision_id: str | None
     revision: int
     content_digest: str | None
@@ -59,6 +79,17 @@ class TaskReviewEventRead(TaskHistoryRecord):
     policy_version: str
 
 
+class TaskCategoryReviewRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    task_revision_id: str
+    task_review_event_id: str
+    reviewer_id: int
+    receipt: CategoryReviewRecord
+
+
 class TaskReviewHistoryRead(BaseModel):
     revision: TaskRevisionRead
     events: list[TaskReviewEventRead]
+    quality_reviews: list[TaskCategoryReviewRead] = Field(default_factory=list)

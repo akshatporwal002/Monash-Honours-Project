@@ -29,6 +29,9 @@ from app.models.lms import Course, SubmissionAttempt
 from app.models.persistence import FeedbackRecord, LearningTask, WorkflowRun
 from app.models.user import User, UserRole
 from app.schemas.activity_continuation import ActivityAction, ActivityHistory, ActivityRead
+from app.schemas.category_review import CategoryReviewRecord, CategoryReviewRequest
+from app.services.category_review import require_approved
+from app.services.category_selection_review import review_selection
 from app.services.curriculum import CurriculumService, pathway_progress
 from app.services.learner_model.builder import (
     DeterministicLearnerModelBuilder,
@@ -355,6 +358,18 @@ class ApprovedActivityAdapter:
                 if receipt is None:
                     raise RuntimeError("The model receipt must be durable first")
                 decision, path = ActivityService(session).decide(receipt, task, learner)
+                quality_input, quality = review_selection(decision, receipt, path)
+                decision["quality_review_required"] = True
+                decision["quality_review_input"] = quality_input.model_dump(mode="json")
+                decision["quality_review"] = quality.model_dump(mode="json")
+                try:
+                    require_approved(quality, quality_input)
+                except ValueError:
+                    decision.update(
+                        state="quality_review_required",
+                        reason="The activity suggestion needs educator quality review. Your course activities remain available.",
+                        options=[],
+                    )
                 selected = (
                     decision["options"][0]["task_id"] if decision["state"] == "suggested" else None
                 )
@@ -548,6 +563,20 @@ class ActivityService:
         ]
         selected = history[-1].task_id if history else row.task_id
         state, reason, options = data["state"], data["reason"], data["options"]
+        quality_blocked = False
+        if data.get("quality_review_required"):
+            try:
+                quality_input = CategoryReviewRequest.model_validate(
+                    data.get("quality_review_input")
+                )
+                quality = CategoryReviewRecord.model_validate(data.get("quality_review"))
+                require_approved(quality, quality_input)
+                if quality_input.output != {
+                    key: data[key] for key in ("state", "reason", "uncertainty", "options")
+                }:
+                    raise ValueError("Suggestion differs from its quality review")
+            except (ValueError, TypeError):
+                quality_blocked = True
         if history:
             state = history[-1].action
         prefs = LearnerPreferenceService(self.session).read(learner)
@@ -590,6 +619,13 @@ class ActivityService:
                     "The learner record needs review. Choose an allowed activity or ask the educator.",
                     None,
                 )
+        if quality_blocked:
+            state, reason, selected, options = (
+                "quality_review_required",
+                "The activity suggestion needs educator quality review. Your course activities remain available.",
+                None,
+                [],
+            )
         return ActivityRead(
             learner_label=learner.full_name,
             workflow_id=identity,
@@ -642,6 +678,7 @@ class ActivityService:
                 "stale_approval",
                 "personalisation_disabled",
                 "feedback_not_eligible",
+                "quality_review_required",
             }:
                 raise HTTPException(409, "A current approved suggestion is required")
             selected = current.next_task_id if payload.action == "accept" else payload.task_id

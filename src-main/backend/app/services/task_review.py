@@ -22,8 +22,9 @@ from app.models import (
     UserRole,
 )
 from app.models.source_history import SourcePassage, SourceRevision
-from app.models.task_review import TaskReviewEvent, TaskRevision
+from app.models.task_review import CategoryQualityReview, TaskReviewEvent, TaskRevision
 from app.services.assessment.access import RoleAssignmentService, ScopedRoleAccessDeniedError
+from app.services.category_review import request_digest, require_approved
 from app.services.episode_contract import validate_reviewed_episode_plan
 from app.services.quantum import (
     CircuitOperation,
@@ -32,6 +33,12 @@ from app.services.quantum import (
     validate_circuit,
 )
 from app.services.rag.source_history import latest_approval
+from app.services.task_category_review import (
+    TASK_QUALITY_POLICY,
+    authenticated_task_review,
+    requires_category_review,
+    task_review_request,
+)
 
 TASK_CONTENT_FIELDS = (
     "id",
@@ -179,6 +186,7 @@ class TaskReviewService:
         expected_review_version: int,
         state: str,
         reason: str,
+        quality_review: dict | None = None,
     ) -> TaskReviewEvent:
         try:
             task = self._get_task(task_id)
@@ -208,6 +216,31 @@ class TaskReviewService:
             if not reason.strip() or len(reason) > 2000:
                 raise TaskReviewError("A review reason of up to 2000 characters is required", 422)
             sources = self.validate_ready(task) if state == "APPROVED" else {}
+            quality = None
+            quality_required = state == "APPROVED" and requires_category_review(task, revision)
+            if quality_required or quality_review is not None:
+                if state not in {"APPROVED", "REJECTED"}:
+                    raise TaskReviewError(
+                        "Quality findings accompany an approval or rejection", 422
+                    )
+                if quality_review is None:
+                    raise TaskReviewError(
+                        "Complete every generated-content quality dimension before approval", 422
+                    )
+                review_sources = sources if state == "APPROVED" else self.source_approvals(task)
+                context = task_review_request(
+                    self.session, task, revision, review_sources, previous
+                )
+                try:
+                    quality = authenticated_task_review(context, quality_review, actor)
+                    if state == "APPROVED":
+                        require_approved(quality, context)
+                    elif quality.assessment is None:
+                        raise ValueError("The quality findings are invalid or stale")
+                except ValueError as error:
+                    raise TaskReviewError(
+                        "Quality findings are incomplete, stale or unresolved", 422
+                    ) from error
             event = TaskReviewEvent(
                 task_revision_id=revision.id,
                 course_id=task.course_id,
@@ -216,9 +249,22 @@ class TaskReviewService:
                 actor_user_id=actor.id,
                 reason=reason.strip(),
                 source_approvals=sources,
+                policy_version=TASK_QUALITY_POLICY if quality else "educator-task-review-v1",
             )
             self.session.add(event)
             self.session.flush()
+            if quality:
+                self.session.add(
+                    CategoryQualityReview(
+                        course_id=task.course_id,
+                        task_revision_id=revision.id,
+                        task_review_event_id=event.id,
+                        reviewer_id=actor.id,
+                        request_digest=quality.request_digest,
+                        decision=quality.decision.value,
+                        receipt=quality.model_dump(mode="json"),
+                    )
+                )
             self.session.add(
                 PlatformAuditEvent(
                     actor_id=actor.id,
@@ -231,6 +277,7 @@ class TaskReviewService:
                         "course_id": task.course_id,
                         "content_digest": revision.content_digest,
                         "review_version": event.version,
+                        "quality_review_digest": quality.request_digest if quality else None,
                     },
                 )
             )
@@ -408,7 +455,17 @@ class TaskReviewService:
                     issues.append("Source approval changed after the task review")
             except TaskReviewError as error:
                 issues.append(error.detail)
+        if event and event.state == "APPROVED" and event.policy_version == TASK_QUALITY_POLICY:
+            quality = self.session.scalar(
+                select(CategoryQualityReview).where(
+                    CategoryQualityReview.task_review_event_id == event.id,
+                    CategoryQualityReview.decision == "APPROVED",
+                )
+            )
+            if quality is None:
+                issues.append("Generated-content quality review is required")
         return {
+            "quality_review_required": bool(revision and requires_category_review(task, revision)),
             "revision_id": revision.id if revision else None,
             "revision": revision.version if revision else 0,
             "content_digest": revision.content_digest if revision else None,
@@ -445,6 +502,16 @@ class TaskReviewService:
                         .order_by(TaskReviewEvent.version)
                     )
                 ),
+                "quality_reviews": list(
+                    self.session.scalars(
+                        select(CategoryQualityReview)
+                        .where(
+                            CategoryQualityReview.task_revision_id == revision.id,
+                            CategoryQualityReview.course_id == task.course_id,
+                        )
+                        .order_by(CategoryQualityReview.created_at, CategoryQualityReview.id)
+                    )
+                ),
             }
             for revision in revisions
         ]
@@ -453,6 +520,24 @@ class TaskReviewService:
         task = self._get_task(task_id)
         self.require_review_access(actor, task.course_id)
         return self.summary(task)
+
+    def quality_context(self, actor: User, task_id: str) -> dict:
+        task = self._get_task(task_id)
+        self.require_review_access(actor, task.course_id)
+        revision = self.latest_revision(task.id)
+        if revision is None or revision.content_digest != snapshot_digest(
+            task_snapshot(self.session, task)
+        ):
+            raise TaskReviewError("Save the current task revision before quality review")
+        sources = self.source_approvals(task, required=requires_category_review(task, revision))
+        context = task_review_request(
+            self.session, task, revision, sources, self.latest_event(revision.id)
+        )
+        return {
+            "required": requires_category_review(task, revision),
+            "request_digest": request_digest(context),
+            "request": context,
+        }
 
     def require_review_access(self, actor: User, course_id: str) -> None:
         current = self.session.get(User, actor.id, populate_existing=True)

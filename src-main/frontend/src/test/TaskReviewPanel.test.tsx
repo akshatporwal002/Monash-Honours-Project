@@ -1,13 +1,14 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { TaskReviewPanel } from '../components/TaskReviewPanel'
+import { qualityDimensions } from '../components/categoryQualityReviewTypes'
 
 function response(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 }
 
-function setupApi({ conflict = false, taskType = 'quantum_circuit', initialCriteria = { required_gates: ['h'] } }: { conflict?: boolean; taskType?: string; initialCriteria?: Record<string, unknown> } = {}) {
+function setupApi({ conflict = false, generated = false, taskType = 'quantum_circuit', initialCriteria = { required_gates: ['h'] } }: { conflict?: boolean; generated?: boolean; taskType?: string; initialCriteria?: Record<string, unknown> } = {}) {
   let revision = 1
   let reviewVersion = 0
   let state = 'DRAFT'
@@ -17,6 +18,7 @@ function setupApi({ conflict = false, taskType = 'quantum_circuit', initialCrite
   const edits: unknown[] = []
   const mock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
+    if (url.endsWith('/tasks/task-1/review/quality')) return response({ required: generated, request_digest: 'a'.repeat(64), request: { versions: { task: `revision-${revision}` }, evidence: [{ reference: 'approved-passage', content: 'Synthetic reviewed source' }] } })
     if (url.endsWith('/courses/course-1/tasks')) return response([{ id: 'task-1', title: 'Hadamard practice' }])
     if (url.endsWith('/tasks/task-1') && init?.method === 'PATCH') {
       const payload = JSON.parse(String(init.body))
@@ -47,6 +49,7 @@ function setupApi({ conflict = false, taskType = 'quantum_circuit', initialCrite
     if (url.includes('/tasks/task-1/review/history')) return response([{
       revision: {
         id: `revision-${revision}`, version: revision, created_at: '2026-09-07T00:00:00Z',
+        provenance: generated ? 'GENERATED' : 'AUTHORED',
         snapshot: { title: 'Hadamard practice', description: prompt, instructions: 'Explain the outcome',
           expected_answer: 'Equal probabilities', source_references: ['approved-passage'], task_type: taskType, marking_criteria: criteria },
       },
@@ -65,6 +68,27 @@ async function openReview() {
   await screen.findByRole('textbox', { name: 'Task prompt' })
   return user
 }
+
+test('generated task approval requires explicit findings for every quality dimension', async () => {
+  const { actions } = setupApi({ generated: true, taskType: 'short_answer', initialCriteria: {} })
+  const user = await openReview()
+  await user.type(screen.getByLabelText(/Review reason/), 'Synthetic review of saved generated task')
+  await user.click(screen.getByRole('button', { name: 'Submit for review' }))
+  await screen.findByText('Generated content quality review')
+  await user.type(screen.getByLabelText(/Review reason/), 'Synthetic complete review')
+  expect(screen.getByRole('button', { name: 'Approve task' })).toBeDisabled()
+  for (const [, label] of qualityDimensions) {
+    await user.selectOptions(screen.getByLabelText(`${label} finding`), 'SATISFIED')
+    fireEvent.change(screen.getByLabelText(`${label} reason`), { target: { value: 'Checked against the supplied source' } })
+    await user.selectOptions(screen.getByLabelText(`${label} evidence`), 'approved-passage')
+  }
+  await user.click(screen.getByRole('button', { name: 'Approve task' }))
+  await screen.findByText('Approved', { selector: 'span' })
+  expect(actions[1]).toMatchObject({ state: 'APPROVED', quality_review: {
+    request_digest: 'a'.repeat(64), findings: qualityDimensions.map(([dimension]) => ({ dimension, outcome: 'SATISFIED', basis: 'human', evidence_references: ['approved-passage'] })),
+  } })
+  expect((actions[1] as { quality_review: object }).quality_review).not.toHaveProperty('reviewer')
+}, 15000)
 
 test('edits circuit guidance while preserving saved settings and unrelated marking fields', async () => {
   const { edits } = setupApi({ initialCriteria: {

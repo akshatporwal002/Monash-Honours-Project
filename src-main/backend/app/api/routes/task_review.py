@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.roles import CurrentEducator, CurrentUser
 from app.db.session import get_db
 from app.schemas.task_review import (
+    TaskCategoryReviewContext,
     TaskReviewEventRead,
     TaskReviewHistoryRead,
     TaskReviewSummary,
@@ -53,3 +54,8 @@ def get_history(
 @router.post("", response_model=TaskReviewEventRead)
 def record_review(task_id: str, payload: TaskReviewWrite, actor: CurrentEducator, service: Review):
     return service.record(actor, task_id, **payload.model_dump())
+
+
+@router.get("/quality", response_model=TaskCategoryReviewContext)
+def get_quality_context(task_id: str, actor: CurrentUser, service: Review):
+    return service.quality_context(actor, task_id)
