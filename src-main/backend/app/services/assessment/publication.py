@@ -79,7 +79,16 @@ def require_learner_task_available(session: Session, task: LearningTask) -> None
     from app.services.assessment.submissions import AssessmentSubmissionService
 
     TaskReviewService(session).require_available(task)
-    AssessmentSubmissionService(session).declaration_for_task(task)
+    declaration = AssessmentSubmissionService(session).declaration_for_task(task)
+    if (
+        isinstance(task.marking_criteria, dict)
+        and "multipart_candidate" in task.marking_criteria
+        and declaration is None
+    ):
+        raise TaskReviewError(
+            "The generated multipart episode needs its approved assessment form before learner use",
+            409,
+        )
 
 
 def learner_task_available(session: Session, task: LearningTask) -> bool:
@@ -127,6 +136,8 @@ def authoring_tasks(
         result.append(
             {
                 "task_id": task.id,
+                "generated_assessment_candidate": isinstance(task.marking_criteria, dict)
+                and "multipart_candidate" in task.marking_criteria,
                 "title": task.title,
                 "task_type": task.task_type.value,
                 "outcome_id": outcome.id,

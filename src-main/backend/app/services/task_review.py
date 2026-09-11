@@ -308,7 +308,26 @@ class TaskReviewService:
 
         try:
             validate_choice_key(task.task_type.value, task.marking_criteria, task.expected_answer)
-            if task.generation_prompt_version == "task-generation-v2":
+            if (
+                task.generation_prompt_version == "task-generation-multipart-v1"
+                or isinstance(task.marking_criteria, dict)
+                and "multipart_candidate" in task.marking_criteria
+            ):
+                from app.services.multipart_generation import validate_multipart
+
+                validate_multipart(
+                    task.marking_criteria,
+                    task.task_type.value,
+                    {
+                        ref: passage.chunk_text
+                        for ref in task.source_references or []
+                        if (passage := self.session.get(SourcePassage, ref)) is not None
+                    },
+                )
+            if task.generation_prompt_version in {
+                "task-generation-v2",
+                "task-generation-multipart-v1",
+            }:
                 from app.schemas.generated_task_design import GeneratedTaskDesign
 
                 GeneratedTaskDesign.model_validate(

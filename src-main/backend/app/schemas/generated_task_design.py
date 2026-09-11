@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 class GeneratedTaskDesign(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     schema_version: Literal["learnlens.generated-design.v1"] = "learnlens.generated-design.v1"
-    assessment_purpose: Literal["FORMATIVE"]
+    assessment_purpose: Literal["FORMATIVE", "SUMMATIVE"]
     difficulty_basis: str = Field(min_length=1, max_length=2000)
     intended_evidence: str = Field(min_length=1, max_length=2000)
     expected_response_features: list[str] = Field(min_length=1, max_length=20)
@@ -35,9 +35,9 @@ class GeneratedTaskDesign(BaseModel):
         return self
 
 
-def local_design(task_type, outcome, difficulty):
+def local_design(task_type, outcome, difficulty, *, purpose="FORMATIVE"):
     return GeneratedTaskDesign(
-        assessment_purpose="FORMATIVE",
+        assessment_purpose=purpose,
         difficulty_basis=f"Draft {difficulty} scaffold; educator must verify demand against the source and outcome.",
         intended_evidence=f"{task_type.replace('_', ' ')} response linked to {outcome[:1000]}",
         expected_response_features=[

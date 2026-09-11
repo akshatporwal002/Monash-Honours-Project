@@ -658,6 +658,7 @@ class LmsService:
                     task_count=payload.task_count,
                     allowed_task_types=tuple(payload.task_types),
                     difficulty_levels=("beginner", "intermediate", "advanced"),
+                    generation_mode=payload.generation_mode,
                 ),
                 commit=False,
             )

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
 from pydantic import (
@@ -233,6 +233,7 @@ class LearningMaterialLinkCreate(ContentSchema):
 
 class GenerateTasksRequest(ContentSchema):
     model_config = ConfigDict(extra="forbid", from_attributes=True, strict=False)
+    generation_mode: Literal["basic", "multipart"] = "basic"
     module_id: ExternalId | None = None
     learning_outcome_id: ExternalId
     learning_outcome_text: NonEmptyText
