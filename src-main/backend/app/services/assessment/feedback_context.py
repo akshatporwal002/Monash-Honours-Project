@@ -127,7 +127,11 @@ class SqlAlchemyAssessmentFeedbackContextProvider:
                 task_id=attempt.task_id,
                 course_id=attempt.course_id,
                 task_type=snapshot["task_type"],
-                prompt=reviewed.supported_instructions or reviewed.supported_prompt,
+                prompt="\n\n".join(
+                    part
+                    for part in (reviewed.supported_prompt, reviewed.supported_instructions)
+                    if part
+                ),
                 difficulty=snapshot["difficulty"],
                 marking_criteria=[
                     {
