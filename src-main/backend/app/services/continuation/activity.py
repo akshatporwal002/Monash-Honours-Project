@@ -322,7 +322,8 @@ class ApprovedActivityAdapter:
                                 )
                                 for item in evidence
                             ),
-                        )
+                        ),
+                        include_view=False,
                     )
                     if result.state != LearnerModelBuildState.STORED:
                         raise RuntimeError("Learner model update could not be stored")

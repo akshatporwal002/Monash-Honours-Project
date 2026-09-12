@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { GateOperation, LearningTask } from '../app/types'
 import { TaskView } from '../components/TaskView'
@@ -29,6 +29,61 @@ function setup(operations: GateOperation[] = [], qubits = 2) {
 }
 
 afterEach(() => vi.restoreAllMocks())
+
+test('task support siblings remain unique through saves and reset before another task loads', async () => {
+  const secondTask = { ...task, id: 'second-circuit', title: 'Another circuit' }
+  const pendingSecond: Array<() => void> = []
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    const path = String(input)
+    const taskId = path.includes(secondTask.id) ? secondTask.id : task.id
+    let body: unknown = []
+    if (path.includes('/practice-representations/tasks/')) {
+      body = {
+        revision_id: `revision-${taskId}`, review_event_id: `review-${taskId}`,
+        preference_version: 0, on_request: true, selected_id: null,
+        recommended_id: null, selection: 'preference', explanation: `Reviewed choices for ${taskId}`,
+        choices: [{ representation_id: `choice-${taskId}`, title: taskId,
+          mode: 'text', explanation_detail: 'brief', support_kind: 'accessibility',
+          instructional_support_level: 0 }],
+      }
+    } else if (path.endsWith('/deadline')) {
+      body = { task_id: taskId, time_zone: 'Australia/Sydney', original_due_at: null,
+        effective_due_at: null, arrangement_active: false, reminders_paused: false,
+        learner_notice: `Deadline notice for ${taskId}` }
+    } else if (path.endsWith('/draft')) {
+      body = { id: `draft-${taskId}`, task_id: taskId, answer: '', code: null,
+        circuit: { qubits: 2, operations: [] }, updated_at: '2026-09-10T00:00:00Z' }
+    }
+    if (taskId === secondTask.id && (path.endsWith('/deadline') || path.includes('/practice-representations/tasks/'))) {
+      await new Promise<void>(resolve => pendingSecond.push(resolve))
+    }
+    return Response.json(body)
+  })
+  const user = userEvent.setup()
+  const { rerender } = render(<TaskView task={task} onClose={() => {}} onSubmitted={async () => {}} />)
+  await screen.findByText('Saved draft restored.')
+  await screen.findByText(`Reviewed choices for ${task.id}`)
+  await screen.findByText(`Deadline notice for ${task.id}`)
+  const expectUniqueSupport = () => {
+    expect(screen.getAllByRole('region', { name: 'Reviewed practice representations' })).toHaveLength(1)
+    expect(screen.getAllByRole('heading', { name: 'Your deadline' })).toHaveLength(1)
+  }
+  expectUniqueSupport()
+  for (let saved = 0; saved < 3; saved++) {
+    await user.click(screen.getByRole('button', { name: 'Add H gate' }))
+    await user.click(screen.getByRole('button', { name: 'Save draft' }))
+    await screen.findByText('Draft saved.')
+    expectUniqueSupport()
+  }
+  rerender(<TaskView task={secondTask} onClose={() => {}} onSubmitted={async () => {}} />)
+  expect(screen.queryByText(`Reviewed choices for ${task.id}`)).not.toBeInTheDocument()
+  expect(screen.queryByText(`Deadline notice for ${task.id}`)).not.toBeInTheDocument()
+  await waitFor(() => expect(pendingSecond.length).toBeGreaterThanOrEqual(2))
+  await act(async () => pendingSecond.forEach(resolve => resolve()))
+  await screen.findByText(`Reviewed choices for ${secondTask.id}`)
+  await screen.findByText(`Deadline notice for ${secondTask.id}`)
+  expectUniqueSupport()
+})
 
 test('keyboard targets the same second wire as drag, and preserves CX, remove and clear', async () => {
   const saved = setup()

@@ -551,8 +551,8 @@ export function TaskView({
             </Card>
           ) : null}
           <LearnerPreferencesSummary />
-          {!task.assessment && !transferActive && <PracticeRepresentationPanel key={task.id} taskId={task.id} preferenceVersion={preferenceVersion} disabled={busy || draftLoading || workConflict} />}
-          <LearnerDeadline key={task.id} taskId={task.id} />
+          {!task.assessment && !transferActive && <PracticeRepresentationPanel key={`representations:${task.id}`} taskId={task.id} preferenceVersion={preferenceVersion} disabled={busy || draftLoading || workConflict} />}
+          <LearnerDeadline key={`deadline:${task.id}`} taskId={task.id} />
           {task.source_references && task.source_references.length > 0 ? (
             <Card eyebrow="Grounded in">
               <ul className={styles.sources}>

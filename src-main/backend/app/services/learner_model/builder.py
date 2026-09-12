@@ -194,20 +194,24 @@ class LearnerModelBuildService:
             snapshot=self._repository.store(payload),
         )
 
-    def update(self, command: LearnerModelUpdateCommand) -> LearnerModelBuildResult:
-        """Append one deterministic cumulative state from newly adjudicated evidence."""
+    def update(
+        self, command: LearnerModelUpdateCommand, *, include_view: bool = True
+    ) -> LearnerModelBuildResult:
+        """Append cumulative state, optionally omitting the caller's unused teaching view."""
 
         if not isinstance(command, LearnerModelUpdateCommand):
             raise TypeError("learner-model updates require the scoped update command")
         for attempt in range(2):
             try:
-                return self._update_once(command)
+                return self._update_once(command, include_view=include_view)
             except LearnerModelConflictError as error:
                 if attempt or not _is_retryable_head_conflict(error):
                     raise
         raise AssertionError("bounded learner-model retry must return or raise")
 
-    def _update_once(self, command: LearnerModelUpdateCommand) -> LearnerModelBuildResult:
+    def _update_once(
+        self, command: LearnerModelUpdateCommand, *, include_view: bool = True
+    ) -> LearnerModelBuildResult:
         require_trusted_adjudication(
             command.model_source,
             command.adjudicator_reference,
@@ -247,7 +251,7 @@ class LearnerModelBuildService:
                     created=False,
                     occurred_at=head.occurred_at,
                 ),
-                view=head,
+                view=head if include_view else None,
             )
         cumulative_signals = tuple(
             LearnerModelEvidenceSignal(evidence_id=evidence_id, relation=relation)
@@ -378,10 +382,14 @@ class LearnerModelBuildService:
         return LearnerModelBuildResult(
             LearnerModelBuildState.STORED,
             snapshot=stored,
-            view=self._repository.current(
-                course_id=command.course_id,
-                learner_id=command.learner_id,
-                outcome_id=command.outcome_id,
+            view=(
+                self._repository.current(
+                    course_id=command.course_id,
+                    learner_id=command.learner_id,
+                    outcome_id=command.outcome_id,
+                )
+                if include_view
+                else None
             ),
         )
 

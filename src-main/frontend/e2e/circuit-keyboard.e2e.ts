@@ -41,12 +41,33 @@ async function demoProgress(request: APIRequestContext) {
 test('keyboard and drag place the same gates on q1 with named removal and preserved simulation', async ({ page, request }, testInfo) => {
   test.setTimeout(90_000)
   const errors: string[] = []
-  page.on('pageerror', error => errors.push(error.message))
+  const diagnostics: Array<Record<string, string>> = []
+  const privateValues: string[] = []
+  let phase = 'fixture setup'
+  const sanitize = (value: string) => {
+    let safe = value.replace(/https?:\/\/[^\s)]+/g, value => {
+      try { return new URL(value).pathname } catch { return '[URL omitted]' }
+    })
+    for (const value of privateValues) safe = safe.replaceAll(value, '[REDACTED]')
+    return safe.slice(0, 2000)
+  }
+  const record = (details: Record<string, string>) => {
+    if (diagnostics.length < 60) diagnostics.push({ phase, ...details })
+  }
+  page.on('pageerror', error => {
+    errors.push(sanitize(error.message))
+    record({ kind: 'pageerror', name: sanitize(error.name), message: sanitize(error.message), stack: sanitize(error.stack ?? '') })
+  })
+  page.on('requestfailed', failed => record({
+    kind: 'requestfailed', path: new URL(failed.url()).pathname,
+    errorText: sanitize(failed.failure()?.errorText ?? 'Unavailable'),
+  }))
   const demoBefore = await demoProgress(request)
   // Each project/retry gets a separate learner through the real account and
   // owning-educator enrolment routes. Shared demo progress stays untouched.
   const email = `circuit-${randomUUID()}@example.com`
   const password = randomUUID()
+  privateValues.push(email, password)
   const created = await request.post(`${apiUrl}/api/v1/admin/users`, {
     headers: await loginDemo(request, 'admin'),
     data: { email, password, full_name: 'Circuit browser learner', role: 'student' },
@@ -90,9 +111,17 @@ test('keyboard and drag place the same gates on q1 with named removal and preser
     expect(response.status(), `Prerequisite ${task.task_type}: ${await response.text()}`).toBe(201)
   }
   const draftLoaded = page.waitForResponse(response => response.request().method() === 'GET' && response.url().endsWith(`/tasks/${circuit.id}/draft`))
+  phase = 'open circuit task'
   await page.goto(`/student/tasks/${circuit.id}`)
   await expect(page.getByRole('heading', { name: 'Build a superposition circuit' })).toBeVisible()
   expect((await draftLoaded).ok()).toBeTruthy()
+  async function expectTaskSupport() {
+    // This fixture has no reviewed representations. An orphaned loading panel
+    // must disappear; the task's deadline card must stay unique across updates.
+    await expect(page.getByRole('region', { name: 'Reviewed practice representations' })).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Your deadline' })).toHaveCount(1)
+  }
+  await expectTaskSupport()
   const clear = page.getByRole('button', { name: 'Clear', exact: true })
   const addH = page.getByRole('button', { name: 'Add H gate', exact: true })
   const wire1 = page.getByText('|0⟩ q1', { exact: true }).locator('..')
@@ -102,11 +131,14 @@ test('keyboard and drag place the same gates on q1 with named removal and preser
   await wire1.dispatchEvent('drop', { dataTransfer: transfer })
   await transfer.dispose()
   async function save() {
+    phase = 'save circuit draft'
     const receipt = page.waitForResponse(response => response.request().method() === 'PUT' && response.url().endsWith('/draft'))
     await page.getByRole('button', { name: 'Save draft', exact: true }).focus()
     await page.keyboard.press('Enter')
     const response = await receipt
     expect(response.ok()).toBeTruthy()
+    await expect(page.getByText('Draft saved.', { exact: true })).toBeVisible()
+    await expectTaskSupport()
     return response.json()
   }
   const dragged = await save()
@@ -129,9 +161,12 @@ test('keyboard and drag place the same gates on q1 with named removal and preser
   const keyboard = await save()
   await testInfo.attach('keyboard-receipt', { body: JSON.stringify({ circuit: keyboard.circuit }), contentType: 'application/json' })
   expect(keyboard.circuit).toEqual(dragged.circuit)
+  phase = 'reload saved circuit'
   await page.reload()
   await expect(page.getByRole('button', { name: 'Remove gate 1: H on qubit 1' })).toBeVisible()
+  await expectTaskSupport()
   const run = page.getByRole('button', { name: 'Run 1,024 shots' })
+  phase = 'simulate saved circuit'
   await run.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByText('Simulation completed and saved with 1,024 shots.')).toBeVisible({ timeout: 30_000 })
@@ -147,8 +182,9 @@ test('keyboard and drag place the same gates on q1 with named removal and preser
   await expect(page.getByTitle('Remove gate', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Save draft', exact: true })).toBeDisabled()
   await expect(run).toBeDisabled()
+  phase = 'final accessibility and error checks'
   expect((await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([])
   await page.screenshot({ path: testInfo.outputPath('circuit-keyboard.png'), fullPage: true })
-  expect(errors).toEqual([])
+  expect(errors, `Browser diagnostics: ${JSON.stringify(diagnostics)}`).toEqual([])
   expect((await demoProgress(request)).tasks).toEqual(demoBefore.tasks)
 })

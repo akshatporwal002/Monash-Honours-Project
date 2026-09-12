@@ -597,8 +597,10 @@ def test_access_support_is_not_scaffold_dependence(
     }
 
 
+@pytest.mark.parametrize("include_view", [True, False])
 def test_update_appends_a_complete_cumulative_snapshot_and_skips_an_unchanged_replay(
     db_session: Session,
+    include_view: bool,
 ) -> None:
     scope = _seed_scope(db_session)
     _store_evidence(
@@ -617,7 +619,8 @@ def test_update_appends_a_complete_cumulative_snapshot_and_skips_an_unchanged_re
                     evidence_id="prediction-1", relation=EvidenceLinkRelation.SUPPORTS
                 ),
             ),
-        )
+        ),
+        include_view=include_view,
     )
     _store_evidence(
         db_session,
@@ -634,12 +637,13 @@ def test_update_appends_a_complete_cumulative_snapshot_and_skips_an_unchanged_re
             ),
         ),
     )
-    second = service.update(second_command)
-    replay = service.update(second_command)
+    second = service.update(second_command, include_view=include_view)
+    replay = service.update(second_command, include_view=include_view)
 
     assert first.snapshot is not None and first.snapshot.created is True
     assert second.snapshot is not None and second.snapshot.created is True
     assert replay.snapshot is not None and replay.snapshot.created is False
+    assert all((result.view is not None) is include_view for result in (first, second, replay))
     timeline = SqlAlchemyLearnerModelRepository(db_session).timeline(
         course_id=scope["course_one"],
         learner_id=scope["learner_id"],

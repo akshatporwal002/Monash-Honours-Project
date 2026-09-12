@@ -253,6 +253,77 @@ def test_restart_after_model_receipt_and_stale_worker(context, db_session):
     assert count(db_session, LearnerModelSnapshot) == count(db_session, ActivitySuggestion) == 1
 
 
+def test_progress_receipt_preserves_model_without_unused_post_store_hydration(
+    context, db_session, monkeypatch
+):
+    from app.services.learner_model.repository import SqlAlchemyLearnerModelRepository
+
+    curriculum, identity, factory, _ = context
+    _, _, learner, course, tasks, _, _ = curriculum
+    current_claim = claim(context)
+    original_store = SqlAlchemyLearnerModelRepository.store
+    original_current = SqlAlchemyLearnerModelRepository.current
+    stored = []
+    post_store_reads = []
+
+    def store(repository, payload, **kwargs):
+        result = original_store(repository, payload, **kwargs)
+        stored.append(payload)
+        return result
+
+    def current(repository, **kwargs):
+        if stored:
+            post_store_reads.append(kwargs)
+        return original_current(repository, **kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(SqlAlchemyLearnerModelRepository, "store", store)
+        patch.setattr(SqlAlchemyLearnerModelRepository, "current", current)
+        asyncio.run(
+            ApprovedActivityAdapter(factory, now=lambda: NOW).record_terminal_feedback(
+                progress_request(current_claim)
+            )
+        )
+    assert len(stored) == 1
+    assert post_store_reads == []
+    receipt = db_session.get(ActivityProgress, identity)
+    snapshot = original_current(
+        SqlAlchemyLearnerModelRepository(db_session),
+        course_id=course.id,
+        learner_id=str(learner.id),
+        outcome_id=tasks[0].learning_outcome_id,
+    )
+    payload = stored[0]
+    assert receipt.snapshot_id == snapshot.snapshot_id == payload.snapshot_id
+    assert receipt.state == "observations_recorded"
+    assert snapshot.prior_snapshot_id == payload.prior_snapshot_id
+    assert snapshot.record_version == payload.record_version
+    assert snapshot.occurred_at == payload.occurred_at
+    assert {
+        (
+            item.estimate_id,
+            item.dimension,
+            item.inference_status,
+            item.uncertainty,
+            item.reason_code,
+            item.evidence_observed_at,
+            frozenset(item.evidence_links),
+        )
+        for item in snapshot.estimates
+    } == {
+        (
+            item.estimate_id,
+            item.dimension,
+            item.inference_status,
+            item.uncertainty,
+            item.reason_code,
+            item.evidence_observed_at,
+            frozenset((signal.evidence_id, signal.relation) for signal in item.evidence_signals),
+        )
+        for item in payload.estimates
+    }
+
+
 def test_expired_lease_without_replacement_cannot_write(context, db_session):
     _, _, factory, _ = context
     old = claim(context)
