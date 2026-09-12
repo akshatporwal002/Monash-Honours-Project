@@ -12,6 +12,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
 
@@ -135,6 +136,28 @@ def _drain(database):
     return {"remaining_feedback_workflows": remaining, "drained": remaining == 0}
 
 
+def _snapshot_stopped_fixture(database, snapshot):
+    """Export the launcher-owned fixture after all its processes have stopped."""
+    # Forced process shutdown can leave a hot rollback journal. SQLite needs a
+    # writable connection to recover it before backup; mode=rw requires the
+    # existing owned fixture and never creates a missing source database.
+    with closing(sqlite3.connect(database.as_uri() + "?mode=rw", uri=True)) as source_db:
+        with closing(sqlite3.connect(snapshot)) as destination:
+            source_db.backup(destination)
+        counts = {
+            table: source_db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+            for table in (
+                "submission_attempts",
+                "assessment_attempts",
+                "assessment_decisions",
+                "workflow_runs",
+                "learner_model_snapshots",
+                "provider_usage",
+            )
+        }
+    return counts
+
+
 def run_local(directory, *, users=50, warmup_rounds=1, measurement_rounds=1, port=0):
     if not 5 <= users <= 100 or not 0 <= warmup_rounds <= 2 or not 1 <= measurement_rounds <= 3:
         raise ValueError("Local campaigns allow 5–100 users, 0–2 warmup and 1–3 measured rounds")
@@ -254,20 +277,7 @@ def run_local(directory, *, users=50, warmup_rounds=1, measurement_rounds=1, por
         time.sleep(0.1)
     result["cleanup"] = {"owned_processes_stopped": True, "listener_closed": True}
     snapshot = directory / "usage-snapshot.sqlite"
-    with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as source_db:
-        with sqlite3.connect(snapshot) as destination:
-            source_db.backup(destination)
-        counts = {
-            table: source_db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
-            for table in (
-                "submission_attempts",
-                "assessment_attempts",
-                "assessment_decisions",
-                "workflow_runs",
-                "learner_model_snapshots",
-                "provider_usage",
-            )
-        }
+    counts = _snapshot_stopped_fixture(database, snapshot)
     ledger = extract_snapshot(result, snapshot)
     if counts["provider_usage"] or any(row["provider"] not in LOCAL for row in ledger["records"]):
         raise RuntimeError("Unexpected external usage in local campaign; inspect isolated ledger")

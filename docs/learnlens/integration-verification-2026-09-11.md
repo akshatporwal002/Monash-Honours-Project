@@ -1,6 +1,6 @@
 # Integration verification — 11 September 2026
 
-**Current runtime source: `ad187aa1b8be294d496bbc5ce05309fac2c7a841`, pushed to
+**Current runtime source: `2b9c95140d35fa0bea9575f1044a1f67d65f1323`, pushed to
 main.** The newest combined-source and capacity results are recorded at the end
 of this receipt. Earlier sections retain their original source and execution
 scope; references there to pending work are historical snapshots.
@@ -520,3 +520,110 @@ should retain claim fencing, durable learner evidence and request limits rather
 than weaken them to pass a measurement. Comparable 5–100-user scaling,
 approved-host validation and actual billed human-confirmed loop cost remain
 separate acceptance work. Docker and paid providers were not used in this run.
+
+## 12 September: task-panel repair, continuation work and recovered evidence
+
+Main was already current when fetched. Runtime commit `2b9c951` publishes two
+reviewed repairs and refreshed Task 35 draft provenance:
+
+- Distinct React keys for the representation panel and deadline stop duplicate
+  panels accumulating during task saves. The regression reproduced duplicates
+  before the repair. Five mounted keyboard cases passed; the permanent WebKit
+  keyboard case passed with new panel/deadline count assertions after saves and
+  reload. No retry, timeout or error-filter allowance was increased.
+- Continuation updates omit a full learner-model view that their caller never
+  uses. This removes five post-store SELECTs per new model while preserving the
+  normal builder's default view, fresh initial reads, cumulative evidence,
+  correction behavior and atomic progress/model persistence. Twelve focused
+  checks passed, including claim expiry, restart, concurrent head changes and
+  rollback. Independent review found no blocker. This is a bounded work
+  reduction, not a claim that load targets are met.
+
+The current draft manifest is
+`35277bdb8e9dd9096ea457ed59bd4c8e87b9da79a504bd3b83c72226eae8cea2`.
+Its 108 cases remain drafts with zero approvals/included pairs; quality is
+UNVERIFIED and AI release PENDING. The earlier numerical receipt and matching
+historical manifest remain paired; numerical tests were not repeated for these
+non-numerical changes.
+
+[CI run 34668835636](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34668835636)
+completed successfully for runtime `2b9c951`, with all four jobs passing. Backend
+job `103486157887` completed at `2026-09-12T03:17:09Z`: **2,077 passed**,
+one warning, in **1,448.33 seconds (24:08)** with **90.18% service statement
+coverage**. Formatting, lint, generated contracts, migration/recovery, secret
+and dependency gates passed. Frontend
+passed 396 unit/accessibility cases in 97 files, 124 ordinary browser cases on
+first attempt and four misconception journeys on first attempt. Three complete
+learning loops passed first attempt; WebKit passed on retry. Its first attempt
+reached the next-activity URL before the final error-list assertion reported a
+`learner-preferences/me` access-control-check console message. The retained
+[failure artifact](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34668835636/artifacts/10289832868)
+is evidence for diagnosis, not proof of a failed learner operation. Successful
+retries remain distinct from first-attempt passes.
+
+Private controlled WebKit probes clarified the earlier practice-catalog message.
+After the duplicate-key repair, an intentionally held request cancelled by a
+busy-state transition produced `requestfailed` without a page error. Intentional
+reload produced catalog and tutor transport-console page errors while the final
+DOM remained correct. Observers installed before page scripts saw zero
+`window.error` or `unhandledrejection` events. Positive controls verified that
+actual throws and rejected promises were captured, and a caught non-cancellation
+network failure did not create a page error. The forced-reload diagnostic failed
+its strict page-error assertion as expected. Playwright maps some WebKit console
+messages to page errors; this supports transport-console classification in that
+controlled case, but does not prove every CI retry has the same cause. No blanket
+filter was added; unmatched tutor/preference messages still need exact diagnosis.
+
+A corrected private journal comparison applied journal-mode verification only
+once before timing and used equal 200-request/two-worker-round workloads on fresh
+copies. DELETE returned 200/200 HTTP successes with status/terminal p95
+2.063/9.954 seconds and 12.328 seconds total. WAL returned 200/200 with
+3.141/9.812 seconds and 15.453 seconds total. Both made 19 UPDATEs, 108 INSERTs,
+one DELETE and 118 commits including cleanup; backups passed `quick_check`.
+The comparison retained FULL durability and the 30-second writer budget. It
+provided no overall reason to change production journal mode. These narrow
+measurements do not certify the full campaign or isolate gains across dates.
+
+The clean `2b9c951` 50-user campaign **failed**: 31/50 reached human assessment,
+six had continuation timeouts and 13 request timeouts. Journey errors were 38%,
+separate from 18/5,454 measured HTTP errors. Ordinary p95 was 5.601966 seconds
+with one censored observation; conditional formative p95 was 27.481452 seconds
+and progress 1.993978 seconds. No human-confirmed loop or actual external cost
+was measured. The [capacity receipt](task-38-local-capacity-20260911.md) and JSON
+preserve exact outcomes, all eight earlier campaigns and artifact hashes.
+
+Its post-shutdown export encountered a hot rollback journal. A subsequent
+benchmark-tooling repair opens the existing stopped synthetic fixture in `mode=rw`
+for normal SQLite recovery, then backs it up with explicitly closed connections.
+A reproduced hot-journal regression and launcher/usage checks passed: **32 cases**.
+Independent review found no blocker. Original measurement bytes were preserved;
+only export/count/cost postprocessing was recovered, with an explicit annotation
+that drain/cleanup were reassessed afterward. The workload was not rerun. Source
+and snapshot passed `quick_check`; 19 continuation outboxes remained pending and
+one job running, despite no unfinished feedback workflows. This repair changes
+benchmark tooling only and has focused evidence separate from runtime CI.
+
+Task status remains **30 completed, 10 partial, one remaining: 11 unfinished**.
+Tasks 38 and 39 retain engineering/reliability work. The other open tasks primarily
+need actual approvals, expert ratings, approved content/hosts or human trials;
+Task 33 may require additional record-class disposal after its retention plan is
+approved. Five standalone PD4 forms remain explicitly staged extensions under
+the controlling requirements, rather than newly discovered mandatory MVP gaps.
+These checks used local synthetic data, with external providers and research
+activation disabled; no Docker-based or approved-host measurement is claimed.
+
+A final private FIFO write-admission prototype also failed to improve the whole
+workload. Both paired phases used fresh identical fixtures and separate API and
+worker engines; their gates were independent, matching separate admission domains.
+Baseline versus gate: total 11.469 versus 12.047 seconds, status p95 1.594 versus
+2.453 seconds, terminal p95 7.484 versus 6.015 seconds. Both worker rounds became
+slower. Both returned 200/200 HTTP successes with zero database errors and identical
+19 UPDATEs, 108 INSERTs, one DELETE and 118 commits. Gate budget maintenance added
+238 PRAGMAs, included in measured wall time. SQLite integrity checks passed.
+The prototype consumed the existing configured busy budget, retained ownership
+until actual transaction completion and checked cancellation, failed commit,
+nested independent writes and queue cleanup. It remains an in-process diagnostic,
+not full-load proof. No production gate was introduced; all owned workers stopped.
+Configuration experiments are finished. Further Task 38 work needs transaction
+and continuation-queue design changes backed by representative evidence; neither
+WAL nor a process-local admission gate is an established remedy.

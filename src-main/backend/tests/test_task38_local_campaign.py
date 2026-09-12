@@ -1,6 +1,10 @@
 """Unpaid launcher boundaries; transport fixtures do not establish capacity."""
 
 import asyncio
+import sqlite3
+import subprocess
+import sys
+from contextlib import closing
 from dataclasses import replace
 
 import pytest
@@ -8,6 +12,70 @@ import pytest
 from scripts.task38_benchmark.core import Budget, Config, StopRun, campaign
 from scripts.task38_benchmark.fake import factory, roster
 from scripts.task38_benchmark.local import BACKEND, local_environment, run_local
+
+
+def test_stopped_fixture_export_recovers_hot_journal_without_losing_committed_data(tmp_path):
+    from scripts.task38_benchmark.local import _snapshot_stopped_fixture
+
+    database = tmp_path / "owned-synthetic.sqlite"
+    snapshot = tmp_path / "snapshot.sqlite"
+    tables = (
+        "submission_attempts",
+        "assessment_attempts",
+        "assessment_decisions",
+        "workflow_runs",
+        "learner_model_snapshots",
+        "provider_usage",
+    )
+    with closing(sqlite3.connect(database)) as db:
+        for table in tables:
+            db.execute(f"CREATE TABLE {table} (id INTEGER PRIMARY KEY, payload BLOB)")
+            db.executemany(
+                f"INSERT INTO {table} VALUES (?, ?)",
+                [(index, b"committed" * 512) for index in range(32)],
+            )
+        db.commit()
+    crashed = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            """
+import os, sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+db.execute('PRAGMA cache_size=5')
+db.execute('PRAGMA synchronous=FULL')
+db.execute('BEGIN IMMEDIATE')
+db.execute("UPDATE workflow_runs SET payload = zeroblob(8192)")
+db.execute("INSERT INTO workflow_runs VALUES (1000, zeroblob(8192))")
+os._exit(23)
+""",
+            str(database),
+        ],
+        timeout=10,
+        check=False,
+    )
+    assert crashed.returncode == 23
+    assert database.with_name(database.name + "-journal").stat().st_size > 512
+    with closing(sqlite3.connect(database.as_uri() + "?mode=ro", uri=True)) as db:
+        with pytest.raises(sqlite3.OperationalError, match="readonly"):
+            db.execute("SELECT count(*) FROM workflow_runs").fetchone()
+
+    assert _snapshot_stopped_fixture(database, snapshot) == dict.fromkeys(tables, 32)
+    for path in (database, snapshot):
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as db:
+            assert db.execute("PRAGMA quick_check").fetchone() == ("ok",)
+            assert db.execute("SELECT id, payload FROM workflow_runs ORDER BY id").fetchall() == [
+                (index, b"committed" * 512) for index in range(32)
+            ]
+
+
+def test_stopped_fixture_export_does_not_create_missing_source(tmp_path):
+    from scripts.task38_benchmark.local import _snapshot_stopped_fixture
+
+    missing = tmp_path / "missing.sqlite"
+    with pytest.raises(sqlite3.OperationalError):
+        _snapshot_stopped_fixture(missing, tmp_path / "snapshot.sqlite")
+    assert not missing.exists()
 
 
 def local_config(**changes):

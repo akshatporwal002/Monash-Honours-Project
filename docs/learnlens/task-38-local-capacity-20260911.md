@@ -2,8 +2,9 @@
 
 These are unpaid synthetic loopback measurements. They do not establish hosted
 capacity, external-provider performance, human assessment results or cost per
-human-confirmed learning loop. The initial 50-user campaigns failed. Their raw
-reports remain unchanged in ignored scratch storage, and their sanitized metrics
+human-confirmed learning loop. The 50-user campaigns failed. Original raw
+reports remain preserved in ignored scratch storage; the latest export required
+explicitly recorded postprocessing recovery. Sanitized metrics
 and SHA-256 digests are retained in
 [the machine-readable receipt](task-38-local-capacity-20260911.json).
 
@@ -382,3 +383,70 @@ SHA-256 hashes are:
 - Usage export: `78e81b1d6072977880b8c911a412bd789d5dbd74171d3dd01dca15f544ce8eaf`
 - Stopped database snapshot: `2760c8a3176a51dd322f03cef5cc9ba8525f4cf28b5ffb9d5c9fd3689ac67dd2`
 - Harness: `951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75`
+
+## Integrated 50-user measurement on clean `2b9c951` (12 September)
+
+**This campaign failed overall: 38% of measured journeys ended in errors.**
+Of 50 measured journeys, 31 reached `awaiting_human`, six ended in
+`continuation_timeout` and 13 in `request_timeout`. No human-confirmed loop
+completed. Measured HTTP errors were 18 / 5,454 (0.3300%); that separate
+request denominator does not establish journey success.
+
+| Metric | Observations | Measured p95 | Errors / censored | Target |
+| --- | --- | --- | --- | --- |
+| Ordinary requests | 297 | 5.601966 s | 1 / 1 | 2 s; not established with censored observations |
+| Progress requests | 80 | 1.993978 s | 0 / 0 | 3 s; met for observed requests |
+| Formative feedback | 31 | 27.481452 s | 0 / 0 | 10 s; not met |
+| Assessed feedback | 70 | 49.523947 s | 0 / 0 | No threshold defined by this report |
+
+Stage timings are conditional on reaching the stage. The higher human-handoff
+count does not prove lower latency; ordinary and formative targets still failed.
+Warm-up outcomes were 32 `awaiting_human`, 12 `continuation_timeout`, five
+`request_timeout` and one `feedback_timeout`.
+
+The run started at `2026-09-12T02:52:42.968763+00:00` on
+`2b9c95140d35fa0bea9575f1044a1f67d65f1323`, branch `main`, with
+`dirty: false`. One warm-up and one measurement round planned 100 journeys and
+made 12,050 HTTP attempts. Both phases reached 50 active loops. Warm-up took
+323.398700 s; measurement took 294.341870 s. Existing 30-second request,
+90-second worker and 600-second phase limits were retained. The paired JSON
+records the remaining runtime bounds and synthetic environment.
+
+After owned-process shutdown, evidence export initially failed: a hot rollback
+journal required SQLite recovery before a read-only connection could read the
+database. The original report was preserved byte-for-byte. The repaired export
+opens only the launcher's existing, stopped synthetic fixture in `mode=rw`, lets
+SQLite recover normally, then uses its backup API. It does not delete journals
+or create a missing source. Source and snapshot both passed `quick_check`.
+Thirty-two focused launcher/usage tests passed, including a real hot-journal
+regression that preserves committed rows and rolls back uncommitted changes.
+General live/foreign database backup tools remain unchanged.
+
+**No workload was rerun.** The recovered report preserves all original
+measurement/source/harness fields and explicitly records `artifact_recovery`.
+Cleanup and feedback-drain status were reassessed after recovery; the original
+in-memory drain result was lost and is not claimed as recovered. Owned processes
+were stopped, the listener was closed and no unfinished feedback workflows
+remained. Continuation work was still incomplete.
+
+The recovered stopped database contains 213 submissions, 150 assessment attempts,
+zero decisions, 213 workflows and 193 learner-model snapshots. All 172 simulation
+runs have completed outcomes, but repeated inputs do not establish diverse-input
+capacity. There are 213 continuation outboxes (194 completed, 19 pending),
+194 continuation jobs (193 completed, one running), 193 progress receipts and
+193 activity suggestions. Counts span warm-up and measurement.
+
+The usage export has 426 local metadata records: 213 generation and 213 judge
+records, comprising 300 `local` and 126 `local-deterministic` records. Durable
+external-provider usage is zero; external execution was disabled. Actual external
+AUD and cost per human-confirmed loop remain null, with incomplete billing
+coverage and no reconciliation or human-completion denominator.
+
+All eight earlier campaign records remain unchanged. Raw artifacts stay local;
+SHA-256 hashes are:
+
+- Original report before export recovery: `b511f4c6a0c5dfc516e9d7be00de798f2a106b92894e939823aaf0b2e3871b6d`
+- Recovered report: `14fa3975399fe94e5aba272b028cf471acf32118848fc8e3a7d38759ddf27258`
+- Usage export: `013095bd3d27825b9ebd5c37b28684767e9ed8613606cdc2f7462231d404aa3b`
+- Recovered stopped snapshot: `ac2a8fb388543a10053dda41fa814321798fa4320352083c7fe7dbfb60992981`
+- Original measurement harness: `951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75`
