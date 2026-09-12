@@ -6,6 +6,13 @@ timeouts and one interrupted simulation. Its helper, integration, tests and draf
 provenance were reverted to `197ffde` (application code equivalent to `67b6c92`).
 All failed measurements remain recorded; Task 38 still needs engineering.
 
+Rollback `4c85519` restores application code, tests and validation tooling exactly
+to `197ffde`. The already-running [CI run 34689653226](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34689653226)
+subsequently passed on rejected candidate `8c8b5d5`: **2,141 backend tests,
+400 frontend tests and 144 browser checks**, plus dependency and secret gates.
+That source-specific result confirms the corrected feedback fixtures but is
+neither a capacity pass nor a new full-suite run of the restored source.
+
 Updated: **12 September 2026**. Current pushed application source is `67b6c92`. [CI run 34687133232](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34687133232) passed frontend and dependency jobs. Backend recorded **2,122 passes and two stale test-call failures**, with **90.22% service coverage**. Both calls are corrected and their five-case file passes locally; OpenAPI and frontend contract checks also pass. Secret scanning found one documentation false positive, now narrowly corrected and verified locally. The hosted run remains failed; these follow-up checks are separate evidence.
 
 **30 of 41 numbered implementations are delivered; 11 tasks still need software or acceptance work.** The count is **30 completed, 10 partial and one remaining**. Read each task's progress, next action, acceptance condition and evidence before starting work.
@@ -13,7 +20,7 @@ Updated: **12 September 2026**. Current pushed application source is `67b6c92`. 
 | Work state | Tasks | Meaning |
 | --- | --- | --- |
 | Completed numbered implementation | 1–7, 9–27, 29–31, 36 | Functionality is delivered. Maintain it; load, human and release acceptance stay in dependent tasks. |
-| Active software/performance work | 38 | The latest 50-user campaign reached 45/50 awaiting human assessment but still missed ordinary and formative latency targets and had five early request timeouts. |
+| Active software/performance work | 38 | The retained runtime reached 45/50 awaiting human assessment but still missed ordinary and formative latency targets and had five early request timeouts. The subsequent candidate worsened to 35/50 and was reverted. |
 | Human/external acceptance primarily outstanding | 8, 28, 32, 33, 34, 35, 37, 39, 40, 41 | Actual approvals, people, content or an approved environment remain due. Task 39's identified browser repair now passes combined CI; native browser, assistive-technology and first-time-user acceptance remain. Task 33 may need further record-class disposal work after the data plan is approved. |
 
 Task 30's reminder rules and candidate-scan repair and Task 22's continuation functionality are delivered. Their load behavior remains Task 38 work. Completed implementation does not certify performance or release acceptance.
@@ -30,7 +37,7 @@ Task 30's reminder rules and candidate-scan repair and Task 22's continuation fu
 | Installed release package | CI passed a noneditable production-only installation: **325 application modules**, both console entries and **60 migration revisions**, head `20260911_0055`. | This verifies packaged imports and copied sidecars, not a container or approved-host deployment. |
 | Retained runtime 50-user measurement | Clean `67b6c92`: **45/50 awaiting human**, five request timeouts and zero continuation timeouts; **ordinary p95 4.4337269 s**, progress **1.5165027 s**, formative feedback **35.7989416 s**, assessed response **74.6502288 s**. | **Failed:** 10% journey errors and 5/7,360 HTTP errors. Ordinary: 331 observations, two censored; progress: 93; formative: 45; assessed: 90. Stage timings are conditional; no human-confirmed completion or actual external billing. |
 
-The previous clean `2b9c951` campaign reached 31/50 awaiting human with six continuation timeouts and 13 request timeouts; its successful full CI remains historical. The latest campaign improves completion but does not establish a latency pass. All eleven dated campaigns, including warmup failures, remain in the [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md). [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) retains exact source scopes. Overlapping focused counts are not summed into another suite.
+The previous clean `2b9c951` campaign reached 31/50 awaiting human with six continuation timeouts and 13 request timeouts; its successful full CI remains historical. The retained runtime improves on that baseline but does not establish a latency pass; the subsequent rejected candidate regressed. All eleven dated campaigns, including warmup failures, remain in the [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md). [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) retains exact source scopes. Overlapping focused counts are not summed into another suite.
 
 Migration/readiness head: `20260911_0055`. The [requirement matrix](docs/learnlens/implementation-gap-matrix.md) covers **143 requirements: 97 implemented, 33 partial, 13 unverified**. Requirements and numbered tasks use different denominators.
 
@@ -38,7 +45,7 @@ Migration/readiness head: `20260911_0055`. The [requirement matrix](docs/learnle
 
 **Task 38:** the five remaining measurement timeouts occur during initial task read, start, help or simulation before a submission or workflow exists. A narrow 50-actor startup diagnostic identified waiting for the first learning-event write as the dominant task-read cost. Preserve durable events, authorization, request deadlines and transaction ownership while reducing this contention. Validate any actual runtime repair with affected checks and a clean representative campaign.
 
-Private query-scope changes reduced reads but did not improve the overall matched startup workload, so they were rejected. The subsequent task-view-only admission candidate passed 62 focused checks and two reviews, but its clean full campaign worsened from 45/50 to 35/50 awaiting human; the candidate was reverted. Its 14 request timeouts and one interrupted simulation remain recorded. A later equal-scope private admission probe improved task-read waiting but exposed global SQL/async/cleanup hazards; it is not a production repair or a full-capacity result. Earlier DELETE/WAL and mixed-workload admission results remain historical, and runtime journal settings are unchanged.
+Private query-scope changes reduced reads but did not improve the overall matched startup workload, so they were rejected. A private admission probe improved task-read waiting but exposed global SQL/async/cleanup hazards; it was not a production repair or a full-capacity result. The subsequent task-view-only admission candidate passed 62 focused checks and two reviews, but its clean full campaign worsened from 45/50 to 35/50 awaiting human; the candidate was reverted. Its 14 request timeouts and one interrupted simulation remain recorded. Earlier DELETE/WAL and mixed-workload admission results remain historical, and runtime journal settings are unchanged.
 
 Task 39's identified document-exit preference race is repaired; the current complete Linux/browser CI passes all 144 browser checks first attempt with strict error assertions intact. Continue its actual native-browser, screen-reader, zoom/contrast and first-time-user acceptance when the required people and devices are available.
 

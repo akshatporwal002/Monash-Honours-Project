@@ -226,3 +226,12 @@ positive control produced exactly one expected redacted finding. The local
 scanner count matches its independently enumerated Git history; CI fetched a
 smaller ref inventory. This local correction does not rewrite the failed hosted
 job as a pass. Its redacted reports remain in ignored scratch storage.
+
+## Subsequent hosted verification
+
+The already-running CI run `34689653226` at source `8c8b5d5` completed its
+secret-scan job `103542560886` successfully on 12 September 2026. This verifies
+the reviewed exception and unchanged gate in hosted CI. It does not rewrite the
+earlier failed run. The candidate's runtime change was separately rejected for
+its load regression and reverted; scanner rules and the reviewed exception were
+retained. The default scanner coverage limits above still apply.

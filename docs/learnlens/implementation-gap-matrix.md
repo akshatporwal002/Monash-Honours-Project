@@ -6,6 +6,13 @@ one interrupted simulation. It was reverted to `197ffde`, restoring application
 code equivalent to `67b6c92` and its draft provenance. Both failed campaigns are
 retained; Task 38 remains engineering work, with no admitted performance pass.
 
+Rollback `4c85519` restores application code, tests and validation tooling exactly
+to `197ffde`. The existing [CI run 34689653226](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34689653226)
+finished successfully on rejected candidate `8c8b5d5`: 2,141 backend tests,
+400 frontend tests and 144 browser checks, plus dependency and secret gates.
+This is candidate correctness evidence; it does not override its failed capacity
+campaign or constitute a new complete-suite result for restored main.
+
 **Current authoritative requirement status:** reconciled 12 September 2026 against pushed application source `67b6c92`. [CI run 34687133232](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34687133232) passed frontend and dependency jobs. Backend recorded 2,122 passes and two obsolete fixture-call failures (90.22% coverage); the corrected five-case file and contract checks pass locally. The exact prose scanner false positive is corrected and the pinned local gate passes. The hosted run remains failed. All 144 browser checks passed first attempt; Task 38 still fails the 50-user target. See I-CURRENT for scopes and remaining acceptance.
 
 The previous integration at `6d20416` accounted for 1,607 backend cases across recorded runs, 88.93% service coverage, 319 frontend tests and 132 browser checks. Those dated results remain in the [previous integration receipt](next-wave-integration-verification-2026-09-10.md); they do not automatically apply to changed source. The interrupted rerun is not a passing receipt. Expert, research activation and hosted acceptance remain separate.
@@ -31,6 +38,8 @@ The current additions supersede older missing-software descriptions. Earlier I-*
 ### I-CURRENT — Integrated deliveries and follow-ups, scoped verification
 
 - **Rejected task-view candidate:** `8c8b5d5` passed 62 focused cases and independent review, but its clean 50-user result worsened to 35/50 awaiting human, 14 request timeouts and one interrupted simulation (30% journey errors; 14/4,103 HTTP errors). The candidate and its draft provenance were reverted to `197ffde`; retained application source is equivalent to `67b6c92`. The failed campaign remains in the [capacity record](task-38-local-capacity-20260911.md), including warmup and source hashes. Its CI is separate evidence and cannot override the negative capacity result.
+
+- **Completed candidate CI:** run `34689653226` at `8c8b5d5` succeeded in all four jobs. Backend: 2,141 passed, one serializer warning, 1,490.37 seconds, 90.22% service coverage; both corrected feedback-read cases pass. Frontend: 400 units/98 files and all 144 browser checks first attempt. Contracts, lint/format, dependency and secret gates pass. The candidate's installed package contains 326 modules, both console entries and 60 migrations/head 0055. These counts belong to the rejected candidate; retained source keeps its separately recorded verification scope.
 
 - **Current source and correction receipts:** `67b6c92`, [CI run 34687133232](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34687133232): frontend and dependency SUCCESS. Backend: 2,122 passed, two obsolete ninth-argument fixture calls failed, one warning, 1,494.41 seconds and 90.22% service coverage. Both corrected calls pass within the five-case contention fixture (1.32 seconds); scoped lint/format and both contract checks pass. The secret job found one ordinary-prose false positive; the exact fingerprint and current wording are corrected, with a passing pinned local history/positive-control gate. These are separate follow-up receipts, not a successful hosted rerun.
 - **Current browser and package verification:** 400 frontend unit cases/98 files, 136 ordinary browser checks, four complete learning loops and four misconception journeys all pass first attempt. The preference document-exit repair and bounded passive diagnostics retain strict error assertions. CI also passed production-only noneditable package verification: 325 application modules, both console entries and 60 migration revisions/head 0055. Native Safari/manual accessibility/first-time-user acceptance and actual hosted execution remain separate.

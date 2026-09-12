@@ -901,3 +901,32 @@ manifest is `f88aa8436570434cbcf1464f9a3b0c1e37714d34ec21d4c339ecf335ad7601b3` (
 The private timing improvements and 62 focused correctness passes do not override
 this negative result. No further full suite or load run is inferred for an exact
 restoration. **Task 38 remains unresolved engineering work.**
+
+## Completed CI for rejected candidate 8c8b5d5
+
+The already-running [CI run 34689653226](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34689653226)
+completed successfully in all four jobs. It tested the rejected candidate, not
+the subsequently restored source at rollback `4c85519`. No rerun was requested.
+
+| Scope | Source-specific result |
+| --- | --- |
+| Backend job 103542560808 | **2,141 passed**, one Pydantic serializer warning, 1,490.37 seconds; **90.22% service coverage** against the unchanged 80% gate. Completed 12 September 2026 at 11:20 UTC. |
+| Corrected fixtures | All five `test_feedback_route_contention.py` cases pass, including both previously failing feedback-read variants; no skip or expected-failure marker. |
+| Contracts and lint | OpenAPI and generated frontend contracts are current; Ruff check and format pass. |
+| Installed package | Noneditable `quantumlearn-api` 0.1.0: **326 application modules**, both console entries, **60 migration revisions**, head `20260911_0055`. This candidate includes the subsequently removed admission helper. |
+| Frontend job 103542560888 | **400 unit tests/98 files** in 84.20 seconds; **136 ordinary browser checks, four complete learning loops and four misconception journeys**, all first attempt, with zero retry/flaky markers. Lint and production build pass. |
+| Dependencies and secrets | Jobs 103542560874 and 103542560886 both succeed. |
+
+The backend warning concerns an integer in place of the expected support-level
+enum in `test_misconception_assessment_support.py`; it is retained in the result.
+Completed backend log SHA-256:
+`9ebf15fd37bf33a18627ce63d0ea603c2e4c4f5a05ed54363224761dcc51436e`.
+Completed frontend log SHA-256:
+`f3af8076ab3c63e90bf7aaf76913d671cbdff76dd04ba9153aa321e796c524be`.
+
+These correctness passes do not override the failed 35/50 capacity campaign.
+Rollback `4c85519` restores application code, tests and validation tooling exactly
+to `197ffde`; no redundant application suite was run for that exact restoration.
+Its prior verification scope remains recorded above. Task 38 still requires
+engineering; the task count remains **30 completed, 10 partial, one remaining**.
+Human, native-device, provider and approved-host acceptance are not inferred.
