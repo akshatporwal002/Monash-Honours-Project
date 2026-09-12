@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import hash_password
-from app.db.task_view_admission import task_view_write_admission
 from app.models import (
     Achievement,
     AssessmentApprovalState,
@@ -749,14 +748,13 @@ class LmsService:
 
     def get_student_task(self, student: User, task_id: str) -> TaskRead:
         task, result = self._student_task_projection(student, task_id)
-        with task_view_write_admission(self.session):
-            self._learning_event(
-                student,
-                task,
-                LearningEventType.TASK_VIEW,
-                {"source": "task-page"},
-            )
-            self._commit()
+        self._learning_event(
+            student,
+            task,
+            LearningEventType.TASK_VIEW,
+            {"source": "task-page"},
+        )
+        self._commit()
         return result
 
     @validation_read_scope

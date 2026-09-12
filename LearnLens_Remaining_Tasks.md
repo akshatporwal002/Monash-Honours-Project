@@ -1,9 +1,10 @@
 # LearnLens task progress and remaining work
 
-The task-view admission change following `197ffde` has passed 62 focused cases
-and two independent reviews. Its updated draft provenance passes 44 checks.
-Combined CI and a clean 50-user campaign for that change are pending; the
-completed verification snapshot below remains scoped to `67b6c92`.
+The task-view admission candidate `8c8b5d5` was rejected after its clean
+50-user campaign worsened to 35/50 awaiting human assessment, 14 request
+timeouts and one interrupted simulation. Its helper, integration, tests and draft
+provenance were reverted to `197ffde` (application code equivalent to `67b6c92`).
+All failed measurements remain recorded; Task 38 still needs engineering.
 
 Updated: **12 September 2026**. Current pushed application source is `67b6c92`. [CI run 34687133232](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34687133232) passed frontend and dependency jobs. Backend recorded **2,122 passes and two stale test-call failures**, with **90.22% service coverage**. Both calls are corrected and their five-case file passes locally; OpenAPI and frontend contract checks also pass. Secret scanning found one documentation false positive, now narrowly corrected and verified locally. The hosted run remains failed; these follow-up checks are separate evidence.
 
@@ -27,9 +28,9 @@ Task 30's reminder rules and candidate-scan repair and Task 22's continuation fu
 | Frontend CI | `67b6c92`: **400 unit tests in 98 files**; **136 ordinary browser checks, four complete learning loops and four misconception journeys**, all on their first attempt. Lint, type checking and production build pass. | Native Safari, manual assistive technology and actual first-time-user trials remain separate. |
 | Security/dependencies | Dependency job passed. Secret job found one ordinary-prose match; only that exact historical fingerprint was excluded, and current prose was reworded. The pinned local gate passed across 305 text commits / 404 reachable commits, with zero history findings and the unchanged expected positive control. | The failed hosted scan is retained as failed. [Scanner receipt](docs/learnlens/secret-scan-gate-2026-09-10.md) records the exact finding and follow-up scope. |
 | Installed release package | CI passed a noneditable production-only installation: **325 application modules**, both console entries and **60 migration revisions**, head `20260911_0055`. | This verifies packaged imports and copied sidecars, not a container or approved-host deployment. |
-| Latest 50-user load campaign | Clean `67b6c92`: **45/50 awaiting human**, five request timeouts and zero continuation timeouts; **ordinary p95 4.4337269 s**, progress **1.5165027 s**, formative feedback **35.7989416 s**, assessed response **74.6502288 s**. | **Failed:** 10% journey errors and 5/7,360 HTTP errors. Ordinary: 331 observations, two censored; progress: 93; formative: 45; assessed: 90. Stage timings are conditional; no human-confirmed completion or actual external billing. |
+| Retained runtime 50-user measurement | Clean `67b6c92`: **45/50 awaiting human**, five request timeouts and zero continuation timeouts; **ordinary p95 4.4337269 s**, progress **1.5165027 s**, formative feedback **35.7989416 s**, assessed response **74.6502288 s**. | **Failed:** 10% journey errors and 5/7,360 HTTP errors. Ordinary: 331 observations, two censored; progress: 93; formative: 45; assessed: 90. Stage timings are conditional; no human-confirmed completion or actual external billing. |
 
-The previous clean `2b9c951` campaign reached 31/50 awaiting human with six continuation timeouts and 13 request timeouts; its successful full CI remains historical. The latest campaign improves completion but does not establish a latency pass. All ten dated campaigns, including warmup failures, remain in the [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md). [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) retains exact source scopes. Overlapping focused counts are not summed into another suite.
+The previous clean `2b9c951` campaign reached 31/50 awaiting human with six continuation timeouts and 13 request timeouts; its successful full CI remains historical. The latest campaign improves completion but does not establish a latency pass. All eleven dated campaigns, including warmup failures, remain in the [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md). [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) retains exact source scopes. Overlapping focused counts are not summed into another suite.
 
 Migration/readiness head: `20260911_0055`. The [requirement matrix](docs/learnlens/implementation-gap-matrix.md) covers **143 requirements: 97 implemented, 33 partial, 13 unverified**. Requirements and numbered tasks use different denominators.
 
@@ -37,7 +38,7 @@ Migration/readiness head: `20260911_0055`. The [requirement matrix](docs/learnle
 
 **Task 38:** the five remaining measurement timeouts occur during initial task read, start, help or simulation before a submission or workflow exists. A narrow 50-actor startup diagnostic identified waiting for the first learning-event write as the dominant task-read cost. Preserve durable events, authorization, request deadlines and transaction ownership while reducing this contention. Validate any actual runtime repair with affected checks and a clean representative campaign.
 
-Private query-scope changes reduced reads but did not improve the overall matched startup workload, so they were rejected. A later equal-scope private admission probe improved task-read waiting but exposed global SQL/async/cleanup hazards; it is not a production repair or a full-capacity result. Earlier DELETE/WAL and mixed-workload admission results remain historical, and runtime journal settings are unchanged.
+Private query-scope changes reduced reads but did not improve the overall matched startup workload, so they were rejected. The subsequent task-view-only admission candidate passed 62 focused checks and two reviews, but its clean full campaign worsened from 45/50 to 35/50 awaiting human; the candidate was reverted. Its 14 request timeouts and one interrupted simulation remain recorded. A later equal-scope private admission probe improved task-read waiting but exposed global SQL/async/cleanup hazards; it is not a production repair or a full-capacity result. Earlier DELETE/WAL and mixed-workload admission results remain historical, and runtime journal settings are unchanged.
 
 Task 39's identified document-exit preference race is repaired; the current complete Linux/browser CI passes all 144 browser checks first attempt with strict error assertions intact. Continue its actual native-browser, screen-reader, zoom/contrast and first-time-user acceptance when the required people and devices are available.
 
@@ -465,9 +466,9 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 35. **[Partial] Validate quantum content, feedback, and assessment against expert judgements.**
 
-    **Progress:** Offline tooling retains 108 DRAFT cases and blank review forms, zero approved cases and zero included system-output/rating pairs. Live moderation, signed evaluator release/import and ten-dimension human review are implemented. Current source fingerprints use the refreshed 128-entry draft manifest; historical numerical receipts and their paired manifests remain unchanged. Quality stays UNVERIFIED and advisory AI release PENDING.
+    **Progress:** Offline tooling retains 108 DRAFT cases and blank review forms, zero approved cases and zero included system-output/rating pairs. Live moderation, signed evaluator release/import and ten-dimension human review are implemented. Current source fingerprints use the refreshed 127-entry draft manifest; historical numerical receipts and their paired manifests remain unchanged. Quality stays UNVERIFIED and advisory AI release PENDING.
 
-    **Verified:** Current 128-entry draft manifest digest `d02e626c134453dff44ea4748762b679e83c8d06e6eb8a63a884727b8090d964`; 44 validation-tool checks pass. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
+    **Verified:** Current 127-entry draft manifest digest `f88aa8436570434cbcf1464f9a3b0c1e37714d34ec21d4c339ecf335ad7601b3`; 44 validation-tool checks pass. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
 
     **Next action:** Human/expert input: approve at least 100 cases and source bindings, record actual outputs and independent ratings, calculate agreement/fairness/error measures, and sign separate content and AI-assessment release decisions. Maintain source fingerprints; the current draft digest does not replace historical numerical or expert evidence. Current configured checks and their follow-up corrections are recorded under Task 36.
 

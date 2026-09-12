@@ -863,3 +863,41 @@ seconds. Substantial waiting remained, including 7.750 seconds in admission.
 This one narrow comparison supports evaluation, not a throughput or full-capacity
 claim. The production candidate separately fixes pool and cleanup boundaries;
 its clean representative campaign and combined CI remain to be recorded.
+
+
+## Task-view candidate rejected and exact source restored
+
+Source `8c8b5d56bc40bf9dd7cc981362e7757bde42c0bc`, main/clean, used the unchanged
+synthetic harness, one 50-user warmup and one measured round, with peak 50 in
+both. Measurement: **35 awaiting human, 14 request timeouts and one interrupted
+simulation**. Journey errors: **30%**. HTTP errors: **14/4,103 (0.3412%)**.
+Warmup: **42 awaiting human and eight request timeouts**. No complete
+human-confirmed loop or actual external billing is claimed.
+
+| Measured metric | Observations | p95 seconds | Result |
+| --- | ---: | ---: | --- |
+| Ordinary API | 305, zero censored | 4.595176 | Fails 2-second target |
+| Progress API | 85 | 1.2456596 | Observed 3-second target met |
+| Formative feedback | 35 | 36.8612419 | Fails 10-second target |
+| Assessed response | 70 | 43.6360912 | No approved threshold |
+
+Timings are conditional on reaching each stage. Warmup took 216.1271726 seconds
+and measurement 171.3479175 seconds; total HTTP attempts were 9,782. The workload
+was neither cancelled nor left unstarted. Feedback drain reached zero; owned
+processes stopped and the listener closed. The snapshot retains 232 submissions,
+155 assessment attempts, zero assessment decisions, 232 workflows and 219 model
+snapshots. Local-template usage is excluded from external-cost evidence.
+
+- Report SHA-256: `781a109bf22d29dd0df30936c8effdf086c6ffa31c8997668167e834816c9c74`.
+- Usage export SHA-256: `f6fb636bfbeaf848c66a86f5b7d079ec9efe0890358ce1f95edff1db5a8e44f1`.
+- Snapshot SHA-256: `71a1f5340c79863c8bc4d90975b65183a4ab11419ba31d1f2bc7cd53d390d7fe`.
+- Harness SHA-256: `a28ace7458e4dd612955b8a89f84f26f115664c1a672360b6e66456fb356964e`.
+
+This representative result worsened completion from the preceding 45/50 to
+35/50 and did not establish the latency targets. The task-view admission helper,
+its LMS wrapper and tests, and its draft provenance were reverted to `197ffde`.
+The retained application code is equivalent to `67b6c92`, and the retained draft
+manifest is `f88aa8436570434cbcf1464f9a3b0c1e37714d34ec21d4c339ecf335ad7601b3` (127 entries).
+The private timing improvements and 62 focused correctness passes do not override
+this negative result. No further full suite or load run is inferred for an exact
+restoration. **Task 38 remains unresolved engineering work.**

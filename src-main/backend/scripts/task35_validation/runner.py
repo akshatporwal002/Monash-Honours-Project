@@ -83,7 +83,6 @@ REQUIRED_FILES = (
     "src-main/backend/app/services/integrity_cues.py",
     "src-main/backend/app/services/tutor.py",
     "src-main/backend/app/services/lms.py",
-    "src-main/backend/app/db/task_view_admission.py",
     "src-main/backend/app/schemas/lms.py",
     "src-main/backend/app/api/routes/assessment.py",
     # Retrieval and the exact source/task context supplied to generation and feedback.
