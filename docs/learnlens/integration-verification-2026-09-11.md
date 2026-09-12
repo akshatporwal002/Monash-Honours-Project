@@ -1,5 +1,10 @@
 # Integration verification — 11 September 2026
 
+**Current runtime source: `ad187aa1b8be294d496bbc5ce05309fac2c7a841`, pushed to
+main.** The newest combined-source and capacity results are recorded at the end
+of this receipt. Earlier sections retain their original source and execution
+scope; references there to pending work are historical snapshots.
+
 The six deliveries merged at `46aebb3` now share migration head `20260911_0051`,
 registered models and regenerated API/TypeScript contracts. This receipt covers
 the first integration batch and the compatibility corrections described below.
@@ -433,7 +438,7 @@ publication and source checks inside the continuation decision while its claim
 transaction held the writer. A scope around the pure `ActivityService.decide`
 phase now reuses only those successful reads; it ends before category review,
 suggestion persistence and the renewed claim fence. Eight focused checks passed
-in 24.20 seconds, covering complete decision equivalence, source changes between
+in 24.20 seconds, covering complete decision equivalence, publication changes between
 calls, invalidation after an in-scope flush, lease expiry, restart, concurrent
 idempotency and retry. Independent review found no blocker.
 
@@ -452,3 +457,66 @@ CI now retains failed-attempt page context and screenshots for seven days, even
 when a retry succeeds, excluding video and trace archives. The earlier Firefox
 flake's actual cause is unproven because its artifacts were not retained; no UI
 or timeout change was made from that incomplete evidence.
+
+## Published `ad187aa` results and remaining capacity work
+
+Both `dff979d` and `ad187aa` are published on main. The earlier
+[dff979d CI run](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34568934688)
+completed successfully: 2,067 backend cases passed with one warning and 90.19%
+service statement coverage. Its frontend, dependency and secret gates also
+passed, with the previously recorded Firefox retry retained as a limitation.
+
+The [ad187aa CI run](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34570781006)
+completed successfully on 11 September at 07:04 UTC. Its backend passed **2,075
+cases**, one warning, in 1,514.75 seconds with **90.21% service statement coverage**.
+Formatting, lint, generated-contract, migration/recovery, secret and dependency
+gates passed. These results were collected on 12 September without rerunning the
+suite. Frontend passed lint/build and 395 unit and
+accessibility cases in 97 files. Ordinary browser checks had 123 first-attempt
+passes and one WebKit circuit-keyboard case that passed on retry. All four real
+worker learning loops and all four misconception journeys passed first attempt.
+The WebKit failure was a captured console access-control error for a practice
+representation request; it is not established as a failed circuit operation.
+Its retained [failure artifact](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34570781006/artifacts/10188069584)
+supports further diagnosis. Independent inspection found all circuit operations,
+persistence, simulation and Axe assertions passed before the final error-list
+assertion failed. Playwright's WebKit adapter also maps JavaScript-source console
+errors to page errors; the message alone does not establish an unhandled promise
+rejection. Catalog cancellation is plausible but unproven. Preserve the assertion
+and capture sanitized request-failure details if it recurs; no speculative error
+filter or timeout change was made. Successful retries are not reported as
+first-time passes or as proof that the browser issue is fixed.
+
+The clean 50-user campaign on `ad187aa` **failed**. It reached the human-assessment
+boundary for 28/50 measured journeys; 15 had continuation timeouts and seven had
+request timeouts. Journey errors were 44%, separate from 20 HTTP errors across
+5,125 attempts (0.3902%). Ordinary-request p95 was 5.507467 seconds across 299
+observations, failing the two-second target. Conditional progress p95 was
+1.726871 seconds (78 observations); conditional formative feedback p95 was
+18.099249 seconds (28 observations), failing its ten-second target. These API
+measurements do not measure browser rendering. No human-confirmed complete loop
+or actual paid-provider cost was obtained.
+
+Owned processes stopped and the listener closed. Feedback work drained, but nine
+continuation outboxes and one continuation job remained pending; one simulation
+was interrupted. The [capacity receipt](task-38-local-capacity-20260911.md) and
+paired JSON preserve exact counts, hashes and all seven earlier runs.
+
+Three private configuration experiments used the same bounded two-round,
+200-request diagnostic. Each returned 200/200 HTTP successes, which is not the
+full load workload. With the default 40 foreground slots, status/terminal p95
+were 3.812/16.484 seconds. Eight global slots improved terminal p95 to 7.218 but
+worsened status p95 to 6.188 seconds. Limiting only terminal work to eight slots
+produced 4.078/18.562 seconds and was rejected. A private SQLite WAL copy with
+FULL durability produced 4.093/12.797 seconds, but total diagnostic time increased
+from 25.0 to 27.828 seconds. Extra per-connection verification overhead limits
+the WAL comparison; it does not justify a production journal change. The copy's
+backup returned `ok` from SQLite `quick_check`, and the original database retained its
+journal mode. No production concurrency or journal setting changed.
+
+Task 38 still needs engineering to reduce SQLite writer contention and
+continuation delays, followed by a representative clean campaign. Future work
+should retain claim fencing, durable learner evidence and request limits rather
+than weaken them to pass a measurement. Comparable 5–100-user scaling,
+approved-host validation and actual billed human-confirmed loop cost remain
+separate acceptance work. Docker and paid providers were not used in this run.

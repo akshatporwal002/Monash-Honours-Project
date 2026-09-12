@@ -1,32 +1,32 @@
 # LearnLens task progress and remaining work
 
-Updated: **11 September 2026**, after pushed `dff979d`, its failed 50-user campaign and successful frontend CI; backend CI remains running.
+Updated: **12 September 2026**. Pushed runtime source `ad187aa` completed [CI run 34570781006](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34570781006) successfully; backend job `103172217336` completed at `2026-09-11T07:04:20Z`. Task 36 is complete for that source. The failed 50-user campaign and unresolved WebKit reliability remain Tasks 38 and 39.
 
-**29 of 41 numbered implementations are delivered; 12 tasks still need software or acceptance work.** The unchanged count is **29 completed, 11 partial and one remaining**. It does not mean 12 features have not been built. Read each task's **Progress**, **Next action**, acceptance condition and evidence link before starting work.
+**30 of 41 numbered implementations are delivered; 11 tasks still need software or acceptance work.** The count is **30 completed, 10 partial and one remaining**. Unfinished tasks include engineering and acceptance work; they are not eleven missing features. Read each task's **Progress**, **Next action**, acceptance condition and evidence link before starting work.
 
 | Work state | Tasks | Meaning |
 | --- | --- | --- |
-| Completed numbered implementation | 1–7, 9–27, 29–31 | Functionality is delivered. Maintain it; broader load, human and release acceptance stays in the dependent tasks. |
-| Active software/integration work | 36, 38 | Performance fixes, final integration, publication of local changes and combined verification remain. |
-| Human/external acceptance primarily outstanding | 8, 28, 32, 33, 34, 35, 37, 39, 40, 41 | Tooling largely exists; actual approvals, people, content or an approved environment are missing. Task 39 also depends on final CI; Task 33 may need additional disposal implementation after the data plan is approved. |
+| Completed numbered implementation | 1–7, 9–27, 29–31, 36 | Functionality is delivered. Maintain it; broader load, human and release acceptance stays in the dependent tasks. |
+| Active software/reliability work | 38, 39 | SQLite contention/continuation load and unresolved WebKit reliability remain. Delivered fixes are pushed and verified; further changes need affected tests and new CI. |
+| Human/external acceptance primarily outstanding | 8, 28, 32, 33, 34, 35, 37, 40, 41 | Tooling largely exists; actual approvals, people, content or an approved environment are missing. Task 39 also retains manual acceptance alongside its unresolved browser flake; Task 33 may need additional disposal implementation after the data plan is approved. |
 
-Task 30's functional reminder rules and measured candidate-scan repair are delivered; remaining campaign performance is tracked in Task 38. Likewise, Task 22's continuation functionality exists while its load-time queue delay remains unresolved; the reviewed decision-scope repair has eight focused checks and awaits combined load measurement. Completed implementation does not certify performance or release acceptance.
+Task 30's functional reminder rules and measured candidate-scan repair are delivered; remaining campaign performance is tracked in Task 38. Likewise, Task 22's continuation functionality exists while its load-time queue delay remains unresolved; the reviewed decision-scope repair has eight focused checks and is included in the failed `ad187aa` load measurement. Completed implementation does not certify performance or release acceptance.
 
 ## Source and verification snapshot
 
-This is a dated snapshot, not a live Git status. Pushed `dff979d` includes the reviewed reminder candidate filter, task-read validation scope, complete-loop browser fixture corrections and refreshed draft fingerprints. Its clean 50-user campaign failed. Frontend, security and dependency CI jobs passed; backend CI is still running. Subsequent local reviewed feedback-status and continuation-decision optimizations plus import-order cleanup have scoped checks but are not certified by the pushed-source CI. The next full 50-user campaign has not started.
+This is a dated snapshot, not a live Git status. All delivered fixes are pushed in runtime source `ad187aa`, including reminder/task-read scopes, feedback-status and continuation-decision optimizations, browser-fixture corrections, import-order cleanup and refreshed draft fingerprints. Its clean 50-user campaign failed. Frontend, backend, security and dependency CI jobs succeeded. The preceding `dff979d` full CI succeeded with 2,067 backend tests and 90.19% service coverage. Configuration experiments have stopped without application changes; unresolved load behavior remains engineering work.
 
 | Evidence | Source and result | Limit |
 | --- | --- | --- |
-| Last completed backend CI | `5a57b66`: **2,030 passed**, one warning, **90.16% service coverage**; migrations/recovery/reuse included; OpenAPI/generated contracts current. | Historical source. Backend CI for `dff979d` is still running. |
-| Frontend CI | `dff979d`: **SUCCESS**, with **395 unit/accessibility tests**, **124 ordinary browser checks** and **four misconception journeys** passed. | Complete-loop journeys: three passed first attempt; Firefox passed on one retry. The actual Firefox flake remains under diagnosis. |
-| Security/dependencies | `dff979d`: security and dependency jobs passed. | Applies to that source; hosted TLS/scanner efficacy and final release acceptance remain separate. |
-| Local feedback-status optimization | After `dff979d`, non-content status responses return before release-context loading: **49 SELECTs to zero**, identical response; **19 focused release/access checks passed in 41.56 s**. | Local scoped evidence; terminal-content release/access checks remain enforced. No new full campaign has started. |
-| Suppression/exclusion audit | [Audit and accountable maintenance roles](docs/learnlens/lint-suppression-audit-2026-09-11.md) recorded; five E402 suppressions removed by moving imports. | Import cleanup has scoped Ruff verification; final combined source still needs CI. |
+| Completed runtime CI | `ad187aa`: **SUCCESS**, [CI run 34570781006](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34570781006); backend job `103172217336` completed at `2026-09-11T07:04:20Z`: **2,075 passed**, one warning, 1,514.75s (25:14), **90.21% service coverage**. | Certifies configured checks for that runtime source, not the failed load target or manual/host acceptance. |
+| Frontend CI | `ad187aa`: **SUCCESS**, 395 unit tests in 97 files; 123 ordinary browser first-attempt passes plus one WebKit circuit-keyboard retry pass; four complete-loop and four misconception first-attempt passes. | Complete-loop 1.5 min; misconception 39.6 s. Prior Firefox flake did not recur; WebKit retry cause remains unproven, with failure-context artifact `10188069584` retained for targeted diagnostics on recurrence. |
+| Security/dependencies | `ad187aa`: security and dependency jobs succeeded. | Applies to that source; hosted TLS/scanner efficacy and release acceptance remain separate. |
+| Feedback-status optimization | Included in pushed `ad187aa`: non-content status responses return before release-context loading, **49 SELECTs to zero**, identical response; **19 focused release/access checks passed in 41.56 s**. | Terminal-content release/access checks remain enforced; the combined campaign still failed. |
+| Suppression/exclusion audit | [Audit and accountable maintenance roles](docs/learnlens/lint-suppression-audit-2026-09-11.md) recorded; five E402 suppressions removed by moving imports. | Import cleanup is included in the successful `ad187aa` CI; reasons and maintenance roles remain documented. |
 | Local simulation fix | `7dddf9d`: **46 distinct focused checks**, **12/12 numerical scenarios matched**; fresh learner evidence and execution limits preserved. | Historical numerical receipt; identical-input reuse does not prove diverse-input throughput. |
-| Latest 50-user load campaign | Clean `dff979d`: **16/50 awaiting human**, 23 continuation timeouts, 10 request timeouts and one feedback failure; **ordinary p95 5.710 s** with three censored observations. | **Failed**, with 68% journey errors. No human-confirmed completion or actual external billing. |
+| Latest 50-user load campaign | Clean `ad187aa`: **28/50 awaiting human**, 15 continuation timeouts and seven request timeouts; **ordinary p95 5.507467 s**, formative feedback **18.099249 s**, progress **1.726871 s**. | **Failed**, with 44% journey errors. Stage timings are conditional; no human-confirmed completion or actual external billing. |
 
-The earlier [CI run 34558650591](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34558650591) remains a historical overall failure. The newer frontend/security/dependency successes do not establish overall CI success while backend CI is running. [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) and [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md) retain exact source/run scopes, failures and limits. Focused counts overlap and must not be added into a claimed new complete suite.
+The earlier [CI run 34558650591](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34558650591) remains a historical overall failure. The later `dff979d` full CI succeeded. Current `ad187aa` full CI also succeeded; this closes Task 36 execution/reconciliation for that source without closing Tasks 38/39 or release acceptance. [Integration evidence](docs/learnlens/integration-verification-2026-09-11.md) and [capacity evidence](docs/learnlens/task-38-local-capacity-20260911.md) retain exact source/run scopes, failures and limits. Focused counts overlap and must not be added into a claimed new complete suite.
 
 The migration/readiness head is `20260911_0055`. The [current requirement matrix](docs/learnlens/implementation-gap-matrix.md) covers **143 requirements: 97 implemented, 33 partial, 13 unverified**. Requirements and numbered tasks use different denominators. The matrix's delivery register and each task's evidence links describe implemented features; older reports retain historical scope.
 
@@ -34,8 +34,8 @@ The migration/readiness head is `20260911_0055`. The [current requirement matrix
 
 1. **Task 38 — reminder candidate scan implemented and reviewed.** The query now filters by the latest effective overdue deadline and active pause/revocation semantics before authoritative send-time validation. All 27 focused reminder checks passed. The same copied-fixture worker diagnostic improved from 2.422 seconds, 2,922 SELECTs and 25 write/commit pairs to **0.016 seconds, one SELECT and zero writes**. The second round correctly skips the scan during its existing idle interval. Continuations still processed; no worker scheduling or timeout change was needed.
 2. **Task 38 — task-read validation scope implemented and reviewed.** Only pure availability/projection runs inside `validation_read_scope`; it ends before TASK_VIEW recording. Seven focused checks passed, preserving complete output, separate view events, learner authorization and fresh publication/source checks after mutations. A narrow 16-actor/32-request mounted-route diagnostic returned all HTTP 200: dashboard p95 **1.824 seconds**, task GET p95 **0.846 seconds**. This excludes login, simulation and background worker load and does not certify the full campaign.
-3. **Task 38 - resolve the measured remaining failures.** The `dff979d` campaign failed despite the reminder/task-read improvements. The reviewed local feedback-status early return eliminates repeated release-context work for responses that contain no content (49 SELECTs to zero; 19 focused checks passed). A subsequent pure continuation-decision scope passed eight focused checks and reduced two worker rounds from 448/479 to 103/132 SELECTs; writer acquisition delays still need combined measurement. Firefox retry cause remains unproven because earlier CI did not retain browser failure context; the candidate now retains small failed-attempt artifacts. After integration, run one clean 50-user campaign without competing measurements. Keep API timing separate from browser rendering, conditional stage timings separate from journey success, and missing 5-100 scaling/billed cost evidence explicit.
-4. **Tasks 36/39 - finish combined verification.** Collect the running `dff979d` backend result, retain its frontend retry evidence, integrate reviewed local changes and collect final-source gates. The current Task 35 draft manifest is refreshed; historical numerical receipts remain separate. Do not repeat completed broad checks without a source change or unresolved failure. Update this ledger and matrix from actual results and keep private scratch/planning local.
+3. **Task 38 - resolve measured SQLite contention and continuation load.** All reviewed fixes are pushed in `ad187aa`: feedback-status loading fell from 49 SELECTs to zero, and continuation-decision validation from 448/479 to 103/132 SELECTs across two scoped worker rounds. Nevertheless, its clean 50-user campaign had 44% journey errors and missed ordinary/formative-feedback latency targets. Configuration experiments stopped without application changes. Further engineering must address the observed contention/queue delays; more concurrency is not an established fix. Keep API timing separate from browser rendering and conditional stage timings separate from journey success. Approved-host comparable 5-100 scaling and billed complete-loop cost are still missing.
+4. **Task 39 - retain browser reliability evidence.** Task 36 is complete for `ad187aa`. The WebKit retry cause remains unproven: circuit, simulation, persistence and axe assertions passed; the final error collection included a practice-catalog same-origin access-control error. Browser cancellation is plausible, not established. No filter, timeout increase or application fix is justified by that artifact alone. Preserve failure context and collect targeted diagnostics on recurrence. Any actual code repair requires affected tests and new CI.
 
 Approved-host deployment packaging remains unverified. Actual provider spending, study activation and human approvals require their real approved inputs. Task 33's approved data plan may reveal additional record-class disposal work; protected learning/assessment history must remain intact.
 
@@ -117,7 +117,7 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 7. **[Completed] Start the durable worker and check actual readiness.**
 
-    **Progress:** The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. The integrated readiness pin now matches head 0055. Earlier local readiness/recovery receipts retain their dated scope; final combined verification and the approved operational/hosted drill remain Tasks 36/37/41 work.
+    **Progress:** The launcher starts API/frontend/recovery worker, applies migrations and waits for readiness. The integrated readiness pin now matches head 0055. Configured combined readiness/recovery checks passed in Task 36 CI for `ad187aa`; earlier receipts retain their dated scope. The approved operational/hosted drill remains Tasks 37/41 work.
 
     **Next action:** Startup/readiness implementation complete. Worker throughput remediation belongs to Task 38; hosted supervision to Tasks 37 and 41.
 
@@ -169,7 +169,7 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
     **Verified:** 46 distinct focused checks passed across overlapping receipts. All 12 numerical scenarios matched after the simulation change. A cold 12-caller diagnostic improved from four to 12 completions; that is repeated-input evidence, not diverse-input capacity.
 
-    **Next action:** Simulation evidence implementation complete, including the local exact-result reuse fix. Publish/integrate that commit under Task 36; diverse-input load and complete-loop latency remain Task 38 work.
+    **Next action:** Simulation evidence implementation complete, including the pushed local exact-result reuse fix verified in Task 36. Diverse-input load and complete-loop latency remain Task 38 work.
 
     Dependencies: none. Suggested owner: quantum services.
 
@@ -341,7 +341,7 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
     **Verified:** 5a57b66 backend CI passed; the later local complete-loop Firefox check passed in 35.7 seconds with retained evidence, human-result and accessibility assertions.
 
-    **Next action:** Complete-loop functionality verified. Integrate the local browser-fixture correction and verify final combined source under Task 36; 50-user performance remains Task 38.
+    **Next action:** Complete-loop functionality and the pushed browser-fixture correction are verified in completed Task 36 CI; 50-user performance remains Task 38.
 
     Dependencies: Tasks 10, 14, 16, 18, 22, 23, and 24, including their prerequisites. Suggested owner: integrated feature team.
 
@@ -391,7 +391,7 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
     **Progress:** Scoped progress separates observations, support, uncertain estimates, adaptations and released binary results. Numeric learner marks were retired after immutable preservation; known UTC timestamps normalize on reads. Backend and 124-case browser CI passed on 5a57b66, and the later focused misconception journey exercised linked learner/educator progress and correction history.
 
-    **Next action:** Progress/result semantics complete. Final combined verification belongs to Task 36, concurrent latency to Task 38 and human accessibility trials to Task 39.
+    **Next action:** Progress/result semantics complete. Configured combined verification passed in Task 36; concurrent latency remains Task 38 and human accessibility trials remain Task 39.
 
     Dependencies: Tasks 3, 18, 19, 22, 24, 26, and 27. Final legacy removal also needs Task 8, D-10. Suggested owner: LMS, analytics, and frontend.
 
@@ -465,7 +465,7 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
     **Verified:** Current draft manifest digest `aadbfb11b4a22e272a0cb9af606f0f8ad27249ade07aad40f280558b9dd5c619`. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
 
-    **Next action:** Human/expert input: approve at least 100 cases and source bindings, record actual outputs and independent ratings, calculate agreement/fairness/error measures, and sign separate content and AI-assessment release decisions. Software follow-up: refresh changed-source fingerprints during Task 36.
+    **Next action:** Human/expert input: approve at least 100 cases and source bindings, record actual outputs and independent ratings, calculate agreement/fairness/error measures, and sign separate content and AI-assessment release decisions. Maintain source fingerprints when future code changes require new validation evidence; Task 36 CI is complete for `ad187aa`.
 
     Dependencies: Tasks 11, 15, 16, 23, and 25; Task 8, D-07 and D-12. Suggested owner: assessors and evaluation reviewers.
 
@@ -473,13 +473,13 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
     Evidence: [current implementation/delivery](docs/learnlens/task-35-validation-tooling.md); requirement-level gaps and named tests are in the [matrix](docs/learnlens/implementation-gap-matrix.md).
 
-36. **[Partial] Refresh traceability and run the complete automated checks.**
+36. **[Completed] Refresh traceability and run the complete automated checks.**
 
-    **Progress:** All 143 requirements remain mapped: 97 implemented, 33 partial and 13 unverified. Pushed `dff979d` frontend CI succeeded with 395 unit/accessibility tests, 124 browser checks, four misconception journeys and all four complete-loop journeys (Firefox required one retry). Security/dependency jobs passed; backend CI is still running. Local feedback-status and import-order fixes have scoped checks.
+    **Progress:** All 143 requirements remain mapped: 97 implemented, 33 partial and 13 unverified. Pushed runtime `ad187aa` completed the full configured CI successfully in run 34570781006. This closes automated-check execution and traceability reconciliation for that source; Task 38 load failures and Task 39 WebKit reliability remain separate.
 
-    **Verified:** The last completed backend receipt remains `5a57b66`: 2,030 tests, 90.16% service coverage. Current frontend SUCCESS includes an actual Firefox flake under diagnosis. The suppression/exclusion audit records reasons and maintenance roles; five E402 suppressions were removed by import ordering. Overall current-source CI is not yet established.
+    **Verified:** Backend job 103172217336 completed successfully at 2026-09-11T07:04:20Z: 2,075 passed, one warning, 1,514.75s (25:14), 90.21% service coverage. Frontend, security and dependency jobs also succeeded. Preserve source-specific counts, coverage, the browser retry and suppression/exclusion audit in the linked integration receipt. No load, manual accessibility or hosted acceptance is inferred.
 
-    **Next action:** Software/integration: collect running backend CI, resolve the observed browser/load failures, integrate reviewed local changes and collect final-source gates. Preserve historical failures, retry evidence and the separate Task 38 campaign result. Keep private scratch/planning local.
+    **Next action:** Implementation/evidence execution complete for `ad187aa`. Maintain traceability and run affected tests plus new CI for further code repairs. Continue engineering under Tasks 38/39; do not rerun successful checks solely to restate this receipt.
 
     Dependencies: Tasks 1-34 for the final combined run. Run targeted checks with each earlier change. Suggested owner: integration and independent reviewers.
 
@@ -489,9 +489,9 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 37. **[Partial] Prove security, migration safety, restart recovery, and restore completeness.**
 
-    **Progress:** Current-head upgrade/readiness, all-table backup/restore comparison, source-byte preservation and protected-history checks exist and passed within the 5a57b66 backend suite. Recovery covers the integrated course/source, budget, moderation and study schema at head 0055. Synthetic recovery is verified for that source; actual approved-host/provider security and operational drills remain unverified.
+    **Progress:** Current-head upgrade/readiness, all-table backup/restore comparison, source-byte preservation and protected-history checks are included in successful `ad187aa` backend CI. Recovery covers integrated course/source, budget, moderation and study schema at head 0055. Approved-host/provider security and operational drills remain unverified.
 
-    **Verified:** test_task37_integrated_recovery.py upgrades to current head, compares every table and source bytes after restore, and checks readiness/protected histories. These tests are included in the 2,030 passing backend cases.
+    **Verified:** test_task37_integrated_recovery.py upgrades to current head, compares every table and source bytes after restore, and checks readiness/protected histories. The `ad187aa` configured backend suite completed successfully in CI run 34570781006.
 
     **Next action:** External/environment input: perform approved-host/provider security, restart, backup/restore and rollback drills. Current-schema synthetic recovery already passed within backend CI; rerun affected checks only if later changes invalidate that evidence.
 
@@ -503,11 +503,11 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 38. **[Partial] Measure load, provider cost, and runtime configuration changes.**
 
-    **Progress:** Shared budgets, runtime controls and the bounded load harness are implemented. Pushed `dff979d` includes reviewed reminder/task-read and repeated-input simulation fixes, but its clean 50-user campaign failed: 16/50 reached human assessment, 23 continuation timeouts, 10 request timeouts and one feedback failure. Ordinary API p95 was 5.710 seconds with three censored observations. The subsequent local feedback-status early return removed 49 SELECTs while preserving its response; 19 focused release/access checks passed.
+    **Progress:** All delivered budget/runtime and performance fixes are pushed in `ad187aa`. Its clean 50-user campaign still failed: 28/50 reached human assessment, 15 continuation timeouts and seven request timeouts. Ordinary API p95 was 5.507467 seconds and formative feedback p95 18.099249 seconds, both above target. Configuration experiments stopped without application changes; SQLite contention and continuation-load behavior remain actionable engineering work.
 
-    **Verified:** Latest measured journey errors: 68%; HTTP errors: 25/5,336 (0.4685%). Progress p95 1.423 seconds (63 observations) and formative feedback p95 7.369 seconds (16 observations) are conditional on reaching those stages. Feedback work drained and owned processes/listener stopped; continuation work remained incomplete. Actual external cost is null; no human-confirmed loop completed.
+    **Verified:** Latest measured journey errors: 44%; HTTP errors: 20/5,125 (0.3902%). Ordinary requests had 299 observations and no recorded errors/censoring; progress p95 1.726871 seconds (78 observations) and formative feedback p95 18.099249 seconds (28 observations) are conditional on reaching those stages. Feedback drained and owned processes/listener stopped; continuation work remained incomplete. Actual external cost is null and no human-confirmed loop completed.
 
-    **Next action:** Software: finish bounded SQLite/continuation diagnosis, integrate reviewed fixes and run the next clean 50-user campaign, which has not started. API timings do not measure browser rendering. Comparable 5-100 scaling, approved hosted conditions and actual billed human-confirmed complete-loop cost remain separate requirements.
+    **Next action:** Engineering: address the observed SQLite contention and continuation load using the retained failure evidence, then verify any actual repair. Configuration experiments have stopped without application changes. API timings do not measure browser rendering; approved-host comparable 5-100 scaling and billed human-confirmed complete-loop cost remain separate missing evidence.
 
     Dependencies: Tasks 25, 35, 36, and 37; Task 8, D-12. Suggested owner: platform and operations.
 
@@ -517,11 +517,11 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 39. **[Partial] Complete browser, accessibility, and first-time usability checks.**
 
-    **Progress:** Pushed `dff979d` frontend CI succeeded: 395 unit/accessibility tests, 124 ordinary browser checks and four misconception journeys passed. Three complete-loop browsers passed first attempt; Firefox passed on one retry. The real Firefox flake remains under diagnosis; successful retries are retained as such.
+    **Progress:** Current `ad187aa` frontend CI succeeded: 395 unit tests in 97 files, 123 ordinary browser first-attempt passes and one WebKit circuit-keyboard pass on retry. All four complete-loop journeys passed first attempt in 1.5 minutes; all four misconception journeys passed first attempt in 39.6 seconds. The previous Firefox flake did not recur.
 
-    **Verified:** All configured frontend stages completed for `dff979d`. This is automated Chrome/Edge/Firefox/WebKit evidence, not native Safari, screen-reader/manual WCAG or first-time usability acceptance. Later source changes still require applicable final-source checks.
+    **Verified:** WebKit failure-context artifact 10188069584 is retained. Circuit, simulation, persistence and axe assertions passed; final errors included a practice-catalog same-origin access-control error. Browser cancellation is plausible but unproven. Automated success and retry do not establish native Safari, named screen-reader/manual WCAG or first-time usability acceptance.
 
-    **Next action:** Integration: diagnose the observed Firefox complete-loop flake and retain retry/failure evidence in final CI. Human input: native Safari, named screen-reader/zoom/contrast observations and first-time educator/learner usability trials.
+    **Next action:** Engineering/reliability: retain the unresolved WebKit failure context and collect focused diagnostics on recurrence; current evidence does not justify an error filter, timeout increase or speculative application fix. Human input remains native Safari, named screen-reader/zoom/contrast observations and first-time educator/learner trials.
 
     Dependencies: Tasks 24-31 and 36; Task 8, D-12. Suggested owner: accessibility reviewers and product testing.
 
