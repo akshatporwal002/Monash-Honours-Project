@@ -3,6 +3,7 @@ from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
+from support.feedback_view_events import FeedbackViewEventsAdapter
 
 from app.api.analytics_dependencies import get_analytics_pseudonymizer
 from app.api.audit_dependencies import get_student_audit_tracker
@@ -12,7 +13,7 @@ from app.api.feedback_dependencies import (
     get_feedback_application,
     get_feedback_executor,
 )
-from app.api.learning_event_dependencies import get_feedback_view_tracker
+from app.api.learning_event_dependencies import get_feedback_view_events
 from app.main import app
 from app.models import (
     FeedbackReportCategory,
@@ -290,7 +291,9 @@ def test_terminal_api_exposes_only_student_safe_validated_fields() -> None:
     configure(FakeApplication(validated_claim()))
     tracker = RecordingFeedbackViewTracker()
     audit_tracker = RecordingStudentAuditTracker()
-    app.dependency_overrides[get_feedback_view_tracker] = lambda: tracker
+    app.dependency_overrides[get_feedback_view_events] = lambda: FeedbackViewEventsAdapter(
+        tracker, audit_tracker
+    )
     app.dependency_overrides[get_student_audit_tracker] = lambda: audit_tracker
 
     response = TestClient(app).get("/api/v1/submissions/submission-1/feedback")

@@ -122,6 +122,7 @@ class TerminalIntegrationWorker:
                 completed_at=self._now(),
             )
         except Exception:
+            self._session.rollback()
             # The target commit may already be durable. The expired outbox claim
             # will replay idempotently without duplicating either integration.
             return TerminalIntegrationWorkerOutcome(
@@ -175,7 +176,11 @@ class TerminalIntegrationWorker:
                 completed_task_reference=intent.completed_task_reference,
                 correlation_id=claim.correlation_id,
             )
-            SqlAlchemyContinuationRepository(self._session).ensure_pending(notice)
+            # This target lives in the same database: publish it together with
+            # the fenced outbox acknowledgement, avoiding a second writer turn.
+            SqlAlchemyContinuationRepository(self._session, caller_transaction=True).ensure_pending(
+                notice
+            )
         except TerminalIntegrationPayloadError:
             raise
         except (KeyError, TypeError, ValueError):
@@ -431,6 +436,9 @@ class TerminalIntegrationWorker:
         *,
         retryable: bool,
     ) -> TerminalIntegrationWorkerOutcome:
+        # An adapter can fail after flushing its local target. Recording a retry
+        # must not commit those unfinished effects along with the failure state.
+        self._session.rollback()
         failed_at = self._now()
         next_retry_at = (
             failed_at + timedelta(seconds=min(30, 2**claim.processing_attempts))

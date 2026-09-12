@@ -16,7 +16,7 @@ from app.api.feedback_dependencies import (
     get_feedback_executor,
     require_actor,
 )
-from app.api.learning_event_dependencies import get_feedback_view_tracker
+from app.api.learning_event_dependencies import get_feedback_view_events
 from app.api.routes.lms import Lms
 from app.api.security_dependencies import (
     RequestSecurityGuard,
@@ -39,7 +39,7 @@ from app.services.feedback.application import (
 )
 from app.services.feedback.contracts import FeedbackReportWrite
 from app.services.feedback.errors import FeedbackReportConflictError
-from app.services.learning_events import FeedbackViewTracker
+from app.services.feedback_view_events import FeedbackViewEvents
 
 router = APIRouter()
 SubmissionPathId = Annotated[
@@ -130,10 +130,7 @@ async def get_feedback(
     actor: AuthenticatedActor = Depends(require_actor),
     policy: FeedbackAccessPolicy = Depends(get_feedback_access_policy),
     application: FeedbackWorkflowApplication = Depends(get_feedback_application),
-    tracker: FeedbackViewTracker = Depends(get_feedback_view_tracker),
-    audit_tracker: StudentAuditTracker | NullStudentAuditTracker = Depends(
-        get_student_audit_tracker
-    ),
+    view_events: FeedbackViewEvents = Depends(get_feedback_view_events),
     security: RequestSecurityGuard = Depends(get_request_security_guard),
 ) -> FeedbackWorkflowResponse:
     correlation_id = _set_common_headers(request, response)
@@ -159,20 +156,15 @@ async def get_feedback(
             and claim.course_id is not None
             and claim.task_id is not None
         ):
-            tracker.record_terminal_view(
+            view_events.record(
                 actor_reference=actor.actor_reference,
                 course_id=claim.course_id,
                 task_id=claim.task_id,
                 workflow_run_id=claim.workflow_run_id,
                 correlation_id=correlation_id,
                 feedback_status=view.status.value,
+                feedback_id=view.feedback.feedback_id if view.feedback is not None else None,
             )
-            if view.feedback is not None:
-                audit_tracker.record_feedback_view(
-                    actor_reference=actor.actor_reference,
-                    feedback_id=view.feedback.feedback_id,
-                    correlation_id=correlation_id,
-                )
         return view
 
     return await run_session_work(lambda: asyncio.run(perform()))

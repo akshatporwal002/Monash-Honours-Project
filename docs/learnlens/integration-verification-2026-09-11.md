@@ -1,5 +1,7 @@
 # Integration verification — 11 September 2026
 
+Updated with additional verification on 12 September 2026.
+
 **Current runtime source: `2b9c95140d35fa0bea9575f1044a1f67d65f1323`, pushed to
 main.** The newest combined-source and capacity results are recorded at the end
 of this receipt. Earlier sections retain their original source and execution
@@ -627,3 +629,148 @@ not full-load proof. No production gate was introduced; all owned workers stoppe
 Configuration experiments are finished. Further Task 38 work needs transaction
 and continuation-queue design changes backed by representative evidence; neither
 WAL nor a process-local admission gate is an established remedy.
+
+## Installed package and teammate handoff verification — 12 September
+
+A noneditable wheel built from the local `dbdec4b` working tree passed an
+isolated import and entry-point smoke check. The source was dirty; this is a
+candidate artifact receipt, not a clean-source full-suite result. The probe
+loaded 324 application modules from the installed package, both worker and
+administrator-provisioning entry points, 60 copied migration revisions through
+head `20260911_0055`, and the copied backup command's help path. Removing
+`app.worker` from a separate installed copy failed as expected, proving that
+the checkout's editable installation cannot hide a missing packaged module.
+The wheel SHA-256 is
+`2e96c0a0b16deceb06b40a8b42522f391e797cf15956f5cf39000e7b98bbbf72`.
+
+The reusable check is `src-main/scripts/verify_installed_package.py`. CI now
+prepares its own production-only, noneditable dependency environment with the
+release installation flags before running the probe. Local smoke dependencies
+came from the existing locked all-extras environment; the production-only CI
+step needs its own completed CI receipt. This does not execute a container,
+create an administrator, activate research, exercise an approved scanner or
+establish hosted deployment acceptance.
+
+Four existing teammate guides now describe the implemented operator and learner
+flows: `src-main/README.md`, `src-main/docs/architecture.md`,
+`src-main/docs/task-type-extension.md`, and
+`src-main/docs/research-export-schema.md`. They distinguish local structural
+receipts from semantic approval, current export contracts from historical ones,
+and the implemented conditional reuse example from staged standalone task
+forms. Source paths, links and actual UI labels were checked. The guides and
+package checker passed independent source review. No actual approval or named
+operator record was supplied by this documentation work.
+
+## Checkpoint, transfer and browser repairs — local candidate
+
+Checkpoint capture previously called a draft save that committed before locking
+again to preserve the checkpoint. An independent request could replace that
+draft in between, causing the first request to freeze the second request's
+input. A late checkpoint/evidence failure also left the draft changed. The
+adjacent transfer-start path had the same split-transaction issue. Draft
+validation, checkpoint/evidence capture and transfer-stage creation now use the
+same existing sequence lock and final transaction. Access checks, immutable
+history and required response validation remain intact.
+
+Three checkpoint regressions failed before the fix. The corrected checkpoint
+and surrounding lifecycle/evidence checks passed 65 cases in 97.01 seconds.
+Two transfer regressions then failed before the analogous repair; the final
+checkpoint/transfer/lifecycle selection passed 39 cases in 52.38 seconds. These
+selections overlap. Independent source review found no blocker. A separate
+25-caller start/checkpoint diagnostic returned 50/50 successes in both arms and
+reduced commits from 75 to 50, but total time increased from 4.609 to 5.734
+seconds. This establishes a correctness repair, not a throughput improvement.
+
+The WebKit investigation reproduced the exact learner-preferences access-control
+message by delaying the application's initial preference fetch until document
+exit. Before the fix, the fetch started with an unaborted signal after
+`pagehide`; WebKit reported the transport message and the fetch rejected with
+`TypeError: Load failed`. The component now aborts that read on document exit,
+skips queued work after cancellation, and retries an interrupted initial load
+when a cached page resumes. Already-loaded unsaved choices are preserved.
+
+Three of four new lifecycle regressions failed before the repair. The final
+preference selection passed nine unit cases in 5.49 seconds, plus TypeScript,
+scoped lint and the production build. Seven distinct focused WebKit cases
+passed across a six-pass verification run and one targeted positive-control
+rerun: the latter corrected only an expected error-message prefix in the new
+observer test. The original public learning loop passed in 24.9 seconds. In the
+repaired controlled boundary, abort precedes fetch start, rejection is an
+`AbortError`, and no page error, window error or unhandled rejection occurs.
+
+Permanent passive diagnostics preserve document/error/request context as
+bounded, redacted JSON. Genuine throw, rejected-promise and caught-network
+controls are retained. The original page-error and accessibility assertions,
+timeouts and retry limits are unchanged. The old CI artifact lacks a request
+timeline, so the controlled reproduction does not prove the original CI timing.
+Combined Linux/browser CI is still required for this candidate; local WebKit
+does not establish native Safari, assistive-technology or first-time-user
+acceptance. Independent review found no source blocker.
+
+## Continuation and feedback-view transaction work — local candidate
+
+Model hydration now loads linked estimate/evidence identities with a joined
+read, reducing the current/timeline path from five SELECTs to three while
+preserving scope, corruption, metadata and predecessor checks. Local
+continuation creation shares its transaction with outbox acknowledgement, and
+progress recording shares its existing lease/claim fence with the durable
+progress marker. Rollback and replacement-claim cases are retained. Focused
+verification passed selections of 17, 101 and 32 cases; these overlap and are
+not added into a full-suite count. Independent review found no blocker.
+
+The first combined continuation diagnostic was slower than its immediately
+following baseline (21.047 versus 12.703 seconds). A subsequent frozen-module
+baseline/candidate/candidate/baseline block measured 11.485, 9.140, 12.390 and
+12.250 seconds, with 200/200 HTTP successes in each arm. Timings overlap; no
+statistically established gain or consistent gross slowdown is inferred.
+The first baseline completed one fewer recommendation: its other job retained
+progress and scheduled a retry for `next_task_recommender_unavailable`. The
+other arms completed both recommendations. Unequal worker outcomes prevent
+treating the four durations as equivalent-work throughput proof.
+
+The dominant remaining narrow-workload write cost came from separate first-view
+learning and audit records. The candidate preserves both records in one fresh
+telemetry session, independent of the student request. Existing typed mappings,
+pseudonymization, strict correlation/replay checks and best-effort behavior are
+retained. A physical SQLite transaction precedes per-record savepoints. A
+failed preflight read rolls back before the partner is checked, preserving
+recovery from an invalidated connection. No access/release check or recorded
+event is suppressed.
+
+The frozen feedback-view pair returned 200/200 successful requests in both
+arms, with equal retained table counts and successful integrity checks. Total
+time fell from 10.203 to 9.078 seconds and commits from 115 to 65. This is a
+single narrow diagnostic with two worker rounds, separate API/worker engines,
+unchanged timeouts and no external provider. It does not establish the complete
+50-user journey, hosted scaling or billed cost. After that pair, only the cold
+connection-failure path was extended: if a lost database connection aborts the
+batch, each unsettled prepared record gets at most one independent recovery
+attempt, using its original identifiers and replay rules. Known conflicts are
+not retried. Newly inserted but uncommitted records remain eligible for recovery.
+
+The combined repository/API/transaction-fault selection passed 55 cases;
+subsequent focused selections passed 17 and 15 cases for fixture compatibility
+and preflight recovery. The write-disconnect regression failed before its fix;
+the corrected recorder selection passed 17 cases in 12.06 seconds, followed by
+six bounded-disconnect/conflict/outer-rollback checks in 2.60 seconds. These
+selections overlap. Independent review cleared the final recovery bookkeeping.
+The normal-path timing pair was not rerun for the cold-failure-only change.
+Final integrated verification remains to be recorded for the final source.
+
+Task start now uses the existing operation-local validation scope, with its
+sequence lock and operation order unchanged. The real regression reproduced
+three identical revision/review lookups before writes and two after the course
+update. Reuse reduces each unchanged phase to one lookup; required draft-flush
+and course-write invalidation remain. The new checks and surrounding work-start,
+dashboard-read and submission-concurrency checks passed 28 cases in 28.70
+seconds, including source revocation across requests and after a draft flush.
+Independent review is clear. No additional cohort latency result is claimed
+for this final read-work change.
+
+The draft validation manifest now includes the four model/continuation/handoff
+repository dependencies changed in this batch: 126 required paths and 127 total
+entries. Digest: `f88aa8436570434cbcf1464f9a3b0c1e37714d34ec21d4c339ecf335ad7601b3`.
+The 44 existing validation-tool checks pass. All 108 cases remain drafts, with
+zero approved cases or included rating pairs, quality UNVERIFIED and AI release
+PENDING. Historical numerical evidence keeps its original source and digest;
+it was not rerun or rebound to this candidate. The 143-row matrix is valid.

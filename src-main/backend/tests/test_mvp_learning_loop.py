@@ -19,7 +19,7 @@ from app.api.audit_dependencies import (
     get_student_audit_tracker,
 )
 from app.api.feedback_dependencies import get_feedback_executor
-from app.api.learning_event_dependencies import get_feedback_view_tracker
+from app.api.learning_event_dependencies import get_feedback_view_events
 from app.api.routes.lms import get_lms_material_storage
 from app.core.config import settings
 from app.db.base import Base
@@ -52,7 +52,7 @@ from app.schemas.audit import AuditEventCommand
 from app.services.audit_events import FeedbackAuditEvents, NullStudentAuditTracker
 from app.services.feedback.application import InProcessFeedbackExecutor
 from app.services.feedback.runtime import build_feedback_pipeline_for_repository
-from app.services.learning_events import NoOpFeedbackViewTracker
+from app.services.feedback_view_events import NoOpFeedbackViewEvents
 from app.services.lms import DEMO_PASSWORD, bootstrap_demo
 from app.services.rag.storage import LocalFileStorage
 
@@ -126,7 +126,7 @@ def mvp_context(
         audit_events=audit_events,
     )
     app.dependency_overrides[get_lms_material_storage] = lambda: material_storage
-    app.dependency_overrides[get_feedback_view_tracker] = NoOpFeedbackViewTracker
+    app.dependency_overrides[get_feedback_view_events] = NoOpFeedbackViewEvents
     app.dependency_overrides[get_student_audit_tracker] = NullStudentAuditTracker
 
     try:

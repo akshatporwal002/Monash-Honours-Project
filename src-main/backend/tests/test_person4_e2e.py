@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
+from support.feedback_view_events import FeedbackViewEventsAdapter
 from support.person4 import (
     BaselineContextProvider,
     DeterministicBaselineGenerator,
@@ -48,7 +49,7 @@ from app.api.feedback_dependencies import (
     get_feedback_executor,
 )
 from app.api.learning_event_dependencies import (
-    get_feedback_view_tracker,
+    get_feedback_view_events,
     get_learning_event_access_policy,
     get_learning_event_recorder,
 )
@@ -402,7 +403,9 @@ def e2e_harness(tmp_path: Path) -> Generator[E2EHarness, None, None]:
     app.dependency_overrides[get_feedback_executor] = lambda: executor
     app.dependency_overrides[get_learning_event_access_policy] = LearningPolicy
     app.dependency_overrides[get_learning_event_recorder] = lambda: learning_recorder
-    app.dependency_overrides[get_feedback_view_tracker] = lambda: feedback_view_tracker
+    app.dependency_overrides[get_feedback_view_events] = lambda: FeedbackViewEventsAdapter(
+        feedback_view_tracker, student_audit
+    )
     app.dependency_overrides[get_student_audit_tracker] = lambda: student_audit
     app.dependency_overrides[get_analytics_access_policy] = AnalyticsPolicy
     app.dependency_overrides[get_analytics_application] = analytics_application_dependency

@@ -56,5 +56,21 @@ def get_feedback_view_tracker() -> FeedbackViewTracker:
     return BestEffortFeedbackViewTracker(hooks)
 
 
+def get_feedback_view_events():
+    from app.services.feedback_view_events import (
+        IndependentFeedbackViewEvents,
+        NoOpFeedbackViewEvents,
+    )
+
+    configured_secret = settings.learning_event_pseudonym_secret
+    if configured_secret is None:
+        return NoOpFeedbackViewEvents()
+    try:
+        pseudonymizer = HmacSha256Pseudonymizer(configured_secret.get_secret_value())
+    except InvalidPseudonymizationSecretError:
+        return NoOpFeedbackViewEvents()
+    return IndependentFeedbackViewEvents(SessionLocal, pseudonymizer)
+
+
 def _unavailable(code: str, message: str) -> NoReturn:
     raise FeedbackApiException(503, code, message)

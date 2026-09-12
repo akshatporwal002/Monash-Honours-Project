@@ -14,8 +14,9 @@ accounts, courses, and runtime settings.
   - educators get a dashboard, four-step course editor, student monitoring, bulk reminders, and
     analytics;
   - administrators manage users, courses, and system settings.
-- Six task types: multiple choice, multiple answer, short answer, code explanation, code
-  completion, and quantum circuit.
+- Choice, short-answer, code and circuit tasks, matching/sequencing, and typed prediction,
+  reasoning, explanation, revision, reflection and fresh-transfer episodes. Five standalone
+  PD4 forms remain [staged extensions](docs/task-type-extension.md#runtime-types-and-permitted-staging).
 - Qiskit Aer circuit simulation, immutable submission attempts, grounded feedback generation,
   quality judging, one regeneration, and a safe fallback.
 - Persistent SQLite models for the LMS, learning events, audit records, feedback workflows, and
@@ -81,6 +82,81 @@ accounts:
 
 There is no read endpoint that implicitly seeds demo data.
 
+## Assessor setup and confirmation
+
+Use an actual teaching account and approved course content. Demo records and generated drafts do
+not supply course authority, educational validity or a study/AI release decision.
+
+1. The course lead opens **Approve assessor eligibility**, selects the **Teaching account**, gives
+   an **Access change reason** and selects **Approve teaching eligibility**. An administrator then
+   opens **Manage assessor grants** for that course and selects **Grant assessor access**. These
+   are separate records; eligibility alone is not a grant. Expiry, withdrawal or revocation removes
+   access. The granted educator can use **Assessment setup** and **Assessment review** in navigation.
+2. In the course editor, approve the actual source revision and inspect **Review saved tasks**.
+   Select **Task to review**, inspect the prompt, private expected answer, source passages and
+   support/transfer content. Save edits with **Save task revision** before reviewing. Complete
+   **Generated content quality review** when required: all ten dimensions need explicit findings,
+   reasons and the available evidence. Unverified/unmet dimensions block approval; structural
+   validity is not factual accuracy. Give a **Review reason** and select **Approve task** (or
+   **Request changes**). A later content change requires a new review.
+3. Open **Assessment setup**. Select the assigned course, outcome and reviewed task, then supply
+   the claim, Bloom process/knowledge dimension, evidence criteria and evaluator method. Use human
+   judgement for reasoning; circuit rules establish only their explicitly approved properties.
+   Select **Save assessment draft**. Complete the feedback/adaptation plan in the definition editor
+   before approval; a generated assessment proposal opens the same saved-definition workflow.
+4. Use **Edit an existing definition** and **Load definition** to reopen a saved definition.
+   Inspect **Criteria and pass rule**, each stable criterion key, anchors/critical errors, evidence
+   sources, task forms and tool/support/access conditions. Keep pass-rule keys aligned when changing
+   criteria. **Save new draft version** preserves previous versions; a published version first needs
+   **Create draft from this version**. Review the exact saved version, enter **Version approval
+   reason**, tick the review acknowledgement and select **Approve saved version**. This is separate
+   from teaching-task and course/pathway publication. Reload after a stale-version conflict; do
+   not treat local edits as approved.
+5. In **Assessment review**, select **Assigned course**. Under **Unresolved assessment attempts**,
+   inspect the learner's frozen response, evidence, standard versions and anchors. Record each
+   criterion decision and the required reason/evidence. **Apply frozen pass rule and confirm
+   result** records the human decision when the server permits it. Existing review records expose
+   **Confirm result**, **Override result**, **Void result**, **Withhold result** and **Return for
+   review** subject to state and authority; consequential actions require a reason.
+6. When sampling is configured, use **Assessment moderation** for selected attempts. Independent
+   second/third reviews or correction resolution must finish before confirmation; reviewers must
+   not replace the frozen standard or treat an AI suggestion as confirmation. No activated sampling
+   policy leaves ordinary human confirmation available without claiming moderated acceptance.
+   Reassessment uses **Authorise reassessment** with an approved fresh equivalent form, a private
+   reason and a learner notice; earlier attempts and decisions remain intact.
+
+Private expected answers/anchors belong in authorised authoring and review screens, not learner
+content. See [definition editing](../docs/learnlens/assessor-definition-editor.md),
+[approval alignment](../docs/learnlens/approval-alignment-contract.md) and
+[moderation](../docs/learnlens/live-assessment-moderation.md). Any advisory AI activation requires
+its separate validated release; none of these setup steps waive that gate.
+
+## Learner results and requests for review
+
+1. Open an available task from your course/pathway. For assessed work, select **Start assessed
+   task** before editing: the application freezes the reviewed form and conditions. A locked task
+   needs its prerequisite or educator action; refreshing cannot approve it.
+2. Use **Save draft** while working and **Submit activity** when ready. Follow the task's required
+   prediction, reasoning, simulation, revision/reflection and fresh-application stages. Approved
+   conceptual help is available in supported work; fresh transfer withholds instructional help
+   while retaining approved access arrangements. Submission preserves the original attempt.
+3. Open the saved response in attempt history and read **Assessment result and review**. Use
+   **Refresh result** to check progress. Before human release, the app shows workflow status and
+   hides the provisional verdict. Feedback quality, points and activity completion are not a formal
+   PASS. A released result is **PASS** or **INCOMPLETE**, with its outcome, Bloom target, criterion
+   evidence, reason and next action; Bloom is not a numeric score.
+4. Read **Evidence still needed** or **Evidence needs review** and follow the displayed next action.
+   Technical faults do not establish that the learning criterion was missed. An authorised fresh
+   reassessment is a new attempt under the approved rule; it does not erase the earlier response.
+5. Where available, fill in **What would you like your assessor to review?** and select **Request
+   assessor review**. A pending request appears as **Review requested** and prevents a duplicate
+   open request. Return to see **Review resolved**, the **Assessor response**, and **Decision history**.
+   Requesting review does not change the result automatically.
+
+These procedures describe implemented controls. Actual assessor staffing, native assistive-technology
+validation, approved content, load acceptance and hosted release evidence remain separate; see the
+[current task ledger](../LearnLens_Remaining_Tasks.md).
+
 ## AI and material configuration
 
 The runnable local MVP is offline-first. If an external model and credentials are not configured,
@@ -92,9 +168,10 @@ Never put provider credentials in a `VITE_*` variable.
 
 Educators can upload PDF, DOCX, and PPTX files, or fetch those formats from a public HTTPS link,
 up to the configured 20 MB limit. Sources are stored locally, extracted, heading-aware chunked,
-and indexed with the offline lexical index used by the MVP. Access to material content remains
-authenticated and course-scoped. This runtime path needs no model download or separate vector
-server.
+and retrieved by the default offline `local_vector` backend. Its deterministic word-hash vectors
+need no model download or separate vector server; optional `lexical` retrieval retains the same
+course/source approval and scan gates. Stored material and historical passages remain scoped.
+Generation and extraction do not themselves approve a source or teaching task.
 
 ## Background worker
 

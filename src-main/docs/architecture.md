@@ -17,7 +17,7 @@ role-specific views are mounted in the shared application shell:
 | Role | Mounted views |
 | --- | --- |
 | Student | Dashboard, module pathway, progress and gamification, recommendations and reminders, interactive task view |
-| Educator | Engagement dashboard, four-step course editor, student table and bulk reminders, cohort analytics |
+| Educator | Engagement dashboard, course editor, student monitoring, cohort analytics; Assessment setup and Assessment review with a current course assessor grant |
 | Administrator | Platform overview, user management, course management, system settings |
 
 `src/app/api.ts` is the application-facing HTTP boundary. It sends credentials, copies the
@@ -51,12 +51,17 @@ current canonical schema includes:
 - users and student profiles;
 - courses, modules, enrolments, and weekly/topic learning outcomes;
 - learning materials and extracted material chunks;
-- learning tasks, prerequisite edges, and the six requirement-named task types;
+- immutable teaching-task/source revisions and approvals, prerequisite edges, typed tasks and
+  frozen assessment work starts;
 - drafts, immutable numbered submission attempts, progress summaries, recommendations, reminders,
   points, levels, and achievements;
 - feedback workflow attempts and judge evaluations;
 - pseudonymous learning events, research measurements, exports, and append-only audit events;
-- terminal integration, continuation, and singleton worker lease records.
+- terminal integration, continuation, and singleton worker lease records;
+- versioned assessment definitions, criterion decisions, human confirmation, moderation and
+  correction histories;
+- evidence-linked learner-model snapshots, preferences, study consent/grants, instruments,
+  operational snapshots and disposal receipts.
 
 Course and task relationships use database constraints. Accepted submission attempts are
 append-only: a resubmission creates the next attempt rather than modifying earlier evidence.
@@ -71,8 +76,10 @@ uv run --frozen alembic upgrade head
 
 Authentication uses Argon2id password hashes and signed, expiring session cookies. Server-side
 dependencies enforce student, educator, and administrator roles. Service checks further restrict
-students to their own enrolments and educators to courses they own; administrator operations use a
-separate guard.
+students to their own enrolments and educators to their authorised courses; administrator operations
+use a separate guard. Teaching eligibility and a separate administrator-issued course assessor grant control
+formal assessment access. Owning a course or having an administrator account does not itself supply
+that assessor authority.
 
 Mutating browser requests carry the CSRF token issued at login. Explicit CORS origins, bounded
 request bodies, correlation IDs, security headers, route-template logging, and structured-value
@@ -80,26 +87,37 @@ redaction are applied centrally. Login/logout and LMS changes write correlated a
 Production configuration requires unique session and pseudonym secrets and secure cookies.
 
 Material links must use HTTPS. Uploaded or linked content is returned only after the same
-course-access check; uploaded files use safe attachment and content-type headers.
+course-access check and applicable clean-scan/current-material gates; uploaded files use safe
+attachment and content-type headers. Historic frozen source passages retain their scoped history.
 
 ## Canonical learning loop
 
-1. An educator creates a course, modules, and weekly or topic outcomes.
-2. The educator uploads PDF, DOCX, or PPTX material or registers an HTTPS resource.
-3. Uploaded text is extracted, normalized, heading-aware chunked, and persisted in the offline
-   lexical index.
-4. The educator generates three to six scaffolded tasks tied to an outcome and source references,
-   then publishes the course and enrols students.
-5. The student follows prerequisite ordering, saves a draft, optionally runs a circuit, and
-   submits an answer.
-6. The submission becomes an immutable attempt. Feedback is generated, judged, regenerated once
-   when required, and otherwise replaced by the fixed safe fallback.
-7. Progress, points, achievements, learning events, reminders, and a persisted next-task
-   recommendation update the role dashboards and analytics.
+1. An educator creates course outcomes and supplies authorised material. Intake records quarantine,
+   scanning, extraction and immutable source revisions; a source approval is an explicit action.
+2. Generated tasks and representations are saved as drafts bound to their source passages. The
+   educator reviews the exact saved revision, including required content-quality dimensions, before
+   teaching-task approval. Saving or generating does not publish a reviewed task.
+3. A course-authorised assessor defines the claim, Bloom target, criteria, pass rule, task forms,
+   tools, support/access conditions, feedback and adaptation plan. Assessment-definition approval
+   is separate from teaching-task approval. Course/pathway publication retains its own gates.
+4. The learner opens an available task. **Start assessed task** freezes the reviewed version and
+   conditions before assessed work; ordinary practice does not acquire a formal result merely
+   because it uses the same content type.
+5. Drafts, predictions, simulation evidence, supported revisions/reflection and fresh application
+   are recorded through typed interfaces. Transfer suppresses instructional help while preserving
+   the approved access conditions. A submitted response is an immutable attempt.
+6. Feedback passes its own quality gate or produces a safe fallback. It does not confirm an
+   assessment result. Durable continuation records evidence-linked model updates and suggestions.
+7. Authorised assessors inspect frozen evidence, record criterion decisions and apply the frozen
+   pass rule. Configured independent moderation gates selected attempts. Only released human
+   decisions expose PASS or INCOMPLETE; pending verdicts remain hidden.
+8. Learners can inspect the result, missing evidence, next action and review history, and request
+   assessor review where permitted. Corrections and fresh reassessment preserve earlier evidence.
 
-The supported task types are `multiple_choice`, `multiple_answer`, `short_answer`,
-`code_explanation`, `code_completion`, and `quantum_circuit`. Legacy enum values remain readable
-only for early database rows.
+Runtime types include single/multiple choice, short answer, code explanation/completion, quantum
+circuit, matching/sequencing, and typed prediction/reasoning/explanation/revision/reflection/transfer
+episodes. Five standalone PD4 types remain documented extensions, not delivered runtime types; see
+[task-type contracts](task-type-extension.md). Legacy quiz/code/circuit aliases remain readable.
 
 ## AI, retrieval, and simulation
 
@@ -114,9 +132,14 @@ structured responses and stores provider/model, latency, usage, and estimated co
 exposing them to students.
 
 Grounding uses authorized course chunks and source references. The feedback pipeline combines task
-context, retrieved material, and any circuit simulation result; the judge records correctness,
-relevance, grounding, actionability, safety, and its pass/fail reason. Rejected output is retained
-as internal evidence but is never released as validated feedback.
+context, retrieved material, and any circuit simulation result; the judge retains quality findings
+and their reasons/evidence. Externally generated feedback requires a current version-bound
+category-quality receipt across all ten required dimensions. Exact local templates and frozen
+approved assessment selections use separately bound structural or inherited-content receipts;
+those receipts do not claim a fresh semantic quality review.
+Historical compatible receipts retain their own versioned rules. Quality approval/rejection is
+separate from PASS/INCOMPLETE assessment decisions. Rejected content is never released as validated
+feedback; deterministic structure checks do not establish factual or educational validity.
 
 Quantum-circuit requests are validated and executed by Qiskit Aer using the supported introductory
 H, X, and CX gates, bounded qubit/shot counts, and seeded simulation. Invalid circuits become
@@ -131,9 +154,13 @@ heading-aware chunker persists `MaterialChunk` records marked with `local-lexica
 extraction leaves the material record in a visible failed state instead of losing the educator's
 upload.
 
-The deterministic, course-scoped lexical retriever is the runtime generation and feedback path.
-It keeps the MVP offline-capable and avoids a separate model download or vector server. Generic
-embedding and vector-store contracts remain independently tested extension boundaries.
+The default `RAG_RETRIEVAL_BACKEND=local_vector` uses deterministic 2,048-dimensional signed
+word-frequency vectors and a disposable SQLite vector cache. It needs no model download or external
+vector server and makes no trained semantic-quality claim. Candidate text and scope come from the
+main database; current source approval, revision, retirement and scan gates remain authoritative.
+The optional `lexical` adapter retains the same access and safety gates. Chunk extraction metadata
+such as `local-lexical-v1` does not select the runtime retrieval backend. See the
+[local vector delivery](../../docs/learnlens/local-vector-retrieval.md).
 
 ## Feedback durability and database worker
 
@@ -148,7 +175,6 @@ durable singleton lease prevents two workers from processing the queues concurre
 
 ```powershell
 cd backend
-$env:WORKER_ADAPTER_FACTORY="team_integration.worker:create_worker_adapters"
 uv run --frozen quantumlearn-worker
 ```
 
@@ -164,7 +190,15 @@ Research export is typed, bounded, pseudonymous, and strictly audited before byt
 
 Audit records are append-only and correlated to the originating request. Privacy-safe logging and
 export validation keep prompts, credentials, direct student identifiers, and submitted answer text
-out of operational logs and research datasets.
+out of operational logs and the minimal technical export. Separately authorised study-operational
+exports can include selected response/code/episode or AI text only with exact purpose/field/consent
+grants, source-bound redaction approval and revalidation. Coded instrument exports exclude raw
+instrument text. See [the versioned export dictionary](research-export-schema.md).
+
+Research activation requires deployment opt-in plus a current exact study release, approved plans
+and instruments, consent and grants. Synthetic forms or a successful CI run do not activate a study.
+Restricted instrument-text disposal has an explicit inventory/authority/hold-checked workflow; other
+record classes remain subject to an approved retention plan and may need class-specific work.
 
 ## Deployment boundary
 
@@ -175,4 +209,5 @@ production adapter/credential configuration without calling an LLM.
 
 The committed OpenAPI document and generated frontend contracts are checked for drift. Requirement
 coverage and any externally measured acceptance evidence are tracked in
-[requirements-traceability.md](requirements-traceability.md).
+[the current requirement matrix](../../docs/learnlens/implementation-gap-matrix.md);
+[requirements-traceability.md](requirements-traceability.md) retains its earlier scope.

@@ -32,6 +32,20 @@ The migration/readiness head is `20260911_0055`. The [current requirement matrix
 
 ## Next software work, in order
 
+**Local repair progress, 12 September:** checkpoint and transfer responses now
+preserve each request's input and evidence in one transaction; affected checks
+and independent review pass. The preference document-exit cancellation repair
+passes nine affected unit checks and seven distinct focused WebKit cases, with
+strict error assertions retained. Installed-package smoke verification and four
+existing teammate guides are also complete locally. These changes await final
+integration and combined CI. Task 38 performance investigation is active. A
+paired feedback-view diagnostic reduced commits from 115 to 65 and total time
+from 10.203 to 9.078 seconds, with 200/200 successful requests and equal retained
+records in both arms; this does not establish full-journey capacity. The
+[integration receipt](docs/learnlens/integration-verification-2026-09-11.md)
+records exact test scope and limitations. This candidate work does not change
+the 11-task acceptance count.
+
 1. **Task 38 — resolve measured contention and continuation load.** Pushed `2b9c951` omits an unused continuation learner-model view (12 focused checks) and retains earlier scoped-read repairs. Its clean 50-user campaign still had 38% journey errors and missed ordinary/formative latency targets. A private write-admission gate also gave no overall benefit and was rejected; corrected DELETE/WAL diagnostics found no overall benefit, so runtime journal settings remain unchanged. A benchmark-only hot-journal export repair preserves committed data after owned-process shutdown (32 focused checks, independent review clear). Verify any actual runtime repair with affected tests and a clean campaign; do not increase deadlines to mask failures. Approved-host comparable 5–100 scaling and billed complete-loop cost remain missing.
 2. **Task 39 — finish evidence-led browser reliability work.** Duplicate practice-panel/deadline sibling keys are fixed in `2b9c951`, with five mounted checks and one focused WebKit keyboard pass; permanent browser assertions reject orphaned panels across save/reload transitions. A private held-reload probe reproduced WebKit transport-console messages with no window error or unhandled rejection; separate positive controls validated the observers. This does not establish every CI flake cause: current CI retried WebKit complete-loop after a learner-preferences access-control message. Keep the retained context, diagnose the exact failure, and preserve runtime-error assertions. No error filter or timeout has been relaxed.
 
@@ -463,7 +477,7 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
     **Progress:** Offline tooling retains 108 DRAFT cases and blank review forms, zero approved cases and zero included system-output/rating pairs. Live moderation, signed evaluator release/import and ten-dimension human review are implemented. Current source fingerprints use the refreshed 123-entry draft manifest; historical numerical receipts and their paired manifests remain unchanged. Quality stays UNVERIFIED and advisory AI release PENDING.
 
-    **Verified:** Current draft manifest digest `35277bdb8e9dd9096ea457ed59bd4c8e87b9da79a504bd3b83c72226eae8cea2`. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
+    **Verified:** Current 127-entry draft manifest digest `f88aa8436570434cbcf1464f9a3b0c1e37714d34ec21d4c339ecf335ad7601b3`; 44 validation-tool checks pass. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
 
     **Next action:** Human/expert input: approve at least 100 cases and source bindings, record actual outputs and independent ratings, calculate agreement/fairness/error measures, and sign separate content and AI-assessment release decisions. Maintain source fingerprints; the current draft digest does not replace historical numerical or expert evidence. Configured CI and traceability for `2b9c951` are complete under Task 36.
 

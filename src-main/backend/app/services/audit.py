@@ -24,12 +24,26 @@ class AuditRecorder:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def record(self, command: AuditEventCommand) -> AuditEventReceipt:
-        existing = self._find(command.deduplication_key)
-        if existing is not None:
-            return self._replay(existing, command)
+    def lookup(self, command: AuditEventCommand) -> AuditEventReceipt | None:
+        """Check a replay without rolling back an independently owned batch."""
+        existing = self._session.scalar(
+            select(AuditEvent).where(AuditEvent.deduplication_key == command.deduplication_key)
+        )
+        return self._replay(existing, command) if existing is not None else None
 
-        record = AuditEvent(
+    def record_in_transaction(self, command: AuditEventCommand) -> AuditEventReceipt:
+        """Flush only; the caller owns commit, rollback and unique-race recovery."""
+        existing = self.lookup(command)
+        if existing is not None:
+            return existing
+        record = self._event(command)
+        self._session.add(record)
+        self._session.flush()
+        return self._receipt(record, created=True)
+
+    @staticmethod
+    def _event(command: AuditEventCommand) -> AuditEvent:
+        return AuditEvent(
             actor_reference=command.actor_reference,
             action=command.action,
             outcome=command.outcome,
@@ -40,6 +54,13 @@ class AuditRecorder:
             failure_category=command.failure_category,
             deduplication_key=command.deduplication_key,
         )
+
+    def record(self, command: AuditEventCommand) -> AuditEventReceipt:
+        existing = self._find(command.deduplication_key)
+        if existing is not None:
+            return self._replay(existing, command)
+
+        record = self._event(command)
         self._session.add(record)
         try:
             self._session.commit()

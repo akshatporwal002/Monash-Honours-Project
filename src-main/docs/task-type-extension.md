@@ -1,7 +1,9 @@
 # Task-type extension interface
 
-`backend/app/services/task_types.py` is the single extension boundary for deterministic LMS task
-scaffolding and marking. Each implementation satisfies `TaskTypeHandler`:
+`backend/app/services/task_types.py` is the registry boundary for deterministic practice-task
+scaffolding and marking. Typed episode capture, generated source binding and formal assessment
+criteria have additional contracts; a registry handler alone does not implement those paths.
+Each registry implementation satisfies `TaskTypeHandler`:
 
 ```python
 class TaskTypeHandler(Protocol):
@@ -14,9 +16,10 @@ class TaskTypeHandler(Protocol):
     ) -> bool: ...
 ```
 
-The registry owns dispatch. `LmsService` asks the registry to scaffold and mark a task; it does
-not branch on individual task types. Consequently, adding a handler does not require changes to
-the six existing handler implementations.
+The registry owns handler dispatch. Existing handlers need not change when another handler is
+registered. `LmsService` also enforces type-specific draft/submission and episode rules. Formal
+assessment uses approved criterion evaluators and a versioned pass rule; a practice handler
+returning `True` cannot confirm a formal result.
 
 ## Demonstration: add `true_false`
 
@@ -63,8 +66,12 @@ duplicate identifier is rejected instead of silently replacing production behavi
 1. Implement `TaskTypeHandler` in a new module.
 2. Build the default registry, then call `register(identifier, handler)` during application
    composition.
-3. Add the new identifier to the API/persistence allow-list and add its UI renderer.
-4. Add an independent test for a correct response, an incorrect response, and malformed input.
+3. Add the identifier to the API/persistence allow-list, typed definition/response validation,
+   source-grounded generation and private/public projections, and an accessible UI renderer.
+4. Define its assessment evidence contract where applicable; retain human review for semantic
+   claims and keep expected answers/private anchors out of learner projections.
+5. Cover draft/save/reload/revision, malformed input, source/version freeze, authorisation and
+   evaluation. A new formal form requires explicit approval, not just handler registration.
 
 Aliases can be registered with `register(..., aliases=(...))`. The MVP uses aliases only to read
 the early `quiz`, `code`, and `circuit` identifiers; new work should use stable, descriptive
@@ -82,4 +89,24 @@ assessment criteria. No handler, engine, migration or renderer change is require
 `tests/test_conditional_programming.py` checks isolated course creation, marking,
 publication controls, frozen episode/revision evidence and assessment reuse.
 These synthetic checks do not approve the module's sources or verify the D-11
-effort target. Full model/adaptation integration and independent verification remain open.
+effort target. The integrated test now traverses both practice tasks, local feedback, durable
+continuation, model snapshots, adaptation choices and assessed fresh transfer. Actual approved
+module content, independent observation and measured per-contributor effort remain outstanding;
+[the current integration receipt](../../docs/learnlens/integration-verification-2026-09-11.md)
+identifies the source-specific CI evidence.
+
+## Runtime types and permitted staging
+
+`TaskType` includes matching, sequencing, prediction, reasoning, explanation, revision, reflection,
+transfer, multiple choice, multiple answer, short answer, code explanation, code completion and
+quantum circuit. Matching/sequencing use canonical structured definitions and responses. Episode
+handlers retain typed evidence for criterion review; their refusal to guess correctness is not
+an automatic INCOMPLETE result. Legacy code-fragment/keyword/gate-presence practice checks do not
+prove program semantics, explanations or quantum state properties.
+
+PD4 explicitly permits staged extension contracts. `state_comparison`, `diagnosis`,
+`probability_interpretation`, `part_complete` and standalone `confidence` remain unregistered
+runtime types. Their proposed authoring/response/evaluator boundaries are recorded in
+[the staging table](../../docs/learnlens/multipart-generation-candidates.md#pd4-staging-and-extension-contracts)
+and the current matrix. Related evidence inside an episode does not make those standalone forms
+implemented. FR9's required runtime types do not inherit that staging exemption.

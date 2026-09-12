@@ -765,6 +765,7 @@ class LmsService:
         task = self._require_student_task(student, task_id)
         return task, self._task_read(task, student)
 
+    @validation_read_scope
     def start_assessment_work(
         self, student: User, task_id: str, expected_form_id: str
     ) -> DraftRead:
@@ -789,6 +790,15 @@ class LmsService:
         task_id: str,
         payload: DraftWrite,
     ) -> DraftRead:
+        draft = self._save_draft_in_transaction(student, task_id, payload)
+        self._commit()
+        self.session.refresh(draft)
+        return DraftRead.model_validate(draft)
+
+    def _save_draft_in_transaction(
+        self, student: User, task_id: str, payload: DraftWrite
+    ) -> SubmissionDraft:
+        """Keep the sequence lock through any evidence captured from this input."""
         self._acquire_submission_sequence_lock(student.id)
         task = self._require_student_task(student, task_id)
         self._require_unlocked(student, task)
@@ -820,9 +830,7 @@ class LmsService:
             {},
         )
         self._audit(student, "draft.saved", "task", task.id)
-        self._commit()
-        self.session.refresh(draft)
-        return DraftRead.model_validate(draft)
+        return draft
 
     def episode_state(self, student: User, task_id: str) -> dict | None:
         task = self._require_student_task(student, task_id, require_available=False)
@@ -875,13 +883,7 @@ class LmsService:
         part_id: str,
         stage_start_id: str | None,
     ) -> dict:
-        self.save_draft(student, task_id, payload)
-        self._acquire_submission_sequence_lock(student.id)
-        draft = self.session.scalar(
-            select(SubmissionDraft).where(
-                SubmissionDraft.student_id == student.id, SubmissionDraft.task_id == task_id
-            )
-        )
+        draft = self._save_draft_in_transaction(student, task_id, payload)
         checkpoint = EpisodeService(self.session).checkpoint(
             draft, part_id=part_id, stage_start_id=stage_start_id
         )
@@ -922,13 +924,7 @@ class LmsService:
         }
 
     def episode_transfer(self, student: User, task_id: str, payload: DraftWrite) -> dict:
-        self.save_draft(student, task_id, payload)
-        self._acquire_submission_sequence_lock(student.id)
-        draft = self.session.scalar(
-            select(SubmissionDraft).where(
-                SubmissionDraft.student_id == student.id, SubmissionDraft.task_id == task_id
-            )
-        )
+        draft = self._save_draft_in_transaction(student, task_id, payload)
         EpisodeService(self.session).start_transfer(draft)
         self._commit()
         return EpisodeService(self.session).state(draft)

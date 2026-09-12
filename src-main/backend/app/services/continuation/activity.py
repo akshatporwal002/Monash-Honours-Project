@@ -147,8 +147,12 @@ class ObservationBuilder(DeterministicLearnerModelBuilder):
         )
 
 
-def lock_claim(session, request, now):
+def lock_claim(session, request, now, *, progress_recorded=False):
     """Take the SQLite writer lock and fence all side effects before reading inputs."""
+    observed_at = now()
+    values = {"execution_token": ContinuationJob.execution_token}
+    if progress_recorded:
+        values.update(progress_recorded=True, updated_at=observed_at)
     result = session.execute(
         update(ContinuationJob)
         .where(
@@ -156,9 +160,9 @@ def lock_claim(session, request, now):
             ContinuationJob.execution_token == request.execution_token,
             ContinuationJob.execution_token.is_not(None),
             ContinuationJob.state == ContinuationState.RUNNING,
-            ContinuationJob.lease_expires_at > now(),
+            ContinuationJob.lease_expires_at > observed_at,
         )
-        .values(execution_token=ContinuationJob.execution_token)
+        .values(**values)
     )
     if result.rowcount != 1:
         raise RuntimeError("Continuation claim expired or was replaced")
@@ -341,7 +345,9 @@ class ApprovedActivityAdapter:
                     )
                 )
                 session.flush()
-                lock_claim(session, request, self.now)
+                # The worker acknowledgement belongs to the same durable model
+                # receipt; use the existing final fence rather than another commit.
+                lock_claim(session, request, self.now, progress_recorded=True)
                 session.commit()
             except Exception:
                 session.rollback()

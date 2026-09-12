@@ -81,6 +81,14 @@ class LearningEventRecorder:
         self._uuid_factory = uuid_factory
 
     def record(self, command: LearningEventCommand) -> LearningEventRecordResult:
+        write = self.prepare(command)
+        # Never reuse the caller's request-scoped session: analytics persistence must
+        # neither commit nor roll back the primary student transaction.
+        with self._session_factory() as session:
+            return SqlAlchemyLearningEventRepository(session).record(write)
+
+    def prepare(self, command: LearningEventCommand) -> LearningEventWrite:
+        """Validate and pseudonymize an event before its owning transaction."""
         actor_reference = _external_id(command.actor_reference, "actor reference")
         course_id = _external_id(command.course_id, "course ID")
         task_id = _external_id(command.task_id, "task ID")
@@ -105,7 +113,7 @@ class LearningEventRecorder:
         else:
             occurred_at = occurred_at.astimezone(timezone.utc)
 
-        write = LearningEventWrite(
+        return LearningEventWrite(
             id=_uuid(self._uuid_factory(), "learning event ID"),
             pseudonymous_user_id=pseudonym,
             course_id=course_id,
@@ -121,10 +129,6 @@ class LearningEventRecorder:
                 client_event_id,
             ),
         )
-        # Never reuse the caller's request-scoped session: analytics persistence must
-        # neither commit nor roll back the primary student transaction.
-        with self._session_factory() as session:
-            return SqlAlchemyLearningEventRepository(session).record(write)
 
 
 class BestEffortLearningEventSink:

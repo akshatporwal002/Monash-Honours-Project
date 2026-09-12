@@ -50,6 +50,18 @@ jobs:
         working-directory: src-main/backend
         run: uv run --frozen ruff format --check .
 
+      - name: Verify noneditable release package
+        working-directory: src-main/backend
+        run: |
+          package_dir="$(mktemp -d "$PWD/.tmp-package.XXXXXX")"
+          UV_PROJECT_ENVIRONMENT="$package_dir/venv" uv sync --frozen --no-dev --extra quantum --no-editable
+          package_python="$package_dir/venv/bin/python"
+          installed_dir="$("$package_python" -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          mkdir "$package_dir/runtime"
+          cp alembic.ini "$package_dir/runtime/"
+          cp -R migrations scripts "$package_dir/runtime/"
+          "$package_python" ../scripts/verify_installed_package.py --installed "$installed_dir" --runtime "$package_dir/runtime"
+
       - name: Backend tests including migrations
         working-directory: src-main/backend
         env:
@@ -139,6 +151,7 @@ jobs:
           path: |
             src-main/frontend/test-results/**/error-context.md
             src-main/frontend/test-results/**/test-failed-*.png
+            src-main/frontend/test-results/**/browser-diagnostics.json
           if-no-files-found: ignore
           retention-days: 7
 

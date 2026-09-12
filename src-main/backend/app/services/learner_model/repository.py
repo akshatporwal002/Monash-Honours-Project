@@ -489,27 +489,43 @@ class SqlAlchemyLearnerModelRepository:
                 )
                 .order_by(LearnerModelSnapshotModel.record_version)
             ).all()
-            estimates = self._session.scalars(
-                select(LearnerOutcomeEstimateModel)
+            # Hydration needs only the evidence identity and scope, not its full
+            # timeline metadata. Outer joins keep missing links/evidence visible
+            # to the fail-closed checks below instead of silently dropping them.
+            estimate_rows = self._session.execute(
+                select(
+                    LearnerOutcomeEstimateModel,
+                    LearnerModelEvidenceLinkModel.evidence_id,
+                    LearnerModelEvidenceLinkModel.relation,
+                    LearningEvidence.id,
+                    LearningEvidence.course_id,
+                    LearningEvidence.learner_id,
+                    LearningEvidence.outcome_id,
+                    # Retain typed decoding of damaged persisted metadata even
+                    # though these fields are not included in the public view.
+                    LearningEvidence.evidence_type,
+                    LearningEvidence.provenance,
+                    LearningEvidence.observation_type,
+                    LearningEvidence.access_support_state,
+                    LearningEvidence.occurred_at,
+                    LearningEvidence.created_at,
+                    LearnerModelEvidenceLinkModel.created_at,
+                )
+                .select_from(LearnerOutcomeEstimateModel)
+                .outerjoin(
+                    LearnerModelEvidenceLinkModel,
+                    LearnerModelEvidenceLinkModel.estimate_id == LearnerOutcomeEstimateModel.id,
+                )
+                .outerjoin(
+                    LearningEvidence,
+                    LearningEvidence.id == LearnerModelEvidenceLinkModel.evidence_id,
+                )
                 .where(LearnerOutcomeEstimateModel.snapshot_id.in_(snapshot_ids))
                 .order_by(
                     LearnerOutcomeEstimateModel.snapshot_id,
                     LearnerOutcomeEstimateModel.dimension,
                     LearnerOutcomeEstimateModel.id,
-                )
-            ).all()
-            estimate_ids = [estimate.id for estimate in estimates]
-            links = self._session.scalars(
-                select(LearnerModelEvidenceLinkModel)
-                .where(LearnerModelEvidenceLinkModel.estimate_id.in_(estimate_ids))
-                .order_by(
-                    LearnerModelEvidenceLinkModel.estimate_id,
                     LearnerModelEvidenceLinkModel.evidence_id,
-                )
-            ).all()
-            evidence = self._session.scalars(
-                select(LearningEvidence).where(
-                    LearningEvidence.id.in_([link.evidence_id for link in links])
                 )
             ).all()
         except SQLAlchemyError:
@@ -523,25 +539,32 @@ class SqlAlchemyLearnerModelRepository:
                     "stored learner-model predecessor chain is inconsistent"
                 )
 
-        evidence_by_id = {item.id: item for item in evidence}
         snapshots_by_id = {item.id: item for item in snapshots}
-        estimate_snapshots = {estimate.id: estimate.snapshot_id for estimate in estimates}
-
+        estimates_by_id = {}
         links_by_estimate: dict[str, list[tuple[str, EvidenceLinkRelation]]] = {}
-        for link in links:
-            snapshot = snapshots_by_id[estimate_snapshots[link.estimate_id]]
-            linked_evidence = evidence_by_id.get(link.evidence_id)
-            if linked_evidence is None or (
-                linked_evidence.course_id,
-                linked_evidence.learner_id,
-                linked_evidence.outcome_id,
+        for (
+            estimate,
+            evidence_id,
+            relation,
+            stored_id,
+            course_id,
+            learner_id,
+            outcome_id,
+            *_validated_metadata,
+        ) in estimate_rows:
+            estimates_by_id[estimate.id] = estimate
+            if evidence_id is None:
+                continue
+            snapshot = snapshots_by_id[estimate.snapshot_id]
+            if stored_id is None or (
+                course_id,
+                learner_id,
+                outcome_id,
             ) != (snapshot.course_id, snapshot.learner_id, snapshot.outcome_id):
                 raise LearnerModelSafetyError("stored learner-model evidence link is out of scope")
-            links_by_estimate.setdefault(link.estimate_id, []).append(
-                (link.evidence_id, link.relation)
-            )
+            links_by_estimate.setdefault(estimate.id, []).append((evidence_id, relation))
         estimates_by_snapshot: dict[str, list[LearnerOutcomeEstimateView]] = {}
-        for estimate in estimates:
+        for estimate in estimates_by_id.values():
             estimate_links = tuple(links_by_estimate.get(estimate.id, ()))
             if not estimate_links or not 0 <= estimate.uncertainty <= 1:
                 raise LearnerModelSafetyError("stored learner-model estimate is incomplete")

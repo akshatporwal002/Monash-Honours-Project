@@ -441,6 +441,9 @@ class SqlAlchemyTerminalIntegrationRepository:
                 )
                 .values(**values)
             )
+            if result.rowcount != 1:
+                self._session.rollback()
+                return False
             self._session.commit()
         except SQLAlchemyError:
             self._session.rollback()

@@ -22,24 +22,43 @@ class SqlAlchemyLearningEventRepository:
     def __init__(self, session: Session) -> None:
         self._session = session
 
+    def lookup(self, write: LearningEventWrite) -> LearningEventRecordResult | None:
+        """Check a replay without owning or closing the caller's transaction."""
+        existing = self._by_deduplication_key(write.deduplication_key)
+        return self._replay(existing, write) if existing is not None else None
+
+    def record_in_transaction(self, write: LearningEventWrite) -> LearningEventRecordResult:
+        """Flush only; the caller owns commit, rollback and unique-race recovery."""
+        existing = self.lookup(write)
+        if existing is not None:
+            return existing
+        event = self._event(write)
+        self._session.add(event)
+        self._session.flush()
+        return LearningEventRecordResult(receipt=self._receipt(event), created=True)
+
+    @staticmethod
+    def _event(write: LearningEventWrite) -> LearningEvent:
+        return LearningEvent(
+            id=write.id,
+            pseudonymous_user_id=write.pseudonymous_user_id,
+            course_id=write.course_id,
+            task_id=write.task_id,
+            event_type=write.event_type,
+            occurred_at=write.occurred_at,
+            correlation_id=write.correlation_id,
+            workflow_reference=write.workflow_reference,
+            metadata_payload=write.metadata,
+            deduplication_key=write.deduplication_key,
+        )
+
     def record(self, write: LearningEventWrite) -> LearningEventRecordResult:
         try:
             existing = self._by_deduplication_key(write.deduplication_key)
             if existing is not None:
                 return self._replay(existing, write)
 
-            event = LearningEvent(
-                id=write.id,
-                pseudonymous_user_id=write.pseudonymous_user_id,
-                course_id=write.course_id,
-                task_id=write.task_id,
-                event_type=write.event_type,
-                occurred_at=write.occurred_at,
-                correlation_id=write.correlation_id,
-                workflow_reference=write.workflow_reference,
-                metadata_payload=write.metadata,
-                deduplication_key=write.deduplication_key,
-            )
+            event = self._event(write)
             self._session.add(event)
             try:
                 self._session.commit()

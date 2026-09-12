@@ -87,8 +87,9 @@ def _validate_claim(claim: ContinuationClaim) -> None:
 class SqlAlchemyContinuationRepository:
     """SQLite-safe durable continuation jobs with token-fenced mutations."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, caller_transaction: bool = False) -> None:
         self._session = session
+        self._caller_transaction = caller_transaction
 
     def ensure_pending(self, notice: TerminalFeedbackNotice) -> ContinuationRecord:
         _validate_notice(notice)
@@ -115,9 +116,16 @@ class SqlAlchemyContinuationRepository:
         )
         self._session.add(job)
         try:
-            self._session.commit()
+            if self._caller_transaction:
+                self._session.flush()
+            else:
+                self._session.commit()
         except IntegrityError:
             self._session.rollback()
+            if self._caller_transaction:
+                # The caller's pending acknowledgement was rolled back too.
+                # Let its durable claim retry the complete handoff.
+                raise ContinuationPersistenceError("continuation job could not be stored") from None
             winner = self._get_job(notice.workflow_run_id)
             if winner is None:
                 raise ContinuationPersistenceError("continuation job could not be stored") from None
@@ -277,6 +285,25 @@ class SqlAlchemyContinuationRepository:
 
     def mark_progress_recorded(self, claim: ContinuationClaim) -> bool:
         _validate_claim(claim)
+        try:
+            recorded = self._session.scalar(
+                select(ContinuationJob.workflow_run_id).where(
+                    ContinuationJob.workflow_run_id == claim.workflow_run_id,
+                    ContinuationJob.state == ContinuationState.RUNNING,
+                    ContinuationJob.execution_token == claim.execution_token,
+                    ContinuationJob.processing_attempts == claim.processing_attempts,
+                    ContinuationJob.progress_recorded.is_(True),
+                )
+            )
+        except SQLAlchemyError:
+            self._session.rollback()
+            raise ContinuationPersistenceError("continuation job could not be updated") from None
+        if recorded is not None:
+            # The shipped adapter records this flag with its fenced progress
+            # receipt. Generic adapters still use the durable update below.
+            # Release this read before the independent recommendation session.
+            self._session.rollback()
+            return True
         return self._fenced_update(
             claim,
             {

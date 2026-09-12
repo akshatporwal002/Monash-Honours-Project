@@ -22,13 +22,36 @@ export function LearnerPreferences({ onSaved }: { onSaved?: (value: ApiSchemas['
   useEffect(() => { onSavedRef.current = onSaved }, [onSaved])
   useEffect(() => {
     const controller = new AbortController()
-    Promise.resolve().then(() => api.student.preferences(controller.signal)).then(value => {
+    let loaded = false
+    let resumeLoad = false
+    const depart = () => {
+      resumeLoad = !loaded
+      controller.abort()
+    }
+    const restore = (event: PageTransitionEvent) => {
+      // A cached document keeps its React tree. Resume only an interrupted load
+      // so returning to a loaded editor cannot overwrite an unsaved draft.
+      if (event.persisted && resumeLoad) {
+        resumeLoad = false
+        setReload(value => value + 1)
+      }
+    }
+    window.addEventListener('pagehide', depart)
+    window.addEventListener('pageshow', restore)
+    Promise.resolve().then(() => {
+      if (!controller.signal.aborted) return api.student.preferences(controller.signal)
+    }).then(value => {
       if (controller.signal.aborted) return
       if (typeof value?.version !== 'number' || !value.values) throw new Error('Invalid preference response')
+      loaded = true
       setSaved(value); setDraft(value.values); setMessage(`Saved preferences loaded. Version ${value.version}.`)
       onSavedRef.current?.(value)
     }).catch(() => { if (!controller.signal.aborted) setMessage('Preferences could not be loaded. Try loading again.') })
-    return () => controller.abort()
+    return () => {
+      window.removeEventListener('pagehide', depart)
+      window.removeEventListener('pageshow', restore)
+      controller.abort()
+    }
   }, [reload])
 
   const update = <K extends keyof PreferenceValues>(key: K, value: PreferenceValues[K]) => {
