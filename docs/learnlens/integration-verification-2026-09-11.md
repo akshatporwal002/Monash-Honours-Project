@@ -2,7 +2,7 @@
 
 Updated with additional verification on 12 September 2026.
 
-**Current runtime source: `2b9c95140d35fa0bea9575f1044a1f67d65f1323`, pushed to
+**Current runtime source: `67b6c92166793f96b56ef364c89b08bd483e2030`, pushed to
 main.** The newest combined-source and capacity results are recorded at the end
 of this receipt. Earlier sections retain their original source and execution
 scope; references there to pending work are historical snapshots.
@@ -774,3 +774,59 @@ The 44 existing validation-tool checks pass. All 108 cases remain drafts, with
 zero approved cases or included rating pairs, quality UNVERIFIED and AI release
 PENDING. Historical numerical evidence keeps its original source and digest;
 it was not rerun or rebound to this candidate. The 143-row matrix is valid.
+
+
+## Published 67b6c92 — combined CI and bounded corrections
+
+The candidate sections above were published in `67b6c92166793f96b56ef364c89b08bd483e2030`.
+Their references to local candidates and pending CI are historical. [CI run
+34687133232](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34687133232)
+finished with frontend/dependency success and backend/secret-job failures:
+
+| Scope | Recorded result |
+| --- | --- |
+| Backend job 103535963625 | 2,122 passed, two failed, one warning; 1,494.41 seconds (24:54); 90.22% service coverage, above the unchanged 80% gate. |
+| Backend correction | Both failures were obsolete ninth positional arguments in the feedback-read variants of `test_feedback_route_contention.py`. The test now names `view_events` and `security`; security rejection and event-loop release assertions remain. All five cases pass in 1.32 seconds. Scoped lint/format and the two contract checks skipped by CI also pass. |
+| Frontend job 103535963451 | 400 unit tests/98 files; 136 ordinary browser checks (9.1 minutes), four complete learning loops (1.7 minutes) and four misconception journeys (39.5 seconds), all first attempt. Lint/type/build pass. |
+| Installed package | Production-only noneditable installation passed: 325 application modules, both console entries and 60 migrations, head `20260911_0055`. No source-checkout fallback, container or approved-host claim. |
+| Dependencies | Job 103535963548 succeeded. |
+| Secret scan and correction | Job 103535963552 found one ordinary-prose false positive. Only its exact historical fingerprint is excluded and the current prose is reworded. The pinned local gate passes: 305 text commits / 404 reachable, zero history findings and one unchanged expected positive-control finding. The [scanner receipt](secret-scan-gate-2026-09-10.md) retains artifact identity and scope. |
+
+The two repaired cases account for all 2,124 backend case identities across
+CI and the focused correction. This is not a fresh complete-suite pass, and the
+hosted run is retained as failed. No unchanged frontend or full backend suite
+was repeated just for the test-call and prose corrections.
+
+## Clean 67b6c92 load campaign and remaining engineering
+
+The campaign used one warmup and one measured round of 50 synthetic users,
+with peak concurrency 50 in both. Measurement reached **45 awaiting human,
+five request timeouts and zero continuation timeouts**. Journey errors were
+10%; HTTP errors were 5/7,360. Ordinary p95 was 4.4337269 seconds (331 observed,
+two censored), progress 1.5165027 seconds (93), formative feedback 35.7989416
+seconds (45) and assessed response 74.6502288 seconds (90). Ordinary and
+formative targets still fail. Stage metrics are conditional on reaching them.
+
+Warmup retained 21 awaiting human, 18 continuation timeouts, four feedback
+timeouts, six request timeouts and one interrupted simulation. Export and
+owned-process cleanup succeeded. All ten campaigns and raw-receipt hashes
+remain in the [capacity record](task-38-local-capacity-20260911.md). Zero actual
+human confirmations or external provider invoices were generated.
+
+The five measurement timeouts occurred before a submission/workflow existed:
+two task reads, one start, one help and one simulation. A separate 50-actor
+startup diagnostic identified waiting for the first learning-event INSERT as
+the dominant task-read delay. Two extra validation scopes reduced reads but
+made the matched 250-request workload slower (14.969 to 16.157 seconds); they
+were rejected and kept private. One equal-scope private FIFO admission probe
+reduced that workload to 13.859 seconds and task-read p95 from 14.468 to 4.000
+seconds, preserving all table counts. Both arms included the extra scopes, so
+this is not a gate-only comparison against published 67b6c92. Global async,
+ownership, SQL-coverage and cleanup hazards remain; no gate was shipped and no
+full-capacity result is inferred. Runtime journal settings remain unchanged.
+
+The task count remains **30 completed, 10 partial, one remaining**. Task 38
+retains active engineering. Task 39's identified browser repair now passes
+combined CI; its remaining acceptance needs actual native-browser, assistive-
+technology and first-time-user observations. Other open tasks retain their
+named human/content/provider/host inputs; no approval or rating is fabricated.

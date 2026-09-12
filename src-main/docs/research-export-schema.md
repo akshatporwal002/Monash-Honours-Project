@@ -84,9 +84,10 @@ record kind, coded missingness and operational `missing_reason` rather than trea
 
 ## Governed operational evidence and text
 
-The full-study route can select evidence, model/source references, adaptations/overrides, AI and
-judge output, simulation, latency/tokens, reserved/exposure/estimated/actual cost, outcome and
-moderation fields from `OperationalField`. A field projects an object containing `value`,
+The full-study route can select evidence, model and source references, adaptations, overrides,
+AI and judge output, simulation, latency, token counts, outcomes and moderation fields from
+`OperationalField`. Cost fields include reserved, exposure, estimated and actual amounts.
+A field projects an object containing `value`,
 `missing_reason`, `source_digest`, `source_references` and `adapter_version`. An absent actual-cost
 record remains null with missingness; an estimate is not billed cost.
 

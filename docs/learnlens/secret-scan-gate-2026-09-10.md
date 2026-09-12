@@ -199,3 +199,30 @@ introduced only in merge resolutions are not separately scanned. A clean heurist
 scan does not establish that every possible credential format is absent.
 Fingerprint semantics and commit counting must be rechecked when upgrading the
 pinned scanner. The hosted Ubuntu job itself has not been run in this local task.
+
+## 2026-09-12 export-document prose finding
+
+CI run `34687133232`, secret-scan job `103535963552`, at source
+`67b6c92166793f96b56ef364c89b08bd483e2030` scanned 299 text-bearing commits and
+reported exactly one finding. Redacted artifact `10296092405` has SHA-256
+`d16516d4e1aaa790bee5e65e157df5eda74b43259636b981918ddd174bb55aff`.
+The finding is `generic-api-key` at line 88 of
+`src-main/docs/research-export-schema.md`. That line lists export categories and
+slash-separated cost-field names following token-count wording. It contains no
+credential assignment, issued secret or authentication value.
+
+Only that exact commit/path/rule/line fingerprint is excluded after source review.
+The current sentence uses ordinary prose punctuation while preserving every
+export category. Rewording alone cannot clear the already-reachable historical
+finding. Default rules, full-history traversal, commit-count verification and
+the positive-control detection/redaction checks remain unchanged. The failed CI
+receipt remains historical evidence; the corrected local gate is a separate
+verification, avoiding another application suite for a documentation-only change.
+
+With the reviewed exception in the working tree at `67b6c92`, the local pinned
+gate passed over **305 text-bearing commits** out of **404 reachable commits**,
+processing **21,886,879 bytes**, with zero history findings. The unchanged
+positive control produced exactly one expected redacted finding. The local
+scanner count matches its independently enumerated Git history; CI fetched a
+smaller ref inventory. This local correction does not rewrite the failed hosted
+job as a pass. Its redacted reports remain in ignored scratch storage.

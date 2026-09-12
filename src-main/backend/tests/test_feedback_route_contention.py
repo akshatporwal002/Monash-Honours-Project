@@ -113,12 +113,11 @@ def test_database_wait_leaves_api_loop_available_to_release_writer(tmp_path, mon
                 "submission-1",
                 request,
                 response,
-                AuthenticatedActor(actor_reference="1", role="student"),
-                Policy(),
-                Application(),
-                None,
-                None,
-                Security(),
+                actor=AuthenticatedActor(actor_reference="1", role="student"),
+                policy=Policy(),
+                application=Application(),
+                view_events=None,
+                security=Security(),
             )
             assert result.status is FeedbackWorkflowStatus.PROCESSING
             assert response.headers["Retry-After"] == "2"
@@ -160,12 +159,11 @@ def test_security_rejection_never_starts_request_session_work(monkeypatch, route
                     "submission-1",
                     request,
                     Response(),
-                    AuthenticatedActor(actor_reference="1", role="student"),
-                    None,
-                    None,
-                    None,
-                    None,
-                    Security(),
+                    actor=AuthenticatedActor(actor_reference="1", role="student"),
+                    policy=None,
+                    application=None,
+                    view_events=None,
+                    security=Security(),
                 )
             else:
                 await activity_continuation.action(

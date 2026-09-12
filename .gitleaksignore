@@ -21,3 +21,7 @@ d8ba5ac760ccc1815462a2e88cdb4dfb623fc380:src-main/backend/tests/test_assessment_
 # Reviewed 2026-09-11: ordinary cost-evidence prose; the generic token heuristic
 # matched three slash-separated documentation nouns, not an authentication value.
 c71e9bff6bcaf0dbb0c2f0357aaaa9c524d784ae:docs/learnlens/task-38-local-capacity-20260911.md:generic-api-key:133
+
+# Reviewed 2026-09-12: export-category prose listing token counts and cost fields;
+# slash-separated documentation nouns, with no credential or authentication value.
+67b6c92166793f96b56ef364c89b08bd483e2030:src-main/docs/research-export-schema.md:generic-api-key:88

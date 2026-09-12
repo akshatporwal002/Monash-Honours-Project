@@ -1,10 +1,15 @@
 # Task 38 local capacity and recovery receipt
 
+Latest clean campaign: `67b6c92`, 12 September 2026. **45/50 journeys reached
+human assessment; five timed out.** Journey errors fell from the previous
+campaign's 38% to 10%, but ordinary and formative latency targets still fail.
+The latest section below and machine-readable receipt preserve the full scope.
+
 These are unpaid synthetic loopback measurements. They do not establish hosted
 capacity, external-provider performance, human assessment results or cost per
 human-confirmed learning loop. The 50-user campaigns failed. Original raw
-reports remain preserved in ignored scratch storage; the latest export required
-explicitly recorded postprocessing recovery. Sanitized metrics
+reports remain preserved in ignored scratch storage. Earlier exports that required
+postprocessing recovery retain that scope; the latest export completed normally. Sanitized metrics
 and SHA-256 digests are retained in
 [the machine-readable receipt](task-38-local-capacity-20260911.json).
 
@@ -450,3 +455,56 @@ SHA-256 hashes are:
 - Usage export: `013095bd3d27825b9ebd5c37b28684767e9ed8613606cdc2f7462231d404aa3b`
 - Recovered stopped snapshot: `ac2a8fb388543a10053dda41fa814321798fa4320352083c7fe7dbfb60992981`
 - Original measurement harness: `951d3cd08c5c9d62faf1e16e9525a13673a4fd67c69e33eebf162a4c9567eb75`
+
+## Clean 50-user campaign on `67b6c92` — 12 September
+
+Source `67b6c92166793f96b56ef364c89b08bd483e2030`, branch main, was clean at
+campaign start (`2026-09-12T19:57:06.003859+10:00`). The existing unpaid local
+profile, one warm-up round, one measurement round, 30-second request bound,
+90-second feedback/continuation bound and 600-second phase bound were retained.
+There were 100 planned journeys and 11,914 HTTP attempts across both phases.
+Warm-up took 221.557 seconds and measurement 290.821 seconds, each peaking at
+50 active journeys. No competing local test workload ran during the campaign.
+
+The measured round reached human assessment in **45/50 journeys**, with **five
+request timeouts** and no continuation timeout. Journey errors were **10%**,
+down from the preceding clean campaign's 38%, but still above the required
+exclusive 1% threshold. HTTP errors were separately **5/7,360 (0.0679%)**.
+All five timed-out journeys were on their first task before submission: two
+task reads, one work start, one help request and one simulation request. This
+identifies the failing steps without establishing the underlying contention cause.
+
+| Metric | Observations | Measured p95 | Errors / censored | Target |
+| --- | --- | --- | --- | --- |
+| Ordinary requests | 331 | 4.433727 s | 2 / 2 | 2 s; not established with censoring |
+| Progress requests | 93 | 1.516503 s | 0 / 0 | 3 s; observed target met |
+| Formative feedback | 45 | 35.798942 s | 0 / 0 | 10 s; not met |
+| Assessed feedback | 90 | 74.650229 s | 0 / 0 | No threshold defined by this report |
+
+These latency distributions are conditional on reaching their stages; the larger
+feedback sample is not directly equivalent to the preceding 31-observation
+sample. **The campaign failed overall.** No human-confirmed learning loop was
+completed, and no external billing or approved-host capacity is established.
+The warm-up outcomes remain visible: 21 awaiting human assessment, 18 continuation
+timeouts, four feedback timeouts, six request timeouts and one interrupted
+simulation. A better measured round does not erase those failures.
+
+Feedback workflows drained to zero before owned processes stopped and listeners
+closed. The stopped snapshot contains 227 feedback workflows, 180 simulation
+runs (178 completed and two interrupted outcomes), 227 terminal outboxes (203
+completed and 24 pending), and 203 completed continuation jobs, progress receipts
+and activity suggestions. These counts cover both phases; pending outboxes are
+not reported as fully drained continuation work.
+
+Usage extraction retained 454 local records: 227 generation and 227 judge
+records, split into 322 local and 132 local-deterministic records. There were no
+external provider/model observations. Actual external cost and human-confirmed
+loop cost remain null; no billing reconciliation or complete coverage is claimed.
+
+All nine earlier campaign records remain unchanged in the machine-readable
+receipt. Raw reports, rosters, logs and databases stay local. SHA-256 digests:
+
+- Report: `d17f2bc7812e9814776e6b2cca6c8df54c924b32e7cb59566fa4702d09764705`
+- Usage: `c4ece38c586ae9d7119e00250c549f8ab8eea1e02034c4ad0229f13a5d102948`
+- Stopped snapshot: `63b523f7918e5f24d070280b4eeaeb41fbacc29f2ff8f316e50c3d018181749d`
+- Harness: `a28ace7458e4dd612955b8a89f84f26f115664c1a672360b6e66456fb356964e`
