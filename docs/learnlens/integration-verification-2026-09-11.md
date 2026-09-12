@@ -830,3 +830,36 @@ retains active engineering. Task 39's identified browser repair now passes
 combined CI; its remaining acceptance needs actual native-browser, assistive-
 technology and first-time-user observations. Other open tasks retain their
 named human/content/provider/host inputs; no approval or rating is fabricated.
+
+
+## Task-view admission candidate after 197ffde
+
+The task-view-only candidate wraps the final required event and existing commit
+after unchanged authorization/projection. A file-backed SQLite engine using
+NullPool admits these writes in arrival order. Other pools/databases, active
+database transactions, pending mutations and event-loop callers retain their
+previous behavior. Queue waiting, event flush and commit share the remaining
+SQLite timeout budget; no deadline is increased. Cleanup releases the opaque
+ticket, attempts all listener removals, makes any persistent listener inert,
+restores or invalidates a still-open connection and preserves the primary error.
+No generic commit lock, SQL interception or other writer scheduling is added.
+
+Before implementation, four behavior regressions and four cleanup-fault cases
+failed. The final focused selection passed **62 cases in 62.06 seconds**, covering
+the helper, task projection, dashboard queries, core LMS API, feedback telemetry
+and route contention. Lint/format pass; two independent read-only reviews found
+no blocker. The new helper is included in mandatory validation provenance:
+**127 required paths / 128 entries**, draft digest
+`d02e626c134453dff44ea4748762b679e83c8d06e6eb8a63a884727b8090d964`.
+All 44 validation-tool checks pass in 1.61 seconds. Cases remain 108 DRAFT,
+zero approved or included pairs, quality UNVERIFIED and AI release PENDING.
+Historical numerical evidence remains unchanged.
+
+The preceding private task-view-only experiment used unchanged 67b6c92 application
+code and the same frozen fixture in both arms: 250/250 requests each, identical
+before/after table counts and 1,100 inserts / 250 updates / 300 commits. Total
+duration was 14.969 versus 14.250 seconds; task-view p95 13.609 versus 10.063
+seconds. Substantial waiting remained, including 7.750 seconds in admission.
+This one narrow comparison supports evaluation, not a throughput or full-capacity
+claim. The production candidate separately fixes pool and cleanup boundaries;
+its clean representative campaign and combined CI remain to be recorded.

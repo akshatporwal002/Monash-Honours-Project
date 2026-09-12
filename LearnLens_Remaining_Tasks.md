@@ -1,5 +1,10 @@
 # LearnLens task progress and remaining work
 
+The task-view admission change following `197ffde` has passed 62 focused cases
+and two independent reviews. Its updated draft provenance passes 44 checks.
+Combined CI and a clean 50-user campaign for that change are pending; the
+completed verification snapshot below remains scoped to `67b6c92`.
+
 Updated: **12 September 2026**. Current pushed application source is `67b6c92`. [CI run 34687133232](https://github.com/akshatporwal002/Monash-Honours-Project/actions/runs/34687133232) passed frontend and dependency jobs. Backend recorded **2,122 passes and two stale test-call failures**, with **90.22% service coverage**. Both calls are corrected and their five-case file passes locally; OpenAPI and frontend contract checks also pass. Secret scanning found one documentation false positive, now narrowly corrected and verified locally. The hosted run remains failed; these follow-up checks are separate evidence.
 
 **30 of 41 numbered implementations are delivered; 11 tasks still need software or acceptance work.** The count is **30 completed, 10 partial and one remaining**. Read each task's progress, next action, acceptance condition and evidence before starting work.
@@ -460,9 +465,9 @@ Each completed entry describes its delivered scope and names any acceptance depe
 
 35. **[Partial] Validate quantum content, feedback, and assessment against expert judgements.**
 
-    **Progress:** Offline tooling retains 108 DRAFT cases and blank review forms, zero approved cases and zero included system-output/rating pairs. Live moderation, signed evaluator release/import and ten-dimension human review are implemented. Current source fingerprints use the refreshed 127-entry draft manifest; historical numerical receipts and their paired manifests remain unchanged. Quality stays UNVERIFIED and advisory AI release PENDING.
+    **Progress:** Offline tooling retains 108 DRAFT cases and blank review forms, zero approved cases and zero included system-output/rating pairs. Live moderation, signed evaluator release/import and ten-dimension human review are implemented. Current source fingerprints use the refreshed 128-entry draft manifest; historical numerical receipts and their paired manifests remain unchanged. Quality stays UNVERIFIED and advisory AI release PENDING.
 
-    **Verified:** Current 127-entry draft manifest digest `f88aa8436570434cbcf1464f9a3b0c1e37714d34ec21d4c339ecf335ad7601b3`; 44 validation-tool checks pass. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
+    **Verified:** Current 128-entry draft manifest digest `d02e626c134453dff44ea4748762b679e83c8d06e6eb8a63a884727b8090d964`; 44 validation-tool checks pass. The historical 12-scenario numerical receipt remains bound to `3604cb3d6e8f2f10a479b2799baae9e2f22f047a73867133ac4f0daa887d921c`; its matching distributions supply no expert approval or new-source numerical execution.
 
     **Next action:** Human/expert input: approve at least 100 cases and source bindings, record actual outputs and independent ratings, calculate agreement/fairness/error measures, and sign separate content and AI-assessment release decisions. Maintain source fingerprints; the current draft digest does not replace historical numerical or expert evidence. Current configured checks and their follow-up corrections are recorded under Task 36.
 
